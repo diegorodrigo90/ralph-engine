@@ -1,4 +1,5 @@
-# GitHub Pages — deploys docs on every release tag.
+# GitHub Pages — deploys docs on every release tag using Jekyll.
+# Jekyll renders .md files as HTML automatically on GitHub Pages.
 name: Pages
 
 on:
@@ -22,28 +23,51 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Build docs site
+      - name: Prepare site structure
         run: |
           mkdir -p _site
-          # Copy root docs
+          # Jekyll config for GitHub Pages
+          cat > _site/_config.yml << 'YAML'
+          title: Ralph Engine
+          description: Autonomous AI development loop engine
+          theme: jekyll-theme-minimal
+          markdown: kramdown
+          exclude: [LICENSE, "*.txt"]
+          YAML
+
+          # Root docs
           cp README.md _site/index.md
           cp CHANGELOG.md _site/changelog.md
-          cp AGENTS.md _site/agents.md
-          test -f LICENSE && cp LICENSE _site/LICENSE || true
-          test -f llms.txt && cp llms.txt _site/llms.txt || true
-          # Copy organized docs
+
+          # Organized docs tree
           cp -r docs/ _site/docs/
+
+          # Optional files
+          test -f AGENTS.md && cp AGENTS.md _site/agents.md || true
+          test -f llms.txt && cp llms.txt _site/llms.txt || true
+          test -f LICENSE && cp LICENSE _site/LICENSE || true
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: _site
+          destination: ./_site_output
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: _site_output
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
+        id: deploy
         uses: actions/deploy-pages@v4

@@ -56,6 +56,24 @@ release:
   draft: false
   prerelease: auto
   name_template: "v{{ .Version }}"
+  extra_files:
+    - glob: CHANGELOG.md
+  header: |
+    ## Ralph Engine v{{ .Version }}
+
+    See [CHANGELOG.md](CHANGELOG.md) for full details.
+  footer: |
+    **Installation:**
+    ```bash
+    # npm
+    npm install -g ralph-engine
+    # Homebrew
+    brew install diegorodrigo90/tap/ralph-engine
+    # curl
+    curl -fsSL https://raw.githubusercontent.com/diegorodrigo90/ralph-engine/main/scripts/install.sh | bash
+    # Go
+    go install github.com/diegorodrigo90/ralph-engine/cmd/ralph-engine@latest
+    ```
 
 # Homebrew tap — auto-updates on every release.
 # Creates formula at diegorodrigo90/homebrew-tap/ralph-engine.rb
