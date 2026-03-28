@@ -207,19 +207,40 @@ func executeStep(ctx context.Context, step HookStep, projectDir string) StepResu
 }
 
 // matchesAnyPath checks if any changed file matches any of the step's path patterns.
+// Supports: exact match, single glob (*.ts), directory prefix (src/**), and suffix (**/*.graphql).
 func matchesAnyPath(changedFiles, patterns []string) bool {
 	for _, file := range changedFiles {
 		for _, pattern := range patterns {
+			// Try standard filepath.Match first (handles single-level globs).
 			if matched, _ := filepath.Match(pattern, file); matched {
 				return true
 			}
-			// Also try matching against the directory structure.
-			// filepath.Match doesn't handle ** well, so do a prefix check.
-			if strings.Contains(pattern, "**") {
-				prefix := strings.Split(pattern, "**")[0]
-				if strings.HasPrefix(file, prefix) {
-					return true
-				}
+
+			if !strings.Contains(pattern, "**") {
+				continue
+			}
+
+			// Handle ** patterns manually.
+			parts := strings.SplitN(pattern, "**", 2)
+			prefix := parts[0] // e.g., "apps/" from "apps/**"
+			suffix := ""
+			if len(parts) > 1 {
+				suffix = strings.TrimPrefix(parts[1], "/") // e.g., "*.graphql" from "**/*.graphql"
+			}
+
+			// Prefix match: "apps/**" → file must start with "apps/"
+			prefixMatch := prefix == "" || strings.HasPrefix(file, prefix)
+
+			// Suffix match: "**/*.graphql" → file must end with matching pattern
+			suffixMatch := true
+			if suffix != "" {
+				_, fileName := filepath.Split(file)
+				matched, _ := filepath.Match(suffix, fileName)
+				suffixMatch = matched
+			}
+
+			if prefixMatch && suffixMatch {
+				return true
 			}
 		}
 	}

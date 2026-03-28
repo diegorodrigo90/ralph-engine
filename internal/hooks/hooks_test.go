@@ -230,16 +230,21 @@ func TestRunPhaseCallback(t *testing.T) {
 
 func TestMatchesAnyPath(t *testing.T) {
 	tests := []struct {
-		name    string
-		changed []string
+		name     string
+		changed  []string
 		patterns []string
-		want    bool
+		want     bool
 	}{
 		{"exact match", []string{"src/index.ts"}, []string{"src/index.ts"}, true},
 		{"glob match", []string{"src/index.ts"}, []string{"src/*.ts"}, true},
 		{"double star prefix", []string{"apps/api/src/main.ts"}, []string{"apps/**"}, true},
 		{"no match", []string{"docs/readme.md"}, []string{"src/**"}, false},
 		{"multiple files one matches", []string{"docs/a.md", "src/b.ts"}, []string{"src/**"}, true},
+		{"double star suffix match", []string{"packages/graphql/schema.graphql"}, []string{"**/*.graphql"}, true},
+		{"double star suffix no match", []string{"src/index.ts"}, []string{"**/*.graphql"}, false},
+		{"double star suffix no match py", []string{"workers/scrapper-py/main.py"}, []string{"**/*.graphql"}, false},
+		{"prefix + suffix", []string{"apps/api/src/user.resolver.ts"}, []string{"apps/api/src/**/*.resolver.*"}, true},
+		{"prefix + suffix no match", []string{"apps/web/src/page.tsx"}, []string{"apps/api/src/**/*.resolver.*"}, false},
 	}
 
 	for _, tt := range tests {
