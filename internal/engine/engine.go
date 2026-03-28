@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/diegorodrigo90/ralph-engine/internal/config"
 	"github.com/diegorodrigo90/ralph-engine/internal/runner"
 	"github.com/diegorodrigo90/ralph-engine/internal/system"
 )
@@ -60,6 +61,11 @@ type EngineOpts struct {
 	DryRun            bool   // Show what would happen without calling agent
 	MaxIterations     int    // Stop after N iterations (0 = infinite)
 	SingleStory       string // Run only this story ID, then stop
+	// Config sections passed through from config.yaml for prompt building.
+	WorkflowType string                  // "bmad-v6", "basic", "tdd-strict"
+	QualityGate  string                  // "full", "standard", "minimal"
+	Paths        *config.PathsConfig     // Project artifact paths
+	Research     *config.ResearchConfig  // Research tools config
 }
 
 // Engine is the core autonomous execution loop.

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/diegorodrigo90/ralph-engine/internal/claude"
+	appcontext "github.com/diegorodrigo90/ralph-engine/internal/context"
 	"github.com/diegorodrigo90/ralph-engine/internal/state"
 	"github.com/diegorodrigo90/ralph-engine/internal/tracker"
 )
@@ -130,6 +131,22 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 			log.Printf("Warning: could not mark story in-progress: %v", err)
 		}
 
+		// Load story content from paths config or story.FilePath.
+		storyContent := e.loadStoryContent(story)
+
+		// Load prompt.md (project-specific context).
+		promptMD := appcontext.LoadPromptMD(e.opts.ProjectDir)
+
+		// Resolve workflow and quality gate from config (fallback to defaults).
+		workflowType := "basic"
+		if e.opts.WorkflowType != "" {
+			workflowType = e.opts.WorkflowType
+		}
+		qualityGate := "standard"
+		if e.opts.QualityGate != "" {
+			qualityGate = e.opts.QualityGate
+		}
+
 		prompt := BuildPrompt(PromptContext{
 			StoryID:       story.ID,
 			StoryTitle:    story.Title,
@@ -138,12 +155,21 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 			SessionNumber: sessionNum,
 			StoriesDone:   engineState.StoriesCompletedTotal,
 			StoriesTotal:  countTotal(tk),
-			WorkflowType:  "basic",
-			QualityGate:   "standard",
+			WorkflowType:  workflowType,
+			QualityGate:   qualityGate,
+			StoryContent:  storyContent,
+			PromptMD:      promptMD,
+			Research:      e.opts.Research,
 		})
 
+		// Build the user prompt — includes story title + file path if available.
+		userPrompt := fmt.Sprintf("Implement story %s: %s", story.ID, story.Title)
+		if story.FilePath != "" {
+			userPrompt += fmt.Sprintf("\n\nStory file: %s", story.FilePath)
+		}
+
 		sessionResult, err := client.Run(ctx, claude.SessionRequest{
-			Prompt:       fmt.Sprintf("Implement story %s: %s", story.ID, story.Title),
+			Prompt:       userPrompt,
 			ProjectDir:   e.opts.ProjectDir,
 			SystemPrompt: prompt,
 		}, func(event claude.StreamEvent) {
@@ -281,6 +307,16 @@ func (e *Engine) dryRun(tk tracker.TaskTracker, emit func(string, string), s *st
 		story := pending[0]
 		emit("info", "")
 		emit("info", "=== Prompt preview (first story) ===")
+
+		workflowType := "basic"
+		if e.opts.WorkflowType != "" {
+			workflowType = e.opts.WorkflowType
+		}
+		qualityGate := "standard"
+		if e.opts.QualityGate != "" {
+			qualityGate = e.opts.QualityGate
+		}
+
 		prompt := BuildPrompt(PromptContext{
 			StoryID:      story.ID,
 			StoryTitle:   story.Title,
@@ -288,8 +324,11 @@ func (e *Engine) dryRun(tk tracker.TaskTracker, emit func(string, string), s *st
 			EpicTitle:    story.EpicTitle,
 			StoriesDone:  done,
 			StoriesTotal: len(all),
-			WorkflowType: "basic",
-			QualityGate:  "standard",
+			WorkflowType: workflowType,
+			QualityGate:  qualityGate,
+			StoryContent: e.loadStoryContent(&story),
+			PromptMD:     appcontext.LoadPromptMD(e.opts.ProjectDir),
+			Research:     e.opts.Research,
 		})
 		// Show first 20 lines of prompt.
 		lines := splitLines(prompt)
@@ -389,6 +428,31 @@ func countTotal(tk tracker.TaskTracker) int {
 		return 0
 	}
 	return len(all)
+}
+
+// loadStoryContent reads the story specification file for prompt injection.
+// It tries: (1) story.FilePath from tracker, (2) search in paths.stories by ID.
+func (e *Engine) loadStoryContent(story *tracker.Story) string {
+	// Try explicit file path from tracker first.
+	if story.FilePath != "" {
+		content := appcontext.LoadStoryFile(e.opts.ProjectDir, story.FilePath)
+		if content != "" {
+			return content
+		}
+	}
+
+	// Search in configured stories path by story ID.
+	if e.opts.Paths != nil && e.opts.Paths.Stories != "" {
+		foundPath := appcontext.FindStoryFile(e.opts.ProjectDir, e.opts.Paths.Stories, story.ID)
+		if foundPath != "" {
+			content := appcontext.LoadStoryFile(e.opts.ProjectDir, foundPath)
+			if content != "" {
+				return content
+			}
+		}
+	}
+
+	return ""
 }
 
 func formatLimit(n int) string {

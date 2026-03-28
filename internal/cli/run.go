@@ -97,6 +97,10 @@ func runEngine(cmd *cobra.Command, args []string) error {
 		DryRun:          dryRun,
 		MaxIterations:   maxIterations,
 		SingleStory:     singleStory,
+		WorkflowType:    cfg.Workflow.Type,
+		QualityGate:     cfg.Quality.Type,
+		Paths:           &cfg.Paths,
+		Research:        &cfg.Research,
 	})
 	if err != nil {
 		return fmt.Errorf("creating engine: %w", err)
