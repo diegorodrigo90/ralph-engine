@@ -6,7 +6,7 @@
 #   run:      Shell command to execute
 #   required: true = block on failure, false = warn and continue
 #   paths:    Only run when git diff shows changes in these globs (empty = always run)
-#             Useful for monorepos with different toolchains per project.
+#             Useful for projects with different toolchains per directory.
 #
 # Available variables in commands:
 #   {{.StoryID}}    — Current story ID (e.g., "65.3")
@@ -33,7 +33,7 @@ pre_story:
 post_story:
   steps: []
 
-# ── QUALITY GATES — monorepo-aware via paths filter ──
+# ── QUALITY GATES — path-filtered (only run when relevant files changed) ──
 quality_gates:
   steps:
     - name: "Tests"
@@ -63,7 +63,7 @@ quality_gates:
       run: "test ! -f .logs/dev.log || ! grep -q 'ERROR' .logs/dev.log"
       required: false
 
-    # Monorepo example: Python service with different toolchain
+    # Example: Python service with different toolchain
     # - name: "Python lint"
     #   run: "ruff check workers/my-service/"
     #   required: true

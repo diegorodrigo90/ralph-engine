@@ -5,6 +5,7 @@ package claude
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -77,13 +78,17 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 		cmd.Dir = req.ProjectDir
 	}
 
-	// Prevent stdin hang in non-interactive mode
+	// Prevent stdin hang in non-interactive mode.
 	cmd.Stdin = nil
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("creating stdout pipe: %w", err)
 	}
+
+	// Capture stderr for error diagnosis.
+	var stderrBuf bytes.Buffer
+	cmd.Stderr = &stderrBuf
 
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("starting %s: %w", c.config.Binary, err)
@@ -129,6 +134,11 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 	if exitErr != nil {
 		if exitError, ok := exitErr.(*exec.ExitError); ok {
 			result.ExitCode = exitError.ExitCode()
+			// Include stderr in error for diagnosis.
+			stderr := strings.TrimSpace(stderrBuf.String())
+			if stderr != "" {
+				return result, fmt.Errorf("%s exited %d: %s", c.config.Binary, result.ExitCode, stderr)
+			}
 		} else {
 			return result, fmt.Errorf("waiting for %s: %w", c.config.Binary, exitErr)
 		}
@@ -144,8 +154,11 @@ func (c *Client) buildArgs(req SessionRequest) []string {
 	// Non-interactive prompt mode
 	args = append(args, "-p", req.Prompt)
 
-	// Output format
+	// Output format — stream-json requires --verbose in Claude CLI.
 	args = append(args, "--output-format", c.config.OutputFormat)
+	if c.config.OutputFormat == "stream-json" {
+		args = append(args, "--verbose")
+	}
 
 	// Session resume
 	if req.SessionID != "" {

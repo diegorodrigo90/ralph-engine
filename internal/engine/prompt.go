@@ -84,7 +84,7 @@ func qualityRules(gate string) string {
 - Dev logs must show zero errors
 `
 	case "standard":
-		return base + `- Build must pass (full monorepo)
+		return base + `- Build must pass (full project)
 `
 	case "minimal":
 		return `## Quality Rules

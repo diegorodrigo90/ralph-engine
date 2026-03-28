@@ -36,6 +36,12 @@ AI coding agents are powerful but need orchestration for large projects. ralph-e
 
 ### Install
 
+**One-line install** (Linux, macOS, WSL):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/diegorodrigo90/ralph-engine/main/scripts/install.sh | bash
+```
+
 **From source** (requires [Go 1.24+](https://go.dev/dl/)):
 
 ```bash
@@ -44,15 +50,30 @@ go install github.com/diegorodrigo90/ralph-engine/cmd/ralph-engine@latest
 
 **From binary release:**
 
-Download from [Releases](https://github.com/diegorodrigo90/ralph-engine/releases) for your platform (Linux, macOS, Windows).
+Download from [Releases](https://github.com/diegorodrigo90/ralph-engine/releases) for your platform:
+
+- Linux (amd64, arm64)
+- macOS (Intel, Apple Silicon)
+- Windows (amd64) — requires [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) for full functionality
 
 **Build from source:**
 
 ```bash
 git clone https://github.com/diegorodrigo90/ralph-engine.git
 cd ralph-engine
-go build -o bin/ralph-engine ./cmd/ralph-engine/
+./scripts/build-local.sh
+# Or: go build -o bin/ralph-engine ./cmd/ralph-engine/
 ```
+
+**Go not installed?**
+
+| OS            | Command                                                                |
+| ------------- | ---------------------------------------------------------------------- |
+| Arch Linux    | `sudo pacman -S go`                                                    |
+| Ubuntu/Debian | `sudo apt install golang-go`                                           |
+| Fedora        | `sudo dnf install golang`                                              |
+| macOS         | `brew install go`                                                      |
+| Windows       | [Download installer](https://go.dev/dl/) or `winget install GoLang.Go` |
 
 ### Usage
 

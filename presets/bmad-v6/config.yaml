@@ -18,7 +18,7 @@ quality:
   gates:
     cr: true                     # /bmad-bmm-code-review before every commit
     tests: true                  # Full test suite (unit + integration)
-    build: true                  # Full monorepo build
+    build: true                  # Full project build
     type_check: true             # TypeScript/Go type checking
     storybook: true              # Storybook test runner (UI projects)
     e2e: true                    # Playwright/Cypress E2E tests

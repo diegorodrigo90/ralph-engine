@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"strings"
 	"syscall"
 
+	"github.com/diegorodrigo90/ralph-engine/internal/config"
 	"github.com/diegorodrigo90/ralph-engine/internal/engine"
 	"github.com/diegorodrigo90/ralph-engine/internal/tracker"
 	"github.com/spf13/cobra"
@@ -22,6 +25,9 @@ a usage limit is detected, or the user interrupts (Ctrl+C).
 
 Progress is saved after every commit. Resume with: ralph-engine run
 
+Configuration is read from .ralph-engine/config.yaml in the project directory.
+CLI flags override config values. Run 'ralph-engine init' to create config.
+
 Testing modes:
   --dry-run          Show execution plan without calling the agent
   --max-iterations N Stop after N stories (great for testing)
@@ -32,22 +38,13 @@ Examples:
   ralph-engine run --dry-run                # Preview what would happen
   ralph-engine run --max-iterations 1       # Run exactly one story
   ralph-engine run --single-story 65.3      # Run only story 65.3
-  ralph-engine run --binary claudebox       # Use claudebox instead of claude
+  ralph-engine run --binary claudebox       # Override agent from config
   ralph-engine --debug run --dry-run        # Dry run with JSON debug output`,
 	RunE: runEngine,
 }
 
 func runEngine(cmd *cobra.Command, args []string) error {
 	projectDir, _ := cmd.Flags().GetString("project")
-	stateDir, _ := cmd.Flags().GetString("state-dir")
-	binary, _ := cmd.Flags().GetString("binary")
-	cooldown, _ := cmd.Flags().GetInt("cooldown")
-	maxFailures, _ := cmd.Flags().GetInt("max-failures")
-	statusFile, _ := cmd.Flags().GetString("status-file")
-	dryRun, _ := cmd.Flags().GetBool("dry-run")
-	maxIterations, _ := cmd.Flags().GetInt("max-iterations")
-	singleStory, _ := cmd.Flags().GetString("single-story")
-
 	if projectDir == "" {
 		wd, err := os.Getwd()
 		if err != nil {
@@ -55,19 +52,51 @@ func runEngine(cmd *cobra.Command, args []string) error {
 		}
 		projectDir = wd
 	}
+
+	// Load config from .ralph-engine/config.yaml (if exists).
+	cfg, _ := config.Load(projectDir)
+
+	// CLI flags override config. Only override if flag was explicitly set.
+	binary := configOrFlag(cmd, "binary", cfg.Agent.Type)
+	cooldown := configOrFlagInt(cmd, "cooldown", cfg.Agent.CooldownSeconds)
+	maxFailures := configOrFlagInt(cmd, "max-failures", cfg.CircuitBreaker.MaxFailures)
+	statusFile := configOrFlag(cmd, "status-file", cfg.Tracker.StatusFile)
+
+	// State dir defaults to .ralph-engine/ inside project.
+	stateDir, _ := cmd.Flags().GetString("state-dir")
 	if stateDir == "" {
-		stateDir = projectDir
+		stateDir = filepath.Join(projectDir, ".ralph-engine")
+		os.MkdirAll(stateDir, 0755)
 	}
 
+	// Persist explicitly-changed flags to config if --save was passed.
+	save, _ := cmd.Flags().GetBool("save")
+	if save {
+		saved := saveChangedFlags(cmd, projectDir, map[string]string{
+			"binary":       "agent.type",
+			"cooldown":     "agent.cooldown_seconds",
+			"max-failures": "circuit_breaker.max_failures",
+			"status-file":  "tracker.status_file",
+		})
+		if len(saved) > 0 {
+			fmt.Printf("Saved to .ralph-engine/config.yaml: %s\n\n", strings.Join(saved, ", "))
+		}
+	}
+
+	// Testing flags (no config equivalent — always from CLI).
+	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	maxIterations, _ := cmd.Flags().GetInt("max-iterations")
+	singleStory, _ := cmd.Flags().GetString("single-story")
+
 	eng, err := engine.New(engine.EngineOpts{
-		ProjectDir:    projectDir,
-		StateDir:      stateDir,
-		Binary:        binary,
+		ProjectDir:      projectDir,
+		StateDir:        stateDir,
+		Binary:          binary,
 		CooldownSeconds: cooldown,
-		MaxFailures:   maxFailures,
-		DryRun:        dryRun,
-		MaxIterations: maxIterations,
-		SingleStory:   singleStory,
+		MaxFailures:     maxFailures,
+		DryRun:          dryRun,
+		MaxIterations:   maxIterations,
+		SingleStory:     singleStory,
 	})
 	if err != nil {
 		return fmt.Errorf("creating engine: %w", err)
@@ -144,22 +173,73 @@ func runEngine(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// configOrFlag returns the CLI flag value if explicitly set, otherwise the config value.
+func configOrFlag(cmd *cobra.Command, flagName, configValue string) string {
+	if cmd.Flags().Changed(flagName) {
+		val, _ := cmd.Flags().GetString(flagName)
+		return val
+	}
+	if configValue != "" {
+		return configValue
+	}
+	val, _ := cmd.Flags().GetString(flagName)
+	return val
+}
+
+// configOrFlagInt returns the CLI flag value if explicitly set, otherwise the config value.
+func configOrFlagInt(cmd *cobra.Command, flagName string, configValue int) int {
+	if cmd.Flags().Changed(flagName) {
+		val, _ := cmd.Flags().GetInt(flagName)
+		return val
+	}
+	if configValue > 0 {
+		return configValue
+	}
+	val, _ := cmd.Flags().GetInt(flagName)
+	return val
+}
+
+// saveChangedFlags persists explicitly-set CLI flags to the project config file.
+// Only flags the user actually typed are saved — defaults are never persisted.
+func saveChangedFlags(cmd *cobra.Command, projectDir string, flagToKey map[string]string) []string {
+	var saved []string
+	for flag, key := range flagToKey {
+		if !cmd.Flags().Changed(flag) {
+			continue
+		}
+		val, _ := cmd.Flags().GetString(flag)
+		if val == "" {
+			// Try int.
+			if intVal, err := cmd.Flags().GetInt(flag); err == nil {
+				val = fmt.Sprintf("%d", intVal)
+			}
+		}
+		if err := config.SaveProject(projectDir, key, val); err == nil {
+			saved = append(saved, fmt.Sprintf("%s=%s", key, val))
+		}
+	}
+	return saved
+}
+
 func init() {
 	f := runCmd.Flags()
 
 	// Project settings.
 	f.StringP("project", "d", "", "Project directory (default: current directory)")
-	f.String("state-dir", "", "State directory for state.json (default: project directory)")
-	f.String("status-file", "sprint-status.yaml", "Sprint status file name")
+	f.String("state-dir", "", "State directory (default: .ralph-engine/ in project)")
+	f.String("status-file", "sprint-status.yaml", "Sprint status file (overrides config)")
 
-	// Agent settings.
-	f.StringP("binary", "b", "claude", "Agent binary: claude, claudebox, cursor")
+	// Agent settings (override .ralph-engine/config.yaml).
+	f.StringP("binary", "b", "claude", "Agent binary (overrides config)")
 
-	// Loop control.
-	f.Int("cooldown", 10, "Seconds between sessions")
-	f.Int("max-failures", 3, "Circuit breaker: stop after N consecutive failures")
+	// Loop control (override config).
+	f.Int("cooldown", 10, "Seconds between sessions (overrides config)")
+	f.Int("max-failures", 3, "Circuit breaker threshold (overrides config)")
 
-	// Testing modes.
+	// Persistence.
+	f.Bool("save", false, "Save explicitly-set flags to .ralph-engine/config.yaml")
+
+	// Testing modes (CLI only, no config equivalent).
 	f.Bool("dry-run", false, "Show execution plan without calling the agent")
 	f.IntP("max-iterations", "n", 0, "Stop after N iterations (0 = unlimited)")
 	f.StringP("single-story", "s", "", "Run only this story ID, then stop")

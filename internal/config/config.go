@@ -234,28 +234,36 @@ func Load(projectDir string) (*Config, error) {
 }
 
 // Save writes a key-value pair to the user config file.
+// Save writes a value to the user-level config (~/.config/ralph-engine/config.yaml).
 func Save(key, value string) error {
 	userDir := userConfigDir()
 	if userDir == "" {
 		return fmt.Errorf("cannot determine user config directory")
 	}
+	return saveToDir(userDir, key, value)
+}
 
-	if err := os.MkdirAll(userDir, 0755); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
+// SaveProject writes a value to the project-level config (.ralph-engine/config.yaml).
+func SaveProject(projectDir, key, value string) error {
+	configDir := filepath.Join(projectDir, ProjectConfigDir)
+	return saveToDir(configDir, key, value)
+}
+
+// saveToDir writes a key-value to a config file in the given directory.
+func saveToDir(dir, key, value string) error {
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("creating config directory: %w", err)
 	}
 
 	v := viper.New()
 	v.SetConfigName(ConfigFileName)
 	v.SetConfigType("yaml")
-	v.AddConfigPath(userDir)
-
-	// Read existing config
+	v.AddConfigPath(dir)
 	_ = v.ReadInConfig()
 
-	// Set the new value
 	v.Set(key, value)
 
-	configPath := filepath.Join(userDir, ConfigFileName+".yaml")
+	configPath := filepath.Join(dir, ConfigFileName+".yaml")
 	return v.WriteConfigAs(configPath)
 }
 
