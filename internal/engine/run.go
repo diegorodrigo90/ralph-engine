@@ -195,6 +195,10 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 			userPrompt += fmt.Sprintf("\n\nStory file: %s", story.FilePath)
 		}
 
+		// Show progress during agent session.
+		sessionStart := time.Now()
+		emit("info", "Agent session started — waiting for completion...")
+
 		sessionResult, err := client.Run(ctx, claude.SessionRequest{
 			Prompt:       userPrompt,
 			ProjectDir:   e.opts.ProjectDir,
@@ -204,6 +208,7 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 				onEvent(EngineEvent{Type: "stream", Message: event.Type})
 			}
 		})
+		emit("info", fmt.Sprintf("Agent session finished (%v)", time.Since(sessionStart).Round(time.Second)))
 
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
@@ -230,8 +235,25 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 		}
 
 		if sessionResult != nil && sessionResult.ExitCode == 0 {
+			// Verify agent actually changed files — if not, session was empty.
+			changedFiles := hooks.GetChangedFiles(e.opts.ProjectDir)
+			if len(changedFiles) == 0 {
+				emit("warn", fmt.Sprintf("Agent session for story %s produced no file changes — not marking complete", story.ID))
+				msg := e.circuitBreaker.RecordFailure(fmt.Errorf("empty session: no files changed for story %s", story.ID))
+				if msg != "" {
+					emit("error", msg)
+				}
+				if err := tk.RevertToReady(story.ID); err != nil {
+					log.Printf("Warning: could not revert story status: %v", err)
+				}
+				engineState.Save(e.opts.StateDir)
+				continue
+			}
+
+			emit("info", fmt.Sprintf("Agent changed %d file(s) — running quality gates...", len(changedFiles)))
+
 			// Run quality gate hooks (with path filtering).
-			// If gates fail, retry: ask agent to fix → re-run gates (max 3 attempts).
+			// If gates fail, retry: ask agent to fix → re-run gates until pass.
 			gatesPassed := true
 			if e.opts.Hooks != nil && len(e.opts.Hooks.QualityGates.Steps) > 0 {
 				gatesPassed = e.runGatesWithRetry(ctx, client, story, prompt, emit)
