@@ -54,6 +54,18 @@ func runEngine(cmd *cobra.Command, args []string) error {
 		projectDir = wd
 	}
 
+	// Check if project is initialized.
+	configDir := filepath.Join(projectDir, ".ralph-engine")
+	if _, err := os.Stat(configDir); os.IsNotExist(err) {
+		fmt.Println("No .ralph-engine/ directory found. Project not initialized.")
+		fmt.Println()
+		fmt.Println("Quick start:")
+		fmt.Println("  ralph-engine init          # Setup config, hooks, prompt")
+		fmt.Println("  ralph-engine doctor        # Verify everything is ready")
+		fmt.Println("  ralph-engine run --dry-run # Preview without executing")
+		return fmt.Errorf("run 'ralph-engine init' first")
+	}
+
 	// Load config from .ralph-engine/config.yaml (if exists).
 	cfg, _ := config.Load(projectDir)
 
@@ -133,7 +145,9 @@ func runEngine(cmd *cobra.Command, args []string) error {
 	if !validation.OK() {
 		fmt.Println("Config validation failed:")
 		fmt.Print(validation.Summary())
-		return fmt.Errorf("fix config errors above before running")
+		fmt.Println()
+		fmt.Println("Run 'ralph-engine doctor' for a full health check.")
+		return fmt.Errorf("fix config errors before running")
 	}
 	if len(validation.Warnings) > 0 {
 		fmt.Println("Config warnings:")
@@ -155,7 +169,8 @@ func runEngine(cmd *cobra.Command, args []string) error {
 			fmt.Printf("  %s %s: %s\n", icon, r.Name, r.Message)
 		}
 		if !allOK {
-			return fmt.Errorf("preflight checks failed — fix issues above before running")
+			fmt.Println("\nRun 'ralph-engine doctor' for detailed diagnostics.")
+			return fmt.Errorf("preflight checks failed — fix issues above")
 		}
 		fmt.Println("\nPreflight passed. Starting engine...")
 	}

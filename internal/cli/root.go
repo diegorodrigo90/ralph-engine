@@ -66,11 +66,22 @@ func init() {
 	rootCmd.AddCommand(versionCmd)
 }
 
+// BuildCommit is set at build time via -ldflags (short SHA).
+var BuildCommit = "unknown"
+
+// BuildDate is set at build time via -ldflags.
+var BuildDate = "unknown"
+
 // versionCmd prints the build version.
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Show version information",
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("ralph-engine %s\n", Version)
+		if Version == "dev" {
+			fmt.Println("  (development build — install from a release for version tracking)")
+		} else {
+			fmt.Printf("  commit: %s\n  date:   %s\n", BuildCommit, BuildDate)
+		}
 	},
 }
