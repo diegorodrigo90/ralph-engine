@@ -118,6 +118,19 @@ func runEngine(cmd *cobra.Command, args []string) error {
 		cancel()
 	}()
 
+	// Validate config before running.
+	validation := config.Validate(cfg, projectDir)
+	if !validation.OK() {
+		fmt.Println("Config validation failed:")
+		fmt.Print(validation.Summary())
+		return fmt.Errorf("fix config errors above before running")
+	}
+	if len(validation.Warnings) > 0 {
+		fmt.Println("Config warnings:")
+		fmt.Print(validation.Summary())
+		fmt.Println()
+	}
+
 	// Run preflight (skip in dry-run for speed).
 	if !dryRun {
 		fmt.Println("Running preflight checks...")
