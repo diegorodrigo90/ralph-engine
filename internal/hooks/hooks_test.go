@@ -343,3 +343,294 @@ func TestTruncateOutput(t *testing.T) {
 		t.Error("long output should be truncated")
 	}
 }
+
+// --- Additional tests for MatchesAnyPath edge cases ---
+
+func TestMatchesAnyPathEdgeCases(t *testing.T) {
+	tests := []struct {
+		name     string
+		changed  []string
+		patterns []string
+		want     bool
+	}{
+		{
+			name:     "empty patterns returns false",
+			changed:  []string{"src/index.ts"},
+			patterns: []string{},
+			want:     false,
+		},
+		{
+			name:     "empty files returns false",
+			changed:  []string{},
+			patterns: []string{"src/**"},
+			want:     false,
+		},
+		{
+			name:     "both empty returns false",
+			changed:  []string{},
+			patterns: []string{},
+			want:     false,
+		},
+		{
+			name:     "exact file match no glob",
+			changed:  []string{"README.md"},
+			patterns: []string{"README.md"},
+			want:     true,
+		},
+		{
+			name:     "exact file match no glob miss",
+			changed:  []string{"README.md"},
+			patterns: []string{"CHANGELOG.md"},
+			want:     false,
+		},
+		{
+			name:     "deeply nested double star only splits first occurrence",
+			changed:  []string{"a/b/c/d/e/f.ts"},
+			patterns: []string{"**/**/**/*.ts"},
+			want:     false, // SplitN on first ** leaves "**/*.ts" as suffix; filepath.Match won't match "b/c/d/e/f.ts"
+		},
+		{
+			name:     "deeply nested file with single double star",
+			changed:  []string{"a/b/c/d/e/f.ts"},
+			patterns: []string{"**/*.ts"},
+			want:     true,
+		},
+		{
+			name:     "triple star prefix pattern",
+			changed:  []string{"deep/nested/file.go"},
+			patterns: []string{"**/*.go"},
+			want:     true,
+		},
+		{
+			name:     "file with spaces in name",
+			changed:  []string{"docs/my file.md"},
+			patterns: []string{"docs/**"},
+			want:     true,
+		},
+		{
+			name:     "file with dots in name",
+			changed:  []string{"src/user.resolver.spec.ts"},
+			patterns: []string{"src/**"},
+			want:     true,
+		},
+		{
+			name:     "file with hyphens in path",
+			changed:  []string{"my-app/src/my-component.tsx"},
+			patterns: []string{"my-app/**"},
+			want:     true,
+		},
+		{
+			name:     "file with hyphens pattern exact glob",
+			changed:  []string{"my-app/src/my-component.tsx"},
+			patterns: []string{"my-app/src/*.tsx"},
+			want:     true,
+		},
+		{
+			name:     "single file single exact pattern match",
+			changed:  []string{"package.json"},
+			patterns: []string{"package.json"},
+			want:     true,
+		},
+		{
+			name:     "nil changed files treated as empty",
+			changed:  nil,
+			patterns: []string{"src/**"},
+			want:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := MatchesAnyPath(tt.changed, tt.patterns)
+			if got != tt.want {
+				t.Errorf("MatchesAnyPath(%v, %v) = %v, want %v", tt.changed, tt.patterns, got, tt.want)
+			}
+		})
+	}
+}
+
+// --- Additional tests for RunPhase edge cases ---
+
+func TestRunPhaseEmptyStepsList(t *testing.T) {
+	phase := HookPhase{Steps: []HookStep{}}
+	result := RunPhase(context.Background(), phase, t.TempDir(), nil, nil)
+
+	if result.Blocked {
+		t.Error("empty steps list should not block")
+	}
+	if len(result.Steps) != 0 {
+		t.Errorf("expected 0 results for empty steps, got %d", len(result.Steps))
+	}
+	if result.Reason != "" {
+		t.Errorf("expected empty reason, got %q", result.Reason)
+	}
+}
+
+func TestRunPhaseNilSteps(t *testing.T) {
+	phase := HookPhase{Steps: nil}
+	result := RunPhase(context.Background(), phase, t.TempDir(), nil, nil)
+
+	if result.Blocked {
+		t.Error("nil steps should not block")
+	}
+	if len(result.Steps) != 0 {
+		t.Errorf("expected 0 results for nil steps, got %d", len(result.Steps))
+	}
+}
+
+func TestRunPhaseInvalidTimeout(t *testing.T) {
+	// An invalid timeout string should fall back to DefaultTimeout (not crash).
+	// We use a fast command so it completes well within any timeout.
+	phase := HookPhase{
+		Steps: []HookStep{
+			{Name: "invalid-timeout", Run: "echo ok", Required: true, Timeout: "invalid"},
+		},
+	}
+
+	result := RunPhase(context.Background(), phase, t.TempDir(), nil, nil)
+	if len(result.Steps) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(result.Steps))
+	}
+	if !result.Steps[0].OK {
+		t.Errorf("step with invalid timeout should still succeed (falls back to default), error: %v", result.Steps[0].Error)
+	}
+}
+
+func TestRunPhaseZeroTimeout(t *testing.T) {
+	// timeout="0s" means zero duration — command should be killed immediately.
+	phase := HookPhase{
+		Steps: []HookStep{
+			{Name: "zero-timeout", Run: "sh -c 'while true; do :; done'", Required: true, Timeout: "0s"},
+		},
+	}
+
+	start := time.Now()
+	result := RunPhase(context.Background(), phase, t.TempDir(), nil, nil)
+	elapsed := time.Since(start)
+
+	if len(result.Steps) != 1 {
+		t.Fatalf("expected 1 result, got %d", len(result.Steps))
+	}
+	if result.Steps[0].OK {
+		t.Error("step with 0s timeout should fail")
+	}
+	if elapsed > 5*time.Second {
+		t.Errorf("zero timeout should resolve quickly, took %v", elapsed)
+	}
+}
+
+// --- Additional tests for truncateOutput boundary ---
+
+func TestTruncateOutputBoundary(t *testing.T) {
+	tests := []struct {
+		name           string
+		inputLen       int
+		wantTruncated  bool
+		wantExactMatch bool // when not truncated, output should equal input
+	}{
+		{"exactly 2000 chars not truncated", 2000, false, true},
+		{"2001 chars truncated", 2001, true, false},
+		{"1999 chars not truncated", 1999, false, true},
+		{"empty string not truncated", 0, false, true},
+		{"1 char not truncated", 1, false, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			input := make([]byte, tt.inputLen)
+			for i := range input {
+				input[i] = 'a'
+			}
+			s := string(input)
+			result := truncateOutput(s)
+
+			if tt.wantTruncated {
+				if result == s {
+					t.Error("expected truncation but output equals input")
+				}
+				if len(result) > 2000+len("\n[output truncated]") {
+					t.Errorf("truncated output too long: %d", len(result))
+				}
+				suffix := "\n[output truncated]"
+				if len(result) < len(suffix) || result[len(result)-len(suffix):] != suffix {
+					t.Error("truncated output should end with truncation marker")
+				}
+			} else {
+				if result != s {
+					t.Errorf("expected no truncation, but output differs (input len=%d, output len=%d)", len(s), len(result))
+				}
+			}
+		})
+	}
+}
+
+// --- Additional tests for Load edge cases ---
+
+func TestLoadEmptyFile(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, ".ralph-engine"), 0755)
+	os.WriteFile(filepath.Join(dir, ".ralph-engine", "hooks.yaml"), []byte(""), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("empty file should not error, got: %v", err)
+	}
+	// Empty YAML unmarshals to zero-value struct.
+	if cfg == nil {
+		t.Fatal("expected non-nil config for empty YAML (zero-value struct)")
+	}
+	if len(cfg.Preflight.Steps) != 0 {
+		t.Errorf("expected 0 preflight steps, got %d", len(cfg.Preflight.Steps))
+	}
+}
+
+func TestLoadMalformedYAML(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+	}{
+		{"yaml with tabs in wrong place", "\t\t\tbad:\n\t\tyaml"},
+		{"unclosed bracket", "preflight: ["},
+		{"binary-like content", "\x00\x01\x02\x03"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			os.MkdirAll(filepath.Join(dir, ".ralph-engine"), 0755)
+			os.WriteFile(filepath.Join(dir, ".ralph-engine", "hooks.yaml"), []byte(tt.content), 0644)
+
+			_, err := Load(dir)
+			if err == nil {
+				t.Error("expected error for malformed YAML")
+			}
+		})
+	}
+}
+
+func TestLoadNoDotRalphEngineDir(t *testing.T) {
+	// Directory exists but has no .ralph-engine/ subdirectory.
+	dir := t.TempDir()
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("missing .ralph-engine dir should not error, got: %v", err)
+	}
+	if cfg != nil {
+		t.Error("expected nil config when .ralph-engine dir doesn't exist")
+	}
+}
+
+func TestLoadDotRalphEngineDirExistsButNoHooksYaml(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, ".ralph-engine"), 0755)
+	// Create some other file, not hooks.yaml.
+	os.WriteFile(filepath.Join(dir, ".ralph-engine", "config.yaml"), []byte("key: val"), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("missing hooks.yaml should not error, got: %v", err)
+	}
+	if cfg != nil {
+		t.Error("expected nil config when hooks.yaml doesn't exist")
+	}
+}

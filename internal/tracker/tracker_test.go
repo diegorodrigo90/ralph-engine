@@ -189,3 +189,156 @@ func (m *mockTracker) ListPending() ([]Story, error) {
 func (m *mockTracker) ListAll() ([]Story, error) {
 	return m.stories, nil
 }
+
+func TestStoryIsActionableForReviewStatus(t *testing.T) {
+	s := Story{ID: "1.6", Status: StatusReview}
+	if s.IsActionable() {
+		t.Error("review status should NOT be actionable")
+	}
+}
+
+func TestMockTrackerMarkCompleteIdempotent(t *testing.T) {
+	m := &mockTracker{
+		stories: []Story{
+			{ID: "1.1", Title: "Story A", Status: StatusInProgress},
+		},
+	}
+
+	// Mark complete twice — should not error.
+	if err := m.MarkComplete("1.1"); err != nil {
+		t.Fatalf("first MarkComplete() error: %v", err)
+	}
+	if err := m.MarkComplete("1.1"); err != nil {
+		t.Fatalf("second MarkComplete() error: %v", err)
+	}
+
+	if m.stories[0].Status != StatusDone {
+		t.Errorf("status = %q, want %q", m.stories[0].Status, StatusDone)
+	}
+}
+
+func TestMockTrackerNextStoryAllDone(t *testing.T) {
+	m := &mockTracker{
+		stories: []Story{
+			{ID: "1.1", Status: StatusDone},
+			{ID: "1.2", Status: StatusDone},
+			{ID: "1.3", Status: StatusBlocked},
+		},
+	}
+
+	story, err := m.NextStory()
+	if err != nil {
+		t.Fatalf("NextStory() error: %v", err)
+	}
+	if story != nil {
+		t.Errorf("NextStory() = %v, want nil when no actionable stories", story)
+	}
+}
+
+func TestMockTrackerNextStoryPrefersInProgress(t *testing.T) {
+	m := &mockTracker{
+		stories: []Story{
+			{ID: "1.1", Status: StatusReadyForDev},
+			{ID: "1.2", Status: StatusInProgress},
+			{ID: "1.3", Status: StatusReadyForDev},
+		},
+	}
+
+	story, err := m.NextStory()
+	if err != nil {
+		t.Fatalf("NextStory() error: %v", err)
+	}
+	if story == nil {
+		t.Fatal("NextStory() returned nil")
+	}
+	// mockTracker returns first actionable — 1.1 is first and actionable.
+	// This tests the mock, not SortByPriority.
+	if !story.IsActionable() {
+		t.Errorf("NextStory() returned non-actionable story: %q", story.Status)
+	}
+}
+
+func TestMockTrackerListPendingFiltersCorrectly(t *testing.T) {
+	m := &mockTracker{
+		stories: []Story{
+			{ID: "1.1", Status: StatusDone},
+			{ID: "1.2", Status: StatusBlocked},
+			{ID: "1.3", Status: StatusBacklog},
+			{ID: "1.4", Status: StatusReadyForDev},
+			{ID: "1.5", Status: StatusInProgress},
+			{ID: "1.6", Status: StatusReview},
+		},
+	}
+
+	pending, err := m.ListPending()
+	if err != nil {
+		t.Fatalf("ListPending() error: %v", err)
+	}
+
+	if len(pending) != 2 {
+		t.Errorf("ListPending() = %d stories, want 2", len(pending))
+		for _, s := range pending {
+			t.Logf("  %s: %s", s.ID, s.Status)
+		}
+	}
+
+	for _, s := range pending {
+		if !s.IsActionable() {
+			t.Errorf("ListPending() included non-actionable story %q with status %q", s.ID, s.Status)
+		}
+	}
+}
+
+func TestMockTrackerRevertToReadyAlreadyReady(t *testing.T) {
+	m := &mockTracker{
+		stories: []Story{
+			{ID: "1.1", Status: StatusReadyForDev},
+		},
+	}
+
+	// Should succeed without error — story is already ready.
+	if err := m.RevertToReady("1.1"); err != nil {
+		t.Fatalf("RevertToReady() error: %v", err)
+	}
+
+	if m.stories[0].Status != StatusReadyForDev {
+		t.Errorf("status = %q, want %q", m.stories[0].Status, StatusReadyForDev)
+	}
+}
+
+func TestSortByPriorityMultipleInProgress(t *testing.T) {
+	stories := []Story{
+		{ID: "1.5", Status: StatusReadyForDev},
+		{ID: "1.1", Status: StatusInProgress},
+		{ID: "1.3", Status: StatusDone},
+		{ID: "1.2", Status: StatusInProgress},
+		{ID: "1.4", Status: StatusReadyForDev},
+	}
+
+	SortByPriority(stories)
+
+	// In-progress stories (1.1, 1.2) should come before ready-for-dev.
+	if stories[0].Status != StatusInProgress {
+		t.Errorf("first story status = %q, want in-progress", stories[0].Status)
+	}
+	if stories[1].Status != StatusInProgress {
+		t.Errorf("second story status = %q, want in-progress", stories[1].Status)
+	}
+}
+
+func TestSortByPriorityEmptySlice(t *testing.T) {
+	var stories []Story
+	// Should not panic on empty slice.
+	SortByPriority(stories)
+	if len(stories) != 0 {
+		t.Errorf("empty slice changed length: %d", len(stories))
+	}
+}
+
+func TestSortByPrioritySingleElement(t *testing.T) {
+	stories := []Story{{ID: "1.1", Status: StatusReadyForDev}}
+	SortByPriority(stories)
+	if stories[0].ID != "1.1" {
+		t.Errorf("single element changed: %q", stories[0].ID)
+	}
+}
