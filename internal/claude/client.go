@@ -149,6 +149,12 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 			event, parseErr := parseStreamLine(line)
 			if parseErr == nil {
 				debugf("STDERR-EVENT: type=%s tool=%s subtype=%s", event.Type, event.Tool, event.Subtype)
+				// Enrich: extract tool details from assistant messages.
+				if event.Type == "assistant" {
+					for _, detail := range extractToolDetails(event.Message) {
+						debugf("  TOOL-DETAIL: %s", detail)
+					}
+				}
 				if callback != nil {
 					callback(event)
 				}
@@ -176,6 +182,12 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 		event, parseErr := parseStreamLine(line)
 		if parseErr == nil {
 			debugf("STDOUT-EVENT: type=%s tool=%s subtype=%s", event.Type, event.Tool, event.Subtype)
+			// Enrich: extract tool details from assistant messages.
+			if event.Type == "assistant" {
+				for _, detail := range extractToolDetails(event.Message) {
+					debugf("  TOOL-DETAIL: %s", detail)
+				}
+			}
 			if callback != nil {
 				callback(event)
 			}
@@ -301,7 +313,132 @@ func parseStreamLine(line string) (StreamEvent, error) {
 	return event, nil
 }
 
-// detectUsageLimit checks if a stream output line indicates a usage limit.
+// extractToolDetails parses tool_use content blocks from an assistant message
+// and returns human-readable descriptions for debug logging.
+func extractToolDetails(message json.RawMessage) []string {
+	if message == nil {
+		return nil
+	}
+
+	var msg struct {
+		Content json.RawMessage `json:"content"`
+	}
+	if json.Unmarshal(message, &msg) != nil || msg.Content == nil {
+		return nil
+	}
+
+	var blocks []struct {
+		Type  string          `json:"type"`
+		Name  string          `json:"name"`
+		Text  string          `json:"text"`
+		Input json.RawMessage `json:"input"`
+	}
+	if json.Unmarshal(msg.Content, &blocks) != nil {
+		return nil
+	}
+
+	var details []string
+	for _, block := range blocks {
+		switch block.Type {
+		case "tool_use":
+			detail := formatToolDetail(block.Name, block.Input)
+			details = append(details, detail)
+		case "text":
+			if len(block.Text) > 10 {
+				preview := block.Text
+				if len(preview) > 100 {
+					preview = preview[:100] + "..."
+				}
+				details = append(details, fmt.Sprintf("Text: %s", strings.TrimSpace(preview)))
+			}
+		}
+	}
+	return details
+}
+
+// formatToolDetail creates a human-readable description of a tool call.
+// Examples:
+//
+//	Read → "Read file.go"
+//	Bash → "Bash $ pnpm test"
+//	Glob → "Glob **/*.ts"
+//	Grep → "Grep pattern"
+//	Edit → "Edit file.go"
+//	Write → "Write file.go"
+//	mcp__archon__rag_search → "MCP archon.rag_search(query=...)"
+func formatToolDetail(name string, input json.RawMessage) string {
+	if input == nil {
+		return name
+	}
+
+	var params map[string]interface{}
+	if json.Unmarshal(input, &params) != nil {
+		return name
+	}
+
+	// MCP tools: mcp__server__tool → "MCP server.tool(key_params)"
+	if strings.HasPrefix(name, "mcp__") {
+		parts := strings.SplitN(name, "__", 3)
+		if len(parts) == 3 {
+			// Show first param value for context.
+			paramStr := ""
+			for k, v := range params {
+				s := fmt.Sprintf("%v", v)
+				if len(s) > 50 {
+					s = s[:50] + "..."
+				}
+				paramStr = fmt.Sprintf("%s=%q", k, s)
+				break // just first param
+			}
+			if paramStr != "" {
+				return fmt.Sprintf("MCP %s.%s(%s)", parts[1], parts[2], paramStr)
+			}
+			return fmt.Sprintf("MCP %s.%s()", parts[1], parts[2])
+		}
+	}
+
+	// Common tool shortcuts.
+	switch name {
+	case "Read":
+		if fp, ok := params["file_path"].(string); ok {
+			return fmt.Sprintf("Read %s", fp)
+		}
+	case "Write":
+		if fp, ok := params["file_path"].(string); ok {
+			return fmt.Sprintf("Write %s", fp)
+		}
+	case "Edit":
+		if fp, ok := params["file_path"].(string); ok {
+			return fmt.Sprintf("Edit %s", fp)
+		}
+	case "Bash":
+		if cmd, ok := params["command"].(string); ok {
+			if len(cmd) > 80 {
+				cmd = cmd[:80] + "..."
+			}
+			return fmt.Sprintf("Bash $ %s", cmd)
+		}
+	case "Glob":
+		if p, ok := params["pattern"].(string); ok {
+			return fmt.Sprintf("Glob %s", p)
+		}
+	case "Grep":
+		if p, ok := params["pattern"].(string); ok {
+			return fmt.Sprintf("Grep %s", p)
+		}
+	case "Skill":
+		if s, ok := params["skill"].(string); ok {
+			return fmt.Sprintf("Skill /%s", s)
+		}
+	case "Agent":
+		if d, ok := params["description"].(string); ok {
+			return fmt.Sprintf("Agent: %s", d)
+		}
+	}
+
+	return name
+}
+
 // truncLine truncates a string to maxLen chars for debug logging.
 func truncLine(s string, maxLen int) string {
 	if len(s) <= maxLen {
@@ -312,19 +449,76 @@ func truncLine(s string, maxLen int) string {
 
 // detectUsageLimit checks if a stream output line indicates a usage limit.
 // The engine NEVER manages billing — it only detects limits and saves progress.
-func detectUsageLimit(text string) bool {
+//
+// Detection is strict to avoid false positives from agent text that mentions
+// "usage limit" in conversation (e.g., "I checked the usage limit documentation").
+// Only triggers on: system/error JSON events, stderr limit messages, never on
+// assistant messages.
+func detectUsageLimit(line string) bool {
+	if line == "" {
+		return false
+	}
+
+	// Try parsing as JSON event first — only trigger on system/error events.
+	var event struct {
+		Type    string `json:"type"`
+		Subtype string `json:"subtype"`
+		Message struct {
+			Text string `json:"text"`
+		} `json:"message"`
+	}
+	if json.Unmarshal([]byte(line), &event) == nil && event.Type != "" {
+		// NEVER trigger on assistant messages (agent talking about limits).
+		if event.Type == "assistant" {
+			return false
+		}
+		// Only check system/error events.
+		if event.Type == "system" || event.Type == "error" {
+			return containsLimitPhrase(event.Message.Text) || containsLimitPhrase(event.Subtype)
+		}
+		// Any other JSON event type (result, tool_use, etc.) — not a limit signal.
+		return false
+	}
+
+	// For non-JSON lines (stderr), use strict patterns.
+	lower := strings.ToLower(line)
+	strictPatterns := []string{
+		"you've hit your usage limit",
+		"you have hit your usage limit",
+		"you've reached your usage limit",
+		"you have reached your usage limit",
+		"usage limit reached",
+		"rate limit exceeded",
+		"billing limit reached",
+		"quota exceeded",
+		"token limit reached",
+		"too many requests",
+		"429 too many",
+		"api rate limit",
+	}
+	for _, pattern := range strictPatterns {
+		if strings.Contains(lower, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+// containsLimitPhrase checks if text contains a known usage limit phrase.
+// Used for system/error event content only (never for assistant text).
+func containsLimitPhrase(text string) bool {
 	if text == "" {
 		return false
 	}
 	lower := strings.ToLower(text)
-	limitPhrases := []string{
+	phrases := []string{
 		"usage limit",
 		"rate limit",
 		"billing limit",
 		"quota exceeded",
 		"token limit",
 	}
-	for _, phrase := range limitPhrases {
+	for _, phrase := range phrases {
 		if strings.Contains(lower, phrase) {
 			return true
 		}

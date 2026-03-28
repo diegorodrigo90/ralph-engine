@@ -15,6 +15,7 @@ import (
 	"github.com/diegorodrigo90/ralph-engine/internal/config"
 	appcontext "github.com/diegorodrigo90/ralph-engine/internal/context"
 	"github.com/diegorodrigo90/ralph-engine/internal/hooks"
+	applogger "github.com/diegorodrigo90/ralph-engine/internal/logger"
 	"github.com/diegorodrigo90/ralph-engine/internal/state"
 	"github.com/diegorodrigo90/ralph-engine/internal/tracker"
 )
@@ -48,6 +49,9 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 		return RunResult{Error: fmt.Errorf("loading state: %w", err)}
 	}
 
+	// Reset per-run counters for this fresh invocation.
+	engineState.StartNewRun()
+
 	emit := func(eventType, msg string) {
 		if onEvent != nil {
 			onEvent(EngineEvent{Type: eventType, Message: msg})
@@ -77,10 +81,10 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 		return e.dryRun(tk, emit, engineState)
 	}
 
-	// Run preflight hooks (before loop starts).
-	if e.opts.Hooks != nil {
-		if !e.runHookPhase(ctx, "preflight", e.opts.Hooks.Preflight, nil, emit) {
-			return e.stop(ExitBlocked, engineState, emit, "Preflight hooks failed")
+	// Run prepare hooks (before loop starts).
+	if e.opts.Hooks != nil && len(e.opts.Hooks.Prepare.Steps) > 0 {
+		if !e.runHookPhase(ctx, "prepare", e.opts.Hooks.Prepare, nil, emit) {
+			return e.stop(ExitBlocked, engineState, emit, "Prepare hooks failed — run 'ralph-engine prepare' to diagnose")
 		}
 	}
 
@@ -96,13 +100,20 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 	}
 
 	// Debug log: create a verbose log file when --debug is active.
-	// New file per run (timestamped), max 10MB, in .ralph-engine/ (gitignored).
+	// Uses cross-platform log directory with automatic rotation.
 	var debugLog *os.File
 	if e.opts.Debug {
-		logPath := filepath.Join(e.opts.StateDir, fmt.Sprintf("debug-%s.log",
-			time.Now().Format("20060102-150405")))
+		logDir := applogger.LogDir(e.opts.StateDir)
+		cfg := applogger.DefaultRotateConfig()
+		if e.opts.LogMaxFiles > 0 {
+			cfg.MaxFiles = e.opts.LogMaxFiles
+		}
+		if e.opts.LogMaxSizeMB > 0 {
+			cfg.MaxSizeMB = e.opts.LogMaxSizeMB
+		}
+		var logPath string
 		var err error
-		debugLog, err = os.Create(logPath) // #nosec G304 -- debug log in state dir
+		debugLog, logPath, err = applogger.CreateLogFile(logDir, cfg)
 		if err == nil {
 			defer debugLog.Close()
 			emit("info", fmt.Sprintf("Debug log: %s (tail -f to monitor)", logPath))
@@ -318,6 +329,8 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 
 		if sessionResult != nil && sessionResult.UsageLimit {
 			engineState.EngineStatus = state.StatusSessionComplete
+			// Save handoff with session context (no AI needed).
+			e.saveHandoff(engineState, story, toolCount, time.Since(sessionStart), emit)
 			return e.stop(ExitUsageLimit, engineState, emit,
 				"Usage limit detected. Saving progress...")
 		}
@@ -379,13 +392,14 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 			if gatesPassed {
 				e.circuitBreaker.RecordSuccess(1)
 				engineState.StoriesCompletedTotal++
+				engineState.StoriesCompletedThisRun++
 				engineState.StoriesCompletedThisSession = append(
 					engineState.StoriesCompletedThisSession, story.ID)
 				if err := tk.MarkComplete(story.ID); err != nil {
 					log.Printf("Warning: could not mark story complete: %v", err)
 				}
-				emit("story_complete", fmt.Sprintf("Story %s complete (%d total, $%.2f session)",
-					story.ID, engineState.StoriesCompletedTotal, engineState.SessionCostUSD))
+				emit("story_complete", fmt.Sprintf("Story %s complete (%d this run, %d total, $%.2f session)",
+					story.ID, engineState.StoriesCompletedThisRun, engineState.StoriesCompletedTotal, engineState.SessionCostUSD))
 
 				// Run post-story hooks.
 				if e.opts.Hooks != nil {
@@ -439,6 +453,38 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 		case <-time.After(e.cooldown):
 		}
 	}
+}
+
+// saveHandoff writes a handoff file with session context for resume.
+// Called when usage limit hits — saves without AI (engine memory only).
+func (e *Engine) saveHandoff(s *state.Engine, story *tracker.Story, toolCount int, elapsed time.Duration, emit func(string, string)) {
+	handoff := map[string]interface{}{
+		"story_id":            story.ID,
+		"story_title":         story.Title,
+		"epic_id":             story.EpicID,
+		"session_number":      s.SessionNumber,
+		"tool_calls":          toolCount,
+		"elapsed":             elapsed.String(),
+		"files_changed":       hooks.GetChangedFiles(e.opts.ProjectDir),
+		"stories_done_this_run": s.StoriesCompletedThisRun,
+		"stories_done_total":   s.StoriesCompletedTotal,
+		"cost_usd":            s.SessionCostUSD,
+		"exit_reason":         "usage_limit",
+		"timestamp":           time.Now().UTC().Format(time.RFC3339),
+	}
+
+	data, err := json.MarshalIndent(handoff, "", "  ")
+	if err != nil {
+		emit("warn", fmt.Sprintf("Could not marshal handoff: %v", err))
+		return
+	}
+
+	path := filepath.Join(e.opts.StateDir, fmt.Sprintf("handoff-%s.json", story.ID))
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		emit("warn", fmt.Sprintf("Could not write handoff: %v", err))
+		return
+	}
+	emit("info", fmt.Sprintf("Handoff saved: %s", path))
 }
 
 // dryRun shows the execution plan without calling the agent.
@@ -599,6 +645,13 @@ func (e *Engine) stop(reason ExitReason, s *state.Engine, emit func(string, stri
 	if err := s.Save(e.opts.StateDir); err != nil {
 		log.Printf("Warning: could not save engine state on stop: %v", err)
 	}
+
+	// Remind user where debug logs are stored.
+	if e.opts.Debug {
+		logDir := applogger.LogDir(e.opts.StateDir)
+		emit("info", fmt.Sprintf("Debug logs: %s", logDir))
+	}
+
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	return RunResult{

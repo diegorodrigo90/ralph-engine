@@ -2,11 +2,14 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/diegorodrigo90/ralph-engine/internal/hooks"
+	"github.com/diegorodrigo90/ralph-engine/internal/state"
 	"github.com/diegorodrigo90/ralph-engine/internal/tracker"
 )
 
@@ -160,6 +163,108 @@ func TestRunResultTracksSessionCount(t *testing.T) {
 
 	if result.SessionsRun != 0 {
 		t.Errorf("SessionsRun = %d, want 0 (no stories to run)", result.SessionsRun)
+	}
+}
+
+// ── saveHandoff tests ──
+
+func TestSaveHandoff_WritesFile(t *testing.T) {
+	dir := t.TempDir()
+	e, _ := New(EngineOpts{
+		ProjectDir: dir,
+		StateDir:   dir,
+	})
+
+	s := &state.Engine{
+		SessionNumber:       3,
+		StoriesCompletedThisRun: 2,
+		StoriesCompletedTotal:   5,
+		SessionCostUSD:      1.25,
+	}
+	story := &tracker.Story{
+		ID:      "65-8",
+		Title:   "Test Story",
+		EpicID:  "65",
+	}
+
+	var events []EngineEvent
+	emit := func(eventType, msg string) {
+		events = append(events, EngineEvent{Type: eventType, Message: msg})
+	}
+
+	e.saveHandoff(s, story, 42, 5*time.Minute, emit)
+
+	// Verify file was written.
+	handoffPath := dir + "/handoff-65-8.json"
+	data, err := os.ReadFile(handoffPath)
+	if err != nil {
+		t.Fatalf("handoff file should exist: %v", err)
+	}
+
+	var handoff map[string]interface{}
+	if err := json.Unmarshal(data, &handoff); err != nil {
+		t.Fatalf("handoff should be valid JSON: %v", err)
+	}
+
+	if handoff["story_id"] != "65-8" {
+		t.Errorf("story_id = %v, want 65-8", handoff["story_id"])
+	}
+	if handoff["story_title"] != "Test Story" {
+		t.Errorf("story_title = %v, want Test Story", handoff["story_title"])
+	}
+	if handoff["epic_id"] != "65" {
+		t.Errorf("epic_id = %v, want 65", handoff["epic_id"])
+	}
+	if handoff["exit_reason"] != "usage_limit" {
+		t.Errorf("exit_reason = %v, want usage_limit", handoff["exit_reason"])
+	}
+	// JSON unmarshals numbers as float64.
+	if handoff["tool_calls"] != float64(42) {
+		t.Errorf("tool_calls = %v, want 42", handoff["tool_calls"])
+	}
+	if handoff["stories_done_this_run"] != float64(2) {
+		t.Errorf("stories_done_this_run = %v, want 2", handoff["stories_done_this_run"])
+	}
+	if handoff["stories_done_total"] != float64(5) {
+		t.Errorf("stories_done_total = %v, want 5", handoff["stories_done_total"])
+	}
+
+	// Verify emit was called with info about handoff path.
+	foundInfo := false
+	for _, ev := range events {
+		if ev.Type == "info" && strings.Contains(ev.Message, "Handoff saved") {
+			foundInfo = true
+		}
+	}
+	if !foundInfo {
+		t.Error("should emit info about handoff save")
+	}
+}
+
+func TestSaveHandoff_InvalidDir_EmitsWarning(t *testing.T) {
+	e, _ := New(EngineOpts{
+		ProjectDir: t.TempDir(),
+		StateDir:   "/nonexistent/path/that/does/not/exist",
+	})
+
+	s := &state.Engine{}
+	story := &tracker.Story{ID: "1.1", Title: "Test"}
+
+	var events []EngineEvent
+	emit := func(eventType, msg string) {
+		events = append(events, EngineEvent{Type: eventType, Message: msg})
+	}
+
+	e.saveHandoff(s, story, 0, 0, emit)
+
+	foundWarn := false
+	for _, ev := range events {
+		if ev.Type == "warn" && strings.Contains(ev.Message, "Could not write handoff") {
+			foundWarn = true
+		}
+	}
+	if !foundWarn {
+		t.Error("should emit warning when handoff write fails")
 	}
 }
 

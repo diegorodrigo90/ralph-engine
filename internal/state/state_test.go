@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestNewReturnsDefaultState(t *testing.T) {
@@ -201,6 +202,67 @@ func TestAddCost(t *testing.T) {
 	}
 }
 
+func TestStartNewRun(t *testing.T) {
+	s := New()
+	// Simulate state from a previous run.
+	s.StoriesCompletedTotal = 5
+	s.StoriesCompletedThisRun = 3
+	s.StoriesCompletedThisSession = []string{"65-6", "65-7", "65-8"}
+	s.EngineStatus = StatusSessionComplete
+	s.Blocked = true
+	s.BlockedReason = "something"
+	s.SessionCostUSD = 2.50
+	s.TotalCostUSD = 10.00
+
+	s.StartNewRun()
+
+	if s.StoriesCompletedThisRun != 0 {
+		t.Errorf("StoriesCompletedThisRun = %d, want 0", s.StoriesCompletedThisRun)
+	}
+	if s.StoriesCompletedTotal != 5 {
+		t.Errorf("StoriesCompletedTotal = %d, want 5 (should be preserved)", s.StoriesCompletedTotal)
+	}
+	if s.TotalCostUSD != 10.00 {
+		t.Errorf("TotalCostUSD = %f, want 10.00 (should be preserved)", s.TotalCostUSD)
+	}
+	if len(s.StoriesCompletedThisSession) != 0 {
+		t.Errorf("StoriesCompletedThisSession should be empty, got %d", len(s.StoriesCompletedThisSession))
+	}
+	if s.EngineStatus != StatusRunning {
+		t.Errorf("EngineStatus = %q, want %q", s.EngineStatus, StatusRunning)
+	}
+	if s.Blocked {
+		t.Error("Blocked should be false")
+	}
+	if s.BlockedReason != "" {
+		t.Errorf("BlockedReason should be empty, got %q", s.BlockedReason)
+	}
+	if s.SessionCostUSD != 0 {
+		t.Errorf("SessionCostUSD = %f, want 0", s.SessionCostUSD)
+	}
+	if s.RunID == "" {
+		t.Error("RunID should be set")
+	}
+	if s.RunStartedAt == "" {
+		t.Error("RunStartedAt should be set")
+	}
+}
+
+func TestStartNewRunGeneratesUniqueRunID(t *testing.T) {
+	s := New()
+	s.StartNewRun()
+	id1 := s.RunID
+
+	// Small delay to ensure different millisecond.
+	time.Sleep(2 * time.Millisecond)
+	s.StartNewRun()
+	id2 := s.RunID
+
+	if id1 == id2 {
+		t.Errorf("RunIDs should be unique, got %q both times", id1)
+	}
+}
+
 func TestIsAllComplete(t *testing.T) {
 	s := New()
 	if s.IsAllComplete() {
@@ -222,5 +284,131 @@ func TestIsBlocked(t *testing.T) {
 	s.Blocked = true
 	if !s.IsBlocked() {
 		t.Error("Should be blocked")
+	}
+}
+
+// --- Tests for StartNewRun preserving/resetting counters ---
+
+func TestStartNewRunPreservesLifetimeTotals(t *testing.T) {
+	s := New()
+	s.StoriesCompletedTotal = 15
+	s.TotalCostUSD = 25.50
+	s.StoriesCompletedThisRun = 5
+	s.SessionCostUSD = 3.00
+
+	s.StartNewRun()
+
+	// Lifetime totals MUST be preserved.
+	if s.StoriesCompletedTotal != 15 {
+		t.Errorf("StoriesCompletedTotal = %d, want 15 (should NOT reset)", s.StoriesCompletedTotal)
+	}
+	if s.TotalCostUSD != 25.50 {
+		t.Errorf("TotalCostUSD = %f, want 25.50 (should NOT reset)", s.TotalCostUSD)
+	}
+}
+
+func TestStartNewRunResetsRunCounters(t *testing.T) {
+	s := New()
+	s.StoriesCompletedThisRun = 7
+	s.SessionCostUSD = 5.00
+	s.StoriesCompletedThisSession = []string{"1-1", "1-2", "1-3"}
+	s.CurrentStory = "2-1"
+	s.CurrentTask = 3
+	s.CurrentPhase = "implementation"
+	s.Blocked = true
+	s.BlockedReason = "docker down"
+	s.EngineStatus = StatusBlocked
+
+	s.StartNewRun()
+
+	// Per-run counters MUST be reset.
+	if s.StoriesCompletedThisRun != 0 {
+		t.Errorf("StoriesCompletedThisRun = %d, want 0", s.StoriesCompletedThisRun)
+	}
+	if s.SessionCostUSD != 0 {
+		t.Errorf("SessionCostUSD = %f, want 0", s.SessionCostUSD)
+	}
+	if len(s.StoriesCompletedThisSession) != 0 {
+		t.Errorf("StoriesCompletedThisSession = %v, want empty", s.StoriesCompletedThisSession)
+	}
+	// Blocked state MUST be cleared.
+	if s.Blocked {
+		t.Error("Blocked should be false after StartNewRun")
+	}
+	if s.BlockedReason != "" {
+		t.Errorf("BlockedReason = %q, want empty", s.BlockedReason)
+	}
+	if s.EngineStatus != StatusRunning {
+		t.Errorf("EngineStatus = %q, want %q", s.EngineStatus, StatusRunning)
+	}
+	// RunID and RunStartedAt MUST be set.
+	if s.RunID == "" {
+		t.Error("RunID should be set after StartNewRun")
+	}
+	if s.RunStartedAt == "" {
+		t.Error("RunStartedAt should be set after StartNewRun")
+	}
+}
+
+func TestStartNewRunAfterMultipleRuns(t *testing.T) {
+	s := New()
+
+	// Simulate run 1: complete 3 stories, cost $2.
+	s.StartNewRun()
+	run1ID := s.RunID
+	s.MarkStoryComplete("1-1")
+	s.MarkStoryComplete("1-2")
+	s.MarkStoryComplete("1-3")
+	s.StoriesCompletedThisRun = 3
+	s.AddCost(2.00)
+
+	// Verify run 1 state.
+	if s.StoriesCompletedTotal != 3 {
+		t.Fatalf("after run 1: StoriesCompletedTotal = %d, want 3", s.StoriesCompletedTotal)
+	}
+	if s.TotalCostUSD != 2.00 {
+		t.Fatalf("after run 1: TotalCostUSD = %f, want 2.00", s.TotalCostUSD)
+	}
+
+	// Simulate run 2: complete 2 stories, cost $1.50.
+	time.Sleep(2 * time.Millisecond) // Ensure different RunID.
+	s.StartNewRun()
+	run2ID := s.RunID
+	if run2ID == run1ID {
+		t.Error("run 2 should have different RunID from run 1")
+	}
+	s.MarkStoryComplete("2-1")
+	s.MarkStoryComplete("2-2")
+	s.StoriesCompletedThisRun = 2
+	s.AddCost(1.50)
+
+	// Verify run 2 state — totals accumulate.
+	if s.StoriesCompletedTotal != 5 {
+		t.Errorf("after run 2: StoriesCompletedTotal = %d, want 5", s.StoriesCompletedTotal)
+	}
+	if s.TotalCostUSD != 3.50 {
+		t.Errorf("after run 2: TotalCostUSD = %f, want 3.50", s.TotalCostUSD)
+	}
+
+	// Simulate run 3: no stories yet, just started.
+	time.Sleep(2 * time.Millisecond)
+	s.StartNewRun()
+	run3ID := s.RunID
+	if run3ID == run2ID {
+		t.Error("run 3 should have different RunID from run 2")
+	}
+
+	// Run counters should be reset, totals preserved.
+	if s.StoriesCompletedThisRun != 0 {
+		t.Errorf("after run 3 start: StoriesCompletedThisRun = %d, want 0", s.StoriesCompletedThisRun)
+	}
+	if s.SessionCostUSD != 0 {
+		t.Errorf("after run 3 start: SessionCostUSD = %f, want 0", s.SessionCostUSD)
+	}
+	if s.StoriesCompletedTotal != 5 {
+		t.Errorf("after run 3 start: StoriesCompletedTotal = %d, want 5 (preserved)", s.StoriesCompletedTotal)
+	}
+	if s.TotalCostUSD != 3.50 {
+		t.Errorf("after run 3 start: TotalCostUSD = %f, want 3.50 (preserved)", s.TotalCostUSD)
 	}
 }

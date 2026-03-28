@@ -36,6 +36,12 @@ type Engine struct {
 	StoriesCompletedThisSession []string `json:"stories_completed_this_session"`
 	// StoriesCompletedTotal is the cumulative count across all sessions.
 	StoriesCompletedTotal int `json:"stories_completed_total"`
+	// StoriesCompletedThisRun counts stories in the current run invocation.
+	StoriesCompletedThisRun int `json:"stories_completed_this_run"`
+	// RunID uniquely identifies a run invocation.
+	RunID string `json:"run_id"`
+	// RunStartedAt records when this run started.
+	RunStartedAt string `json:"run_started_at"`
 	// NextStory is the next story to pick up.
 	NextStory string `json:"next_story"`
 	// Blocked indicates if the engine is blocked and needs user intervention.
@@ -147,6 +153,19 @@ func (e *Engine) MarkBlocked(reason string) {
 // StartNewSession prepares state for a new runner iteration.
 func (e *Engine) StartNewSession() {
 	e.SessionNumber++
+	e.StoriesCompletedThisSession = []string{}
+	e.EngineStatus = StatusRunning
+	e.Blocked = false
+	e.BlockedReason = ""
+	e.SessionCostUSD = 0
+}
+
+// StartNewRun resets per-run state for a fresh engine invocation.
+// Keeps StoriesCompletedTotal as lifetime total but resets per-run counters.
+func (e *Engine) StartNewRun() {
+	e.RunID = fmt.Sprintf("run-%d", time.Now().UnixMilli())
+	e.StoriesCompletedThisRun = 0
+	e.RunStartedAt = time.Now().UTC().Format(time.RFC3339)
 	e.StoriesCompletedThisSession = []string{}
 	e.EngineStatus = StatusRunning
 	e.Blocked = false
