@@ -42,7 +42,7 @@ jobs:
         run: go test ./... -count=1 -race -coverprofile=coverage.out
       - name: Upload coverage
         if: matrix.os == 'ubuntu-latest'
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v6
         with:
           file: coverage.out
 
