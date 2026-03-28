@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/diegorodrigo90/ralph-engine/internal/config"
+	"github.com/diegorodrigo90/ralph-engine/internal/hooks"
 	"github.com/diegorodrigo90/ralph-engine/internal/runner"
 	"github.com/diegorodrigo90/ralph-engine/internal/system"
 )
@@ -67,6 +68,7 @@ type EngineOpts struct {
 	Paths        *config.PathsConfig     // Project artifact paths
 	Prompt       *config.PromptConfig   // Custom prompt sections
 	Research     *config.ResearchConfig // Research tools config
+	Hooks        *hooks.HooksConfig    // Lifecycle hooks (nil = no hooks)
 }
 
 // Engine is the core autonomous execution loop.

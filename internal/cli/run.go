@@ -11,6 +11,7 @@ import (
 
 	"github.com/diegorodrigo90/ralph-engine/internal/config"
 	"github.com/diegorodrigo90/ralph-engine/internal/engine"
+	"github.com/diegorodrigo90/ralph-engine/internal/hooks"
 	"github.com/diegorodrigo90/ralph-engine/internal/tracker"
 	"github.com/spf13/cobra"
 )
@@ -88,6 +89,12 @@ func runEngine(cmd *cobra.Command, args []string) error {
 	maxIterations, _ := cmd.Flags().GetInt("max-iterations")
 	singleStory, _ := cmd.Flags().GetString("single-story")
 
+	// Load hooks.yaml (lifecycle hooks for quality gates, etc.).
+	hooksConfig, err := hooks.Load(projectDir)
+	if err != nil {
+		return fmt.Errorf("loading hooks: %w", err)
+	}
+
 	eng, err := engine.New(engine.EngineOpts{
 		ProjectDir:      projectDir,
 		StateDir:        stateDir,
@@ -102,6 +109,7 @@ func runEngine(cmd *cobra.Command, args []string) error {
 		Paths:           &cfg.Paths,
 		Prompt:          &cfg.Prompt,
 		Research:        &cfg.Research,
+		Hooks:           hooksConfig,
 	})
 	if err != nil {
 		return fmt.Errorf("creating engine: %w", err)

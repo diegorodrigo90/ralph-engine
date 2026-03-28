@@ -10,6 +10,7 @@ import (
 	"github.com/diegorodrigo90/ralph-engine/internal/claude"
 	"github.com/diegorodrigo90/ralph-engine/internal/config"
 	appcontext "github.com/diegorodrigo90/ralph-engine/internal/context"
+	"github.com/diegorodrigo90/ralph-engine/internal/hooks"
 	"github.com/diegorodrigo90/ralph-engine/internal/state"
 	"github.com/diegorodrigo90/ralph-engine/internal/tracker"
 )
@@ -66,6 +67,13 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 	// Dry-run: show plan and exit.
 	if e.opts.DryRun {
 		return e.dryRun(tk, emit, engineState)
+	}
+
+	// Run preflight hooks (before loop starts).
+	if e.opts.Hooks != nil {
+		if !e.runHookPhase(ctx, "preflight", e.opts.Hooks.Preflight, nil, emit) {
+			return e.stop(ExitBlocked, engineState, emit, "Preflight hooks failed")
+		}
 	}
 
 	// Use "json" format for maximum compatibility across agent wrappers.
@@ -130,6 +138,15 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 
 		if err := tk.MarkInProgress(story.ID); err != nil {
 			log.Printf("Warning: could not mark story in-progress: %v", err)
+		}
+
+		// Run pre-story hooks.
+		if e.opts.Hooks != nil {
+			if !e.runHookPhase(ctx, "pre-story", e.opts.Hooks.PreStory, nil, emit) {
+				e.circuitBreaker.RecordFailure(fmt.Errorf("pre-story hooks failed"))
+				emit("error", "Pre-story hooks failed, skipping story")
+				continue
+			}
 		}
 
 		// Load story content from paths config or story.FilePath.
@@ -212,15 +229,36 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 		}
 
 		if sessionResult != nil && sessionResult.ExitCode == 0 {
-			e.circuitBreaker.RecordSuccess(1)
-			engineState.StoriesCompletedTotal++
-			engineState.StoriesCompletedThisSession = append(
-				engineState.StoriesCompletedThisSession, story.ID)
-			if err := tk.MarkComplete(story.ID); err != nil {
-				log.Printf("Warning: could not mark story complete: %v", err)
+			// Run quality gate hooks (with path filtering).
+			gatesPassed := true
+			if e.opts.Hooks != nil && len(e.opts.Hooks.QualityGates.Steps) > 0 {
+				changedFiles := hooks.GetChangedFiles(e.opts.ProjectDir)
+				if !e.runHookPhase(ctx, "quality-gates", e.opts.Hooks.QualityGates, changedFiles, emit) {
+					gatesPassed = false
+					msg := e.circuitBreaker.RecordFailure(fmt.Errorf("quality gates failed for story %s", story.ID))
+					emit("error", fmt.Sprintf("Quality gates FAILED for story %s — not marking complete", story.ID))
+					if msg != "" {
+						emit("error", msg)
+					}
+				}
 			}
-			emit("story_complete", fmt.Sprintf("Story %s complete (%d total, $%.2f session)",
-				story.ID, engineState.StoriesCompletedTotal, engineState.SessionCostUSD))
+
+			if gatesPassed {
+				e.circuitBreaker.RecordSuccess(1)
+				engineState.StoriesCompletedTotal++
+				engineState.StoriesCompletedThisSession = append(
+					engineState.StoriesCompletedThisSession, story.ID)
+				if err := tk.MarkComplete(story.ID); err != nil {
+					log.Printf("Warning: could not mark story complete: %v", err)
+				}
+				emit("story_complete", fmt.Sprintf("Story %s complete (%d total, $%.2f session)",
+					story.ID, engineState.StoriesCompletedTotal, engineState.SessionCostUSD))
+
+				// Run post-story hooks.
+				if e.opts.Hooks != nil {
+					e.runHookPhase(ctx, "post-story", e.opts.Hooks.PostStory, nil, emit)
+				}
+			}
 		} else {
 			exitCode := 0
 			if sessionResult != nil {
@@ -403,6 +441,14 @@ func (e *Engine) stop(reason ExitReason, s *state.Engine, emit func(string, stri
 		}
 		emit(levelType, msg)
 	}
+
+	// Run post-session hooks (best-effort — don't block shutdown).
+	if e.opts.Hooks != nil && len(e.opts.Hooks.PostSession.Steps) > 0 {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		e.runHookPhase(ctx, "post-session", e.opts.Hooks.PostSession, nil, emit)
+	}
+
 	s.Save(e.opts.StateDir)
 	e.mu.RLock()
 	defer e.mu.RUnlock()
@@ -444,6 +490,41 @@ func countTotal(tk tracker.TaskTracker) int {
 		return 0
 	}
 	return len(all)
+}
+
+// runHookPhase executes a hook phase and emits events for each step.
+// Returns true if the phase passed (no required step failed).
+func (e *Engine) runHookPhase(ctx context.Context, name string, phase hooks.HookPhase, changedFiles []string, emit func(string, string)) bool {
+	if len(phase.Steps) == 0 {
+		return true
+	}
+
+	emit("info", fmt.Sprintf("Running %s hooks...", name))
+	result := hooks.RunPhase(ctx, phase, e.opts.ProjectDir, changedFiles, func(sr hooks.StepResult) {
+		if sr.Skipped {
+			emit("info", fmt.Sprintf("  ⊘ %s (skipped — no matching files)", sr.Name))
+			return
+		}
+		if sr.OK {
+			emit("info", fmt.Sprintf("  ✓ %s (%v)", sr.Name, sr.Duration.Round(time.Millisecond)))
+		} else {
+			level := "warn"
+			if sr.Required {
+				level = "error"
+			}
+			errMsg := ""
+			if sr.Error != nil {
+				errMsg = sr.Error.Error()
+			}
+			emit(level, fmt.Sprintf("  ✗ %s — %s", sr.Name, errMsg))
+		}
+	})
+
+	if result.Blocked {
+		emit("error", fmt.Sprintf("Hook blocked: %s", result.Reason))
+		return false
+	}
+	return true
 }
 
 // loadStoryContent reads the story specification file for prompt injection.
