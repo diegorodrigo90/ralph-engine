@@ -55,6 +55,9 @@ type EngineOpts struct {
 	ProjectDir        string
 	StateDir          string
 	Binary            string // "claude" or "claudebox"
+	Model             string // Agent model (e.g., "opus", "sonnet")
+	AllowedTools      string // Comma-separated allowed tools
+	SkipPermissions   bool   // --dangerously-skip-permissions
 	MaxFailures       int    // Circuit breaker threshold
 	CooldownSeconds   int    // Seconds between sessions
 	CooldownMinutes   int    // Circuit breaker cooldown

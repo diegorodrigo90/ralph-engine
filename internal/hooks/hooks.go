@@ -247,27 +247,54 @@ func matchesAnyPath(changedFiles, patterns []string) bool {
 	return false
 }
 
-// GetChangedFiles returns the list of files changed since the last commit.
+// GetChangedFiles returns the list of files changed by the agent.
+// It checks multiple git states to handle both pre-commit and post-commit scenarios:
+//  1. Uncommitted changes (working tree + staged vs HEAD)
+//  2. Last commit changes (HEAD vs HEAD~1) — for when agent already committed
+//  3. Both combined (deduped) — covers the full picture
+//
+// This is critical because the agent may or may not have committed before quality gates run.
 func GetChangedFiles(projectDir string) []string {
-	cmd := exec.Command("git", "diff", "--name-only", "HEAD")
-	cmd.Dir = projectDir
-	output, err := cmd.Output()
-	if err != nil {
-		// Also try diff against nothing (for initial commits or staged changes).
-		cmd2 := exec.Command("git", "diff", "--name-only", "--cached")
-		cmd2.Dir = projectDir
-		output, err = cmd2.Output()
-		if err != nil {
-			return nil // Can't determine changes — run all hooks.
+	seen := make(map[string]bool)
+	var files []string
+
+	addFiles := func(output string) {
+		for _, line := range strings.Split(strings.TrimSpace(output), "\n") {
+			if line != "" && !seen[line] {
+				seen[line] = true
+				files = append(files, line)
+			}
 		}
 	}
 
-	var files []string
-	for _, line := range strings.Split(strings.TrimSpace(string(output)), "\n") {
-		if line != "" {
-			files = append(files, line)
-		}
+	// 1. Modified files (tracked, uncommitted changes vs HEAD).
+	cmd := exec.Command("git", "diff", "--name-only", "HEAD")
+	cmd.Dir = projectDir
+	if output, err := cmd.Output(); err == nil {
+		addFiles(string(output))
 	}
+
+	// 2. Staged changes not yet committed.
+	cmd2 := exec.Command("git", "diff", "--name-only", "--cached")
+	cmd2.Dir = projectDir
+	if output, err := cmd2.Output(); err == nil {
+		addFiles(string(output))
+	}
+
+	// 3. Untracked new files (not yet added to git).
+	cmd3 := exec.Command("git", "ls-files", "--others", "--exclude-standard")
+	cmd3.Dir = projectDir
+	if output, err := cmd3.Output(); err == nil {
+		addFiles(string(output))
+	}
+
+	// 4. Last commit changes (HEAD vs HEAD~1) — for when agent already committed.
+	cmd4 := exec.Command("git", "diff", "--name-only", "HEAD~1", "HEAD")
+	cmd4.Dir = projectDir
+	if output, err := cmd4.Output(); err == nil {
+		addFiles(string(output))
+	}
+
 	return files
 }
 

@@ -62,8 +62,12 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 	if e.opts.SingleStory != "" {
 		mode = fmt.Sprintf("single-story:%s", e.opts.SingleStory)
 	}
-	emit("info", fmt.Sprintf("Engine started [mode=%s, agent=%s, stories/session=%d]",
-		mode, e.opts.Binary, e.opts.StoriesPerSession))
+	agentInfo := e.opts.Binary
+	if e.opts.Model != "" {
+		agentInfo += " (model=" + e.opts.Model + ")"
+	}
+	emit("info", fmt.Sprintf("Engine started [mode=%s, agent=%s, stories/session=%d, gate-retries=%s]",
+		mode, agentInfo, e.opts.StoriesPerSession, formatLimit(e.opts.MaxGateRetries)))
 
 	// Dry-run: show plan and exit.
 	if e.opts.DryRun {
@@ -79,9 +83,16 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 
 	// Use "json" format for maximum compatibility across agent wrappers.
 	// "stream-json" requires --verbose which some wrappers (claudebox) consume.
+	var allowedTools []string
+	if e.opts.AllowedTools != "" {
+		allowedTools = strings.Split(e.opts.AllowedTools, ",")
+	}
 	client := claude.NewClient(claude.ClientConfig{
-		Binary:       e.opts.Binary,
-		OutputFormat: "json",
+		Binary:          e.opts.Binary,
+		OutputFormat:    "json",
+		Model:           e.opts.Model,
+		AllowedTools:    allowedTools,
+		SkipPermissions: e.opts.SkipPermissions,
 	})
 
 	iteration := 0

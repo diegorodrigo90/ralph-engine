@@ -3,6 +3,7 @@ package hooks
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 	"time"
@@ -254,6 +255,76 @@ func TestMatchesAnyPath(t *testing.T) {
 				t.Errorf("matchesAnyPath(%v, %v) = %v, want %v", tt.changed, tt.patterns, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestGetChangedFilesInGitRepo(t *testing.T) {
+	// Create a real git repo to test GetChangedFiles.
+	dir := t.TempDir()
+
+	// Init repo with an initial commit.
+	run := func(args ...string) {
+		cmd := exec.Command(args[0], args[1:]...)
+		cmd.Dir = dir
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=test", "GIT_AUTHOR_EMAIL=test@test.com",
+			"GIT_COMMITTER_NAME=test", "GIT_COMMITTER_EMAIL=test@test.com")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("command %v failed: %v\n%s", args, err, out)
+		}
+	}
+
+	run("git", "init")
+	os.WriteFile(filepath.Join(dir, "initial.txt"), []byte("init"), 0644)
+	run("git", "add", ".")
+	run("git", "commit", "-m", "initial")
+
+	// Case 1: Uncommitted changes should be detected.
+	os.WriteFile(filepath.Join(dir, "uncommitted.txt"), []byte("new"), 0644)
+	files := GetChangedFiles(dir)
+	found := false
+	for _, f := range files {
+		if f == "uncommitted.txt" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected uncommitted.txt in changed files, got: %v", files)
+	}
+
+	// Case 2: Committed changes should be detected (HEAD vs HEAD~1).
+	run("git", "add", ".")
+	run("git", "commit", "-m", "add file")
+	files = GetChangedFiles(dir)
+	found = false
+	for _, f := range files {
+		if f == "uncommitted.txt" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected uncommitted.txt in post-commit changed files, got: %v", files)
+	}
+
+	// Case 3: No duplicates when file is in both uncommitted and last commit.
+	os.WriteFile(filepath.Join(dir, "uncommitted.txt"), []byte("modified"), 0644)
+	files = GetChangedFiles(dir)
+	count := 0
+	for _, f := range files {
+		if f == "uncommitted.txt" {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Errorf("expected exactly 1 occurrence of uncommitted.txt, got %d in: %v", count, files)
+	}
+}
+
+func TestGetChangedFilesNonGitDir(t *testing.T) {
+	// Non-git directory should return nil (not panic).
+	dir := t.TempDir()
+	files := GetChangedFiles(dir)
+	if files != nil {
+		t.Errorf("expected nil for non-git dir, got: %v", files)
 	}
 }
 
