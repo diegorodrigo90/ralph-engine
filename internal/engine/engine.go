@@ -192,14 +192,14 @@ func (e *Engine) Preflight(ctx context.Context) []PreflightResult {
 
 	// Check state directory is writable
 	stateTestFile := fmt.Sprintf("%s/.ralph-engine-preflight-test", e.opts.StateDir)
-	if err := os.WriteFile(stateTestFile, []byte("test"), 0644); err != nil {
+	if err := os.WriteFile(stateTestFile, []byte("test"), 0600); err != nil {
 		results = append(results, PreflightResult{
 			Name:    "state directory",
 			OK:      false,
 			Message: fmt.Sprintf("state directory not writable: %s", e.opts.StateDir),
 		})
 	} else {
-		os.Remove(stateTestFile)
+		_ = os.Remove(stateTestFile) //nolint:errcheck // best-effort cleanup of temp test file
 		results = append(results, PreflightResult{
 			Name:    "state directory",
 			OK:      true,

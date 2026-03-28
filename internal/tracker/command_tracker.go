@@ -119,7 +119,7 @@ func (ct *CommandTracker) run(command string, args ...string) (string, error) {
 	defer cancel()
 
 	shell := findShell()
-	cmd := exec.CommandContext(ctx, shell, "-c", command+argsToString(args))
+	cmd := exec.CommandContext(ctx, shell, "-c", command+argsToString(args)) // #nosec G204 -- user-configured tracker commands, by design
 	cmd.Dir = ct.workDir
 	cmd.Stdin = nil
 

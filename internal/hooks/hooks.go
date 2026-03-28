@@ -64,7 +64,7 @@ type PhaseResult struct {
 // Returns nil config (not error) if hooks.yaml doesn't exist.
 func Load(projectDir string) (*HooksConfig, error) {
 	path := filepath.Join(projectDir, ".ralph-engine", "hooks.yaml")
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path is projectDir + known config path
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil // No hooks file — not an error.
@@ -143,7 +143,7 @@ func executeStep(ctx context.Context, step HookStep, projectDir string) StepResu
 
 	start := time.Now()
 
-	cmd := exec.Command("sh", "-c", step.Run)
+	cmd := exec.Command("sh", "-c", step.Run) // #nosec G204 -- user controls hooks.yaml commands, by design
 	cmd.Dir = projectDir
 	setSysProcAttr(cmd)
 
@@ -179,7 +179,7 @@ func executeStep(ctx context.Context, step HookStep, projectDir string) StepResu
 		case <-time.After(2 * time.Second):
 			// Process didn't die — force kill individual process.
 			if cmd.Process != nil {
-				cmd.Process.Kill()
+				_ = cmd.Process.Kill() // Best-effort cleanup.
 			}
 			<-doneCh
 		}

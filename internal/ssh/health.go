@@ -85,7 +85,7 @@ func (hc *HealthChecker) Check(ctx context.Context) HealthResult {
 	hc.lastCheckAt = start
 
 	args := hc.buildExecArgs("echo ok")
-	cmd := exec.CommandContext(ctx, "ssh", args...)
+	cmd := exec.CommandContext(ctx, "ssh", args...) // #nosec G204 -- SSH args from config, by design
 	cmd.Stdin = nil
 
 	output, err := cmd.CombinedOutput()
@@ -139,7 +139,7 @@ func (hc *HealthChecker) Reconnect(ctx context.Context) HealthResult {
 		}
 	}
 
-	cmd := exec.CommandContext(ctx, hc.config.ReconnectScript)
+	cmd := exec.CommandContext(ctx, hc.config.ReconnectScript) // #nosec G204 -- reconnect script from config, by design
 	cmd.Stdin = nil
 	if err := cmd.Run(); err != nil {
 		return HealthResult{
@@ -178,7 +178,7 @@ func (hc *HealthChecker) CheckAndHeal(ctx context.Context) HealthResult {
 func (hc *HealthChecker) Exec(ctx context.Context, command string) (string, error) {
 	args := hc.buildRemoteExecArgs(command)
 
-	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
+	cmd := exec.CommandContext(ctx, args[0], args[1:]...) // #nosec G204 -- remote exec args from config, by design
 	cmd.Stdin = nil
 
 	output, err := cmd.CombinedOutput()

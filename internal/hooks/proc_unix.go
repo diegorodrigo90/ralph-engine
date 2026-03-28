@@ -16,6 +16,6 @@ func setSysProcAttr(cmd *exec.Cmd) {
 // ensuring child processes (like sleep) are also killed on timeout.
 func killProcessGroup(cmd *exec.Cmd) {
 	if cmd.Process != nil {
-		syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL)
+		_ = syscall.Kill(-cmd.Process.Pid, syscall.SIGKILL) // Best-effort cleanup.
 	}
 }

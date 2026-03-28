@@ -79,7 +79,9 @@ func runEngine(cmd *cobra.Command, args []string) error {
 	stateDir, _ := cmd.Flags().GetString("state-dir")
 	if stateDir == "" {
 		stateDir = filepath.Join(projectDir, ".ralph-engine")
-		os.MkdirAll(stateDir, 0755)
+		if err := os.MkdirAll(stateDir, 0750); err != nil {
+			return fmt.Errorf("creating state directory %s: %w", stateDir, err)
+		}
 	}
 
 	// Persist explicitly-changed flags to config if --save was passed.

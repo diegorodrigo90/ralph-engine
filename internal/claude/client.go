@@ -73,7 +73,7 @@ func NewClient(config ClientConfig) *Client {
 func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCallback) (*SessionResult, error) {
 	args := c.buildArgs(req)
 
-	cmd := exec.CommandContext(ctx, c.config.Binary, args...)
+	cmd := exec.CommandContext(ctx, c.config.Binary, args...) // #nosec G204 -- agent binary path from user config, by design
 	if req.ProjectDir != "" {
 		cmd.Dir = req.ProjectDir
 	}

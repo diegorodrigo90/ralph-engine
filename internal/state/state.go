@@ -68,7 +68,7 @@ func New() *Engine {
 func Load(stateDir string) (*Engine, error) {
 	path := filepath.Join(stateDir, "state.json")
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path is stateDir + "state.json"
 	if os.IsNotExist(err) {
 		return New(), nil
 	}
@@ -87,7 +87,7 @@ func Load(stateDir string) (*Engine, error) {
 
 // Save writes the state to a JSON file.
 func (e *Engine) Save(stateDir string) error {
-	if err := os.MkdirAll(stateDir, 0755); err != nil {
+	if err := os.MkdirAll(stateDir, 0750); err != nil {
 		return fmt.Errorf("failed to create state directory: %w", err)
 	}
 
@@ -102,11 +102,11 @@ func (e *Engine) Save(stateDir string) error {
 
 	// Write atomically: write to temp file, then rename
 	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write state file: %w", err)
 	}
 	if err := os.Rename(tmpPath, path); err != nil {
-		os.Remove(tmpPath)
+		_ = os.Remove(tmpPath) //nolint:errcheck // best-effort cleanup of temp file after rename failure
 		return fmt.Errorf("failed to rename state file: %w", err)
 	}
 

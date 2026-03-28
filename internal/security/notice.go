@@ -35,13 +35,13 @@ func (n *Notice) IsAccepted() bool {
 // Accept marks the security notice as accepted and persists to disk.
 // This is a one-time action — the user is never prompted again.
 func (n *Notice) Accept() error {
-	if err := os.MkdirAll(n.configDir, 0755); err != nil {
+	if err := os.MkdirAll(n.configDir, 0750); err != nil {
 		return fmt.Errorf("creating config dir: %w", err)
 	}
 
 	content := fmt.Sprintf("accepted=%s\n", time.Now().UTC().Format(time.RFC3339))
 	path := filepath.Join(n.configDir, acceptedFile)
-	if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
 		return fmt.Errorf("writing security acceptance: %w", err)
 	}
 
@@ -68,7 +68,7 @@ func (n *Notice) Validate(skipPermissions bool) error {
 // readAccepted validates that the acceptance file exists and contains valid content.
 func (n *Notice) readAccepted() bool {
 	path := filepath.Join(n.configDir, acceptedFile)
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path is configDir + known acceptedFile constant
 	if err != nil {
 		return false
 	}

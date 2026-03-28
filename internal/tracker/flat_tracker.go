@@ -136,7 +136,7 @@ func (ft *FlatFileTracker) ListAll() ([]Story, error) {
 func (ft *FlatFileTracker) updateStatus(storyID string, status StoryStatus) error {
 	path := filepath.Join(ft.dir, ft.filename)
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path from config dir + known filename
 	if err != nil {
 		return fmt.Errorf("reading %s: %w", ft.filename, err)
 	}
@@ -179,11 +179,11 @@ func (ft *FlatFileTracker) updateStatus(storyID string, status StoryStatus) erro
 
 	result := strings.Join(lines, "\n")
 	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, []byte(result), 0644); err != nil {
+	if err := os.WriteFile(tmpPath, []byte(result), 0644); err != nil { // #nosec G306,G703 -- sprint-status.yaml is a project file, not a secret; path from config
 		return fmt.Errorf("writing %s: %w", ft.filename, err)
 	}
 	if err := os.Rename(tmpPath, path); err != nil {
-		os.Remove(tmpPath)
+		_ = os.Remove(tmpPath)
 		return fmt.Errorf("renaming %s: %w", ft.filename, err)
 	}
 	return nil
@@ -193,7 +193,7 @@ func (ft *FlatFileTracker) updateStatus(storyID string, status StoryStatus) erro
 func (ft *FlatFileTracker) readFile() (*flatStatusFile, error) {
 	path := filepath.Join(ft.dir, ft.filename)
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path from config dir + known filename
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil, nil

@@ -76,7 +76,7 @@ func FindStoryFile(projectDir, storiesPath, storyID string) string {
 
 	// Walk the stories directory looking for a matching file.
 	var match string
-	filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+	_ = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error { //nolint:errcheck // errors handled per-entry inside callback
 		if err != nil || d.IsDir() || match != "" {
 			return nil
 		}
@@ -113,7 +113,7 @@ func readFileSafe(path string) (string, error) {
 		return readDirIndex(path)
 	}
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path comes from project config paths, trusted input
 	if err != nil {
 		return "", fmt.Errorf("reading %s: %w", path, err)
 	}
@@ -134,7 +134,7 @@ func readDirIndex(dir string) (string, error) {
 	for _, name := range indexFiles {
 		path := filepath.Join(dir, name)
 		if _, err := os.Stat(path); err == nil {
-			data, err := os.ReadFile(path)
+			data, err := os.ReadFile(path) // #nosec G304 -- path is dir + known index filename
 			if err != nil {
 				return "", err
 			}

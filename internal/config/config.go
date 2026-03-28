@@ -385,7 +385,7 @@ func SaveProject(projectDir, key, value string) error {
 
 // saveToDir writes a key-value to a config file in the given directory.
 func saveToDir(dir, key, value string) error {
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 
@@ -407,7 +407,7 @@ func saveToDir(dir, key, value string) error {
 // The preset parameter selects which boilerplate to use.
 func InitProject(projectDir, preset string) error {
 	configDir := filepath.Join(projectDir, ProjectConfigDir)
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0750); err != nil {
 		return fmt.Errorf("creating config directory: %w", err)
 	}
 
@@ -452,7 +452,7 @@ func writeIfNotExists(path, content string) error {
 	if _, err := os.Stat(path); err == nil {
 		return nil // File exists — do not overwrite.
 	}
-	return os.WriteFile(path, []byte(content), 0644)
+	return os.WriteFile(path, []byte(content), 0644) // #nosec G306 -- config.yaml/prompt.md/hooks.yaml are project files, not secrets
 }
 
 // presetConfig returns the config.yaml content for a preset.

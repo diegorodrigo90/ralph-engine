@@ -199,7 +199,7 @@ func detectLinters(dir string, info *ProjectInfo) {
 
 	// Check pyproject.toml for ruff config.
 	if exists(dir, "pyproject.toml") {
-		data, _ := os.ReadFile(filepath.Join(dir, "pyproject.toml"))
+		data, _ := os.ReadFile(filepath.Join(dir, "pyproject.toml")) // #nosec G304 -- dir + known filename
 		if strings.Contains(string(data), "[tool.ruff]") {
 			info.Tools = append(info.Tools, DetectedTool{Name: "Ruff", Category: "lint", Path: "pyproject.toml"})
 		}
@@ -267,7 +267,7 @@ func exists(dir, path string) bool {
 
 // readPackageJSON reads and parses the root package.json.
 func readPackageJSON(dir string) map[string]interface{} {
-	data, err := os.ReadFile(filepath.Join(dir, "package.json"))
+	data, err := os.ReadFile(filepath.Join(dir, "package.json")) // #nosec G304 -- dir + known filename
 	if err != nil {
 		return nil
 	}

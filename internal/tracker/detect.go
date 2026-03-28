@@ -11,7 +11,7 @@ import (
 // otherwise returns a FileTracker (structured YAML with epics array).
 func AutoDetect(dir, filename string) TaskTracker {
 	path := filepath.Join(dir, filename)
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path from config dir + known filename
 	if err != nil {
 		// File doesn't exist yet — default to structured format.
 		return NewFileTracker(dir, filename)

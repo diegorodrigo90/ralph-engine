@@ -147,7 +147,7 @@ func (ft *FileTracker) updateStatus(storyID string, status StoryStatus) error {
 func (ft *FileTracker) readFile() (*sprintStatusFile, error) {
 	path := filepath.Join(ft.dir, ft.filename)
 
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) // #nosec G304 -- path from config dir + known filename
 	if os.IsNotExist(err) {
 		return nil, nil
 	}
@@ -174,11 +174,11 @@ func (ft *FileTracker) writeFile(sf *sprintStatusFile) error {
 
 	// Atomic write via temp + rename
 	tmpPath := path + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, data, 0644); err != nil { // #nosec G306 -- sprint-status.yaml is a project file, not a secret
 		return fmt.Errorf("writing %s: %w", ft.filename, err)
 	}
 	if err := os.Rename(tmpPath, path); err != nil {
-		os.Remove(tmpPath)
+		_ = os.Remove(tmpPath)
 		return fmt.Errorf("renaming %s: %w", ft.filename, err)
 	}
 

@@ -143,7 +143,9 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 		engineState.SessionNumber = sessionNum
 		engineState.CurrentStory = story.ID
 		engineState.CurrentPhase = "implementation"
-		engineState.Save(e.opts.StateDir)
+		if err := engineState.Save(e.opts.StateDir); err != nil {
+			log.Printf("Warning: could not save engine state: %v", err)
+		}
 
 		emit("session_start", fmt.Sprintf("Session #%d: Story %s — %s (Epic %s)",
 			sessionNum, story.ID, story.Title, story.EpicID))
@@ -232,7 +234,9 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 			if msg != "" {
 				emit("error", msg)
 			}
-			engineState.Save(e.opts.StateDir)
+			if err := engineState.Save(e.opts.StateDir); err != nil {
+				log.Printf("Warning: could not save engine state after session error: %v", err)
+			}
 			continue
 		}
 
@@ -259,7 +263,9 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 				if err := tk.RevertToReady(story.ID); err != nil {
 					log.Printf("Warning: could not revert story status: %v", err)
 				}
-				engineState.Save(e.opts.StateDir)
+				if err := engineState.Save(e.opts.StateDir); err != nil {
+					log.Printf("Warning: could not save engine state after empty session: %v", err)
+				}
 				continue
 			}
 
@@ -288,7 +294,9 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 				if err := tk.RevertToReady(story.ID); err != nil {
 					log.Printf("Warning: could not revert story status: %v", err)
 				}
-				engineState.Save(e.opts.StateDir)
+				if err := engineState.Save(e.opts.StateDir); err != nil {
+					log.Printf("Warning: could not save engine state after gates skipped: %v", err)
+				}
 				continue
 			}
 
@@ -330,7 +338,9 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 			}
 		}
 
-		engineState.Save(e.opts.StateDir)
+		if err := engineState.Save(e.opts.StateDir); err != nil {
+			log.Printf("Warning: could not save engine state after iteration: %v", err)
+		}
 
 		// Single-story mode: stop after first story.
 		if e.opts.SingleStory != "" {
@@ -510,7 +520,9 @@ func (e *Engine) stop(reason ExitReason, s *state.Engine, emit func(string, stri
 		e.runHookPhase(ctx, "post-session", e.opts.Hooks.PostSession, nil, emit)
 	}
 
-	s.Save(e.opts.StateDir)
+	if err := s.Save(e.opts.StateDir); err != nil {
+		log.Printf("Warning: could not save engine state on stop: %v", err)
+	}
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 	return RunResult{

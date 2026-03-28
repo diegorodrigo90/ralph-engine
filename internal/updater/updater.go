@@ -209,7 +209,7 @@ func downloadFile(url, dest string) error {
 		return fmt.Errorf("HTTP %d for %s", resp.StatusCode, url)
 	}
 
-	out, err := os.Create(dest)
+	out, err := os.Create(dest) // #nosec G304 -- dest is constructed internally from temp dir + known filename
 	if err != nil {
 		return fmt.Errorf("creating %s: %w", dest, err)
 	}
@@ -243,8 +243,8 @@ func extractArchive(archive, dest, ext string) error {
 func replaceBinary(currentPath, newPath string) error {
 	backupPath := currentPath + ".bak"
 
-	// Remove any stale backup from previous update.
-	os.Remove(backupPath)
+	// Remove any stale backup from previous update (best-effort).
+	_ = os.Remove(backupPath)
 
 	// Move current binary to backup.
 	if err := os.Rename(currentPath, backupPath); err != nil {
@@ -253,27 +253,27 @@ func replaceBinary(currentPath, newPath string) error {
 
 	// Stream new binary to current path (avoids loading entire file into memory).
 	if err := copyFile(newPath, currentPath); err != nil {
-		// Restore backup on failure.
-		os.Rename(backupPath, currentPath)
+		// Restore backup on failure (best-effort).
+		_ = os.Rename(backupPath, currentPath)
 		return err
 	}
 
 	// Remove backup (best-effort — on Windows, running exe can't be deleted).
-	os.Remove(backupPath)
+	_ = os.Remove(backupPath)
 
 	return nil
 }
 
 // copyFile copies src to dst using streaming io.Copy.
 func copyFile(src, dst string) error {
-	in, err := os.Open(src)
+	in, err := os.Open(src) // #nosec G304 -- src is the extracted binary from temp dir
 	if err != nil {
 		// Restore is handled by caller.
 		return fmt.Errorf("reading new binary: %w", err)
 	}
 	defer in.Close()
 
-	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o755)
+	out, err := os.OpenFile(dst, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o755) // #nosec G302,G304 -- binary needs 0755 execute permission; dst is from os.Executable()
 	if err != nil {
 		return fmt.Errorf("writing new binary: %w", err)
 	}
@@ -288,7 +288,7 @@ func copyFile(src, dst string) error {
 // runCmd executes a command and returns any error, including stderr output.
 func runCmd(name string, args ...string) error {
 	var stderr strings.Builder
-	cmd := exec.Command(name, args...)
+	cmd := exec.Command(name, args...) // #nosec G204 -- runs tar/unzip for self-update extraction, by design
 	cmd.Stdout = io.Discard
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {

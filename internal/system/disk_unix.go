@@ -22,8 +22,8 @@ func readDiskInfo(snap *ResourceSnapshot) error {
 	}
 
 	// Use int64 arithmetic to avoid uint64 overflow on large filesystems.
-	bsize := int64(stat.Bsize)
-	snap.TotalDiskGB = int(int64(stat.Blocks) * bsize / bytesPerGB)
-	snap.FreeDiskGB = int(int64(stat.Bavail) * bsize / bytesPerGB)
+	bsize := int64(stat.Bsize) // #nosec G115 -- block size fits in int64 for any real filesystem
+	snap.TotalDiskGB = int(int64(stat.Blocks) * bsize / bytesPerGB) // #nosec G115 -- disk GB fits in int
+	snap.FreeDiskGB = int(int64(stat.Bavail) * bsize / bytesPerGB)  // #nosec G115 -- disk GB fits in int
 	return nil
 }

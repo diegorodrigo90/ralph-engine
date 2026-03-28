@@ -152,7 +152,7 @@ func (rm *ResourceMonitor) Check() (ResourceSnapshot, error) {
 		// Fallback: use Go runtime stats (less accurate but cross-platform)
 		var memStats runtime.MemStats
 		runtime.ReadMemStats(&memStats)
-		snap.TotalRAMMB = int(memStats.Sys / (1024 * 1024))
+		snap.TotalRAMMB = int(memStats.Sys / (1024 * 1024)) // #nosec G115 -- RAM in MB fits in int for any real system
 		snap.FreeRAMMB = snap.TotalRAMMB / 2 // Conservative estimate
 	}
 
@@ -175,15 +175,15 @@ func readMemInfo(snap *ResourceSnapshot) error {
 	for _, line := range strings.Split(string(data), "\n") {
 		switch {
 		case strings.HasPrefix(line, "MemTotal:"):
-			fmt.Sscanf(line, "MemTotal: %d kB", &totalKB)
+			_, _ = fmt.Sscanf(line, "MemTotal: %d kB", &totalKB) // Pre-validated by HasPrefix.
 		case strings.HasPrefix(line, "MemFree:"):
-			fmt.Sscanf(line, "MemFree: %d kB", &freeKB)
+			_, _ = fmt.Sscanf(line, "MemFree: %d kB", &freeKB) // Pre-validated by HasPrefix.
 		case strings.HasPrefix(line, "MemAvailable:"):
-			fmt.Sscanf(line, "MemAvailable: %d kB", &availableKB)
+			_, _ = fmt.Sscanf(line, "MemAvailable: %d kB", &availableKB) // Pre-validated by HasPrefix.
 		case strings.HasPrefix(line, "Buffers:"):
-			fmt.Sscanf(line, "Buffers: %d kB", &buffersKB)
+			_, _ = fmt.Sscanf(line, "Buffers: %d kB", &buffersKB) // Pre-validated by HasPrefix.
 		case strings.HasPrefix(line, "Cached:"):
-			fmt.Sscanf(line, "Cached: %d kB", &cachedKB)
+			_, _ = fmt.Sscanf(line, "Cached: %d kB", &cachedKB) // Pre-validated by HasPrefix.
 		}
 	}
 
