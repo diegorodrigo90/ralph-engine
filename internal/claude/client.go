@@ -43,8 +43,17 @@ type SessionResult struct {
 }
 
 // StreamEvent represents a single line of stream-json output from Claude.
+// Claude CLI stream-json emits events like:
+//
+//	{"type":"system","subtype":"init","message":{...}}
+//	{"type":"assistant","message":{"content":"..."}}
+//	{"type":"tool_use","tool":"Read","input":{...}}
+//	{"type":"tool_result","content":"..."}
+//	{"type":"result","subtype":"success","result":{...}}
 type StreamEvent struct {
 	Type    string          `json:"type"`
+	Subtype string          `json:"subtype,omitempty"`
+	Tool    string          `json:"tool,omitempty"`
 	Message json.RawMessage `json:"message,omitempty"`
 	Result  *SessionResult  `json:"result,omitempty"`
 }
@@ -64,7 +73,7 @@ func NewClient(config ClientConfig) *Client {
 		config.Binary = "claude"
 	}
 	if config.OutputFormat == "" {
-		config.OutputFormat = "json"
+		config.OutputFormat = "stream-json"
 	}
 	return &Client{config: config}
 }
@@ -109,9 +118,9 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 		allOutput.WriteString(line)
 		allOutput.WriteByte('\n')
 
-		// Try parsing as stream-json event (has "type" field).
-		event, err := parseStreamLine(line)
-		if err == nil {
+		// Try parsing as stream-json event.
+		event, parseErr := parseStreamLine(line)
+		if parseErr == nil {
 			if callback != nil {
 				callback(event)
 			}

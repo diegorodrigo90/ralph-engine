@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -81,8 +82,8 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 		}
 	}
 
-	// Use "json" format for maximum compatibility across agent wrappers.
-	// "stream-json" requires --verbose which some wrappers (claudebox) consume.
+	// Use "stream-json" for real-time progress visibility.
+	// Emits events line-by-line so the engine can show tool calls and agent responses.
 	var allowedTools []string
 	if e.opts.AllowedTools != "" {
 		allowedTools = strings.Split(e.opts.AllowedTools, ",")
@@ -93,7 +94,7 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 	}
 	client := claude.NewClient(claude.ClientConfig{
 		Binary:          e.opts.Binary,
-		OutputFormat:    "json",
+		OutputFormat:    "stream-json",
 		Model:           e.opts.Model,
 		MaxTurns:        e.opts.MaxTurns,
 		AllowedTools:    allowedTools,
@@ -216,20 +217,51 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 			userPrompt += fmt.Sprintf("\n\nStory file: %s", story.FilePath)
 		}
 
-		// Show progress during agent session.
+		// Show real-time progress during agent session via stream-json events.
 		sessionStart := time.Now()
-		emit("info", "Agent session started — waiting for completion...")
+		emit("info", "Agent session started...")
+		toolCount := 0
 
 		sessionResult, err := client.Run(ctx, claude.SessionRequest{
 			Prompt:       userPrompt,
 			ProjectDir:   e.opts.ProjectDir,
 			SystemPrompt: prompt,
 		}, func(event claude.StreamEvent) {
-			if onEvent != nil {
-				onEvent(EngineEvent{Type: "stream", Message: event.Type})
+			elapsed := time.Since(sessionStart).Round(time.Second)
+
+			switch event.Type {
+			case "assistant":
+				// Agent is thinking/responding — extract first line of content.
+				var msg struct {
+					Content string `json:"content"`
+				}
+				if json.Unmarshal(event.Message, &msg) == nil && msg.Content != "" {
+					// Show first 120 chars of agent's response.
+					preview := msg.Content
+					if len(preview) > 120 {
+						preview = preview[:120] + "..."
+					}
+					// Only show non-empty, meaningful content.
+					trimmed := strings.TrimSpace(preview)
+					if len(trimmed) > 10 {
+						emit("info", fmt.Sprintf("  [%v] Agent: %s", elapsed, trimmed))
+					}
+				}
+			case "tool_use":
+				toolCount++
+				// Show which tool the agent is using.
+				if event.Tool != "" {
+					emit("info", fmt.Sprintf("  [%v] Tool #%d: %s", elapsed, toolCount, event.Tool))
+				}
+			case "tool_result":
+				// Tool completed — brief acknowledgment.
+			case "result":
+				// Session ending.
+				emit("info", fmt.Sprintf("  [%v] Session completing...", elapsed))
 			}
 		})
-		emit("info", fmt.Sprintf("Agent session finished (%v)", time.Since(sessionStart).Round(time.Second)))
+		elapsed := time.Since(sessionStart).Round(time.Second)
+		emit("info", fmt.Sprintf("Agent session finished (%v, %d tool calls)", elapsed, toolCount))
 
 		if err != nil {
 			if errors.Is(err, context.Canceled) {

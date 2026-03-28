@@ -10,8 +10,8 @@ func TestNewClientDefaults(t *testing.T) {
 	if c.config.Binary != "claude" {
 		t.Errorf("Binary = %q, want %q", c.config.Binary, "claude")
 	}
-	if c.config.OutputFormat != "json" {
-		t.Errorf("OutputFormat = %q, want %q", c.config.OutputFormat, "json")
+	if c.config.OutputFormat != "stream-json" {
+		t.Errorf("OutputFormat = %q, want %q", c.config.OutputFormat, "stream-json")
 	}
 	if c.config.MaxTurns != 0 {
 		t.Errorf("MaxTurns = %d, want 0 (unlimited)", c.config.MaxTurns)
@@ -37,7 +37,8 @@ func TestBuildArgsNonInteractive(t *testing.T) {
 
 	assertContains(t, args, "-p")
 	assertContains(t, args, "--output-format")
-	assertContains(t, args, "json")
+	assertContains(t, args, "stream-json")
+	assertContains(t, args, "--verbose") // stream-json requires --verbose
 	// Prompt MUST be the last argument (positional arg for claude CLI).
 	if args[len(args)-1] != "implement story 1.1" {
 		t.Errorf("prompt should be last arg, got %q at position %d", args[len(args)-1], len(args)-1)
@@ -551,7 +552,7 @@ func TestNewClientDefaultsComprehensive(t *testing.T) {
 		want interface{}
 	}{
 		{"Binary defaults to claude", c.config.Binary, "claude"},
-		{"OutputFormat defaults to json", c.config.OutputFormat, "json"},
+		{"OutputFormat defaults to stream-json", c.config.OutputFormat, "stream-json"},
 		{"MaxTurns defaults to 0", c.config.MaxTurns, 0},
 		{"SkipPermissions defaults to false", c.config.SkipPermissions, false},
 		{"Model defaults to empty", c.config.Model, ""},
