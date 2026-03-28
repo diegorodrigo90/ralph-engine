@@ -96,7 +96,7 @@ func RunPhase(ctx context.Context, phase HookPhase, projectDir string, changedFi
 		}
 
 		// Path filtering: skip if no changed files match the step's paths.
-		if len(step.Paths) > 0 && changedFiles != nil && !matchesAnyPath(changedFiles, step.Paths) {
+		if len(step.Paths) > 0 && changedFiles != nil && !MatchesAnyPath(changedFiles, step.Paths) {
 			sr := StepResult{
 				Name:     step.Name,
 				OK:       true,
@@ -206,9 +206,9 @@ func executeStep(ctx context.Context, step HookStep, projectDir string) StepResu
 	return sr
 }
 
-// matchesAnyPath checks if any changed file matches any of the step's path patterns.
+// MatchesAnyPath checks if any changed file matches any of the step's path patterns.
 // Supports: exact match, single glob (*.ts), directory prefix (src/**), and suffix (**/*.graphql).
-func matchesAnyPath(changedFiles, patterns []string) bool {
+func MatchesAnyPath(changedFiles, patterns []string) bool {
 	for _, file := range changedFiles {
 		for _, pattern := range patterns {
 			// Try standard filepath.Match first (handles single-level globs).

@@ -184,24 +184,25 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 		}
 
 		prompt := BuildPrompt(PromptContext{
-			StoryID:       story.ID,
-			StoryTitle:    story.Title,
-			EpicID:        story.EpicID,
-			EpicTitle:     story.EpicTitle,
-			SessionNumber: sessionNum,
-			StoriesDone:   engineState.StoriesCompletedTotal,
-			StoriesTotal:  countTotal(tk),
-			WorkflowType:  workflowType,
-			QualityGate:   qualityGate,
-			StoryContent:  storyContent,
-			PromptMD:      promptMD,
-			Sections:      sections,
-			ProjectDir:    e.opts.ProjectDir,
-			Research:      e.opts.Research,
+			StoryID:          story.ID,
+			StoryTitle:       story.Title,
+			EpicID:           story.EpicID,
+			EpicTitle:        story.EpicTitle,
+			SessionNumber:    sessionNum,
+			StoriesDone:      engineState.StoriesCompletedTotal,
+			StoriesTotal:     countTotal(tk),
+			WorkflowType:     workflowType,
+			WorkflowCommands: e.opts.WorkflowCommands,
+			QualityGate:      qualityGate,
+			StoryContent:     storyContent,
+			PromptMD:         promptMD,
+			Sections:         sections,
+			ProjectDir:       e.opts.ProjectDir,
+			Research:         e.opts.Research,
 		})
 
-		// Build the user prompt — includes story title + file path if available.
-		userPrompt := fmt.Sprintf("Implement story %s: %s", story.ID, story.Title)
+		// Build the user prompt — explicit implementation instruction.
+		userPrompt := fmt.Sprintf("Implement story %s: %s\n\nYou MUST write real source code (not just docs or metadata). Follow the workflow in the system prompt. Use BMAD /dev skill if available.", story.ID, story.Title)
 		if story.FilePath != "" {
 			userPrompt += fmt.Sprintf("\n\nStory file: %s", story.FilePath)
 		}
@@ -261,13 +262,33 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 				continue
 			}
 
-			emit("info", fmt.Sprintf("Agent changed %d file(s) — running quality gates...", len(changedFiles)))
+			// Show changed files so user can see what the agent did.
+			emit("info", fmt.Sprintf("Agent changed %d file(s):", len(changedFiles)))
+			for _, f := range changedFiles {
+				emit("info", fmt.Sprintf("  → %s", f))
+			}
 
 			// Run quality gate hooks (with path filtering).
 			// If gates fail, retry: ask agent to fix → re-run gates until pass.
 			gatesPassed := true
+			allGatesSkipped := false
 			if e.opts.Hooks != nil && len(e.opts.Hooks.QualityGates.Steps) > 0 {
-				gatesPassed = e.runGatesWithRetry(ctx, client, story, prompt, emit)
+				gatesPassed, allGatesSkipped = e.runGatesWithRetry(ctx, client, story, prompt, changedFiles, emit)
+			}
+
+			// If ALL quality gates were skipped (no changed files matched any gate path),
+			// the agent only changed metadata files — not real code. Don't mark complete.
+			if allGatesSkipped {
+				emit("warn", fmt.Sprintf("ALL quality gates skipped for story %s — agent changed only non-code files. Not marking complete.", story.ID))
+				msg := e.circuitBreaker.RecordFailure(fmt.Errorf("no code changes: all gates skipped for story %s", story.ID))
+				if msg != "" {
+					emit("error", msg)
+				}
+				if err := tk.RevertToReady(story.ID); err != nil {
+					log.Printf("Warning: could not revert story status: %v", err)
+				}
+				engineState.Save(e.opts.StateDir)
+				continue
 			}
 
 			if gatesPassed {
@@ -407,19 +428,20 @@ func (e *Engine) dryRun(tk tracker.TaskTracker, emit func(string, string), s *st
 		}
 
 		prompt := BuildPrompt(PromptContext{
-			StoryID:      story.ID,
-			StoryTitle:   story.Title,
-			EpicID:       story.EpicID,
-			EpicTitle:    story.EpicTitle,
-			StoriesDone:  done,
-			StoriesTotal: len(all),
-			WorkflowType: workflowType,
-			QualityGate:  qualityGate,
-			StoryContent: e.loadStoryContent(&story),
-			PromptMD:     appcontext.LoadPromptMD(e.opts.ProjectDir),
-			Sections:     sections,
-			ProjectDir:   e.opts.ProjectDir,
-			Research:     e.opts.Research,
+			StoryID:          story.ID,
+			StoryTitle:       story.Title,
+			EpicID:           story.EpicID,
+			EpicTitle:        story.EpicTitle,
+			StoriesDone:      done,
+			StoriesTotal:     len(all),
+			WorkflowType:     workflowType,
+			WorkflowCommands: e.opts.WorkflowCommands,
+			QualityGate:      qualityGate,
+			StoryContent:     e.loadStoryContent(&story),
+			PromptMD:         appcontext.LoadPromptMD(e.opts.ProjectDir),
+			Sections:         sections,
+			ProjectDir:       e.opts.ProjectDir,
+			Research:         e.opts.Research,
 		})
 		// Show first 20 lines of prompt.
 		lines := splitLines(prompt)
@@ -532,15 +554,26 @@ func countTotal(tk tracker.TaskTracker) int {
 // runGatesWithRetry runs quality gates and, on failure, asks the agent to fix issues.
 // Retries until gates pass, context is cancelled, or max retries reached.
 // MaxGateRetries = 0 means unlimited retries (default — let agent fix everything).
-func (e *Engine) runGatesWithRetry(ctx context.Context, client *claude.Client, story *tracker.Story, systemPrompt string, emit func(string, string)) bool {
+// Returns (passed, allSkipped) — allSkipped is true when ALL gates were skipped due to path filters.
+func (e *Engine) runGatesWithRetry(ctx context.Context, client *claude.Client, story *tracker.Story, systemPrompt string, changedFiles []string, emit func(string, string)) (bool, bool) {
 	maxRetries := e.opts.MaxGateRetries // 0 = unlimited
+
+	// Check if ALL gates would be skipped (no changed files match any gate path).
+	// This indicates the agent only changed non-code files (metadata, docs, etc.).
+	allSkipped := e.allGatesWouldBeSkipped(changedFiles)
+	if allSkipped {
+		// Still run the phase to show skip messages, then return.
+		e.runHookPhase(ctx, "quality-gates", e.opts.Hooks.QualityGates, changedFiles, emit)
+		return true, true
+	}
+
 	for attempt := 1; ; attempt++ {
-		changedFiles := hooks.GetChangedFiles(e.opts.ProjectDir)
-		if e.runHookPhase(ctx, "quality-gates", e.opts.Hooks.QualityGates, changedFiles, emit) {
+		freshChangedFiles := hooks.GetChangedFiles(e.opts.ProjectDir)
+		if e.runHookPhase(ctx, "quality-gates", e.opts.Hooks.QualityGates, freshChangedFiles, emit) {
 			if attempt > 1 {
 				emit("info", fmt.Sprintf("Quality gates passed after %d fix attempts", attempt-1))
 			}
-			return true // Gates passed.
+			return true, false // Gates passed.
 		}
 
 		if maxRetries > 0 && attempt > maxRetries {
@@ -579,7 +612,30 @@ func (e *Engine) runGatesWithRetry(ctx context.Context, client *claude.Client, s
 		}
 	}
 
-	return false
+	return false, false
+}
+
+// allGatesWouldBeSkipped checks if every quality gate step would be skipped
+// because none of the changed files match any gate's path filter.
+// Gates without path filters always run and are NOT considered "skipped".
+func (e *Engine) allGatesWouldBeSkipped(changedFiles []string) bool {
+	if changedFiles == nil || len(e.opts.Hooks.QualityGates.Steps) == 0 {
+		return false
+	}
+	for _, step := range e.opts.Hooks.QualityGates.Steps {
+		if strings.TrimSpace(step.Run) == "" {
+			continue
+		}
+		// No path filter = always runs = not skipped.
+		if len(step.Paths) == 0 {
+			return false
+		}
+		// If any gate matches, not all are skipped.
+		if hooks.MatchesAnyPath(changedFiles, step.Paths) {
+			return false
+		}
+	}
+	return true
 }
 
 // collectGateFailures runs gates in dry mode and collects failure messages.

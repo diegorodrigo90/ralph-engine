@@ -58,8 +58,12 @@ type AgentConfig struct {
 
 // WorkflowConfig defines the development workflow to follow.
 type WorkflowConfig struct {
-	Type         string   `mapstructure:"type"`
-	CustomPhases []string `mapstructure:"custom_phases"`
+	Type         string            `mapstructure:"type"`
+	CustomPhases []string          `mapstructure:"custom_phases"`
+	// Commands maps workflow phases to agent commands/skills.
+	// The engine injects these into the prompt so the agent knows which tools to invoke.
+	// Example: {"implement": "/dev", "code_review": "/bmad-bmm-code-review", "create_story": "/create-story"}
+	Commands map[string]string `mapstructure:"commands"`
 }
 
 // QualityConfig defines which quality gates to enforce.

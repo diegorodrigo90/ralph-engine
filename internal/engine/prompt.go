@@ -22,8 +22,9 @@ type PromptContext struct {
 	SessionNumber int
 	StoriesDone   int
 	StoriesTotal  int
-	WorkflowType  string // "bmad-v6", "basic", "tdd-strict"
-	QualityGate   string // "full", "standard", "minimal"
+	WorkflowType     string            // "bmad-v6", "basic", "tdd-strict"
+	WorkflowCommands map[string]string // Phase → agent command mapping from config
+	QualityGate      string            // "full", "standard", "minimal"
 	SSHAvailable  bool
 	Findings      int
 	// StoryContent is the full story file content (read from paths.stories).
@@ -112,8 +113,8 @@ func BuildPrompt(ctx PromptContext) string {
 		b.WriteString("\n")
 	}
 
-	// Workflow — how to implement.
-	b.WriteString(sessionInstructions(ctx.WorkflowType))
+	// Workflow — how to implement. Pass commands from config if available.
+	b.WriteString(sessionInstructions(ctx.WorkflowType, ctx.WorkflowCommands))
 	b.WriteString("\n")
 
 	// Quality gates — what must pass.
@@ -155,22 +156,49 @@ func qualityRules(gate string) string {
 }
 
 // sessionInstructions returns workflow-specific instructions.
-func sessionInstructions(workflow string) string {
+// When workflow commands are configured, they are injected into the instructions
+// so the agent knows which specific tools/skills to invoke for each phase.
+func sessionInstructions(workflow string, commands map[string]string) string {
+	// Helper to get a command or default.
+	cmd := func(phase, fallback string) string {
+		if commands != nil {
+			if v, ok := commands[phase]; ok && v != "" {
+				return v
+			}
+		}
+		return fallback
+	}
+
 	switch workflow {
 	case "bmad-v6":
-		return `## Workflow: BMAD v6
-1. Read the story file and understand all ACs
-2. Architect validates DoR (if not already validated)
-3. TDD per AC: write failing test → implement → pass → refactor
-4. Run code review (CR) — fix ALL findings
-5. Run quality gates: tests → build → type-check
-6. Commit with descriptive message
-7. Update sprint-status.yaml
-8. Note any findings for the findings pipeline
-9. Pick next story or save progress if session limit reached
+		implCmd := cmd("implement", "/dev")
+		crCmd := cmd("code_review", "/bmad-bmm-code-review")
+		return fmt.Sprintf(`## Workflow: BMAD v6 (MANDATORY — follow exactly)
 
-IMPORTANT: Use BMAD skills (/dev, /bmad-bmm-code-review) when available.
-`
+You MUST use the configured agents for implementation. Invoke the Skill tool:
+- Use Skill with skill="%s" to start story implementation
+- Use Skill with skill="%s" before EVERY commit
+
+### Execution Steps (in order)
+1. **Read story file** — understand ALL acceptance criteria, tasks, and test requirements
+2. **Research first** — use research tools for libraries/patterns this story touches
+3. **Invoke %s** — this activates the dev agent which follows DoR/DoD
+4. **TDD per AC** — for each acceptance criterion: write failing test → implement → pass → refactor
+5. **Write REAL code** — create/modify source files in the project (NOT just docs or metadata)
+6. **Run %s** — fix ALL findings (HIGH, MEDIUM, LOW)
+7. **Run quality gates** — tests pass, build passes, type-check passes, zero dev log errors
+8. **Commit** — conventional message with story ID (e.g., "feat: description (65.24)")
+9. **Update tracker** — mark story status in sprint-status.yaml
+
+### CRITICAL Rules
+- You MUST write actual source code — NOT just docs, metadata, or tracker updates
+- You MUST run tests and ensure they pass before committing
+- You MUST use the Skill tool to invoke the configured agents
+- If the story requires UI changes, create/modify components AND stories
+- If the story requires API changes, create/modify resolvers, services, tests
+- NEVER mark a story complete without writing and testing real code
+`, implCmd, crCmd, implCmd, crCmd)
+
 	case "tdd-strict":
 		return `## Workflow: TDD Strict
 1. Read story/spec
@@ -180,13 +208,20 @@ IMPORTANT: Use BMAD skills (/dev, /bmad-bmm-code-review) when available.
 5. Run full test suite before moving to next AC
 `
 	default:
+		var extra string
+		if commands != nil && len(commands) > 0 {
+			extra = "\n### Agent Commands\n"
+			for phase, command := range commands {
+				extra += fmt.Sprintf("- %s: invoke `%s`\n", phase, command)
+			}
+		}
 		return `## Workflow: Basic
 1. Read the task description
 2. Implement the changes
 3. Write tests
 4. Run tests and fix failures
 5. Commit
-`
+` + extra
 	}
 }
 

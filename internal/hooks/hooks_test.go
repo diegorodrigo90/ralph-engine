@@ -250,9 +250,9 @@ func TestMatchesAnyPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := matchesAnyPath(tt.changed, tt.patterns)
+			got := MatchesAnyPath(tt.changed, tt.patterns)
 			if got != tt.want {
-				t.Errorf("matchesAnyPath(%v, %v) = %v, want %v", tt.changed, tt.patterns, got, tt.want)
+				t.Errorf("MatchesAnyPath(%v, %v) = %v, want %v", tt.changed, tt.patterns, got, tt.want)
 			}
 		})
 	}
