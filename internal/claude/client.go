@@ -9,8 +9,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 // ClientConfig holds the configuration for the Claude CLI client.
@@ -22,6 +24,7 @@ type ClientConfig struct {
 	DisallowedTools []string // e.g. ["Bash(rm -rf *)"] — takes precedence over AllowedTools
 	SkipPermissions bool     // --dangerously-skip-permissions
 	Model           string   // e.g. "opus", "sonnet"
+	DebugLog        io.Writer // When set, writes verbose debug output (args, stdout, stderr, events)
 }
 
 // SessionRequest describes a single Claude invocation.
@@ -83,6 +86,22 @@ func NewClient(config ClientConfig) *Client {
 func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCallback) (*SessionResult, error) {
 	args := c.buildArgs(req)
 
+	// Debug logging helper — writes to DebugLog when configured.
+	debugf := func(format string, a ...interface{}) {
+		if c.config.DebugLog != nil {
+			ts := time.Now().Format("15:04:05.000")
+			msg := fmt.Sprintf(format, a...)
+			fmt.Fprintf(c.config.DebugLog, "[%s] %s\n", ts, msg)
+		}
+	}
+
+	debugf("=== SESSION START ===")
+	debugf("binary: %s", c.config.Binary)
+	debugf("args: %v", args)
+	debugf("project_dir: %s", req.ProjectDir)
+	debugf("system_prompt length: %d chars", len(req.SystemPrompt))
+	debugf("user_prompt: %s", req.Prompt)
+
 	cmd := exec.CommandContext(ctx, c.config.Binary, args...) // #nosec G204 -- agent binary path from user config, by design
 	if req.ProjectDir != "" {
 		cmd.Dir = req.ProjectDir
@@ -105,8 +124,10 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 	var stderrBuf bytes.Buffer
 
 	if err := cmd.Start(); err != nil {
+		debugf("FAILED to start: %v", err)
 		return nil, fmt.Errorf("starting %s: %w", c.config.Binary, err)
 	}
+	debugf("process started (pid=%d)", cmd.Process.Pid)
 
 	var result *SessionResult
 	var allOutput bytes.Buffer
@@ -122,11 +143,15 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 			line := stderrScanner.Text()
 			stderrBuf.WriteString(line)
 			stderrBuf.WriteByte('\n')
+			debugf("STDERR: %s", truncLine(line, 200))
 
 			// Try parsing stderr lines as stream events too.
 			event, parseErr := parseStreamLine(line)
-			if parseErr == nil && callback != nil {
-				callback(event)
+			if parseErr == nil {
+				debugf("STDERR-EVENT: type=%s tool=%s subtype=%s", event.Type, event.Tool, event.Subtype)
+				if callback != nil {
+					callback(event)
+				}
 				if event.Type == "result" && event.Result != nil {
 					result = event.Result
 				}
@@ -145,10 +170,12 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 
 		allOutput.WriteString(line)
 		allOutput.WriteByte('\n')
+		debugf("STDOUT: %s", truncLine(line, 200))
 
 		// Try parsing as stream-json event.
 		event, parseErr := parseStreamLine(line)
 		if parseErr == nil {
+			debugf("STDOUT-EVENT: type=%s tool=%s subtype=%s", event.Type, event.Tool, event.Subtype)
 			if callback != nil {
 				callback(event)
 			}
@@ -179,6 +206,7 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 	}
 
 	exitErr := cmd.Wait()
+	debugf("process exited (stdout=%d bytes, stderr=%d bytes)", allOutput.Len(), stderrBuf.Len())
 	if result == nil {
 		result = &SessionResult{}
 	}
@@ -271,6 +299,15 @@ func parseStreamLine(line string) (StreamEvent, error) {
 		return StreamEvent{}, fmt.Errorf("parsing stream event: %w", err)
 	}
 	return event, nil
+}
+
+// detectUsageLimit checks if a stream output line indicates a usage limit.
+// truncLine truncates a string to maxLen chars for debug logging.
+func truncLine(s string, maxLen int) string {
+	if len(s) <= maxLen {
+		return s
+	}
+	return s[:maxLen] + "..."
 }
 
 // detectUsageLimit checks if a stream output line indicates a usage limit.

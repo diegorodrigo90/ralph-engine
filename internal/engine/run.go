@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -92,6 +94,21 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 	if e.opts.DisallowedTools != "" {
 		disallowedTools = strings.Split(e.opts.DisallowedTools, ",")
 	}
+
+	// Debug log: create a verbose log file when --debug is active.
+	// New file per run (timestamped), max 10MB, in .ralph-engine/ (gitignored).
+	var debugLog *os.File
+	if e.opts.Debug {
+		logPath := filepath.Join(e.opts.StateDir, fmt.Sprintf("debug-%s.log",
+			time.Now().Format("20060102-150405")))
+		var err error
+		debugLog, err = os.Create(logPath) // #nosec G304 -- debug log in state dir
+		if err == nil {
+			defer debugLog.Close()
+			emit("info", fmt.Sprintf("Debug log: %s (tail -f to monitor)", logPath))
+		}
+	}
+
 	client := claude.NewClient(claude.ClientConfig{
 		Binary:          e.opts.Binary,
 		OutputFormat:    "stream-json",
@@ -100,6 +117,7 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 		AllowedTools:    allowedTools,
 		DisallowedTools: disallowedTools,
 		SkipPermissions: e.opts.SkipPermissions,
+		DebugLog:        debugLog,
 	})
 
 	iteration := 0

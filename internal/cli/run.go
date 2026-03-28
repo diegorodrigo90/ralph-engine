@@ -99,6 +99,7 @@ func runEngine(cmd *cobra.Command, args []string) error {
 	}
 
 	// Testing flags (no config equivalent — always from CLI).
+	debug, _ := cmd.Root().Flags().GetBool("debug")
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
 	maxIterations, _ := cmd.Flags().GetInt("max-iterations")
 	singleStory, _ := cmd.Flags().GetString("single-story")
@@ -119,6 +120,7 @@ func runEngine(cmd *cobra.Command, args []string) error {
 		DisallowedTools: cfg.Agent.DisallowedTools,
 		CooldownSeconds: cooldown,
 		MaxFailures:     maxFailures,
+		Debug:           debug,
 		DryRun:          dryRun,
 		MaxIterations:   maxIterations,
 		SingleStory:     singleStory,

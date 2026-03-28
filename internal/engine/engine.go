@@ -64,6 +64,7 @@ type EngineOpts struct {
 	CooldownSeconds   int    // Seconds between sessions
 	CooldownMinutes   int    // Circuit breaker cooldown
 	StoriesPerSession int    // Target stories per Claude session
+	Debug             bool   // Enable verbose debug logging to file
 	DryRun            bool   // Show what would happen without calling agent
 	MaxIterations     int    // Stop after N iterations (0 = infinite)
 	SingleStory       string // Run only this story ID, then stop
