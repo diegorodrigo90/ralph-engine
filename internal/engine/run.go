@@ -621,7 +621,7 @@ func (e *Engine) runGatesWithRetry(ctx context.Context, client *claude.Client, s
 // because none of the changed files match any gate's path filter.
 // Gates without path filters always run and are NOT considered "skipped".
 func (e *Engine) allGatesWouldBeSkipped(changedFiles []string) bool {
-	if changedFiles == nil || len(e.opts.Hooks.QualityGates.Steps) == 0 {
+	if changedFiles == nil || e.opts.Hooks == nil || len(e.opts.Hooks.QualityGates.Steps) == 0 {
 		return false
 	}
 	for _, step := range e.opts.Hooks.QualityGates.Steps {
