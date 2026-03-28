@@ -96,9 +96,13 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 		return nil, fmt.Errorf("creating stdout pipe: %w", err)
 	}
 
-	// Capture stderr for error diagnosis.
+	// Capture stderr — also used for progress when --verbose is set.
+	// Claude CLI outputs progress events to stderr with --verbose.
+	stderrReader, err := cmd.StderrPipe()
+	if err != nil {
+		return nil, fmt.Errorf("creating stderr pipe: %w", err)
+	}
 	var stderrBuf bytes.Buffer
-	cmd.Stderr = &stderrBuf
 
 	if err := cmd.Start(); err != nil {
 		return nil, fmt.Errorf("starting %s: %w", c.config.Binary, err)
@@ -106,6 +110,30 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 
 	var result *SessionResult
 	var allOutput bytes.Buffer
+
+	// Read stderr in background — captures both error output and verbose progress.
+	// Claude CLI emits stream events to stderr when --verbose is used.
+	stderrDone := make(chan struct{})
+	go func() {
+		defer close(stderrDone)
+		stderrScanner := bufio.NewScanner(stderrReader)
+		stderrScanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024)
+		for stderrScanner.Scan() {
+			line := stderrScanner.Text()
+			stderrBuf.WriteString(line)
+			stderrBuf.WriteByte('\n')
+
+			// Try parsing stderr lines as stream events too.
+			event, parseErr := parseStreamLine(line)
+			if parseErr == nil && callback != nil {
+				callback(event)
+				if event.Type == "result" && event.Result != nil {
+					result = event.Result
+				}
+			}
+		}
+	}()
+
 	scanner := bufio.NewScanner(stdout)
 	scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024) // 1MB buffer for large outputs
 
@@ -138,6 +166,9 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 		}
 	}
 
+	// Wait for stderr goroutine to finish reading.
+	<-stderrDone
+
 	// For "json" format: output is a single JSON blob (not wrapped in stream events).
 	// Try parsing the full output as a SessionResult if we didn't get one from streaming.
 	if result == nil && allOutput.Len() > 0 {
@@ -155,8 +186,11 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 	if exitErr != nil {
 		if exitError, ok := exitErr.(*exec.ExitError); ok {
 			result.ExitCode = exitError.ExitCode()
-			// Include stderr in error for diagnosis.
+			// Include last 500 chars of stderr for error diagnosis.
 			stderr := strings.TrimSpace(stderrBuf.String())
+			if len(stderr) > 500 {
+				stderr = stderr[len(stderr)-500:]
+			}
 			if stderr != "" {
 				return result, fmt.Errorf("%s exited %d: %s", c.config.Binary, result.ExitCode, stderr)
 			}
