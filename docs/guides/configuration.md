@@ -135,5 +135,5 @@ ralph-engine works with any CLI-based AI coding agent:
 ## Next steps
 
 - [Hooks](hooks.md) — Define custom quality gate steps
-- [CLI Reference](cli-reference.md) — All commands and flags
+- [CLI Reference](../reference/cli.md) — All commands and flags
 - [Troubleshooting](troubleshooting.md) — Common issues

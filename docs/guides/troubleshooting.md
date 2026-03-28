@@ -93,7 +93,7 @@ sudo chmod +x /usr/local/bin/ralph-engine
 
 ### "Agent binary not found"
 
-**Symptom:** `ralph-engine preflight` says agent binary is missing.
+**Symptom:** `ralph-engine prepare` says agent binary is missing.
 
 **Fix:** Install your AI agent and make sure it's in PATH:
 

@@ -31,7 +31,7 @@ Available presets:
 ## 2. Verify setup
 
 ```bash
-ralph-engine preflight
+ralph-engine prepare
 ```
 
 Checks:
@@ -77,6 +77,6 @@ ralph-engine --debug run
 
 ## Next steps
 
-- [Configuration](configuration.md) — Customize agent, tracker, quality gates
-- [CLI Reference](cli-reference.md) — All commands and flags
-- [Hooks](hooks.md) — Define custom quality gate steps
+- [Configuration](../guides/configuration.md) — Customize agent, tracker, quality gates
+- [CLI Reference](../reference/cli.md) — All commands and flags
+- [Hooks](../guides/hooks.md) — Define custom quality gate steps

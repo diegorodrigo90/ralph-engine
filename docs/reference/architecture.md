@@ -18,7 +18,7 @@ cmd/ralph-engine/main.go
     └── internal/cli/          ← Cobra command tree
         ├── root.go            ← --debug, --log-format flags
         ├── run.go             ← Main loop command
-        ├── preflight.go       ← Pre-execution checks
+        ├── prepare.go         ← Pre-execution checks
         ├── status.go          ← Show engine state
         ├── config.go          ← Config get/set/list
         ├── init.go            ← Project initialization

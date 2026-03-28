@@ -50,12 +50,12 @@ ralph-engine run --binary claudebox --save
 ralph-engine --debug run
 ```
 
-### `ralph-engine preflight`
+### `ralph-engine prepare`
 
 Run pre-execution checks without starting the loop.
 
 ```bash
-ralph-engine preflight [flags]
+ralph-engine prepare [flags]
 ```
 
 | Flag        | Description              | Default           |

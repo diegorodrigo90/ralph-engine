@@ -4,7 +4,7 @@
 
 Everything marked with [x] is implemented and tested.
 
-- [x] Core engine loop (preflight → pick story → call agent → check gates → repeat)
+- [x] Core engine loop (prepare → pick story → call agent → check gates → repeat)
 - [x] 4-level config cascade (CLI > env > project > user > defaults)
 - [x] Pluggable trackers (file, flat YAML, command)
 - [x] Circuit breaker (stagnation detection)
@@ -28,7 +28,7 @@ Everything marked with [x] is implemented and tested.
 - [x] AI tool configs (AGENTS.md, CLAUDE.md, GEMINI.md, .cursorrules, .windsurfrules, copilot-instructions)
 - [x] OSS infrastructure (LICENSE, CONTRIBUTING, SECURITY, issue templates, PR template)
 
-## Phase 2.5 — Near-term (before v1.0.0)
+## Phase 2.5 — Complete (v0.1.0-alpha)
 
 ### P0 — Must have for usable product (ALL COMPLETE)
 
@@ -45,7 +45,7 @@ Everything marked with [x] is implemented and tested.
 
 #### Hook Execution Engine ✅
 
-- [x] Preflight hooks — execute before loop starts, block on failure
+- [x] Prepare hooks — execute before loop starts, block on failure
 - [x] Pre-story hooks — execute before each agent session
 - [x] Quality gate hooks — execute after session, block commit if required step fails
 - [x] Post-story hooks — execute after story marked complete
@@ -73,13 +73,33 @@ Everything marked with [x] is implemented and tested.
 - [x] Research tools instructions injected from config
 - [x] DRY: rules-digest.md as single source of truth
 
+#### Usage Limit + State Fixes (Session 7) ✅
+
+- [x] Usage limit false positive fix (strict pattern matching, ignores agent text)
+- [x] State reset between runs (per-run counters separate from lifetime totals)
+- [x] All quality gates skipped detection (metadata-only changes not marked complete)
+- [x] Empty session detection (no file changes = not complete)
+
+#### Debug + Logging Enrichment (Session 7) ✅
+
+- [x] Tool names in debug log (tool_use name + key input params)
+- [x] MCP tool details (server.tool(params) format)
+- [x] Bash command extraction (command → exit code)
+- [x] Cross-platform log file location (XDG Linux, ~/Library macOS, %APPDATA% Windows)
+- [x] Log rotation (per-run files, max 10, max 50MB, configurable)
+
+#### Handoff + First-Turn (Session 7) ✅
+
+- [x] Handoff save WITHOUT AI (engine saves from memory on usage limit)
+- [x] First-turn prompt fix (agent must use tools immediately)
+
 ### P1 — Important for quality
 
 #### CLI Tests
 
 Cobra command integration tests.
 
-- [ ] **Test each command** — run, preflight, status, config set/list, init, version
+- [ ] **Test each command** — run, prepare, status, config set/list, init, version
 - [ ] **Test flag parsing** — Verify flags override config correctly
 - [ ] **Test --save** — Verify config file is written with correct values
 - [ ] **Test error cases** — Missing binary, bad config, no stories

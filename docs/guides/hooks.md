@@ -5,7 +5,7 @@ Hooks define custom quality gate steps that run at specific points in the engine
 ## hooks.yaml Format
 
 ```yaml
-preflight:
+prepare:
   steps:
     - name: "Check dependencies"
       run: "npm install"
@@ -51,7 +51,7 @@ post_session:
 
 | Phase           | When it runs                    | Failure behavior               |
 | --------------- | ------------------------------- | ------------------------------ |
-| `preflight`     | Once, before the loop starts    | Blocks execution               |
+| `prepare`       | Once, before the loop starts    | Blocks execution               |
 | `pre_story`     | Before each story               | Blocks story                   |
 | `quality_gates` | After each story implementation | `required: true` blocks commit |
 | `post_story`    | After story commit              | Warning only                   |
@@ -98,7 +98,7 @@ If no files match the `paths` glob, the step is skipped.
 ## Example: Monorepo with multiple languages
 
 ```yaml
-preflight:
+prepare:
   steps:
     - name: "Install dependencies"
       run: "npm install"

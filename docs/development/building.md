@@ -117,7 +117,7 @@ make clean     # Remove build artifacts
 ralph-engine/
 ├── cmd/ralph-engine/main.go     # Entry point
 ├── internal/
-│   ├── cli/                     # Cobra command tree (run, preflight, status, config, init)
+│   ├── cli/                     # Cobra command tree (run, prepare, status, config, init)
 │   ├── claude/                  # AI agent subprocess client + stream parser
 │   ├── config/                  # 4-level config cascade (Viper)
 │   ├── dashboard/               # Bubbletea TUI model/view/update
@@ -154,4 +154,4 @@ GoReleaser does this automatically from the git tag.
 ## Next steps
 
 - [Creating a Release](releasing.md) — Tag, build, publish
-- [Writing Plugins](plugins.md) — Add custom trackers and workflows
+- [Writing Plugins](../guides/plugins.md) — Add custom trackers and workflows

@@ -105,4 +105,4 @@ rm $(which ralph-engine)
 ## Next steps
 
 - [Quick Start](quickstart.md) — First run in 3 commands
-- [Configuration](configuration.md) — Customize for your project
+- [Configuration](../guides/configuration.md) — Customize for your project

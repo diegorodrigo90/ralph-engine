@@ -1,33 +1,35 @@
-# ralph-engine Documentation
+# Ralph Engine Documentation
 
-Autonomous AI development loop engine. Orchestrates CLI-based AI agent sessions (Claude Code, Codex, Aider, custom) with quality gates, resource monitoring, and progress persistence.
+Autonomous AI development loop engine.
 
 ## Getting Started
 
-- [Installation](installation.md) — All install methods (npm, Homebrew, Go, curl, binary)
-- [Quick Start](quickstart.md) — First run in 3 commands
-- [Configuration](configuration.md) — Config cascade, presets, per-project customization
+- [Quick Start](getting-started/quickstart.md) — Get running in 5 minutes
+- [Installation](getting-started/installation.md) — All installation methods
 
 ## Guides
 
-- [Troubleshooting](troubleshooting.md) — Common issues and fixes
-- [Building from Source](building.md) — Dependencies, compiling, cross-platform builds
-- [Creating a Release](releasing.md) — Tagging, CI pipeline, publishing to npm/Homebrew
-- [Writing Plugins](plugins.md) — Custom trackers, workflows, quality gates
+- [Configuration](guides/configuration.md) — config.yaml reference
+- [Hooks](guides/hooks.md) — Quality gates and lifecycle hooks
+- [Plugins](guides/plugins.md) — Extend with custom trackers
+- [Troubleshooting](guides/troubleshooting.md) — Common issues
 
 ## Reference
 
-- [CLI Commands](cli-reference.md) — All commands and flags
-- [Configuration Reference](config-reference.md) — Every config key explained
-- [Hooks](hooks.md) — hooks.yaml format and execution
-- [Architecture](architecture.md) — Code structure and design decisions
+- [CLI Commands](reference/cli.md) — All commands and flags
+- [Config Reference](reference/config.md) — Every config field
+- [Architecture](reference/architecture.md) — Internal design
 
-## Roadmap
+## Development
 
-- [Roadmap](roadmap.md) — What's planned and what's done
+- [Building](development/building.md) — Build from source
+- [Releasing](development/releasing.md) — Release process
+- [Roadmap](development/roadmap.md) — What's planned
+- [Backlog](development/backlog.md) — Improvements backlog
 
-## Contributing
+## More
 
+- [Changelog](../CHANGELOG.md) — Release history
 - [Contributing Guide](../CONTRIBUTING.md)
 - [Code of Conduct](../CODE_OF_CONDUCT.md)
 - [Security Policy](../.github/SECURITY.md)
