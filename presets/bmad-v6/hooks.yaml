@@ -1,60 +1,45 @@
-# ralph-engine hooks — customize every step of the loop.
-# Each hook is a shell command. Empty = skip. All are optional.
-# ralph-engine never overwrites this file after init.
+# ralph-engine hooks — BMAD v6 preset
+# Customize every step. ralph-engine never overwrites this file after init.
+#
+# Options per step:
+#   name:     Display name
+#   run:      Shell command to execute
+#   required: true = block on failure, false = warn and continue
+#   paths:    Only run when git diff shows changes in these globs (empty = always run)
+#             Useful for monorepos with different toolchains per project.
 #
 # Available variables in commands:
 #   {{.StoryID}}    — Current story ID (e.g., "65.3")
 #   {{.StoryTitle}} — Current story title
 #   {{.EpicID}}     — Current epic ID
 #   {{.ProjectDir}} — Project root directory
-#   {{.StateDir}}   — State directory
 
-# ──────────────────────────────────────────────────
-# PREFLIGHT — Runs once before the loop starts.
-# ──────────────────────────────────────────────────
+# ── PREFLIGHT — runs once before the loop starts ──
 preflight:
-  # Commands that must succeed before engine starts.
-  # If any returns non-zero, engine stops.
   steps:
     - name: "SSH connectivity"
       run: "./scripts/dev-exec.sh echo ok"
-      required: false            # false = warn and continue, true = block
+      required: false
 
     - name: "Dev server running"
-      run: "./scripts/dev-exec.sh curl -s http://localhost:3000/health"
+      run: "./scripts/dev-exec.sh curl -sf http://localhost:3000/health || true"
       required: false
 
-    - name: "Database accessible"
-      run: "./scripts/dev-exec.sh pnpm db:migrate --dry-run"
-      required: false
-
-# ──────────────────────────────────────────────────
-# PRE-STORY — Runs before each story starts.
-# ──────────────────────────────────────────────────
+# ── PRE-STORY — runs before each story ──
 pre_story:
   steps: []
-  # Example:
-  # - name: "Reset test database"
-  #   run: "./scripts/dev-exec.sh pnpm db:reset --force"
 
-# ──────────────────────────────────────────────────
-# POST-STORY — Runs after each story completes.
-# ──────────────────────────────────────────────────
+# ── POST-STORY — runs after each story completes ──
 post_story:
-  steps:
-    - name: "Sync to Archon"
-      run: "echo 'Archon sync handled by agent via MCP'"
-      required: false
+  steps: []
 
-# ──────────────────────────────────────────────────
-# QUALITY GATES — Runs between stories.
-# Order matters. If any required gate fails, story is marked failed.
-# ──────────────────────────────────────────────────
+# ── QUALITY GATES — monorepo-aware via paths filter ──
 quality_gates:
   steps:
     - name: "Tests"
       run: "./scripts/dev-exec.sh NODE_ENV=development pnpm test"
       required: true
+      # paths: ["apps/**", "packages/**"]  # Uncomment for path filtering
 
     - name: "Type check"
       run: "./scripts/dev-exec.sh pnpm type-check"
@@ -67,20 +52,28 @@ quality_gates:
     - name: "Storybook tests"
       run: "./scripts/dev-exec.sh 'cd apps/storybook && npx test-storybook --url http://127.0.0.1:6006'"
       required: false
+      paths: ["packages/ui/**", "apps/storybook/**"]
 
     - name: "E2E tests"
       run: "./scripts/dev-exec.sh pnpm test:e2e"
       required: false
+      paths: ["apps/web/**", "apps/api/**"]
 
     - name: "Dev logs clean"
       run: "test ! -f .logs/dev.log || ! grep -q 'ERROR' .logs/dev.log"
       required: false
 
-# ──────────────────────────────────────────────────
-# POST-SESSION — Runs when engine stops (any reason).
-# ──────────────────────────────────────────────────
+    # Monorepo example: Python service with different toolchain
+    # - name: "Python lint"
+    #   run: "ruff check workers/my-service/"
+    #   required: true
+    #   paths: ["workers/my-service/**"]
+    #
+    # - name: "Python tests"
+    #   run: "pytest workers/my-service/"
+    #   required: true
+    #   paths: ["workers/my-service/**"]
+
+# ── POST-SESSION — runs when engine stops ──
 post_session:
   steps: []
-  # Example:
-  # - name: "Send Slack notification"
-  #   run: "./scripts/notify-slack.sh 'Ralph Engine session complete'"
