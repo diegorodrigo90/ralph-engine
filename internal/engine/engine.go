@@ -65,6 +65,8 @@ type EngineOpts struct {
 	CooldownMinutes   int    // Circuit breaker cooldown
 	StoriesPerSession int    // Target stories per Claude session
 	Debug             bool   // Enable verbose debug logging to file
+	LogMaxFiles       int    // Max log files to keep (default: 10)
+	LogMaxSizeMB      int64  // Max log file size in MB (default: 50)
 	DryRun            bool   // Show what would happen without calling agent
 	MaxIterations     int    // Stop after N iterations (0 = infinite)
 	SingleStory       string // Run only this story ID, then stop
