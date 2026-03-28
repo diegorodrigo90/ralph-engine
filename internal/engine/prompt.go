@@ -53,6 +53,13 @@ func BuildPrompt(ctx PromptContext) string {
 	b.WriteString("You will implement ONE story per session. Work autonomously — do NOT ask questions.\n")
 	b.WriteString("If ambiguous, make the safest reasonable assumption and continue.\n\n")
 
+	// CRITICAL: First action must be a tool call — never start with text-only.
+	b.WriteString("## CRITICAL: First Action Rule\n")
+	b.WriteString("Your FIRST response MUST be a tool call (Read, Glob, Grep, or Bash).\n")
+	b.WriteString("Do NOT start with a text response like \"I'll implement...\" or \"Let me...\"\n")
+	b.WriteString("Start by reading the story file or exploring the codebase immediately.\n")
+	b.WriteString("Text-only first responses waste a turn and may cause the session to end prematurely.\n\n")
+
 	// Safety guardrails — always present, regardless of config.
 	b.WriteString(safetyGuardrails())
 	b.WriteString("\n")
@@ -384,6 +391,7 @@ func autonomyRules() string {
 	return `## Autonomous Operation
 
 ### Decision Making
+- Your FIRST action in the session MUST be a tool call — never start with a text-only plan
 - Do NOT ask questions — make the safest reasonable assumption
 - If a dependency is missing, note it as a finding and continue
 - If a test fails, fix it — do not skip or mark as known failure

@@ -158,11 +158,36 @@ func TestBuildPromptAutonomyRules(t *testing.T) {
 		"RALPH_STATUS",
 		"EXIT_REASON",
 		"NEXT_STEP",
+		"FIRST action in the session MUST be a tool call",
 	}
 	for _, s := range mustContain {
 		if !strings.Contains(prompt, s) {
 			t.Errorf("prompt should contain %q for autonomy rules", s)
 		}
+	}
+}
+
+func TestBuildPromptFirstActionRule(t *testing.T) {
+	prompt := BuildPrompt(PromptContext{})
+
+	mustContain := []string{
+		"CRITICAL: First Action Rule",
+		"FIRST response MUST be a tool call",
+		"Do NOT start with a text response",
+		"reading the story file or exploring the codebase immediately",
+		"Text-only first responses waste a turn",
+	}
+	for _, s := range mustContain {
+		if !strings.Contains(prompt, s) {
+			t.Errorf("prompt should contain first-action rule %q", s)
+		}
+	}
+
+	// First Action Rule should appear before Session State (early in prompt).
+	firstActionIdx := strings.Index(prompt, "CRITICAL: First Action Rule")
+	sessionStateIdx := strings.Index(prompt, "## Session State")
+	if firstActionIdx > sessionStateIdx {
+		t.Error("First Action Rule should appear before Session State section")
 	}
 }
 
@@ -841,6 +866,7 @@ func TestBuildPromptZeroValueStruct(t *testing.T) {
 	mustContain := []string{
 		"Ralph Engine",
 		"Autonomous Session",
+		"CRITICAL: First Action Rule",
 		"Session State",
 		"session: 0",
 		"0/0 stories",
@@ -1104,4 +1130,113 @@ func FuzzSubstituteVars(f *testing.F) {
 		// Should never panic.
 		_ = substituteVars(template, ctx)
 	})
+}
+
+// --- Tests for prompt with workflow commands/instructions combinations ---
+
+func TestBuildPromptWithWorkflowCommandsOnly(t *testing.T) {
+	prompt := BuildPrompt(PromptContext{
+		WorkflowType: "custom",
+		WorkflowCommands: map[string]string{
+			"build": "make build",
+			"test":  "pytest",
+		},
+	})
+
+	if !strings.Contains(prompt, "Agent Commands") {
+		t.Error("prompt should show Agent Commands table when commands set")
+	}
+	if !strings.Contains(prompt, "make build") {
+		t.Error("prompt should contain the build command")
+	}
+	if !strings.Contains(prompt, "pytest") {
+		t.Error("prompt should contain the test command")
+	}
+	// Without instructions, there should be no user-provided instructions text.
+	// But "Default Steps" should also NOT appear since commands are set.
+	if strings.Contains(prompt, "Default Steps") {
+		t.Error("prompt should NOT show Default Steps when commands are configured")
+	}
+}
+
+func TestBuildPromptWithInstructionsOnly(t *testing.T) {
+	prompt := BuildPrompt(PromptContext{
+		WorkflowType:         "tdd-strict",
+		WorkflowInstructions: "RED-GREEN-REFACTOR per AC. Never skip tests.",
+	})
+
+	if !strings.Contains(prompt, "RED-GREEN-REFACTOR") {
+		t.Error("prompt should contain the workflow instructions text")
+	}
+	// No commands table should appear.
+	if strings.Contains(prompt, "Agent Commands") {
+		t.Error("prompt should NOT show Agent Commands table when no commands set")
+	}
+	// Default Steps should NOT appear since instructions are set.
+	if strings.Contains(prompt, "Default Steps") {
+		t.Error("prompt should NOT show Default Steps when instructions are configured")
+	}
+}
+
+func TestBuildPromptWithBothCommandsAndInstructions(t *testing.T) {
+	prompt := BuildPrompt(PromptContext{
+		WorkflowType: "bmad-v6",
+		WorkflowCommands: map[string]string{
+			"implement":   "dev",
+			"code_review": "bmad-bmm-code-review",
+		},
+		WorkflowInstructions: "Use Skill tool to invoke BMAD agents. TDD per AC.",
+	})
+
+	// Both sections should be present.
+	if !strings.Contains(prompt, "Agent Commands") {
+		t.Error("prompt should show Agent Commands table")
+	}
+	if !strings.Contains(prompt, "implement") {
+		t.Error("prompt should contain implement command")
+	}
+	if !strings.Contains(prompt, "TDD per AC") {
+		t.Error("prompt should contain instructions text")
+	}
+	if !strings.Contains(prompt, "Use Skill tool") {
+		t.Error("prompt should contain full instructions")
+	}
+	if strings.Contains(prompt, "Default Steps") {
+		t.Error("prompt should NOT show Default Steps when both are configured")
+	}
+}
+
+func TestBuildPromptWithNoWorkflow(t *testing.T) {
+	prompt := BuildPrompt(PromptContext{
+		WorkflowType: "basic",
+	})
+
+	// Neither commands nor instructions — should show default steps.
+	if !strings.Contains(prompt, "Default Steps") {
+		t.Error("prompt should show Default Steps when nothing configured")
+	}
+	if strings.Contains(prompt, "Agent Commands") {
+		t.Error("prompt should NOT show Agent Commands when no commands")
+	}
+}
+
+func TestBuildPromptFirstActionRuleAlwaysPresent(t *testing.T) {
+	// Test with various config combinations — first action rule must always be there.
+	configs := []PromptContext{
+		{}, // empty
+		{WorkflowType: "basic", QualityGate: "minimal"},
+		{WorkflowType: "bmad-v6", QualityGate: "full", SSHAvailable: true},
+		{WorkflowCommands: map[string]string{"build": "make"}, WorkflowInstructions: "TDD"},
+		{Research: &config.ResearchConfig{Enabled: true, Tools: []config.ResearchTool{{Name: "RAG", Enabled: true}}}},
+	}
+
+	for i, ctx := range configs {
+		prompt := BuildPrompt(ctx)
+		if !strings.Contains(prompt, "CRITICAL: First Action Rule") {
+			t.Errorf("config %d: prompt missing First Action Rule", i)
+		}
+		if !strings.Contains(prompt, "FIRST response MUST be a tool call") {
+			t.Errorf("config %d: prompt missing first-action requirement text", i)
+		}
+	}
 }
