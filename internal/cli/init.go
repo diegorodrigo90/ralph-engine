@@ -54,10 +54,16 @@ Presets:
 		fmt.Println("  config.yaml   — engine configuration")
 		fmt.Println("  prompt.md     — project context for agent sessions")
 		fmt.Println("  hooks.yaml    — quality gates and lifecycle hooks")
-		fmt.Println("\nNext steps:")
-		fmt.Println("  1. Edit .ralph-engine/config.yaml to customize")
-		fmt.Println("  2. Run: ralph-engine preflight")
-		fmt.Println("  3. Run: ralph-engine run --dry-run")
+		fmt.Println("\nWorkflow:")
+		fmt.Println("  1. Create stories (ralph-engine does NOT create them for you):")
+		fmt.Println("     - BMAD: /create-story, /sprint-planning, /create-epics-stories")
+		fmt.Println("     - Claude Tasks: claude tasks add \"implement feature X\"")
+		fmt.Println("     - Manual: edit sprint-status.yaml with story entries")
+		fmt.Println("     - Custom: any tool that outputs YAML/Markdown")
+		fmt.Println("  2. Edit .ralph-engine/config.yaml — agent, workflow, quality gates")
+		fmt.Println("  3. Run: ralph-engine prepare    # validate everything is ready")
+		fmt.Println("  4. Run: ralph-engine run --dry-run  # preview without executing")
+		fmt.Println("  5. Run: ralph-engine run         # start autonomous loop")
 
 		return nil
 	},

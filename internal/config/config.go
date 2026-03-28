@@ -751,7 +751,7 @@ func presetHooks(preset string) string {
 # Customize every step. ralph-engine never overwrites this file.
 # Empty run = skip. required: false = warn and continue.
 
-preflight:
+prepare:
   steps:
     - name: "SSH connectivity"
       run: "./scripts/dev-exec.sh echo ok"
@@ -786,7 +786,7 @@ post_session:
 # Customize every step. ralph-engine never overwrites this file.
 # Empty run = skip. required: false = warn and continue.
 
-preflight:
+prepare:
   steps: []
 
 pre_story:

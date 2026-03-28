@@ -61,7 +61,7 @@ func runEngine(cmd *cobra.Command, args []string) error {
 		fmt.Println()
 		fmt.Println("Quick start:")
 		fmt.Println("  ralph-engine init          # Setup config, hooks, prompt")
-		fmt.Println("  ralph-engine doctor        # Verify everything is ready")
+		fmt.Println("  ralph-engine prepare       # Verify everything is ready")
 		fmt.Println("  ralph-engine run --dry-run # Preview without executing")
 		return fmt.Errorf("run 'ralph-engine init' first")
 	}
@@ -180,10 +180,10 @@ func runEngine(cmd *cobra.Command, args []string) error {
 			fmt.Printf("  %s %s: %s\n", icon, r.Name, r.Message)
 		}
 		if !allOK {
-			fmt.Println("\nRun 'ralph-engine doctor' for detailed diagnostics.")
+			fmt.Println("\nRun 'ralph-engine prepare' for detailed diagnostics.")
 			return fmt.Errorf("preflight checks failed — fix issues above")
 		}
-		fmt.Println("\nPreflight passed. Starting engine...")
+		fmt.Println("\nChecks passed. Starting engine...")
 	}
 
 	fmt.Println("Press Ctrl+C to save progress and stop.")

@@ -124,7 +124,7 @@ Checks:
 			warnings++
 		} else {
 			gateCount := len(hooksConfig.QualityGates.Steps)
-			totalSteps := len(hooksConfig.Preflight.Steps) + len(hooksConfig.PreStory.Steps) +
+			totalSteps := len(hooksConfig.Prepare.Steps) + len(hooksConfig.PreStory.Steps) +
 				gateCount + len(hooksConfig.PostStory.Steps) + len(hooksConfig.PostSession.Steps)
 			fmt.Printf("  ✓ hooks.yaml: %d steps (%d quality gates)\n", totalSteps, gateCount)
 		}
@@ -179,7 +179,7 @@ Checks:
 		// Summary.
 		fmt.Println()
 		if issues == 0 && warnings == 0 {
-			fmt.Println("All checks passed! Ready to run: ralph-engine run")
+			fmt.Println("All checks passed! Run: ralph-engine prepare && ralph-engine run")
 		} else if issues == 0 {
 			fmt.Printf("%d warning(s) — can still run but consider fixing\n", warnings)
 		} else {

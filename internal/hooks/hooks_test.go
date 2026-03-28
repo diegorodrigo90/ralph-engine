@@ -13,7 +13,7 @@ func TestLoadHooksFile(t *testing.T) {
 	dir := t.TempDir()
 	os.MkdirAll(filepath.Join(dir, ".ralph-engine"), 0755)
 	os.WriteFile(filepath.Join(dir, ".ralph-engine", "hooks.yaml"), []byte(`
-preflight:
+prepare:
   steps:
     - name: "check"
       run: "echo ok"
@@ -33,11 +33,11 @@ quality_gates:
 	if cfg == nil {
 		t.Fatal("expected config, got nil")
 	}
-	if len(cfg.Preflight.Steps) != 1 {
-		t.Errorf("expected 1 preflight step, got %d", len(cfg.Preflight.Steps))
+	if len(cfg.Prepare.Steps) != 1 {
+		t.Errorf("expected 1 prepare step, got %d", len(cfg.Prepare.Steps))
 	}
-	if cfg.Preflight.Steps[0].Name != "check" {
-		t.Errorf("expected step name 'check', got %q", cfg.Preflight.Steps[0].Name)
+	if cfg.Prepare.Steps[0].Name != "check" {
+		t.Errorf("expected step name 'check', got %q", cfg.Prepare.Steps[0].Name)
 	}
 	if len(cfg.QualityGates.Steps) != 1 {
 		t.Errorf("expected 1 quality gate step, got %d", len(cfg.QualityGates.Steps))
@@ -579,8 +579,8 @@ func TestLoadEmptyFile(t *testing.T) {
 	if cfg == nil {
 		t.Fatal("expected non-nil config for empty YAML (zero-value struct)")
 	}
-	if len(cfg.Preflight.Steps) != 0 {
-		t.Errorf("expected 0 preflight steps, got %d", len(cfg.Preflight.Steps))
+	if len(cfg.Prepare.Steps) != 0 {
+		t.Errorf("expected 0 prepare steps, got %d", len(cfg.Prepare.Steps))
 	}
 }
 
@@ -632,5 +632,217 @@ func TestLoadDotRalphEngineDirExistsButNoHooksYaml(t *testing.T) {
 	}
 	if cfg != nil {
 		t.Error("expected nil config when hooks.yaml doesn't exist")
+	}
+}
+
+// --- Tests for prepare phase loading ---
+
+func TestLoadPrepareHooks(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, ".ralph-engine"), 0755)
+	os.WriteFile(filepath.Join(dir, ".ralph-engine", "hooks.yaml"), []byte(`
+prepare:
+  steps:
+    - name: "ssh-check"
+      run: "echo ssh ok"
+      required: false
+    - name: "dev-server"
+      run: "echo dev ok"
+      required: false
+    - name: "deps-check"
+      run: "echo deps ok"
+      required: true
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg == nil {
+		t.Fatal("expected config, got nil")
+	}
+	if len(cfg.Prepare.Steps) != 3 {
+		t.Fatalf("expected 3 prepare steps, got %d", len(cfg.Prepare.Steps))
+	}
+	if cfg.Prepare.Steps[0].Name != "ssh-check" {
+		t.Errorf("step 0 name = %q, want %q", cfg.Prepare.Steps[0].Name, "ssh-check")
+	}
+	if cfg.Prepare.Steps[1].Name != "dev-server" {
+		t.Errorf("step 1 name = %q, want %q", cfg.Prepare.Steps[1].Name, "dev-server")
+	}
+	if cfg.Prepare.Steps[2].Name != "deps-check" {
+		t.Errorf("step 2 name = %q, want %q", cfg.Prepare.Steps[2].Name, "deps-check")
+	}
+	if !cfg.Prepare.Steps[2].Required {
+		t.Error("step 2 should be required")
+	}
+}
+
+func TestLoadPrepareAndQualityGates(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, ".ralph-engine"), 0755)
+	os.WriteFile(filepath.Join(dir, ".ralph-engine", "hooks.yaml"), []byte(`
+prepare:
+  steps:
+    - name: "check-env"
+      run: "echo env ok"
+      required: true
+    - name: "check-ssh"
+      run: "echo ssh ok"
+      required: false
+quality_gates:
+  steps:
+    - name: "tests"
+      run: "echo tests pass"
+      required: true
+    - name: "build"
+      run: "echo build pass"
+      required: true
+    - name: "lint"
+      run: "echo lint pass"
+      required: false
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg == nil {
+		t.Fatal("expected config, got nil")
+	}
+	if len(cfg.Prepare.Steps) != 2 {
+		t.Errorf("expected 2 prepare steps, got %d", len(cfg.Prepare.Steps))
+	}
+	if len(cfg.QualityGates.Steps) != 3 {
+		t.Errorf("expected 3 quality gate steps, got %d", len(cfg.QualityGates.Steps))
+	}
+	// Verify both phases are independently parsed.
+	if cfg.Prepare.Steps[0].Name != "check-env" {
+		t.Errorf("prepare step 0 = %q, want %q", cfg.Prepare.Steps[0].Name, "check-env")
+	}
+	if cfg.QualityGates.Steps[0].Name != "tests" {
+		t.Errorf("quality gate step 0 = %q, want %q", cfg.QualityGates.Steps[0].Name, "tests")
+	}
+}
+
+func TestLoadPrepareWithPaths(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, ".ralph-engine"), 0755)
+	os.WriteFile(filepath.Join(dir, ".ralph-engine", "hooks.yaml"), []byte(`
+prepare:
+  steps:
+    - name: "ts-lint"
+      run: "echo lint ts"
+      required: true
+      paths: ["src/**/*.ts", "apps/**"]
+    - name: "py-lint"
+      run: "echo lint py"
+      required: false
+      paths: ["workers/**/*.py"]
+    - name: "always-run"
+      run: "echo always"
+      required: true
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg == nil {
+		t.Fatal("expected config, got nil")
+	}
+	if len(cfg.Prepare.Steps) != 3 {
+		t.Fatalf("expected 3 prepare steps, got %d", len(cfg.Prepare.Steps))
+	}
+	if len(cfg.Prepare.Steps[0].Paths) != 2 {
+		t.Errorf("step 0 paths = %d, want 2", len(cfg.Prepare.Steps[0].Paths))
+	}
+	if cfg.Prepare.Steps[0].Paths[0] != "src/**/*.ts" {
+		t.Errorf("step 0 paths[0] = %q, want %q", cfg.Prepare.Steps[0].Paths[0], "src/**/*.ts")
+	}
+	if len(cfg.Prepare.Steps[1].Paths) != 1 {
+		t.Errorf("step 1 paths = %d, want 1", len(cfg.Prepare.Steps[1].Paths))
+	}
+	if len(cfg.Prepare.Steps[2].Paths) != 0 {
+		t.Errorf("step 2 should have no path filters, got %d", len(cfg.Prepare.Steps[2].Paths))
+	}
+}
+
+func TestLoadEmptyPrepare(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, ".ralph-engine"), 0755)
+	os.WriteFile(filepath.Join(dir, ".ralph-engine", "hooks.yaml"), []byte(`
+prepare:
+  steps: []
+quality_gates:
+  steps:
+    - name: "tests"
+      run: "echo pass"
+      required: true
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg == nil {
+		t.Fatal("expected config, got nil")
+	}
+	if len(cfg.Prepare.Steps) != 0 {
+		t.Errorf("expected 0 prepare steps, got %d", len(cfg.Prepare.Steps))
+	}
+	// quality_gates should still work.
+	if len(cfg.QualityGates.Steps) != 1 {
+		t.Errorf("expected 1 quality gate step, got %d", len(cfg.QualityGates.Steps))
+	}
+}
+
+func TestLoadPrepareMixedRequired(t *testing.T) {
+	dir := t.TempDir()
+	os.MkdirAll(filepath.Join(dir, ".ralph-engine"), 0755)
+	os.WriteFile(filepath.Join(dir, ".ralph-engine", "hooks.yaml"), []byte(`
+prepare:
+  steps:
+    - name: "required-step"
+      run: "echo required"
+      required: true
+    - name: "optional-step"
+      run: "echo optional"
+      required: false
+    - name: "another-required"
+      run: "echo required2"
+      required: true
+    - name: "another-optional"
+      run: "echo optional2"
+      required: false
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg == nil {
+		t.Fatal("expected config, got nil")
+	}
+	if len(cfg.Prepare.Steps) != 4 {
+		t.Fatalf("expected 4 prepare steps, got %d", len(cfg.Prepare.Steps))
+	}
+
+	// Verify required/optional pattern.
+	expectedRequired := []bool{true, false, true, false}
+	for i, want := range expectedRequired {
+		if cfg.Prepare.Steps[i].Required != want {
+			t.Errorf("step %d (%q) required = %v, want %v",
+				i, cfg.Prepare.Steps[i].Name, cfg.Prepare.Steps[i].Required, want)
+		}
+	}
+
+	// Run the phase and verify all steps execute (no required failure).
+	result := RunPhase(context.Background(), cfg.Prepare, t.TempDir(), nil, nil)
+	if result.Blocked {
+		t.Error("phase should not be blocked — all commands succeed")
+	}
+	if len(result.Steps) != 4 {
+		t.Errorf("expected 4 step results, got %d", len(result.Steps))
 	}
 }

@@ -1,5 +1,5 @@
 // Package hooks loads and executes hooks.yaml lifecycle steps.
-// Hooks run at defined points in the engine loop: preflight, pre-story,
+// Hooks run at defined points in the engine loop: prepare, pre-story,
 // quality-gates, post-story, post-session. Each step can be required
 // (blocks on failure) or optional (warns and continues).
 package hooks
@@ -21,7 +21,7 @@ const DefaultTimeout = 5 * time.Minute
 
 // HooksConfig represents the full hooks.yaml file.
 type HooksConfig struct {
-	Preflight    HookPhase `yaml:"preflight"`
+	Prepare      HookPhase `yaml:"prepare"`       // Validation before run (ralph-engine prepare)
 	PreStory     HookPhase `yaml:"pre_story"`
 	QualityGates HookPhase `yaml:"quality_gates"`
 	PostStory    HookPhase `yaml:"post_story"`

@@ -580,3 +580,496 @@ func TestInitProjectWithEmptyPreset(t *testing.T) {
 		t.Errorf("Workflow.Type = %q, want %q for empty preset", cfg.Workflow.Type, "basic")
 	}
 }
+
+// --- Tests for config combinations ---
+
+func TestLoadMinimalConfig(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ProjectConfigDir)
+	os.MkdirAll(configDir, 0755)
+	// Only agent.type set — everything else should use defaults.
+	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`
+agent:
+  type: aider
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Agent.Type != "aider" {
+		t.Errorf("Agent.Type = %q, want %q", cfg.Agent.Type, "aider")
+	}
+	// All other fields should be defaults.
+	if cfg.Workflow.Type != "basic" {
+		t.Errorf("Workflow.Type = %q, want default %q", cfg.Workflow.Type, "basic")
+	}
+	if cfg.Quality.Type != "standard" {
+		t.Errorf("Quality.Type = %q, want default %q", cfg.Quality.Type, "standard")
+	}
+	if cfg.Agent.MaxStoriesPerSession != 5 {
+		t.Errorf("MaxStoriesPerSession = %d, want default 5", cfg.Agent.MaxStoriesPerSession)
+	}
+	if cfg.Tracker.StatusFile != "sprint-status.yaml" {
+		t.Errorf("Tracker.StatusFile = %q, want default", cfg.Tracker.StatusFile)
+	}
+}
+
+func TestLoadWorkflowCommandsOnly(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ProjectConfigDir)
+	os.MkdirAll(configDir, 0755)
+	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`
+workflow:
+  type: custom
+  commands:
+    build: "make build"
+    test: "pytest"
+    deploy: "kubectl apply"
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Workflow.Type != "custom" {
+		t.Errorf("Workflow.Type = %q, want %q", cfg.Workflow.Type, "custom")
+	}
+	if len(cfg.Workflow.Commands) != 3 {
+		t.Errorf("Commands length = %d, want 3", len(cfg.Workflow.Commands))
+	}
+	if cfg.Workflow.Commands["build"] != "make build" {
+		t.Errorf("Commands[build] = %q, want %q", cfg.Workflow.Commands["build"], "make build")
+	}
+	if cfg.Workflow.Instructions != "" {
+		t.Errorf("Instructions = %q, want empty", cfg.Workflow.Instructions)
+	}
+}
+
+func TestLoadWorkflowInstructionsOnly(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ProjectConfigDir)
+	os.MkdirAll(configDir, 0755)
+	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`
+workflow:
+  type: tdd
+  instructions: "RED-GREEN-REFACTOR per AC. Never skip tests."
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Workflow.Type != "tdd" {
+		t.Errorf("Workflow.Type = %q, want %q", cfg.Workflow.Type, "tdd")
+	}
+	if cfg.Workflow.Instructions != "RED-GREEN-REFACTOR per AC. Never skip tests." {
+		t.Errorf("Instructions = %q", cfg.Workflow.Instructions)
+	}
+	if len(cfg.Workflow.Commands) != 0 {
+		t.Errorf("Commands = %v, want empty", cfg.Workflow.Commands)
+	}
+}
+
+func TestLoadWorkflowBothCommandsAndInstructions(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ProjectConfigDir)
+	os.MkdirAll(configDir, 0755)
+	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`
+workflow:
+  type: bmad-v6
+  commands:
+    implement: "dev"
+    code_review: "cr"
+  instructions: "Use Skill tool. TDD per AC."
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if len(cfg.Workflow.Commands) != 2 {
+		t.Errorf("Commands length = %d, want 2", len(cfg.Workflow.Commands))
+	}
+	if cfg.Workflow.Instructions != "Use Skill tool. TDD per AC." {
+		t.Errorf("Instructions = %q", cfg.Workflow.Instructions)
+	}
+}
+
+func TestLoadResearchDisabled(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ProjectConfigDir)
+	os.MkdirAll(configDir, 0755)
+	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`
+research:
+  enabled: false
+  tools:
+    - name: "RAG"
+      type: "rag"
+      enabled: true
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Research.Enabled {
+		t.Error("Research.Enabled should be false")
+	}
+	// Tools should still be parsed even when disabled.
+	if len(cfg.Research.Tools) != 1 {
+		t.Errorf("Research.Tools length = %d, want 1", len(cfg.Research.Tools))
+	}
+}
+
+func TestLoadResearchNoTools(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ProjectConfigDir)
+	os.MkdirAll(configDir, 0755)
+	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`
+research:
+  enabled: true
+  strategy: "on-demand"
+  tools: []
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if !cfg.Research.Enabled {
+		t.Error("Research.Enabled should be true")
+	}
+	if cfg.Research.Strategy != "on-demand" {
+		t.Errorf("Research.Strategy = %q, want %q", cfg.Research.Strategy, "on-demand")
+	}
+	if len(cfg.Research.Tools) != 0 {
+		t.Errorf("Research.Tools = %v, want empty", cfg.Research.Tools)
+	}
+}
+
+func TestLoadQualityMinimal(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ProjectConfigDir)
+	os.MkdirAll(configDir, 0755)
+	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`
+quality:
+  type: minimal
+  gates:
+    tests: true
+    build: true
+    cr: false
+    type_check: false
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Quality.Type != "minimal" {
+		t.Errorf("Quality.Type = %q, want %q", cfg.Quality.Type, "minimal")
+	}
+	if !cfg.Quality.Gates.Tests {
+		t.Error("Quality.Gates.Tests should be true")
+	}
+	if !cfg.Quality.Gates.Build {
+		t.Error("Quality.Gates.Build should be true")
+	}
+	if cfg.Quality.Gates.CR {
+		t.Error("Quality.Gates.CR should be false")
+	}
+	if cfg.Quality.Gates.TypeCheck {
+		t.Error("Quality.Gates.TypeCheck should be false")
+	}
+}
+
+func TestLoadQualityFull(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ProjectConfigDir)
+	os.MkdirAll(configDir, 0755)
+	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`
+quality:
+  type: full
+  max_retries: 3
+  gates:
+    cr: true
+    tests: true
+    build: true
+    type_check: true
+    storybook: true
+    e2e: true
+    browser: true
+    dev_logs: true
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Quality.Type != "full" {
+		t.Errorf("Quality.Type = %q, want %q", cfg.Quality.Type, "full")
+	}
+	if cfg.Quality.MaxRetries != 3 {
+		t.Errorf("MaxRetries = %d, want 3", cfg.Quality.MaxRetries)
+	}
+	if !cfg.Quality.Gates.Storybook {
+		t.Error("Quality.Gates.Storybook should be true")
+	}
+	if !cfg.Quality.Gates.E2E {
+		t.Error("Quality.Gates.E2E should be true")
+	}
+	if !cfg.Quality.Gates.Browser {
+		t.Error("Quality.Gates.Browser should be true")
+	}
+	if !cfg.Quality.Gates.DevLogs {
+		t.Error("Quality.Gates.DevLogs should be true")
+	}
+}
+
+func TestLoadAllFieldsSet(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ProjectConfigDir)
+	os.MkdirAll(configDir, 0755)
+	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`
+engine:
+  version: "2.0.0"
+  name: "my-engine"
+agent:
+  type: "codex"
+  model: "gpt-4"
+  max_turns: 100
+  max_stories_per_session: 10
+  cooldown_seconds: 60
+  allowed_tools: "Bash,Read"
+  disallowed_tools: "Write"
+  flags: ["--verbose", "--debug"]
+workflow:
+  type: "custom-flow"
+  commands:
+    build: "make"
+    test: "go test"
+  instructions: "Custom instructions"
+  custom_phases: ["phase1", "phase2"]
+quality:
+  type: "strict"
+  max_retries: 5
+  gates:
+    cr: true
+    tests: true
+    build: true
+    type_check: true
+    storybook: true
+    e2e: true
+    browser: true
+    dev_logs: true
+tracker:
+  type: "github"
+  status_file: "custom-status.yaml"
+resources:
+  min_free_ram_mb: 4096
+  max_cpu_load_percent: 90
+  min_free_disk_gb: 10
+  max_log_size_mb: 100
+  max_log_files: 20
+circuit_breaker:
+  max_failures: 5
+  cooldown_minutes: 10
+ssh:
+  enabled: true
+  reconnect_script: "./reconnect.sh"
+  dev_exec_script: "./dev-exec.sh"
+security:
+  notice_accepted: true
+  require_container: false
+  daily_budget_usd: 50.0
+  max_cost_per_session_usd: 10.0
+paths:
+  stories: "stories/"
+  architecture: "docs/arch/"
+  prd: "docs/prd/"
+  ux: "docs/ux/"
+  decisions: "docs/adr/"
+  status: "status.yaml"
+  rules: ".rules/"
+research:
+  enabled: true
+  strategy: "story-start"
+  tools:
+    - name: "RAG"
+      type: "rag"
+      priority: 1
+      enabled: true
+      description: "Knowledge base"
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	// Verify every field is set to the non-default value.
+	tests := []struct {
+		name string
+		got  interface{}
+		want interface{}
+	}{
+		{"Engine.Version", cfg.Engine.Version, "2.0.0"},
+		{"Engine.Name", cfg.Engine.Name, "my-engine"},
+		{"Agent.Type", cfg.Agent.Type, "codex"},
+		{"Agent.Model", cfg.Agent.Model, "gpt-4"},
+		{"Agent.MaxTurns", cfg.Agent.MaxTurns, 100},
+		{"Agent.MaxStoriesPerSession", cfg.Agent.MaxStoriesPerSession, 10},
+		{"Agent.CooldownSeconds", cfg.Agent.CooldownSeconds, 60},
+		{"Agent.AllowedTools", cfg.Agent.AllowedTools, "Bash,Read"},
+		{"Agent.DisallowedTools", cfg.Agent.DisallowedTools, "Write"},
+		{"Workflow.Type", cfg.Workflow.Type, "custom-flow"},
+		{"Workflow.Instructions", cfg.Workflow.Instructions, "Custom instructions"},
+		{"Quality.Type", cfg.Quality.Type, "strict"},
+		{"Quality.MaxRetries", cfg.Quality.MaxRetries, 5},
+		{"Tracker.Type", cfg.Tracker.Type, "github"},
+		{"Tracker.StatusFile", cfg.Tracker.StatusFile, "custom-status.yaml"},
+		{"Resources.MinFreeRAMMB", cfg.Resources.MinFreeRAMMB, 4096},
+		{"Resources.MaxCPULoadPercent", cfg.Resources.MaxCPULoadPercent, 90},
+		{"Resources.MinFreeDiskGB", cfg.Resources.MinFreeDiskGB, 10},
+		{"Resources.MaxLogSizeMB", cfg.Resources.MaxLogSizeMB, 100},
+		{"Resources.MaxLogFiles", cfg.Resources.MaxLogFiles, 20},
+		{"CircuitBreaker.MaxFailures", cfg.CircuitBreaker.MaxFailures, 5},
+		{"CircuitBreaker.CooldownMinutes", cfg.CircuitBreaker.CooldownMinutes, 10},
+		{"SSH.Enabled", cfg.SSH.Enabled, true},
+		{"SSH.ReconnectScript", cfg.SSH.ReconnectScript, "./reconnect.sh"},
+		{"SSH.DevExecScript", cfg.SSH.DevExecScript, "./dev-exec.sh"},
+		{"Security.NoticeAccepted", cfg.Security.NoticeAccepted, true},
+		{"Security.RequireContainer", cfg.Security.RequireContainer, false},
+		{"Security.DailyBudgetUSD", cfg.Security.DailyBudgetUSD, float64(50)},
+		{"Security.MaxCostPerSessionUSD", cfg.Security.MaxCostPerSessionUSD, float64(10)},
+		{"Paths.Stories", cfg.Paths.Stories, "stories/"},
+		{"Paths.Architecture", cfg.Paths.Architecture, "docs/arch/"},
+		{"Paths.PRD", cfg.Paths.PRD, "docs/prd/"},
+		{"Paths.UX", cfg.Paths.UX, "docs/ux/"},
+		{"Paths.Decisions", cfg.Paths.Decisions, "docs/adr/"},
+		{"Paths.Status", cfg.Paths.Status, "status.yaml"},
+		{"Paths.Rules", cfg.Paths.Rules, ".rules/"},
+		{"Research.Enabled", cfg.Research.Enabled, true},
+		{"Research.Strategy", cfg.Research.Strategy, "story-start"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("%s = %v, want %v", tt.name, tt.got, tt.want)
+			}
+		})
+	}
+
+	// Verify collections.
+	if len(cfg.Agent.Flags) != 2 {
+		t.Errorf("Agent.Flags = %v, want 2 items", cfg.Agent.Flags)
+	}
+	if len(cfg.Workflow.Commands) != 2 {
+		t.Errorf("Workflow.Commands = %v, want 2 items", cfg.Workflow.Commands)
+	}
+	if len(cfg.Workflow.CustomPhases) != 2 {
+		t.Errorf("Workflow.CustomPhases = %v, want 2 items", cfg.Workflow.CustomPhases)
+	}
+	if len(cfg.Research.Tools) != 1 {
+		t.Errorf("Research.Tools = %d, want 1", len(cfg.Research.Tools))
+	}
+}
+
+func TestLoadTrackerCustomStatusFile(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ProjectConfigDir)
+	os.MkdirAll(configDir, 0755)
+	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`
+tracker:
+  type: file
+  status_file: "custom-status.yaml"
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Tracker.StatusFile != "custom-status.yaml" {
+		t.Errorf("Tracker.StatusFile = %q, want %q", cfg.Tracker.StatusFile, "custom-status.yaml")
+	}
+}
+
+func TestLoadAgentMaxTurnsZero(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ProjectConfigDir)
+	os.MkdirAll(configDir, 0755)
+	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`
+agent:
+  type: claude
+  max_turns: 0
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Agent.MaxTurns != 0 {
+		t.Errorf("Agent.MaxTurns = %d, want 0 (unlimited)", cfg.Agent.MaxTurns)
+	}
+}
+
+func TestLoadDisallowedToolsSet(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ProjectConfigDir)
+	os.MkdirAll(configDir, 0755)
+	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`
+agent:
+  type: claude
+  disallowed_tools: "TodoWrite,Agent"
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Agent.DisallowedTools != "TodoWrite,Agent" {
+		t.Errorf("Agent.DisallowedTools = %q, want %q", cfg.Agent.DisallowedTools, "TodoWrite,Agent")
+	}
+}
+
+func TestLoadPathsConfig(t *testing.T) {
+	dir := t.TempDir()
+	configDir := filepath.Join(dir, ProjectConfigDir)
+	os.MkdirAll(configDir, 0755)
+	os.WriteFile(filepath.Join(configDir, "config.yaml"), []byte(`
+paths:
+  stories: "_bmad-output/stories/"
+  architecture: "_bmad-output/architecture/"
+  prd: "_bmad-output/prd/"
+  ux: "_bmad-output/ux/"
+  decisions: "_bmad-output/decisions/"
+  status: "sprint-status.yaml"
+  rules: ".claude/rules/"
+`), 0644)
+
+	cfg, err := Load(dir)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+	if cfg.Paths.Stories != "_bmad-output/stories/" {
+		t.Errorf("Paths.Stories = %q", cfg.Paths.Stories)
+	}
+	if cfg.Paths.Architecture != "_bmad-output/architecture/" {
+		t.Errorf("Paths.Architecture = %q", cfg.Paths.Architecture)
+	}
+	if cfg.Paths.PRD != "_bmad-output/prd/" {
+		t.Errorf("Paths.PRD = %q", cfg.Paths.PRD)
+	}
+	if cfg.Paths.UX != "_bmad-output/ux/" {
+		t.Errorf("Paths.UX = %q", cfg.Paths.UX)
+	}
+	if cfg.Paths.Decisions != "_bmad-output/decisions/" {
+		t.Errorf("Paths.Decisions = %q", cfg.Paths.Decisions)
+	}
+	if cfg.Paths.Status != "sprint-status.yaml" {
+		t.Errorf("Paths.Status = %q", cfg.Paths.Status)
+	}
+	if cfg.Paths.Rules != ".claude/rules/" {
+		t.Errorf("Paths.Rules = %q", cfg.Paths.Rules)
+	}
+}

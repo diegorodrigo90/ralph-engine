@@ -59,7 +59,7 @@ func init() {
 	rootCmd.PersistentFlags().String("log-format", "", "Log format: human, json (default: human, auto-json in debug)")
 
 	rootCmd.AddCommand(runCmd)
-	rootCmd.AddCommand(preflightCmd)
+	rootCmd.AddCommand(prepareCmd)
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(configCmd)
 	rootCmd.AddCommand(initCmd)
