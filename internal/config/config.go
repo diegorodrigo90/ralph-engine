@@ -51,9 +51,11 @@ type AgentConfig struct {
 	Type                 string   `mapstructure:"type"`
 	Flags                []string `mapstructure:"flags"`
 	Model                string   `mapstructure:"model"`
+	MaxTurns             int      `mapstructure:"max_turns"`
 	MaxStoriesPerSession int      `mapstructure:"max_stories_per_session"`
 	CooldownSeconds      int      `mapstructure:"cooldown_seconds"`
 	AllowedTools         string   `mapstructure:"allowed_tools"`
+	DisallowedTools      string   `mapstructure:"disallowed_tools"`
 }
 
 // WorkflowConfig defines the development workflow to follow.
@@ -246,7 +248,9 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("agent.model", "")
 	v.SetDefault("agent.max_stories_per_session", 5)
 	v.SetDefault("agent.cooldown_seconds", 30)
+	v.SetDefault("agent.max_turns", 0) // 0 = unlimited
 	v.SetDefault("agent.allowed_tools", "Write,Read,Edit,Bash,Glob,Grep,Skill,Agent,WebSearch,WebFetch,ToolSearch")
+	v.SetDefault("agent.disallowed_tools", "") // Deny-list (takes precedence over allowed_tools)
 
 	// Workflow
 	v.SetDefault("workflow.type", "basic")

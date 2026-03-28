@@ -56,7 +56,9 @@ type EngineOpts struct {
 	StateDir          string
 	Binary            string // "claude" or "claudebox"
 	Model             string // Agent model (e.g., "opus", "sonnet")
+	MaxTurns          int    // Max agent turns per session (0 = unlimited)
 	AllowedTools      string // Comma-separated allowed tools
+	DisallowedTools   string // Comma-separated denied tools (takes precedence)
 	SkipPermissions   bool   // --dangerously-skip-permissions
 	MaxFailures       int    // Circuit breaker threshold
 	CooldownSeconds   int    // Seconds between sessions

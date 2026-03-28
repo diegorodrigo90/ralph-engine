@@ -19,6 +19,7 @@ type ClientConfig struct {
 	OutputFormat    string   // "stream-json" (default) or "json"
 	MaxTurns        int      // 0 = unlimited
 	AllowedTools    []string // e.g. ["Bash","Read","Write","mcp__*"]
+	DisallowedTools []string // e.g. ["Bash(rm -rf *)"] — takes precedence over AllowedTools
 	SkipPermissions bool     // --dangerously-skip-permissions
 	Model           string   // e.g. "opus", "sonnet"
 }
@@ -187,6 +188,12 @@ func (c *Client) buildArgs(req SessionRequest) []string {
 	// Allowed tools.
 	if len(c.config.AllowedTools) > 0 {
 		args = append(args, "--allowedTools", strings.Join(c.config.AllowedTools, ","))
+	}
+
+	// Disallowed tools — takes precedence over allowed tools.
+	// This is the primary defense against destructive commands.
+	if len(c.config.DisallowedTools) > 0 {
+		args = append(args, "--disallowedTools", strings.Join(c.config.DisallowedTools, ","))
 	}
 
 	// Max turns.

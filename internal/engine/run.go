@@ -87,11 +87,17 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 	if e.opts.AllowedTools != "" {
 		allowedTools = strings.Split(e.opts.AllowedTools, ",")
 	}
+	var disallowedTools []string
+	if e.opts.DisallowedTools != "" {
+		disallowedTools = strings.Split(e.opts.DisallowedTools, ",")
+	}
 	client := claude.NewClient(claude.ClientConfig{
 		Binary:          e.opts.Binary,
 		OutputFormat:    "json",
 		Model:           e.opts.Model,
+		MaxTurns:        e.opts.MaxTurns,
 		AllowedTools:    allowedTools,
+		DisallowedTools: disallowedTools,
 		SkipPermissions: e.opts.SkipPermissions,
 	})
 
