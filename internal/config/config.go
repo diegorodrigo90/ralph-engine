@@ -64,8 +64,9 @@ type WorkflowConfig struct {
 
 // QualityConfig defines which quality gates to enforce.
 type QualityConfig struct {
-	Type  string      `mapstructure:"type"`
-	Gates GatesConfig `mapstructure:"gates"`
+	Type         string      `mapstructure:"type"`
+	Gates        GatesConfig `mapstructure:"gates"`
+	MaxRetries   int         `mapstructure:"max_retries"` // Max fix attempts when gates fail (0 = unlimited)
 }
 
 // GatesConfig toggles individual quality gates.
@@ -253,6 +254,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("quality.gates.e2e", false)
 	v.SetDefault("quality.gates.browser", false)
 	v.SetDefault("quality.gates.dev_logs", false)
+	v.SetDefault("quality.max_retries", 0) // 0 = unlimited — agent keeps fixing until clean
 
 	// Tracker
 	v.SetDefault("tracker.type", "file")

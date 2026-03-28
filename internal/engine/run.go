@@ -496,29 +496,36 @@ func countTotal(tk tracker.TaskTracker) int {
 	return len(all)
 }
 
-// maxGateRetries is the maximum number of times the agent can attempt to fix quality gate failures.
-const maxGateRetries = 3
-
 // runGatesWithRetry runs quality gates and, on failure, asks the agent to fix issues.
-// Returns true if gates eventually pass, false if all retries exhausted.
+// Retries until gates pass, context is cancelled, or max retries reached.
+// MaxGateRetries = 0 means unlimited retries (default — let agent fix everything).
 func (e *Engine) runGatesWithRetry(ctx context.Context, client *claude.Client, story *tracker.Story, systemPrompt string, emit func(string, string)) bool {
-	for attempt := 0; attempt <= maxGateRetries; attempt++ {
+	maxRetries := e.opts.MaxGateRetries // 0 = unlimited
+	for attempt := 1; ; attempt++ {
 		changedFiles := hooks.GetChangedFiles(e.opts.ProjectDir)
 		if e.runHookPhase(ctx, "quality-gates", e.opts.Hooks.QualityGates, changedFiles, emit) {
+			if attempt > 1 {
+				emit("info", fmt.Sprintf("Quality gates passed after %d fix attempts", attempt-1))
+			}
 			return true // Gates passed.
 		}
 
-		if attempt >= maxGateRetries {
-			break // No more retries.
+		if maxRetries > 0 && attempt > maxRetries {
+			break // Max retries exhausted.
 		}
 
 		if ctx.Err() != nil {
-			break // Context cancelled.
+			break // Context cancelled (Ctrl+C).
 		}
 
 		// Collect failure details for the agent.
 		failures := e.collectGateFailures(ctx, changedFiles)
-		emit("info", fmt.Sprintf("Quality gates failed (attempt %d/%d) — asking agent to fix...", attempt+1, maxGateRetries))
+		retryMsg := fmt.Sprintf("Quality gates failed (attempt %d", attempt)
+		if maxRetries > 0 {
+			retryMsg += fmt.Sprintf("/%d", maxRetries)
+		}
+		retryMsg += ") — asking agent to fix..."
+		emit("info", retryMsg)
 
 		// Ask agent to fix the failures.
 		fixPrompt := fmt.Sprintf("Quality gates FAILED for story %s. Fix these issues:\n\n%s\n\nFix ALL failures, then confirm with a commit.", story.ID, failures)

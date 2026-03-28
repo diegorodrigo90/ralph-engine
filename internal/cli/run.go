@@ -110,6 +110,7 @@ func runEngine(cmd *cobra.Command, args []string) error {
 		Prompt:          &cfg.Prompt,
 		Research:        &cfg.Research,
 		Hooks:           hooksConfig,
+		MaxGateRetries:  cfg.Quality.MaxRetries,
 	})
 	if err != nil {
 		return fmt.Errorf("creating engine: %w", err)
