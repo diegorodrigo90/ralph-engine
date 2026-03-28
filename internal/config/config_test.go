@@ -12,8 +12,8 @@ func TestLoadReturnsDefaults(t *testing.T) {
 		t.Fatalf("Load() returned error: %v", err)
 	}
 
-	if cfg.Agent.Type != "claude-code" {
-		t.Errorf("Agent.Type = %q, want %q", cfg.Agent.Type, "claude-code")
+	if cfg.Agent.Type != "claude" {
+		t.Errorf("Agent.Type = %q, want %q", cfg.Agent.Type, "claude")
 	}
 	if cfg.Agent.MaxStoriesPerSession != 5 {
 		t.Errorf("Agent.MaxStoriesPerSession = %d, want 5", cfg.Agent.MaxStoriesPerSession)
@@ -150,8 +150,8 @@ func TestInitProjectBMADPreset(t *testing.T) {
 		t.Fatalf("Load() returned error: %v", err)
 	}
 
-	if cfg.Agent.Type != "claude-code" {
-		t.Errorf("BMAD preset: Agent.Type = %q, want %q", cfg.Agent.Type, "claude-code")
+	if cfg.Agent.Type != "claude" {
+		t.Errorf("BMAD preset: Agent.Type = %q, want %q", cfg.Agent.Type, "claude")
 	}
 	if cfg.Workflow.Type != "bmad-v6" {
 		t.Errorf("BMAD preset: Workflow.Type = %q, want %q", cfg.Workflow.Type, "bmad-v6")

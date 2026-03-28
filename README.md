@@ -3,9 +3,10 @@
 [![CI](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/ci.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/diegorodrigo90/ralph-engine)](https://goreportcard.com/report/github.com/diegorodrigo90/ralph-engine)
 [![Go Reference](https://pkg.go.dev/badge/github.com/diegorodrigo90/ralph-engine.svg)](https://pkg.go.dev/github.com/diegorodrigo90/ralph-engine)
+[![npm](https://img.shields.io/npm/v/ralph-engine)](https://www.npmjs.com/package/ralph-engine)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Autonomous AI development loop engine. Orchestrates AI agent sessions (Claude Code, ClaudeBox, Cursor, Codex) in an infinite loop with quality gates, resource monitoring, and persistent progress tracking.
+Autonomous AI development loop engine. Orchestrates CLI-based AI agent sessions (Claude Code, Codex, Aider, custom) in an infinite loop with quality gates, resource monitoring, and persistent progress tracking.
 
 ## Why ralph-engine?
 
@@ -20,7 +21,7 @@ AI coding agents are powerful but need orchestration for large projects. ralph-e
 ## Features
 
 - **Infinite loop** — Calls AI agent repeatedly, each invocation gets fresh context
-- **Pluggable agents** — Claude Code, ClaudeBox, Cursor, Codex, custom
+- **Pluggable agents** — Claude Code, ClaudeBox, Codex, Aider, any CLI agent
 - **Pluggable workflows** — BMAD v6, basic, TDD-strict, spec-driven, custom
 - **Pluggable quality gates** — Full (CR + tests + build + type-check + E2E), standard, minimal
 - **Pluggable trackers** — File (sprint-status.yaml), GitHub Issues, Linear, custom
@@ -36,25 +37,22 @@ AI coding agents are powerful but need orchestration for large projects. ralph-e
 
 ### Install
 
+Pick your preferred method — all are automatically updated on every release:
+
+| Method       | Command                                                                     | Requires    |
+| ------------ | --------------------------------------------------------------------------- | ----------- |
+| **npm**      | `npm install -g ralph-engine`                                               | Node.js 16+ |
+| **npx**      | `npx ralph-engine run --dry-run`                                            | Node.js 16+ |
+| **Homebrew** | `brew install diegorodrigo90/tap/ralph-engine`                              | macOS/Linux |
+| **curl**     | see below                                                                   | curl        |
+| **Go**       | `go install github.com/diegorodrigo90/ralph-engine/cmd/ralph-engine@latest` | Go 1.24+    |
+| **Binary**   | [GitHub Releases](https://github.com/diegorodrigo90/ralph-engine/releases)  | —           |
+
 **One-line install** (Linux, macOS, WSL):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/diegorodrigo90/ralph-engine/main/scripts/install.sh | bash
 ```
-
-**From source** (requires [Go 1.24+](https://go.dev/dl/)):
-
-```bash
-go install github.com/diegorodrigo90/ralph-engine/cmd/ralph-engine@latest
-```
-
-**From binary release:**
-
-Download from [Releases](https://github.com/diegorodrigo90/ralph-engine/releases) for your platform:
-
-- Linux (amd64, arm64)
-- macOS (Intel, Apple Silicon)
-- Windows (amd64) — requires [WSL2](https://learn.microsoft.com/en-us/windows/wsl/install) for full functionality
 
 **Build from source:**
 
@@ -64,16 +62,6 @@ cd ralph-engine
 ./scripts/build-local.sh
 # Or: go build -o bin/ralph-engine ./cmd/ralph-engine/
 ```
-
-**Go not installed?**
-
-| OS            | Command                                                                |
-| ------------- | ---------------------------------------------------------------------- |
-| Arch Linux    | `sudo pacman -S go`                                                    |
-| Ubuntu/Debian | `sudo apt install golang-go`                                           |
-| Fedora        | `sudo dnf install golang`                                              |
-| macOS         | `brew install go`                                                      |
-| Windows       | [Download installer](https://go.dev/dl/) or `winget install GoLang.Go` |
 
 ### Usage
 
@@ -116,7 +104,7 @@ ralph-engine init --preset tdd-strict # TDD-first, strict test enforcement
 
 ```yaml
 agent:
-  type: "claude-code"
+  type: "claude"
   model: "opus"
   max_stories_per_session: 5 # default: 5
   cooldown_seconds: 30 # default: 30
@@ -274,7 +262,7 @@ ralph-engine/
 │   └── tracker/                 # Pluggable task tracking
 ├── AGENTS.md                    # AI assistant instructions (universal)
 ├── CONTRIBUTING.md              # Contribution guide
-├── .golangci.yml                # Linter config (25 rules)
+├── .golangci.yml                # Linter config (21 rules)
 ├── .goreleaser.yaml             # Cross-platform release automation
 └── .github/workflows/           # CI + Release pipelines
 ```

@@ -63,7 +63,7 @@ func NewClient(config ClientConfig) *Client {
 		config.Binary = "claude"
 	}
 	if config.OutputFormat == "" {
-		config.OutputFormat = "stream-json"
+		config.OutputFormat = "json"
 	}
 	return &Client{config: config}
 }
@@ -95,6 +95,7 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 	}
 
 	var result *SessionResult
+	var allOutput bytes.Buffer
 	scanner := bufio.NewScanner(stdout)
 	scanner.Buffer(make([]byte, 0, 1024*1024), 1024*1024) // 1MB buffer for large outputs
 
@@ -104,25 +105,35 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 			continue
 		}
 
+		allOutput.WriteString(line)
+		allOutput.WriteByte('\n')
+
+		// Try parsing as stream-json event (has "type" field).
 		event, err := parseStreamLine(line)
-		if err != nil {
-			continue // Skip malformed lines
+		if err == nil {
+			if callback != nil {
+				callback(event)
+			}
+			if event.Type == "result" && event.Result != nil {
+				result = event.Result
+			}
 		}
 
-		if callback != nil {
-			callback(event)
-		}
-
-		if event.Type == "result" && event.Result != nil {
-			result = event.Result
-		}
-
-		// Check for usage limit in any message content
+		// Check for usage limit in any output.
 		if detectUsageLimit(line) {
 			if result == nil {
 				result = &SessionResult{}
 			}
 			result.UsageLimit = true
+		}
+	}
+
+	// For "json" format: output is a single JSON blob (not wrapped in stream events).
+	// Try parsing the full output as a SessionResult if we didn't get one from streaming.
+	if result == nil && allOutput.Len() > 0 {
+		var directResult SessionResult
+		if err := json.Unmarshal(allOutput.Bytes(), &directResult); err == nil && directResult.SessionID != "" {
+			result = &directResult
 		}
 	}
 
@@ -151,44 +162,50 @@ func (c *Client) Run(ctx context.Context, req SessionRequest, callback StreamCal
 func (c *Client) buildArgs(req SessionRequest) []string {
 	var args []string
 
-	// Non-interactive prompt mode
-	args = append(args, "-p", req.Prompt)
+	// Print mode (non-interactive) — -p must come before prompt.
+	args = append(args, "-p")
 
-	// Output format — stream-json requires --verbose in Claude CLI.
+	// Output format.
 	args = append(args, "--output-format", c.config.OutputFormat)
+	// stream-json requires --verbose in claude CLI print mode.
+	// Note: some wrappers (e.g., claudebox) consume --verbose as their own flag.
+	// Use "json" format for maximum compatibility across agent wrappers.
 	if c.config.OutputFormat == "stream-json" {
 		args = append(args, "--verbose")
 	}
 
-	// Session resume
+	// Session resume.
 	if req.SessionID != "" {
 		args = append(args, "--resume", req.SessionID)
 	}
 
-	// System prompt injection
+	// System prompt injection.
 	if req.SystemPrompt != "" {
 		args = append(args, "--append-system-prompt", req.SystemPrompt)
 	}
 
-	// Allowed tools
+	// Allowed tools.
 	if len(c.config.AllowedTools) > 0 {
 		args = append(args, "--allowedTools", strings.Join(c.config.AllowedTools, ","))
 	}
 
-	// Max turns
+	// Max turns.
 	if c.config.MaxTurns > 0 {
 		args = append(args, "--max-turns", fmt.Sprintf("%d", c.config.MaxTurns))
 	}
 
-	// Skip permissions (dangerous — security notice required)
+	// Skip permissions (dangerous — security notice required).
 	if c.config.SkipPermissions {
 		args = append(args, "--dangerously-skip-permissions")
 	}
 
-	// Model override
+	// Model override.
 	if c.config.Model != "" {
 		args = append(args, "--model", c.config.Model)
 	}
+
+	// Prompt MUST be the last positional argument.
+	args = append(args, req.Prompt)
 
 	return args
 }

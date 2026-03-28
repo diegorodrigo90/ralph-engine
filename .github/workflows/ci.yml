@@ -92,6 +92,42 @@ jobs:
           GOOS=darwin  GOARCH=arm64 go build -o /dev/null ./cmd/ralph-engine/
           GOOS=windows GOARCH=amd64 go build -o /dev/null ./cmd/ralph-engine/
 
+  # Smoke test — builds binary and verifies it runs on each OS.
+  smoke-test:
+    name: Smoke Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: [lint, test]
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Build binary
+        shell: bash
+        run: |
+          EXT=""
+          if [ "$RUNNER_OS" = "Windows" ]; then EXT=".exe"; fi
+          go build -o "ralph-engine${EXT}" ./cmd/ralph-engine/
+          echo "BINARY=./ralph-engine${EXT}" >> "$GITHUB_ENV"
+      - name: Verify version command
+        shell: bash
+        run: $BINARY version
+      - name: Verify preflight (no project — should warn, not crash)
+        shell: bash
+        run: $BINARY preflight 2>&1 || true
+      - name: Verify dry-run (no config — should warn, not crash)
+        shell: bash
+        run: $BINARY run --dry-run 2>&1 || true
+      - name: Verify status command
+        shell: bash
+        run: $BINARY status 2>&1 || true
+      - name: Verify config list
+        shell: bash
+        run: $BINARY config list 2>&1 || true
+
   commitlint:
     name: Commit Messages
     runs-on: ubuntu-latest

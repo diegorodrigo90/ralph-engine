@@ -10,8 +10,8 @@ func TestNewClientDefaults(t *testing.T) {
 	if c.config.Binary != "claude" {
 		t.Errorf("Binary = %q, want %q", c.config.Binary, "claude")
 	}
-	if c.config.OutputFormat != "stream-json" {
-		t.Errorf("OutputFormat = %q, want %q", c.config.OutputFormat, "stream-json")
+	if c.config.OutputFormat != "json" {
+		t.Errorf("OutputFormat = %q, want %q", c.config.OutputFormat, "json")
 	}
 	if c.config.MaxTurns != 0 {
 		t.Errorf("MaxTurns = %d, want 0 (unlimited)", c.config.MaxTurns)
@@ -31,13 +31,24 @@ func TestNewClientCustomBinary(t *testing.T) {
 func TestBuildArgsNonInteractive(t *testing.T) {
 	c := NewClient(ClientConfig{})
 	args := c.buildArgs(SessionRequest{
-		Prompt:    "implement story 1.1",
+		Prompt:     "implement story 1.1",
 		ProjectDir: "/workspace/my-project",
 	})
 
 	assertContains(t, args, "-p")
-	assertContains(t, args, "implement story 1.1")
 	assertContains(t, args, "--output-format")
+	assertContains(t, args, "json")
+	// Prompt MUST be the last argument (positional arg for claude CLI).
+	if args[len(args)-1] != "implement story 1.1" {
+		t.Errorf("prompt should be last arg, got %q at position %d", args[len(args)-1], len(args)-1)
+	}
+}
+
+func TestBuildArgsStreamJSONAddsVerbose(t *testing.T) {
+	c := NewClient(ClientConfig{OutputFormat: "stream-json"})
+	args := c.buildArgs(SessionRequest{Prompt: "test"})
+
+	assertContains(t, args, "--verbose")
 	assertContains(t, args, "stream-json")
 }
 

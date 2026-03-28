@@ -66,9 +66,11 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 		return e.dryRun(tk, emit, engineState)
 	}
 
+	// Use "json" format for maximum compatibility across agent wrappers.
+	// "stream-json" requires --verbose which some wrappers (claudebox) consume.
 	client := claude.NewClient(claude.ClientConfig{
 		Binary:       e.opts.Binary,
-		OutputFormat: "stream-json",
+		OutputFormat: "json",
 	})
 
 	iteration := 0

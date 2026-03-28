@@ -1,0 +1,34 @@
+{
+	"name": "ralph-engine",
+	"version": "0.0.0",
+	"description": "Autonomous AI development loop engine. Orchestrates AI agent sessions with quality gates, resource monitoring, and progress persistence.",
+	"keywords": [
+		"ai",
+		"claude",
+		"codex",
+		"aider",
+		"autonomous",
+		"automation",
+		"development",
+		"tdd",
+		"code-review",
+		"quality-gates"
+	],
+	"homepage": "https://github.com/diegorodrigo90/ralph-engine",
+	"bugs": "https://github.com/diegorodrigo90/ralph-engine/issues",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/diegorodrigo90/ralph-engine.git"
+	},
+	"license": "MIT",
+	"author": "Diego Rodrigo <diegorodrigo90@gmail.com>",
+	"bin": {
+		"ralph-engine": "bin/ralph-engine"
+	},
+	"scripts": {
+		"postinstall": "node install.js"
+	},
+	"engines": {
+		"node": ">=16"
+	}
+}

@@ -1,5 +1,5 @@
 # GoReleaser configuration for ralph-engine
-# Builds cross-platform binaries and publishes to GitHub Releases.
+# Builds cross-platform binaries, publishes to GitHub Releases + Homebrew.
 # Run: goreleaser release --clean
 # Docs: https://goreleaser.com
 
@@ -54,3 +54,22 @@ release:
   draft: false
   prerelease: auto
   name_template: "v{{ .Version }}"
+
+# Homebrew tap — auto-updates on every release.
+# Creates formula at diegorodrigo90/homebrew-tap/ralph-engine.rb
+brews:
+  - name: ralph-engine
+    repository:
+      owner: diegorodrigo90
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/diegorodrigo90/ralph-engine"
+    description: "Autonomous AI development loop engine"
+    license: "MIT"
+    install: |
+      bin.install "ralph-engine"
+    test: |
+      system "#{bin}/ralph-engine", "version"
+    # Skip if token not set (e.g., local builds).
+    skip_upload: auto

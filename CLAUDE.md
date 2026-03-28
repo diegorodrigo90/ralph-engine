@@ -4,7 +4,7 @@ Instructions for Claude Code. Full coding standards in [AGENTS.md](AGENTS.md).
 
 ## Project Overview
 
-Autonomous AI development loop engine written in Go. Orchestrates AI agent sessions (Claude, Cursor, Codex) with quality gates, resource monitoring, and progress persistence.
+Autonomous AI development loop engine written in Go. Orchestrates CLI-based AI agent sessions (Claude Code, Codex, Aider, custom) with quality gates, resource monitoring, and progress persistence.
 
 ## Commands
 

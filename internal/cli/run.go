@@ -233,7 +233,7 @@ func init() {
 	f.StringP("binary", "b", "claude", "Agent binary (overrides config)")
 
 	// Loop control (override config).
-	f.Int("cooldown", 10, "Seconds between sessions (overrides config)")
+	f.Int("cooldown", 30, "Seconds between sessions (overrides config)")
 	f.Int("max-failures", 3, "Circuit breaker threshold (overrides config)")
 
 	// Persistence.

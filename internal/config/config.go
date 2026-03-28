@@ -32,6 +32,8 @@ type Config struct {
 	SSH SSHConfig `mapstructure:"ssh"`
 	// Security settings
 	Security SecurityConfig `mapstructure:"security"`
+	// Project paths for context injection
+	Paths PathsConfig `mapstructure:"paths"`
 }
 
 // EngineConfig holds core engine settings.
@@ -110,6 +112,29 @@ type SecurityConfig struct {
 	MaxCostPerSessionUSD float64 `mapstructure:"max_cost_per_session_usd"`
 }
 
+// PathsConfig maps project artifact locations for context injection.
+// The engine reads files from these paths and injects them into the agent prompt.
+// All paths are relative to the project root. Supports glob patterns.
+// The engine is format-agnostic — it reads files as-is and passes them to the agent.
+type PathsConfig struct {
+	// Stories directory or glob (e.g., "stories/", "_bmad-output/implementation-artifacts/*.md")
+	Stories string `mapstructure:"stories"`
+	// Architecture docs (e.g., "docs/architecture/", "_bmad-output/planning-artifacts/architecture/")
+	Architecture string `mapstructure:"architecture"`
+	// Product requirements (e.g., "docs/prd/", "_bmad-output/planning-artifacts/prd/")
+	PRD string `mapstructure:"prd"`
+	// UX specifications (e.g., "docs/ux/", "_bmad-output/planning-artifacts/ux-design-specification/")
+	UX string `mapstructure:"ux"`
+	// ADRs / product decisions (e.g., "docs/decisions/", "adr/")
+	Decisions string `mapstructure:"decisions"`
+	// Sprint/project status (e.g., "sprint-status.yaml", "TODO.md")
+	Status string `mapstructure:"status"`
+	// Rules / coding standards (e.g., ".claude/rules/", "docs/standards/")
+	Rules string `mapstructure:"rules"`
+	// Custom paths — arbitrary key-value pairs for project-specific artifacts
+	Custom map[string]string `mapstructure:"custom"`
+}
+
 const (
 	// AppName is the CLI application name.
 	AppName = "ralph-engine"
@@ -126,7 +151,7 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("engine.name", "")
 
 	// Agent
-	v.SetDefault("agent.type", "claude-code")
+	v.SetDefault("agent.type", "claude")
 	v.SetDefault("agent.flags", []string{})
 	v.SetDefault("agent.model", "")
 	v.SetDefault("agent.max_stories_per_session", 5)
@@ -150,7 +175,7 @@ func setDefaults(v *viper.Viper) {
 
 	// Tracker
 	v.SetDefault("tracker.type", "file")
-	v.SetDefault("tracker.status_file", "tasks.md")
+	v.SetDefault("tracker.status_file", "sprint-status.yaml")
 
 	// Resources
 	v.SetDefault("resources.min_free_ram_mb", 2048)
@@ -173,6 +198,16 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("security.require_container", true)
 	v.SetDefault("security.daily_budget_usd", 0)
 	v.SetDefault("security.max_cost_per_session_usd", 0)
+
+	// Paths — all empty by default, user configures per project.
+	// Engine reads files from these paths and injects into agent prompt.
+	v.SetDefault("paths.stories", "")
+	v.SetDefault("paths.architecture", "")
+	v.SetDefault("paths.prd", "")
+	v.SetDefault("paths.ux", "")
+	v.SetDefault("paths.decisions", "")
+	v.SetDefault("paths.status", "")
+	v.SetDefault("paths.rules", "")
 }
 
 // userConfigDir returns the platform-appropriate user config directory.
@@ -328,7 +363,7 @@ func presetConfig(preset string) string {
 # ralph-engine NEVER overwrites this file.
 
 agent:
-  type: "claude-code"
+  type: "claude"
   model: "opus"
   max_stories_per_session: 4
   cooldown_seconds: 15
@@ -363,7 +398,7 @@ resources:
 
 ssh:
   enabled: true
-  exec_script: "./scripts/dev-exec.sh"
+  dev_exec_script: "./scripts/dev-exec.sh"
   reconnect_script: "./scripts/claude-dev.sh"
 `
 	case "tdd-strict":
@@ -371,7 +406,7 @@ ssh:
 # Test-first development, stricter circuit breaker.
 
 agent:
-  type: "claude-code"
+  type: "claude"
   max_stories_per_session: 3
   cooldown_seconds: 15
 
@@ -400,7 +435,7 @@ circuit_breaker:
 # ralph-engine NEVER overwrites this file.
 
 agent:
-  type: "claude-code"
+  type: "claude"
   max_stories_per_session: 5
   cooldown_seconds: 10
 
