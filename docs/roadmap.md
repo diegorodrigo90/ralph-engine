@@ -30,60 +30,48 @@ Everything marked with [x] is implemented and tested.
 
 ## Phase 2.5 — Near-term (before v1.0.0)
 
-### P0 — Must have for usable product
+### P0 — Must have for usable product (ALL COMPLETE)
 
-#### Smart Init Wizard
+#### Smart Init Wizard ✅
 
-Interactive project setup that detects existing tools and suggests config.
+- [x] Greenfield/brownfield detection
+- [x] Auto-detect: BMAD, Claude, Cursor, Windsurf, Gemini, Node.js, Go, Rust, Python, Java, Ruby, Elixir, PHP
+- [x] Detect test runners (Vitest, Jest, Playwright, pytest), linters (ESLint, Prettier, golangci-lint, Ruff)
+- [x] Detect monorepo (pnpm-workspace, turbo, lerna, nx), CI/CD (GitHub Actions, GitLab, CircleCI, Jenkins)
+- [x] Detect trackers (sprint-status.yaml, TODO.md, Linear, GitHub Issues)
+- [x] Suggest preset based on detected tools (basic/bmad-v6/tdd-strict)
+- [ ] Generate hooks.yaml from detected stack (future: detect language → generate matching gates)
+- [ ] Interactive mode with user confirmation (future: bubbletea interactive prompts)
 
-- [ ] **Greenfield detection** — Empty project or no task files → suggest creating sprint-status.yaml
-- [ ] **Brownfield detection** — Scan for existing tools:
-  - BMAD: `.bmad/`, `_bmad/`, `sprint-status.yaml` → suggest bmad-v6 preset
-  - Claude: `.claude/`, `CLAUDE.md` → suggest claude agent
-  - Cursor: `.cursorrules`, `.cursor/` → note: IDE agent, not CLI
-  - GitHub: `.github/workflows/` → suggest GitHub Issues tracker
-  - Linear: detect via `.linear/` or ask
-  - Package managers: `package.json` (npm/pnpm/yarn), `go.mod`, `Cargo.toml`, `pyproject.toml`
-  - Test runners: detect from package.json scripts, Makefile, etc.
-  - Linters: ESLint, ruff, golangci-lint, etc.
-- [ ] **Auto-detect and pre-select** — Show detected tools as pre-selected options
-- [ ] **User confirms everything** — Never auto-save without explicit confirmation
-- [ ] **Generate hooks.yaml from detected stack** — If TypeScript + Vitest detected → add test/build/type-check gates
-- [ ] **Task system selection** — BMAD sprint-status, GitHub Issues, Linear, Jira, plain TODO.md, custom
-- [ ] **Multi-language support** — Detect monorepo with multiple languages, add path-based gates per language
+#### Hook Execution Engine ✅
 
-#### Hook Execution Engine
+- [x] Preflight hooks — execute before loop starts, block on failure
+- [x] Pre-story hooks — execute before each agent session
+- [x] Quality gate hooks — execute after session, block commit if required step fails
+- [x] Post-story hooks — execute after story marked complete
+- [x] Post-session hooks — execute on engine stop (best-effort, 30s timeout)
+- [x] Path-based filtering — git diff → skip steps when no matching files changed
+- [x] Timeout enforcement — kill process group after timeout, mark as failed
+- [ ] Remote execution abstraction — Generic `executor` concept (future P1)
 
-Wire hooks.yaml steps into the engine loop.
+#### Config Validation ✅
 
-- [ ] **Preflight hooks** — Execute before loop starts
-- [ ] **Pre-story hooks** — Execute before each story
-- [ ] **Quality gate hooks** — Execute after implementation, block commit if required step fails
-- [ ] **Post-story hooks** — Execute after commit
-- [ ] **Post-session hooks** — Execute when engine stops
-- [ ] **Path-based filtering** — Only run steps when matching files changed (git diff)
-- [ ] **Timeout enforcement** — Kill step after timeout, mark as failed
-- [ ] **Remote execution abstraction** — Generic `executor` concept (local, SSH, Docker exec, kubectl)
+- [x] Required fields (agent type, status file)
+- [x] Path validation (status_file exists, binary in PATH, scripts exist)
+- [x] Type validation (numeric ranges, boolean)
+- [x] Cross-field validation (tracker type + commands)
+- [x] Helpful error messages with suggestions
+- [x] Research config consistency (tools, priority, strategy)
 
-#### Config Validation
+#### Prompt Injection ✅
 
-Validate config before run to prevent runtime errors.
-
-- [ ] **YAML format validation** — Parse and report syntax errors with line numbers
-- [ ] **Required fields** — Agent type must be set, tracker must have status_file or commands
-- [ ] **Path validation** — status_file exists, binary is in PATH, scripts are executable
-- [ ] **Type validation** — Numeric fields are numbers, booleans are booleans
-- [ ] **Cross-field validation** — If tracker.type=command, commands must be defined
-- [ ] **Helpful error messages** — "status_file 'tasks.yaml' not found. Did you mean 'sprint-status.yaml'?"
-
-#### Prompt Injection from prompt.md
-
-Read user's prompt.md and inject into AI sessions.
-
-- [ ] **Read .ralph-engine/prompt.md** at session start
-- [ ] **Variable substitution** — `{{story_id}}`, `{{story_title}}`, `{{story_file}}`, `{{status_file}}`
-- [ ] **Merge with built-in prompt** — User prompt extends, doesn't replace engine instructions
-- [ ] **Max token awareness** — Warn if prompt.md is too large for context window
+- [x] Read .ralph-engine/prompt.md at session start
+- [x] Variable substitution: `{{story_id}}`, `{{story_title}}`, `{{epic_id}}`, etc.
+- [x] Merge with built-in prompt (user extends, doesn't replace)
+- [x] Composable sections from config (file + inline content)
+- [x] Story file injection from tracker FilePath or paths.stories search
+- [x] Research tools instructions injected from config
+- [x] DRY: rules-digest.md as single source of truth
 
 ### P1 — Important for quality
 
