@@ -22,9 +22,10 @@ type PromptContext struct {
 	SessionNumber int
 	StoriesDone   int
 	StoriesTotal  int
-	WorkflowType     string            // "bmad-v6", "basic", "tdd-strict"
-	WorkflowCommands map[string]string // Phase → agent command mapping from config
-	QualityGate      string            // "full", "standard", "minimal"
+	WorkflowType         string            // "bmad-v6", "basic", "tdd-strict"
+	WorkflowCommands     map[string]string // Phase → agent command mapping from config
+	WorkflowInstructions string            // Free-form workflow instructions
+	QualityGate          string            // "full", "standard", "minimal"
 	SSHAvailable  bool
 	Findings      int
 	// StoryContent is the full story file content (read from paths.stories).
@@ -113,8 +114,8 @@ func BuildPrompt(ctx PromptContext) string {
 		b.WriteString("\n")
 	}
 
-	// Workflow — how to implement. Pass commands from config if available.
-	b.WriteString(sessionInstructions(ctx.WorkflowType, ctx.WorkflowCommands))
+	// Workflow — how to implement. Pass commands + instructions from config.
+	b.WriteString(sessionInstructions(ctx.WorkflowType, ctx.WorkflowCommands, ctx.WorkflowInstructions))
 	b.WriteString("\n")
 
 	// Quality gates — what must pass.
@@ -155,74 +156,60 @@ func qualityRules(gate string) string {
 	}
 }
 
-// sessionInstructions returns workflow-specific instructions.
-// When workflow commands are configured, they are injected into the instructions
-// so the agent knows which specific tools/skills to invoke for each phase.
-func sessionInstructions(workflow string, commands map[string]string) string {
-	// Helper to get a command or default.
-	cmd := func(phase, fallback string) string {
-		if commands != nil {
-			if v, ok := commands[phase]; ok && v != "" {
-				return v
-			}
-		}
-		return fallback
+// sessionInstructions returns workflow instructions for the agent.
+// Design: fully agnostic. The engine doesn't know what BMAD, TDD, or any framework is.
+// It reads the config and passes instructions + commands to the agent prompt.
+//
+// Three layers:
+// 1. workflow.instructions (free-form text from config — user's framework-specific guide)
+// 2. workflow.commands (phase→command mapping — tells agent which tools to use)
+// 3. Built-in fallback (only when NOTHING is configured — bare minimum instructions)
+func sessionInstructions(workflow string, commands map[string]string, instructions string) string {
+	var b strings.Builder
+
+	b.WriteString(fmt.Sprintf("## Workflow: %s\n\n", workflow))
+
+	// Core rule — always enforced regardless of framework.
+	b.WriteString("### CRITICAL: Implementation Rules\n")
+	b.WriteString("- You MUST write actual source code — NOT just docs, metadata, or tracker updates\n")
+	b.WriteString("- You MUST run tests and ensure they pass before committing\n")
+	b.WriteString("- NEVER mark a story complete without writing and testing real code\n\n")
+
+	// Layer 1: User's workflow instructions (verbatim from config).
+	if instructions != "" {
+		b.WriteString("### Workflow Instructions\n\n")
+		b.WriteString(instructions)
+		b.WriteString("\n\n")
 	}
 
-	switch workflow {
-	case "bmad-v6":
-		implCmd := cmd("implement", "/dev")
-		crCmd := cmd("code_review", "/bmad-bmm-code-review")
-		return fmt.Sprintf(`## Workflow: BMAD v6 (MANDATORY — follow exactly)
-
-You MUST use the configured agents for implementation. Invoke the Skill tool:
-- Use Skill with skill="%s" to start story implementation
-- Use Skill with skill="%s" before EVERY commit
-
-### Execution Steps (in order)
-1. **Read story file** — understand ALL acceptance criteria, tasks, and test requirements
-2. **Research first** — use research tools for libraries/patterns this story touches
-3. **Invoke %s** — this activates the dev agent which follows DoR/DoD
-4. **TDD per AC** — for each acceptance criterion: write failing test → implement → pass → refactor
-5. **Write REAL code** — create/modify source files in the project (NOT just docs or metadata)
-6. **Run %s** — fix ALL findings (HIGH, MEDIUM, LOW)
-7. **Run quality gates** — tests pass, build passes, type-check passes, zero dev log errors
-8. **Commit** — conventional message with story ID (e.g., "feat: description (65.24)")
-9. **Update tracker** — mark story status in sprint-status.yaml
-
-### CRITICAL Rules
-- You MUST write actual source code — NOT just docs, metadata, or tracker updates
-- You MUST run tests and ensure they pass before committing
-- You MUST use the Skill tool to invoke the configured agents
-- If the story requires UI changes, create/modify components AND stories
-- If the story requires API changes, create/modify resolvers, services, tests
-- NEVER mark a story complete without writing and testing real code
-`, implCmd, crCmd, implCmd, crCmd)
-
-	case "tdd-strict":
-		return `## Workflow: TDD Strict
-1. Read story/spec
-2. For each AC: RED (failing test) → GREEN (minimal implementation) → REFACTOR
-3. Never write implementation before the test
-4. Commit test + implementation together
-5. Run full test suite before moving to next AC
-`
-	default:
-		var extra string
-		if commands != nil && len(commands) > 0 {
-			extra = "\n### Agent Commands\n"
-			for phase, command := range commands {
-				extra += fmt.Sprintf("- %s: invoke `%s`\n", phase, command)
-			}
+	// Layer 2: Command mapping (phase → tool/skill).
+	if len(commands) > 0 {
+		b.WriteString("### Agent Commands (invoke via Skill tool or CLI)\n\n")
+		b.WriteString("| Phase | Command |\n|---|---|\n")
+		// Sort for deterministic output.
+		phases := make([]string, 0, len(commands))
+		for phase := range commands {
+			phases = append(phases, phase)
 		}
-		return `## Workflow: Basic
-1. Read the task description
-2. Implement the changes
-3. Write tests
-4. Run tests and fix failures
-5. Commit
-` + extra
+		sort.Strings(phases)
+		for _, phase := range phases {
+			b.WriteString(fmt.Sprintf("| %s | `%s` |\n", phase, commands[phase]))
+		}
+		b.WriteString("\n")
 	}
+
+	// Layer 3: Bare minimum fallback (only when user configured nothing).
+	if instructions == "" && len(commands) == 0 {
+		b.WriteString("### Default Steps\n")
+		b.WriteString("1. Read the story/task description\n")
+		b.WriteString("2. Research relevant APIs and patterns\n")
+		b.WriteString("3. Write tests for the acceptance criteria\n")
+		b.WriteString("4. Implement the changes\n")
+		b.WriteString("5. Run tests and fix failures\n")
+		b.WriteString("6. Commit with descriptive message\n\n")
+	}
+
+	return b.String()
 }
 
 // substituteVars replaces {{var}} placeholders in the prompt with dynamic values.

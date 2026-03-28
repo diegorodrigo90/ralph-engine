@@ -67,8 +67,9 @@ type EngineOpts struct {
 	SingleStory       string // Run only this story ID, then stop
 	MaxGateRetries    int    // Max quality gate fix attempts (0 = unlimited)
 	// Config sections passed through from config.yaml for prompt building.
-	WorkflowType     string            // "bmad-v6", "basic", "tdd-strict"
-	WorkflowCommands map[string]string // Phase → agent command mapping
+	WorkflowType         string            // "bmad-v6", "basic", "tdd-strict"
+	WorkflowCommands     map[string]string // Phase → agent command mapping
+	WorkflowInstructions string            // Free-form workflow instructions for prompt
 	QualityGate  string                  // "full", "standard", "minimal"
 	Paths        *config.PathsConfig     // Project artifact paths
 	Prompt       *config.PromptConfig   // Custom prompt sections

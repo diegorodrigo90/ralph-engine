@@ -62,8 +62,12 @@ type WorkflowConfig struct {
 	CustomPhases []string          `mapstructure:"custom_phases"`
 	// Commands maps workflow phases to agent commands/skills.
 	// The engine injects these into the prompt so the agent knows which tools to invoke.
-	// Example: {"implement": "/dev", "code_review": "/bmad-bmm-code-review", "create_story": "/create-story"}
+	// Example: {"implement": "/dev", "code_review": "/bmad-bmm-code-review"}
 	Commands map[string]string `mapstructure:"commands"`
+	// Instructions is free-form text explaining HOW to use the commands above.
+	// Engine passes this verbatim to the agent prompt. Users can write anything.
+	// This bridges the engine (agnostic) with the user's framework (specific).
+	Instructions string `mapstructure:"instructions"`
 }
 
 // QualityConfig defines which quality gates to enforce.
@@ -456,20 +460,55 @@ func presetConfig(preset string) string {
 	switch preset {
 	case "bmad-v6":
 		return `# ralph-engine config — BMAD v6 preset
-# Full workflow with all quality gates. Customize freely.
-# ralph-engine NEVER overwrites this file.
+# Full autonomous workflow with BMAD agents and quality gates.
+# ralph-engine NEVER overwrites this file. Customize freely.
 
 agent:
   type: "claude"
   model: "opus"
   max_stories_per_session: 4
   cooldown_seconds: 15
+  allowed_tools: "Write,Read,Edit,Bash,Glob,Grep,Skill,Agent,WebSearch,WebFetch,ToolSearch"
 
 workflow:
   type: "bmad-v6"
+  # Agent commands — maps engine phases to your framework's skills/commands.
+  # The engine injects these into the prompt so the agent knows what to invoke.
+  # Customize for YOUR framework. Remove or add phases as needed.
+  commands:
+    implement: "dev"                        # Dev agent (TDD, tasks in order)
+    code_review: "bmad-bmm-code-review"     # Adversarial code review
+    validate_dor: "architect"               # Architect validates DoR
+    generate_tests: "qa-automate"           # Generate E2E tests if gaps
+    create_story: "create-story"            # SM creates story file
+    sprint_status: "bmad-bmm-sprint-status" # Sprint summary
+    correct_course: "correct-course"        # Mid-sprint change handling
+    update_architecture: "architect"        # Update ADRs when needed
+    update_prd: "pm"                        # Update PRD when needed
+    update_ux: "ux-designer"               # Update UX specs when needed
+  # Free-form instructions for HOW to use the commands above.
+  # Engine passes this verbatim into the agent prompt.
+  instructions: |
+    Use the Skill tool to invoke BMAD agents. Example: Skill(skill="dev")
+
+    Mandatory execution order for every story:
+    1. Read story file — understand ALL acceptance criteria
+    2. Invoke validate_dor (architect) — validates DoR, blocks if not ready
+    3. Research-first — search docs for libraries/patterns this story touches
+    4. Invoke implement (dev agent) — TDD per AC, tasks in order
+    5. Invoke code_review — fix ALL findings before commit
+    6. Quality gates — tests, build, type-check must pass
+    7. Commit — conventional format with story ID
+    8. Update tracker
+
+    When implementation reveals gaps in specs:
+    - Architecture gaps → invoke update_architecture
+    - Requirements gaps → invoke update_prd
+    - UX/design gaps → invoke update_ux
 
 quality:
   type: "full"
+  max_retries: 0  # 0 = unlimited — agent fixes until clean
   gates:
     cr: true
     tests: true
@@ -498,43 +537,39 @@ ssh:
   dev_exec_script: "./scripts/dev-exec.sh"
   reconnect_script: "./scripts/claude-dev.sh"
 
-# Research-first workflow — configure your RAG/MCP/search tools.
-# The engine injects these instructions into the agent prompt.
-# It does NOT call tools directly — the agent uses them autonomously.
+# Research-first — configure your RAG/MCP/search tools.
+# Engine tells the agent WHAT to use and HOW. Agent uses them autonomously.
 research:
   enabled: true
   strategy: "always"
   tools: []
-  # Example tools (uncomment and customize):
+  # Uncomment and customize for YOUR project:
   # - name: "Project RAG"
   #   type: "rag"
   #   priority: 1
   #   enabled: true
-  #   description: "Project knowledge base with indexed documentation"
-  #   when_to_use: "First choice for any library/framework used in the project"
-  #   how_to_use: "rag_search_knowledge_base(query='<2-5 keywords>', source_id='<id>')"
-  #   sources:
-  #     - name: "NestJS"
-  #       id: "src_abc123"
-  #       description: "Backend framework docs"
+  #   description: "Project knowledge base"
+  #   when_to_use: "First choice for known libraries"
+  #   how_to_use: "search_knowledge_base(query='keywords', source_id='id')"
   # - name: "Context7"
   #   type: "mcp"
   #   priority: 2
   #   enabled: true
-  #   description: "Up-to-date library documentation on demand"
-  #   when_to_use: "When docs are not in RAG, or for newer library versions"
+  #   description: "Library docs on demand"
+  #   when_to_use: "When RAG doesn't have the answer"
   #   how_to_use: "resolve-library-id then query-docs"
   # - name: "WebSearch"
   #   type: "search"
   #   priority: 3
   #   enabled: true
-  #   description: "Broad web search for edge cases, errors, GitHub issues"
-  #   when_to_use: "When RAG and MCP tools don't have the answer"
-  #   how_to_use: "WebSearch tool with focused query"
+  #   description: "Web search for edge cases"
+  #   when_to_use: "When RAG and MCP don't cover it"
+  #   how_to_use: "WebSearch with 2-5 keyword query"
 `
 	case "tdd-strict":
 		return `# ralph-engine config — TDD strict preset
-# Test-first development, stricter circuit breaker.
+# Test-first development. No framework required.
+# ralph-engine NEVER overwrites this file.
 
 agent:
   type: "claude"
@@ -543,9 +578,21 @@ agent:
 
 workflow:
   type: "tdd-strict"
+  # No commands needed — TDD is a discipline, not a framework.
+  # Add commands if you use a framework: commands: { implement: "your-tool" }
+  instructions: |
+    Strict TDD workflow for every acceptance criterion:
+    1. RED — Write a failing test for the AC. Run it. Confirm failure.
+    2. GREEN — Write MINIMAL code to make the test pass. Nothing more.
+    3. REFACTOR — Clean up while tests stay green.
+
+    NEVER write implementation before the test fails.
+    Commit after each RED-GREEN-REFACTOR cycle.
+    Run the full test suite before moving to the next AC.
 
 quality:
   type: "standard"
+  max_retries: 0
   gates:
     cr: true
     tests: true

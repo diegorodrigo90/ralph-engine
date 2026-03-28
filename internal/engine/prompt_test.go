@@ -41,38 +41,69 @@ func TestBuildPromptBMADWorkflow(t *testing.T) {
 	prompt := BuildPrompt(PromptContext{
 		WorkflowType: "bmad-v6",
 		QualityGate:  "full",
+		WorkflowCommands: map[string]string{
+			"implement":   "dev",
+			"code_review": "bmad-bmm-code-review",
+		},
+		WorkflowInstructions: "Use Skill tool to invoke BMAD agents. TDD per AC.",
 	})
 
-	if !strings.Contains(prompt, "BMAD v6") {
-		t.Error("prompt should contain BMAD v6 workflow")
+	if !strings.Contains(prompt, "bmad-v6") {
+		t.Error("prompt should contain bmad-v6 workflow type")
 	}
 	if !strings.Contains(prompt, "TDD per AC") {
-		t.Error("prompt should mention TDD per AC")
+		t.Error("prompt should contain workflow instructions")
+	}
+	if !strings.Contains(prompt, "implement") {
+		t.Error("prompt should contain implement command")
 	}
 }
 
-func TestBuildPromptTDDWorkflow(t *testing.T) {
+func TestBuildPromptWithInstructions(t *testing.T) {
 	prompt := BuildPrompt(PromptContext{
-		WorkflowType: "tdd-strict",
-		QualityGate:  "standard",
+		WorkflowType:         "tdd-strict",
+		QualityGate:          "standard",
+		WorkflowInstructions: "RED (failing test) → GREEN (minimal impl) → REFACTOR per AC",
 	})
 
-	if !strings.Contains(prompt, "TDD Strict") {
-		t.Error("prompt should contain TDD Strict workflow")
+	if !strings.Contains(prompt, "tdd-strict") {
+		t.Error("prompt should contain workflow type")
 	}
 	if !strings.Contains(prompt, "RED") {
-		t.Error("prompt should mention RED-GREEN-REFACTOR")
+		t.Error("prompt should include user workflow instructions")
 	}
 }
 
 func TestBuildPromptBasicWorkflow(t *testing.T) {
+	// No commands, no instructions — should show default steps.
 	prompt := BuildPrompt(PromptContext{
 		WorkflowType: "basic",
 		QualityGate:  "minimal",
 	})
 
-	if !strings.Contains(prompt, "Basic") {
-		t.Error("prompt should contain Basic workflow")
+	if !strings.Contains(prompt, "basic") {
+		t.Error("prompt should contain basic workflow type")
+	}
+	if !strings.Contains(prompt, "Default Steps") {
+		t.Error("prompt should show default steps when nothing configured")
+	}
+}
+
+func TestBuildPromptCommandsTable(t *testing.T) {
+	prompt := BuildPrompt(PromptContext{
+		WorkflowType: "custom",
+		WorkflowCommands: map[string]string{
+			"build":  "make build",
+			"test":   "pytest",
+			"deploy": "kubectl apply",
+		},
+	})
+
+	if !strings.Contains(prompt, "Agent Commands") {
+		t.Error("prompt should contain Agent Commands table")
+	}
+	if !strings.Contains(prompt, "pytest") {
+		t.Error("prompt should contain configured commands")
 	}
 }
 
