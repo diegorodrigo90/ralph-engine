@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -268,6 +269,77 @@ func TestBuildPromptPromptMD(t *testing.T) {
 	}
 	if !strings.Contains(prompt, "Tech stack: Go + React") {
 		t.Error("prompt should include prompt.md content")
+	}
+}
+
+func TestBuildPromptCustomSections(t *testing.T) {
+	dir := t.TempDir()
+	// Create a file to be loaded as a section.
+	os.MkdirAll(dir, 0755)
+	os.WriteFile(dir+"/rules.md", []byte("- Never skip tests\n- Always review"), 0644)
+
+	boolTrue := true
+	boolFalse := false
+
+	prompt := BuildPrompt(PromptContext{
+		ProjectDir: dir,
+		Sections: []config.PromptSection{
+			{
+				Name:    "Golden Rules",
+				File:    "rules.md",
+				Enabled: &boolTrue,
+			},
+			{
+				Name:    "Domain Rules",
+				Content: "Platform is for sporting events.",
+				Enabled: &boolTrue,
+			},
+			{
+				Name:    "Disabled Section",
+				Content: "Should not appear",
+				Enabled: &boolFalse,
+			},
+			{
+				Name: "Default Enabled",
+				Content: "Enabled by default when field is nil",
+			},
+		},
+	})
+
+	mustContain := []string{
+		"Golden Rules",
+		"Never skip tests",
+		"Domain Rules",
+		"sporting events",
+		"Default Enabled",
+		"Enabled by default",
+	}
+	for _, s := range mustContain {
+		if !strings.Contains(prompt, s) {
+			t.Errorf("prompt should contain %q", s)
+		}
+	}
+
+	// Disabled section should NOT appear.
+	if strings.Contains(prompt, "Should not appear") {
+		t.Error("disabled section should not appear in prompt")
+	}
+}
+
+func TestBuildPromptSectionFileFallsBackToContent(t *testing.T) {
+	prompt := BuildPrompt(PromptContext{
+		ProjectDir: t.TempDir(),
+		Sections: []config.PromptSection{
+			{
+				Name:    "Fallback",
+				File:    "nonexistent.md",
+				Content: "Inline fallback content",
+			},
+		},
+	})
+
+	if !strings.Contains(prompt, "Inline fallback content") {
+		t.Error("should fall back to inline content when file missing")
 	}
 }
 

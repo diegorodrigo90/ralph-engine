@@ -34,6 +34,8 @@ type Config struct {
 	Security SecurityConfig `mapstructure:"security"`
 	// Project paths for context injection
 	Paths PathsConfig `mapstructure:"paths"`
+	// Prompt sections — composable context blocks injected into agent prompt
+	Prompt PromptConfig `mapstructure:"prompt"`
 	// Research tools configuration (RAG, MCP, web search)
 	Research ResearchConfig `mapstructure:"research"`
 }
@@ -135,6 +137,38 @@ type PathsConfig struct {
 	Rules string `mapstructure:"rules"`
 	// Custom paths — arbitrary key-value pairs for project-specific artifacts
 	Custom map[string]string `mapstructure:"custom"`
+}
+
+// PromptConfig controls what gets injected into the agent's system prompt.
+// Sections are composable — add files, inline content, or both.
+// The engine reads files at session start and injects them in order.
+type PromptConfig struct {
+	// Sections is an ordered list of content blocks injected into the prompt.
+	// Each section can reference a file or contain inline content.
+	Sections []PromptSection `mapstructure:"sections"`
+}
+
+// PromptSection represents one block of content in the agent prompt.
+// Use "file" to read from disk, "content" for inline text, or both
+// (file takes precedence, content is fallback if file missing).
+type PromptSection struct {
+	// Name is the section heading in the prompt (e.g., "Golden Rules").
+	Name string `mapstructure:"name"`
+	// File path relative to project root. Read at session start.
+	File string `mapstructure:"file"`
+	// Content is inline text (used when File is empty or file not found).
+	Content string `mapstructure:"content"`
+	// Enabled controls whether this section is active (default: true if omitted).
+	Enabled *bool `mapstructure:"enabled"`
+}
+
+// IsEnabled returns true if the section should be included.
+// Default is true when the Enabled field is nil (not explicitly set).
+func (s PromptSection) IsEnabled() bool {
+	if s.Enabled == nil {
+		return true
+	}
+	return *s.Enabled
 }
 
 // ResearchConfig configures research-first workflow with RAG, MCP tools, and web search.
@@ -255,6 +289,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("paths.decisions", "")
 	v.SetDefault("paths.status", "")
 	v.SetDefault("paths.rules", "")
+
+	// Prompt — empty by default. User adds sections per project.
+	// prompt.md is always read separately (backward compat).
+	v.SetDefault("prompt.sections", []interface{}{})
 
 	// Research — disabled by default. User configures per project.
 	v.SetDefault("research.enabled", false)

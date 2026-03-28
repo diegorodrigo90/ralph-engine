@@ -65,7 +65,8 @@ type EngineOpts struct {
 	WorkflowType string                  // "bmad-v6", "basic", "tdd-strict"
 	QualityGate  string                  // "full", "standard", "minimal"
 	Paths        *config.PathsConfig     // Project artifact paths
-	Research     *config.ResearchConfig  // Research tools config
+	Prompt       *config.PromptConfig   // Custom prompt sections
+	Research     *config.ResearchConfig // Research tools config
 }
 
 // Engine is the core autonomous execution loop.

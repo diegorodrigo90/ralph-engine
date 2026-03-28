@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/diegorodrigo90/ralph-engine/internal/claude"
+	"github.com/diegorodrigo90/ralph-engine/internal/config"
 	appcontext "github.com/diegorodrigo90/ralph-engine/internal/context"
 	"github.com/diegorodrigo90/ralph-engine/internal/state"
 	"github.com/diegorodrigo90/ralph-engine/internal/tracker"
@@ -147,6 +148,12 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 			qualityGate = e.opts.QualityGate
 		}
 
+		// Collect custom prompt sections from config.
+		var sections []config.PromptSection
+		if e.opts.Prompt != nil {
+			sections = e.opts.Prompt.Sections
+		}
+
 		prompt := BuildPrompt(PromptContext{
 			StoryID:       story.ID,
 			StoryTitle:    story.Title,
@@ -159,6 +166,8 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 			QualityGate:   qualityGate,
 			StoryContent:  storyContent,
 			PromptMD:      promptMD,
+			Sections:      sections,
+			ProjectDir:    e.opts.ProjectDir,
 			Research:      e.opts.Research,
 		})
 
@@ -317,6 +326,11 @@ func (e *Engine) dryRun(tk tracker.TaskTracker, emit func(string, string), s *st
 			qualityGate = e.opts.QualityGate
 		}
 
+		var sections []config.PromptSection
+		if e.opts.Prompt != nil {
+			sections = e.opts.Prompt.Sections
+		}
+
 		prompt := BuildPrompt(PromptContext{
 			StoryID:      story.ID,
 			StoryTitle:   story.Title,
@@ -328,6 +342,8 @@ func (e *Engine) dryRun(tk tracker.TaskTracker, emit func(string, string), s *st
 			QualityGate:  qualityGate,
 			StoryContent: e.loadStoryContent(&story),
 			PromptMD:     appcontext.LoadPromptMD(e.opts.ProjectDir),
+			Sections:     sections,
+			ProjectDir:   e.opts.ProjectDir,
 			Research:     e.opts.Research,
 		})
 		// Show first 20 lines of prompt.

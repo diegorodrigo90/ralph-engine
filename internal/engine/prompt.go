@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/diegorodrigo90/ralph-engine/internal/config"
+	appcontext "github.com/diegorodrigo90/ralph-engine/internal/context"
 )
 
 // PromptContext holds the dynamic values injected into the session prompt.
@@ -29,6 +30,10 @@ type PromptContext struct {
 	StoryContent string
 	// PromptMD is the content of .ralph-engine/prompt.md.
 	PromptMD string
+	// Sections holds custom prompt sections from config (files + inline content).
+	Sections []config.PromptSection
+	// ProjectDir is needed to resolve file paths in prompt sections.
+	ProjectDir string
 	// Research holds configured research tools for prompt injection.
 	Research *config.ResearchConfig
 }
@@ -81,6 +86,24 @@ func BuildPrompt(ctx PromptContext) string {
 		b.WriteString("## Project Instructions\n\n")
 		b.WriteString(ctx.PromptMD)
 		b.WriteString("\n\n")
+	}
+
+	// Custom sections from config — files and inline content, in order.
+	if len(ctx.Sections) > 0 {
+		for _, section := range ctx.Sections {
+			if !section.IsEnabled() {
+				continue
+			}
+			content := resolveSection(section, ctx.ProjectDir)
+			if content == "" {
+				continue
+			}
+			if section.Name != "" {
+				b.WriteString(fmt.Sprintf("## %s\n\n", section.Name))
+			}
+			b.WriteString(content)
+			b.WriteString("\n\n")
+		}
 	}
 
 	// Research tools — injected only when configured and enabled.
@@ -164,6 +187,20 @@ IMPORTANT: Use BMAD skills (/dev, /bmad-bmm-code-review) when available.
 5. Commit
 `
 	}
+}
+
+// resolveSection loads content for a prompt section.
+// File takes precedence over inline content. If file is missing, falls back to content.
+func resolveSection(section config.PromptSection, projectDir string) string {
+	// Try file first.
+	if section.File != "" && projectDir != "" {
+		content := appcontext.LoadStoryFile(projectDir, section.File)
+		if content != "" {
+			return content
+		}
+	}
+	// Fallback to inline content.
+	return section.Content
 }
 
 // buildResearchInstructions generates research-first workflow instructions

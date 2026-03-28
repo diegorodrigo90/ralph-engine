@@ -100,6 +100,7 @@ func runEngine(cmd *cobra.Command, args []string) error {
 		WorkflowType:    cfg.Workflow.Type,
 		QualityGate:     cfg.Quality.Type,
 		Paths:           &cfg.Paths,
+		Prompt:          &cfg.Prompt,
 		Research:        &cfg.Research,
 	})
 	if err != nil {
