@@ -249,33 +249,53 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 
 			switch event.Type {
 			case "assistant":
-				// Agent is thinking/responding — extract first line of content.
+				// Claude stream-json wraps tool_use inside assistant message content array.
+				// Parse the full message to extract tool calls and text responses.
 				var msg struct {
-					Content string `json:"content"`
+					Content json.RawMessage `json:"content"`
 				}
-				if json.Unmarshal(event.Message, &msg) == nil && msg.Content != "" {
-					// Show first 120 chars of agent's response.
-					preview := msg.Content
-					if len(preview) > 120 {
-						preview = preview[:120] + "..."
+				if json.Unmarshal(event.Message, &msg) != nil || msg.Content == nil {
+					return
+				}
+
+				// Content can be a string or array of content blocks.
+				var contentBlocks []struct {
+					Type string `json:"type"`
+					Text string `json:"text"`
+					Name string `json:"name"` // tool name for tool_use blocks
+				}
+				if json.Unmarshal(msg.Content, &contentBlocks) == nil {
+					for _, block := range contentBlocks {
+						switch block.Type {
+						case "tool_use":
+							toolCount++
+							emit("info", fmt.Sprintf("  [%v] Tool #%d: %s", elapsed, toolCount, block.Name))
+						case "text":
+							if len(block.Text) > 10 {
+								preview := block.Text
+								if len(preview) > 120 {
+									preview = preview[:120] + "..."
+								}
+								emit("info", fmt.Sprintf("  [%v] Agent: %s", elapsed, strings.TrimSpace(preview)))
+							}
+						}
 					}
-					// Only show non-empty, meaningful content.
-					trimmed := strings.TrimSpace(preview)
-					if len(trimmed) > 10 {
-						emit("info", fmt.Sprintf("  [%v] Agent: %s", elapsed, trimmed))
-					}
 				}
-			case "tool_use":
-				toolCount++
-				// Show which tool the agent is using.
-				if event.Tool != "" {
-					emit("info", fmt.Sprintf("  [%v] Tool #%d: %s", elapsed, toolCount, event.Tool))
-				}
-			case "tool_result":
-				// Tool completed — brief acknowledgment.
+
+			case "user":
+				// Tool results come back as user messages — shows agent is working.
+
 			case "result":
-				// Session ending.
-				emit("info", fmt.Sprintf("  [%v] Session completing...", elapsed))
+				// Session ending — extract turn count.
+				var res struct {
+					NumTurns   int `json:"num_turns"`
+					DurationMs int `json:"duration_ms"`
+				}
+				if event.Result != nil {
+					emit("info", fmt.Sprintf("  [%v] Session completing...", elapsed))
+				} else if json.Unmarshal(event.Message, &res) == nil && res.NumTurns > 0 {
+					emit("info", fmt.Sprintf("  [%v] Session completing (%d turns)...", elapsed, res.NumTurns))
+				}
 			}
 		})
 		elapsed := time.Since(sessionStart).Round(time.Second)
