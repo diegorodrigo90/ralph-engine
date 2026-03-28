@@ -343,6 +343,68 @@ func TestBuildPromptSectionFileFallsBackToContent(t *testing.T) {
 	}
 }
 
+func TestVariableSubstitution(t *testing.T) {
+	prompt := BuildPrompt(PromptContext{
+		StoryID:       "65.3",
+		StoryTitle:    "Permission UI",
+		EpicID:        "65",
+		EpicTitle:     "Permissions",
+		SessionNumber: 7,
+		StoriesDone:   42,
+		StoriesTotal:  100,
+		WorkflowType:  "bmad-v6",
+		QualityGate:   "full",
+		PromptMD:      "Working on {{story_id}}: {{story_title}} (Epic {{epic_id}}). Session {{session}}, progress {{progress}}.",
+	})
+
+	mustContain := []string{
+		"Working on 65.3: Permission UI",
+		"(Epic 65)",
+		"Session 7",
+		"progress 42/100",
+	}
+	for _, s := range mustContain {
+		if !strings.Contains(prompt, s) {
+			t.Errorf("prompt should contain %q after variable substitution", s)
+		}
+	}
+
+	// Should NOT contain raw template vars.
+	mustNotContain := []string{"{{story_id}}", "{{epic_id}}", "{{session}}", "{{progress}}"}
+	for _, s := range mustNotContain {
+		if strings.Contains(prompt, s) {
+			t.Errorf("prompt should NOT contain raw template var %q", s)
+		}
+	}
+}
+
+func TestVariableSubstitutionInSections(t *testing.T) {
+	dir := t.TempDir()
+	os.WriteFile(dir+"/template.md", []byte("Story {{story_id}} — {{story_title}}"), 0644)
+
+	prompt := BuildPrompt(PromptContext{
+		StoryID:    "1.2",
+		StoryTitle: "Login",
+		ProjectDir: dir,
+		Sections: []config.PromptSection{
+			{Name: "Template", File: "template.md"},
+		},
+	})
+
+	if !strings.Contains(prompt, "Story 1.2 — Login") {
+		t.Error("variables in file sections should be substituted")
+	}
+}
+
+func TestVariableSubstitutionNoVarsIsNoop(t *testing.T) {
+	prompt := BuildPrompt(PromptContext{
+		PromptMD: "No variables here.",
+	})
+	if !strings.Contains(prompt, "No variables here.") {
+		t.Error("prompt without variables should pass through unchanged")
+	}
+}
+
 func TestBuildPromptResearchStrategies(t *testing.T) {
 	tests := []struct {
 		strategy string

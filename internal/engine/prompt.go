@@ -123,7 +123,8 @@ func BuildPrompt(ctx PromptContext) string {
 	// Autonomy rules — persistence + exit protocol.
 	b.WriteString(autonomyRules())
 
-	return b.String()
+	// Variable substitution — replace {{var}} placeholders with dynamic values.
+	return substituteVars(b.String(), ctx)
 }
 
 // qualityRules returns quality gate instructions based on the configured level.
@@ -187,6 +188,35 @@ IMPORTANT: Use BMAD skills (/dev, /bmad-bmm-code-review) when available.
 5. Commit
 `
 	}
+}
+
+// substituteVars replaces {{var}} placeholders in the prompt with dynamic values.
+// This allows prompt.md, sections, and inline content to use template variables.
+// Supported variables: story_id, story_title, epic_id, epic_title,
+// session, progress, workflow, quality, stories_done, stories_total.
+func substituteVars(prompt string, ctx PromptContext) string {
+	if !strings.Contains(prompt, "{{") {
+		return prompt // Fast path — no variables to substitute.
+	}
+
+	replacements := map[string]string{
+		"{{story_id}}":     ctx.StoryID,
+		"{{story_title}}":  ctx.StoryTitle,
+		"{{epic_id}}":      ctx.EpicID,
+		"{{epic_title}}":   ctx.EpicTitle,
+		"{{session}}":      fmt.Sprintf("%d", ctx.SessionNumber),
+		"{{progress}}":     fmt.Sprintf("%d/%d", ctx.StoriesDone, ctx.StoriesTotal),
+		"{{workflow}}":     ctx.WorkflowType,
+		"{{quality}}":      ctx.QualityGate,
+		"{{stories_done}}": fmt.Sprintf("%d", ctx.StoriesDone),
+		"{{stories_total}}": fmt.Sprintf("%d", ctx.StoriesTotal),
+	}
+
+	result := prompt
+	for key, val := range replacements {
+		result = strings.ReplaceAll(result, key, val)
+	}
+	return result
 }
 
 // resolveSection loads content for a prompt section.
