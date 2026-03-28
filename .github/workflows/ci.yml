@@ -1,0 +1,120 @@
+# CI pipeline — runs on every push and PR.
+# Validates code quality, security, tests, and cross-platform build.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          args: --timeout=5m
+
+  test:
+    name: Test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go: ["1.24"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Run tests
+        run: go test ./... -count=1 -race -coverprofile=coverage.out
+      - name: Upload coverage
+        if: matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage.out
+
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      # govulncheck — checks Go dependencies for known vulnerabilities.
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      - name: Run govulncheck
+        run: govulncheck ./...
+
+      # gosec — SAST security scanner.
+      - name: Run gosec
+        uses: securego/gosec@master
+        with:
+          args: ./...
+
+      # Trivy — container/binary vulnerability scanner.
+      - name: Run Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: CRITICAL,HIGH
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+      - name: Build all platforms
+        run: |
+          GOOS=linux   GOARCH=amd64 go build -o /dev/null ./cmd/ralph-engine/
+          GOOS=linux   GOARCH=arm64 go build -o /dev/null ./cmd/ralph-engine/
+          GOOS=darwin  GOARCH=amd64 go build -o /dev/null ./cmd/ralph-engine/
+          GOOS=darwin  GOARCH=arm64 go build -o /dev/null ./cmd/ralph-engine/
+          GOOS=windows GOARCH=amd64 go build -o /dev/null ./cmd/ralph-engine/
+
+  commitlint:
+    name: Commit Messages
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check conventional commits
+        shell: bash
+        run: |
+          # Validate commit messages follow conventional format.
+          # Uses only git log output (safe — no untrusted user input).
+          failed=0
+          while IFS= read -r msg; do
+            if ! echo "$msg" | grep -qE '^(feat|fix|docs|test|refactor|perf|ci|chore|style|build|revert)(\(.+\))?: .+'; then
+              echo "::error::Invalid commit: $msg"
+              failed=1
+            fi
+          done < <(git log --format='%s' origin/main..HEAD)
+          if [ "$failed" -eq 1 ]; then
+            echo "Expected: type(scope): description"
+            echo "Types: feat, fix, docs, test, refactor, perf, ci, chore, style, build, revert"
+            exit 1
+          fi
+          echo "All commit messages follow conventional format."

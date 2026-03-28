@@ -1,0 +1,26 @@
+# Binary
+bin/
+ralph-engine
+*.exe
+
+# Go build
+dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage.out
+coverage.html
+
+# Runtime state (session-scoped, not committed)
+state.json
+*.tmp
+logs/

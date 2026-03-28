@@ -1,0 +1,86 @@
+# ralph-engine hooks — customize every step of the loop.
+# Each hook is a shell command. Empty = skip. All are optional.
+# ralph-engine never overwrites this file after init.
+#
+# Available variables in commands:
+#   {{.StoryID}}    — Current story ID (e.g., "65.3")
+#   {{.StoryTitle}} — Current story title
+#   {{.EpicID}}     — Current epic ID
+#   {{.ProjectDir}} — Project root directory
+#   {{.StateDir}}   — State directory
+
+# ──────────────────────────────────────────────────
+# PREFLIGHT — Runs once before the loop starts.
+# ──────────────────────────────────────────────────
+preflight:
+  # Commands that must succeed before engine starts.
+  # If any returns non-zero, engine stops.
+  steps:
+    - name: "SSH connectivity"
+      run: "./scripts/dev-exec.sh echo ok"
+      required: false            # false = warn and continue, true = block
+
+    - name: "Dev server running"
+      run: "./scripts/dev-exec.sh curl -s http://localhost:3000/health"
+      required: false
+
+    - name: "Database accessible"
+      run: "./scripts/dev-exec.sh pnpm db:migrate --dry-run"
+      required: false
+
+# ──────────────────────────────────────────────────
+# PRE-STORY — Runs before each story starts.
+# ──────────────────────────────────────────────────
+pre_story:
+  steps: []
+  # Example:
+  # - name: "Reset test database"
+  #   run: "./scripts/dev-exec.sh pnpm db:reset --force"
+
+# ──────────────────────────────────────────────────
+# POST-STORY — Runs after each story completes.
+# ──────────────────────────────────────────────────
+post_story:
+  steps:
+    - name: "Sync to Archon"
+      run: "echo 'Archon sync handled by agent via MCP'"
+      required: false
+
+# ──────────────────────────────────────────────────
+# QUALITY GATES — Runs between stories.
+# Order matters. If any required gate fails, story is marked failed.
+# ──────────────────────────────────────────────────
+quality_gates:
+  steps:
+    - name: "Tests"
+      run: "./scripts/dev-exec.sh NODE_ENV=development pnpm test"
+      required: true
+
+    - name: "Type check"
+      run: "./scripts/dev-exec.sh pnpm type-check"
+      required: true
+
+    - name: "Build"
+      run: "./scripts/dev-exec.sh pnpm build"
+      required: true
+
+    - name: "Storybook tests"
+      run: "./scripts/dev-exec.sh 'cd apps/storybook && npx test-storybook --url http://127.0.0.1:6006'"
+      required: false
+
+    - name: "E2E tests"
+      run: "./scripts/dev-exec.sh pnpm test:e2e"
+      required: false
+
+    - name: "Dev logs clean"
+      run: "test ! -f .logs/dev.log || ! grep -q 'ERROR' .logs/dev.log"
+      required: false
+
+# ──────────────────────────────────────────────────
+# POST-SESSION — Runs when engine stops (any reason).
+# ──────────────────────────────────────────────────
+post_session:
+  steps: []
+  # Example:
+  # - name: "Send Slack notification"
+  #   run: "./scripts/notify-slack.sh 'Ralph Engine session complete'"

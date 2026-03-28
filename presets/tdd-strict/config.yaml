@@ -1,0 +1,43 @@
+# ralph-engine tdd-strict preset
+# Strict TDD workflow — test-first always, no shortcuts.
+# Customize freely — ralph-engine never overwrites this file.
+
+agent:
+  type: "claude-code"
+  model: ""
+  max_stories_per_session: 3     # Fewer stories, higher quality
+  cooldown_seconds: 15
+
+workflow:
+  type: "tdd-strict"
+
+quality:
+  type: "standard"
+  gates:
+    cr: true
+    tests: true
+    build: true
+    type_check: true
+    storybook: false
+    e2e: false
+    browser: false
+    dev_logs: false
+
+tracker:
+  type: "file"
+  status_file: "sprint-status.yaml"
+
+circuit_breaker:
+  max_failures: 2                 # Stricter — stop sooner
+  cooldown_minutes: 5
+
+resources:
+  min_free_ram_mb: 2048
+  max_cpu_load_percent: 80
+  min_free_disk_gb: 5
+
+ssh:
+  enabled: false
+
+security:
+  require_container: false

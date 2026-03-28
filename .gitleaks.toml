@@ -1,0 +1,11 @@
+# Gitleaks configuration — prevents secrets from being committed.
+# Install: brew install gitleaks / go install github.com/gitleaks/gitleaks/v8@latest
+# Run: gitleaks detect --source .
+title = "ralph-engine gitleaks config"
+
+[allowlist]
+  description = "Allowed patterns"
+  paths = [
+    '''go\.sum''',
+    '''\.golangci\.yml''',
+  ]

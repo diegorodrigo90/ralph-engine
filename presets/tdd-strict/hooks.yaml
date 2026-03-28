@@ -1,0 +1,28 @@
+# ralph-engine hooks — tdd-strict preset.
+# Strict quality enforcement. All gates required.
+
+preflight:
+  steps: []
+
+pre_story:
+  steps: []
+
+post_story:
+  steps: []
+
+quality_gates:
+  steps:
+    - name: "Tests"
+      run: "go test ./... -count=1 -race"  # Replace with your test command
+      required: true
+
+    - name: "Vet"
+      run: "go vet ./..."
+      required: true
+
+    - name: "Build"
+      run: "go build ./..."
+      required: true
+
+post_session:
+  steps: []

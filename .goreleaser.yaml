@@ -1,0 +1,56 @@
+# GoReleaser configuration for ralph-engine
+# Builds cross-platform binaries and publishes to GitHub Releases.
+# Run: goreleaser release --clean
+# Docs: https://goreleaser.com
+
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+    - go test ./... -count=1
+
+builds:
+  - id: ralph-engine
+    main: ./cmd/ralph-engine/
+    binary: ralph-engine
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/diegorodrigo90/ralph-engine/internal/cli.Version={{.Version}}
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: default
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  github:
+    owner: diegorodrigo90
+    name: ralph-engine
+  draft: false
+  prerelease: auto
+  name_template: "v{{ .Version }}"

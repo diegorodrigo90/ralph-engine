@@ -1,0 +1,97 @@
+# golangci-lint configuration — Go equivalent of ESLint
+# Install: go install github.com/golangci-lint/golangci-lint/cmd/golangci-lint@latest
+# Run: golangci-lint run ./...
+# Docs: https://golangci-lint.run
+
+run:
+  timeout: 5m
+  go: "1.24"
+
+linters:
+  enable:
+    # Bugs & correctness
+    - errcheck          # Unchecked errors
+    - govet             # Go vet checks
+    - staticcheck       # Staticcheck suite
+    - typecheck         # Type checking
+    - ineffassign       # Unused assignments
+    - unused            # Unused code
+
+    # Style & formatting (Prettier equivalent)
+    - gofmt             # Format enforcement
+    - goimports         # Import ordering
+    - misspell          # Spelling errors in comments/strings
+
+    # Code quality (ESLint rules equivalent)
+    - gocritic          # Opinionated style checks
+    - revive            # Fast extensible linter (replaces golint)
+    - gosimple          # Simplify code
+    - unconvert         # Unnecessary type conversions
+    - unparam           # Unused function parameters
+    - prealloc          # Preallocate slices
+    - nolintlint        # Enforce nolint comments have reason
+
+    # Security (OWASP / supply chain)
+    - gosec             # Security issues
+    - bodyclose         # HTTP body not closed
+
+    # Performance
+    - copyloopvar       # Loop variable capture
+    - durationcheck     # Duration multiplication issues
+
+    # Documentation
+    - godot             # Comments end with period
+
+  disable:
+    - depguard          # Too strict for OSS
+    - exhaustive        # Noisy for switch statements
+    - wrapcheck         # Too strict
+
+linters-settings:
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - style
+      - performance
+    disabled-checks:
+      - ifElseChain     # Sometimes clearer than switch
+      - hugeParam       # We pass structs by value intentionally
+
+  revive:
+    rules:
+      - name: exported
+        arguments:
+          - "checkPrivateReceivers"
+          - "sayRepetitiveInsteadOfStutters"
+      - name: blank-imports
+      - name: context-as-argument
+      - name: error-return
+      - name: error-strings
+      - name: increment-decrement
+      - name: var-naming
+      - name: package-comments
+
+  gosec:
+    excludes:
+      - G104  # Unhandled errors (errcheck covers this)
+      - G304  # File inclusion via variable (we need this for config)
+
+  godot:
+    scope: toplevel
+    capital: true
+
+  misspell:
+    locale: US
+
+issues:
+  exclude-rules:
+    # Test files can be more relaxed
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+        - gocritic
+        - revive
+
+  max-issues-per-linter: 0
+  max-same-issues: 0

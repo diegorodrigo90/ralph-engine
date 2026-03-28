@@ -1,0 +1,43 @@
+# ralph-engine basic preset
+# Minimal configuration — tests only, file tracker, no SSH.
+# Customize freely — ralph-engine never overwrites this file.
+
+agent:
+  type: "claude-code"
+  model: ""                      # Use agent default
+  max_stories_per_session: 5
+  cooldown_seconds: 10
+
+workflow:
+  type: "basic"
+
+quality:
+  type: "minimal"
+  gates:
+    cr: false
+    tests: true
+    build: true
+    type_check: false
+    storybook: false
+    e2e: false
+    browser: false
+    dev_logs: false
+
+tracker:
+  type: "file"
+  status_file: "sprint-status.yaml"
+
+circuit_breaker:
+  max_failures: 3
+  cooldown_minutes: 5
+
+resources:
+  min_free_ram_mb: 2048
+  max_cpu_load_percent: 80
+  min_free_disk_gb: 5
+
+ssh:
+  enabled: false
+
+security:
+  require_container: false

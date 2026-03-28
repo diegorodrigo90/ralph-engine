@@ -1,0 +1,89 @@
+# ralph-engine
+
+> Autonomous AI development loop engine written in Go.
+
+ralph-engine orchestrates AI coding agent sessions (Claude Code, ClaudeBox, Cursor, Codex) in an infinite loop with quality gates, resource monitoring, and persistent progress tracking.
+
+## Core Concepts
+
+- **Engine loop**: Reads stories from a tracker → calls AI agent → checks quality gates → saves progress → repeats.
+- **Pluggable architecture**: Agents, workflows, quality gates, and trackers are all swappable via configuration.
+- **State persistence**: Progress is saved to `state.json` after every commit. The engine resumes from the exact checkpoint.
+- **Circuit breaker**: Stops after N consecutive failures to prevent wasting tokens on stagnation.
+- **Resource monitoring**: Checks RAM, CPU, and disk between iterations to prevent freezing the host.
+- **Usage limit detection**: Detects API limits and saves progress for graceful resume. Never manages billing.
+
+## Installation
+
+```bash
+go install github.com/diegorodrigo90/ralph-engine/cmd/ralph-engine@latest
+```
+
+Or download binaries from GitHub Releases.
+
+## Usage
+
+```bash
+ralph-engine init --preset basic    # Initialize project config
+ralph-engine preflight              # Verify setup
+ralph-engine run                    # Start autonomous loop
+ralph-engine status                 # Check progress
+ralph-engine config list            # Show configuration
+ralph-engine --debug run            # JSON structured output for AI agents
+```
+
+## Configuration
+
+4-level cascade: CLI flags > ENV vars > Project config (.ralph-engine/config.yaml) > User config (~/.config/ralph-engine/config.yaml) > Defaults.
+
+Key config sections: agent (type, model, stories_per_session), workflow (basic, bmad-v6, tdd-strict), quality (gates: cr, tests, build, type_check, e2e), tracker (file, github, linear), circuit_breaker, resources, ssh.
+
+## Extension Points
+
+### TaskTracker interface
+
+```go
+type TaskTracker interface {
+    NextStory() (*Story, error)
+    MarkComplete(storyID string) error
+    MarkInProgress(storyID string) error
+    ListPending() ([]Story, error)
+    ListAll() ([]Story, error)
+}
+```
+
+Implement this interface to add new task sources (GitHub Issues, Linear, Jira, custom).
+
+### Workflow presets
+
+Add workflow instructions in `internal/engine/prompt.go` via `sessionInstructions()`.
+
+### Agent support
+
+Extend `internal/claude/client.go` with agent-specific CLI flags in `buildArgs()`.
+
+## Architecture
+
+```
+cmd/ralph-engine/     Entry point (cobra CLI)
+internal/cli/         Commands: run, preflight, status, config, init, version
+internal/config/      Viper 4-level config cascade
+internal/engine/      Core loop orchestration + session prompt builder
+internal/claude/      AI agent subprocess client (os/exec, stream-json parser)
+internal/tracker/     Pluggable task tracking (interface + file/YAML implementation)
+internal/runner/      Circuit breaker (Nygard pattern: closed → half-open → open)
+internal/state/       Persistent state.json with atomic writes
+internal/system/      Resource monitoring (RAM/CPU/disk, cross-platform build tags)
+internal/dashboard/   Bubbletea TUI (real-time progress display)
+internal/ssh/         SSH health checking + self-healing reconnection
+internal/security/    First-run security notice + acceptance persistence
+internal/deps/        Runtime dependency verification
+internal/logger/      Structured logging (human terminal + JSON for AI agents)
+```
+
+## Links
+
+- Source: https://github.com/diegorodrigo90/ralph-engine
+- Issues: https://github.com/diegorodrigo90/ralph-engine/issues
+- Releases: https://github.com/diegorodrigo90/ralph-engine/releases
+- License: MIT

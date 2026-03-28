@@ -1,0 +1,49 @@
+# ralph-engine bmad-v6 preset
+# Full BMAD v6 workflow — all quality gates, SSH, Archon sync.
+# Designed for enterprise-grade autonomous development.
+# Customize freely — ralph-engine never overwrites this file.
+
+agent:
+  type: "claude-code"            # Or "claudebox" for container isolation
+  model: "opus"
+  max_stories_per_session: 4
+  cooldown_seconds: 15
+  allowed_tools: "Write,Read,Edit,Bash,Glob,Grep,Skill,Agent,WebSearch,WebFetch,ToolSearch"
+
+workflow:
+  type: "bmad-v6"
+
+quality:
+  type: "full"
+  gates:
+    cr: true                     # /bmad-bmm-code-review before every commit
+    tests: true                  # Full test suite (unit + integration)
+    build: true                  # Full monorepo build
+    type_check: true             # TypeScript/Go type checking
+    storybook: true              # Storybook test runner (UI projects)
+    e2e: true                    # Playwright/Cypress E2E tests
+    browser: true                # Chrome MCP visual validation
+    dev_logs: true               # Zero errors in dev server logs
+
+tracker:
+  type: "file"
+  status_file: "sprint-status.yaml"   # Adjust to your project path
+
+circuit_breaker:
+  max_failures: 3
+  cooldown_minutes: 5
+
+resources:
+  min_free_ram_mb: 2048
+  max_cpu_load_percent: 80
+  min_free_disk_gb: 5
+
+ssh:
+  enabled: true
+  host: "devcontainer"
+  port: 22
+  exec_script: "./scripts/dev-exec.sh"
+  reconnect_script: "./scripts/claude-dev.sh"
+
+security:
+  require_container: true

@@ -1,0 +1,24 @@
+# ralph-engine hooks — basic preset.
+# Minimal quality gates. Customize as needed.
+
+preflight:
+  steps: []
+
+pre_story:
+  steps: []
+
+post_story:
+  steps: []
+
+quality_gates:
+  steps:
+    - name: "Tests"
+      run: "go test ./... -count=1"    # Replace with your test command
+      required: true
+
+    - name: "Build"
+      run: "go build ./..."            # Replace with your build command
+      required: true
+
+post_session:
+  steps: []
