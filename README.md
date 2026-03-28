@@ -8,6 +8,8 @@
 
 Autonomous AI development loop engine. Orchestrates CLI-based AI agent sessions (Claude Code, Codex, Aider, custom) in an infinite loop with quality gates, resource monitoring, and persistent progress tracking.
 
+**ralph-engine does NOT create stories for you.** Use your preferred tool (BMAD, Claude Tasks, GitHub Issues, Linear, pen and paper) to define what needs building. ralph-engine picks up those stories and drives an AI agent through them autonomously.
+
 ## Why ralph-engine?
 
 AI coding agents are powerful but need orchestration for large projects. ralph-engine solves:
@@ -17,6 +19,17 @@ AI coding agents are powerful but need orchestration for large projects. ralph-e
 - **Stagnation** — Circuit breaker stops after N consecutive failures instead of burning tokens.
 - **Resource safety** — Monitors RAM/CPU/disk to prevent freezing the host machine.
 - **Progress loss** — Saves state after every commit. Resume exactly where you stopped.
+
+## Agnostic by Design
+
+ralph-engine is agnostic — it works with any:
+
+- **AI agent** — Claude Code, ClaudeBox, Codex, Aider, or any CLI-based agent
+- **Workflow framework** — BMAD, TDD-strict, basic, or your own custom workflow
+- **Story format** — YAML, Markdown, custom tracker, or any task source
+- **Language/stack** — Go, Python, TypeScript, Rust, Java, Ruby, Elixir, PHP, or anything else
+
+Configuration lives in `config.yaml`. Commands and instructions are just strings — swap them for your stack.
 
 ## Features
 
@@ -28,14 +41,30 @@ AI coding agents are powerful but need orchestration for large projects. ralph-e
 - **Resource monitoring** — RAM, CPU, disk checks prevent host freezing
 - **Circuit breaker** — Stops after N consecutive failures (stagnation detection)
 - **Usage limit detection** — Detects API limits, saves progress, graceful stop
+- **Handoff save** — On usage limit, engine saves progress from memory (no AI call needed)
+- **First-turn fix** — Agent must use tools immediately on turn 1 (no "I'll implement..." exits)
+- **Enriched debug logs** — Tool names, MCP details, bash commands visible in debug output
+- **Log rotation** — Cross-platform (XDG Linux, ~/Library macOS, %APPDATA% Windows), auto-cleanup
 - **Session persistence** — Resume from exact checkpoint after interruption
+- **Stream-json output** — Real-time progress (tool calls, agent responses visible)
+- **Safety guardrails** — Destructive action prevention, prompt injection defense
 - **Cross-platform** — Linux, macOS, Windows (WSL2)
-- **Debug mode** — JSON structured output optimized for AI agent consumption
 - **Professional TUI** — Real-time dashboard with bubbletea
 
-## Quick Start
+## Getting Started
 
-### Install
+### 1. Create stories
+
+Use your preferred tool to define what needs building. ralph-engine does NOT create stories — it executes them.
+
+Examples:
+
+- Manually write `sprint-status.yaml`
+- Use BMAD `/create-story` or `/create-epics-stories`
+- Use Claude Tasks, GitHub Issues, Linear, or any tracker
+- Write a TODO.md with checkboxes
+
+### 2. Install
 
 Pick your preferred method — all are automatically updated on every release:
 
@@ -63,20 +92,38 @@ cd ralph-engine
 # Or: go build -o bin/ralph-engine ./cmd/ralph-engine/
 ```
 
-### Usage
+### 3. Configure
 
 ```bash
-# 1. Initialize project config
 ralph-engine init --preset basic
+# Edit .ralph-engine/config.yaml to match your stack
+```
 
-# 2. Verify your setup
-ralph-engine preflight
+### 4. Validate
 
-# 3. Start the autonomous loop
+```bash
+ralph-engine prepare    # Runs built-in checks + custom hooks
+```
+
+### 5. Check health (optional)
+
+```bash
+ralph-engine doctor     # Detailed diagnostics
+```
+
+### 6. Preview
+
+```bash
+ralph-engine run --dry-run   # See what would happen without executing
+```
+
+### 7. Execute
+
+```bash
 ralph-engine run
 ```
 
-The engine reads stories from `sprint-status.yaml`, calls your AI agent for each one, enforces quality gates, and saves progress between sessions.
+The engine reads stories from your tracker, calls your AI agent for each one, enforces quality gates, and saves progress between sessions.
 
 Press `Ctrl+C` to save progress and stop gracefully. Resume with `ralph-engine run`.
 
@@ -144,16 +191,17 @@ ralph-engine config list
 
 ## Commands
 
-| Command                                 | Description               |
-| --------------------------------------- | ------------------------- |
-| `ralph-engine run`                      | Start the autonomous loop |
-| `ralph-engine preflight`                | Run pre-execution checks  |
-| `ralph-engine status`                   | Show current engine state |
-| `ralph-engine config set <key> <value>` | Set user config           |
-| `ralph-engine config list`              | Show merged config        |
-| `ralph-engine init [--preset name]`     | Initialize project        |
-| `ralph-engine update`                   | Self-update to latest     |
-| `ralph-engine version`                  | Show version              |
+| Command                                 | Description                              |
+| --------------------------------------- | ---------------------------------------- |
+| `ralph-engine run`                      | Start the autonomous loop                |
+| `ralph-engine prepare`                  | Run validation hooks (built-in + custom) |
+| `ralph-engine doctor`                   | Detailed project health diagnostics      |
+| `ralph-engine status`                   | Show current engine state                |
+| `ralph-engine config set <key> <value>` | Set user config                          |
+| `ralph-engine config list`              | Show merged config                       |
+| `ralph-engine init [--preset name]`     | Initialize project                       |
+| `ralph-engine update`                   | Self-update to latest                    |
+| `ralph-engine version`                  | Show version                             |
 
 ### Debug Mode
 
@@ -195,16 +243,17 @@ epics:
 ```
 ralph-engine run
   │
-  ├─ PREFLIGHT
+  ├─ PREPARE
   │   ├─ Project directory exists
   │   ├─ Agent binary available (claude, claudebox, etc.)
   │   ├─ System resources OK (RAM, CPU, disk)
-  │   └─ State directory writable
+  │   ├─ State directory writable
+  │   └─ Custom hooks from hooks.yaml
   │
   ├─ LOOP (infinite)
   │   ├─ Pick next story from tracker
   │   ├─ Call AI agent session with context prompt
-  │   ├─ Stream output → dashboard
+  │   ├─ Stream output → dashboard (tool calls, responses visible)
   │   ├─ Check results (exit code, usage limit)
   │   ├─ Resource check between iterations
   │   ├─ Circuit breaker check
@@ -214,7 +263,7 @@ ralph-engine run
   └─ EXIT
       ├─ all_complete — all stories done
       ├─ circuit_breaker — too many consecutive failures
-      ├─ usage_limit — API limit reached (progress saved)
+      ├─ usage_limit — API limit reached (handoff saved from memory)
       ├─ user_interrupt — Ctrl+C (progress saved)
       └─ resource_critical — host resources critically low
 ```
@@ -226,6 +275,7 @@ ralph-engine run
 - **Engine NEVER manages billing** — Only detects usage limits and saves progress
 - **No secrets in engine** — API keys are managed by the agent externally
 - **CI security scanning** — gosec (SAST), govulncheck (CVEs), Trivy (filesystem)
+- **Safety guardrails** — Destructive action prevention, prompt injection defense
 
 See [SECURITY.md](.github/SECURITY.md) for vulnerability reporting.
 

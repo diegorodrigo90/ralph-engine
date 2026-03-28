@@ -14,8 +14,8 @@
 #   {{.EpicID}}     — Current epic ID
 #   {{.ProjectDir}} — Project root directory
 
-# ── PREFLIGHT — runs once before the loop starts ──
-preflight:
+# ── PREPARE — runs once before the loop starts ──
+prepare:
   steps:
     - name: "SSH connectivity"
       run: "./scripts/dev-exec.sh echo ok"

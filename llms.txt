@@ -25,7 +25,7 @@ Or download binaries from GitHub Releases.
 
 ```bash
 ralph-engine init --preset basic    # Initialize project config
-ralph-engine preflight              # Verify setup
+ralph-engine prepare                # Verify setup
 ralph-engine run                    # Start autonomous loop
 ralph-engine status                 # Check progress
 ralph-engine config list            # Show configuration
@@ -66,7 +66,7 @@ Extend `internal/claude/client.go` with agent-specific CLI flags in `buildArgs()
 
 ```
 cmd/ralph-engine/     Entry point (cobra CLI)
-internal/cli/         Commands: run, preflight, status, config, init, version
+internal/cli/         Commands: run, prepare, status, config, init, version
 internal/config/      Viper 4-level config cascade
 internal/engine/      Core loop orchestration + session prompt builder
 internal/claude/      AI agent subprocess client (os/exec, stream-json parser)

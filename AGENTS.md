@@ -36,7 +36,7 @@ GOOS=windows GOARCH=amd64 go build -o /dev/null ./cmd/ralph-engine/  # Cross-com
 ```
 cmd/ralph-engine/main.go     → Entry point
 internal/
-  cli/       → Cobra commands (run, preflight, status, config, init, version)
+  cli/       → Cobra commands (run, prepare, doctor, status, config, init, version)
   config/    → 4-level config cascade (Viper: CLI > env > project > user > defaults)
   engine/    → Core loop orchestration + prompt builder
   claude/    → AI agent subprocess client (os/exec, stream-json)

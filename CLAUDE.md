@@ -35,6 +35,21 @@ GOOS=darwin GOARCH=arm64 go build -o /dev/null ./cmd/ralph-engine/
 GOOS=windows GOARCH=amd64 go build -o /dev/null ./cmd/ralph-engine/
 ```
 
+## CLI Commands
+
+```bash
+ralph-engine init --preset basic    # Initialize project config
+ralph-engine prepare                # Run validation hooks (built-in + custom)
+ralph-engine doctor                 # Detailed project health diagnostics
+ralph-engine run                    # Start the autonomous loop
+ralph-engine run --dry-run          # Preview without executing
+ralph-engine status                 # Show current engine state
+ralph-engine config set <key> <val> # Set user config
+ralph-engine config list            # Show merged config
+ralph-engine update                 # Self-update to latest
+ralph-engine version                # Show version
+```
+
 ## Architecture
 
 ```

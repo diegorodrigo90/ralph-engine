@@ -1,7 +1,7 @@
 # ralph-engine hooks — basic preset.
 # Minimal quality gates. Customize as needed.
 
-preflight:
+prepare:
   steps: []
 
 pre_story:

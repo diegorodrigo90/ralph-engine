@@ -1,7 +1,7 @@
 # ralph-engine hooks — tdd-strict preset.
 # Strict quality enforcement. All gates required.
 
-preflight:
+prepare:
   steps: []
 
 pre_story:
