@@ -7,12 +7,23 @@ ralph-engine uses semantic versioning and automated releases. One git tag trigge
 ```
 v{MAJOR}.{MINOR}.{PATCH}
 
-v0.x.x  — Pre-release (API may change)
-v1.0.0  — First stable release
-v1.1.0  — New feature (backward compatible)
-v1.1.1  — Bug fix
-v2.0.0  — Breaking change
+v0.x.x  — Pre-release (API may change freely)
+v1.0.0  — First stable release (backward-compat contract starts)
+v1.1.0  — New feature (backward compatible, new config fields get defaults)
+v1.1.1  — Bug fix (no API changes)
+v2.0.0  — Breaking change (requires migration guide)
 ```
+
+## Backward Compatibility (post-v1.0.0)
+
+After v1.0.0, ALL releases SHALL maintain backward compatibility:
+
+- **Config**: New fields get sensible defaults. Old configs MUST work unchanged.
+- **CLI flags**: New flags OK. NEVER remove or rename existing flags.
+- **Exit codes**: Meaning of existing codes MUST NOT change.
+- **User files**: `ralph-engine update` ONLY replaces the binary — NEVER touches config.yaml, prompt.md, hooks.yaml, or state.json.
+- **Deprecation**: Deprecated features log a warning for 2 minor versions, then remove in next major.
+- **Breaking changes**: ONLY in major version bumps. Always include migration guide in release notes.
 
 ## Release Process
 

@@ -51,7 +51,23 @@ internal/dashboard/          → Bubbletea TUI
 internal/ssh/                → SSH health + self-healing
 internal/security/           → First-run security notice
 internal/deps/               → Runtime dependency checker
+internal/updater/            → Self-update from GitHub Releases
 ```
+
+## Backward Compatibility (post-v1.0.0 — GOLDEN RULE)
+
+After v1.0.0, ALL changes SHALL be backward-compatible with previous versions:
+
+- **Config fields**: New fields get defaults. NEVER remove or rename existing fields.
+- **CLI flags**: New flags OK. NEVER remove or rename existing flags.
+- **YAML formats**: New keys OK. Old configs MUST continue to work unchanged.
+- **Prompt template**: Additions OK. NEVER remove sections users may depend on.
+- **Exit codes**: NEVER change meaning of existing exit codes.
+- **Deprecation path**: Old → warn "deprecated, use X instead" for 2 minor versions → remove in next major.
+- **User files**: `ralph-engine update` NEVER touches config.yaml, prompt.md, hooks.yaml.
+- **Breaking changes**: ONLY in major version bumps (v2.0.0). Document migration guide.
+
+Pre-v1.0.0 (current): API may change freely. Use this window to get the design right.
 
 ## Code Standards
 

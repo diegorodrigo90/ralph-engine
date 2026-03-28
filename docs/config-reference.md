@@ -70,6 +70,74 @@ Every config key, its type, default value, and description.
 | `ssh.reconnect_script` | string | `""`    | Script to run if SSH drops                   |
 | `ssh.dev_exec_script`  | string | `""`    | Script to run commands in remote environment |
 
+## paths
+
+| Key                  | Type              | Default | Description                                              |
+| -------------------- | ----------------- | ------- | -------------------------------------------------------- |
+| `paths.stories`      | string            | `""`    | Story files directory or glob                            |
+| `paths.architecture` | string            | `""`    | Architecture docs directory                              |
+| `paths.prd`          | string            | `""`    | Product requirements directory                           |
+| `paths.ux`           | string            | `""`    | UX specifications directory                              |
+| `paths.decisions`    | string            | `""`    | ADRs / product decisions directory                       |
+| `paths.status`       | string            | `""`    | Sprint/project status file                               |
+| `paths.rules`        | string            | `""`    | Rules / coding standards directory                       |
+| `paths.custom`       | map[string]string | `{}`    | Arbitrary key-value pairs for project-specific artifacts |
+
+All paths are relative to the project root. The engine reads files from these locations and injects relevant content into the agent prompt. Supports both directories and individual files.
+
+## research
+
+| Key                 | Type   | Default    | Description                                            |
+| ------------------- | ------ | ---------- | ------------------------------------------------------ |
+| `research.enabled`  | bool   | `false`    | Enable research-first workflow                         |
+| `research.strategy` | string | `"always"` | When to research: `always`, `story-start`, `on-demand` |
+| `research.tools`    | array  | `[]`       | List of configured research tools                      |
+
+### research.tools[] (each tool)
+
+| Key                             | Type   | Default | Description                                         |
+| ------------------------------- | ------ | ------- | --------------------------------------------------- |
+| `tools[].name`                  | string |         | Display name (e.g., "Archon RAG", "Context7")       |
+| `tools[].type`                  | string |         | Tool type: `rag`, `mcp`, `search`, `docs`, `custom` |
+| `tools[].priority`              | int    |         | Search order (1 = first)                            |
+| `tools[].enabled`               | bool   |         | Whether this tool is active                         |
+| `tools[].description`           | string |         | What the tool provides (injected into prompt)       |
+| `tools[].when_to_use`           | string |         | When the agent should use this tool                 |
+| `tools[].how_to_use`            | string |         | Usage examples or MCP tool names                    |
+| `tools[].sources`               | array  | `[]`    | Pre-indexed knowledge sources (for RAG tools)       |
+| `tools[].sources[].name`        | string |         | Library/framework name                              |
+| `tools[].sources[].id`          | string |         | Source identifier for targeted search               |
+| `tools[].sources[].description` | string |         | What this source covers                             |
+
+The engine does NOT call research tools directly. It injects instructions into the agent prompt so the agent knows WHAT to use, WHEN, and HOW. This makes the system agnostic to any specific RAG provider, MCP server, or search tool.
+
+**Example:**
+
+```yaml
+research:
+  enabled: true
+  strategy: "always"
+  tools:
+    - name: "Project RAG"
+      type: "rag"
+      priority: 1
+      enabled: true
+      description: "Project knowledge base with indexed docs"
+      when_to_use: "First choice for known libraries"
+      how_to_use: "rag_search(query='keywords', source_id='id')"
+      sources:
+        - name: "React"
+          id: "src_react"
+          description: "UI library docs"
+    - name: "WebSearch"
+      type: "search"
+      priority: 2
+      enabled: true
+      description: "Broad web search"
+      when_to_use: "When RAG has no answer"
+      how_to_use: "Search with 2-5 keyword query"
+```
+
 ## Environment Variables
 
 Every key maps to an env var with `RALPH_` prefix and underscores:

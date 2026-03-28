@@ -34,6 +34,8 @@ type Config struct {
 	Security SecurityConfig `mapstructure:"security"`
 	// Project paths for context injection
 	Paths PathsConfig `mapstructure:"paths"`
+	// Research tools configuration (RAG, MCP, web search)
+	Research ResearchConfig `mapstructure:"research"`
 }
 
 // EngineConfig holds core engine settings.
@@ -60,8 +62,8 @@ type WorkflowConfig struct {
 
 // QualityConfig defines which quality gates to enforce.
 type QualityConfig struct {
-	Type      string     `mapstructure:"type"`
-	Gates     GatesConfig `mapstructure:"gates"`
+	Type  string      `mapstructure:"type"`
+	Gates GatesConfig `mapstructure:"gates"`
 }
 
 // GatesConfig toggles individual quality gates.
@@ -84,11 +86,11 @@ type TrackerConfig struct {
 
 // ResourceConfig sets host resource safety limits.
 type ResourceConfig struct {
-	MinFreeRAMMB       int `mapstructure:"min_free_ram_mb"`
-	MaxCPULoadPercent  int `mapstructure:"max_cpu_load_percent"`
-	MinFreeDiskGB      int `mapstructure:"min_free_disk_gb"`
-	MaxLogSizeMB       int `mapstructure:"max_log_size_mb"`
-	MaxLogFiles        int `mapstructure:"max_log_files"`
+	MinFreeRAMMB      int `mapstructure:"min_free_ram_mb"`
+	MaxCPULoadPercent int `mapstructure:"max_cpu_load_percent"`
+	MinFreeDiskGB     int `mapstructure:"min_free_disk_gb"`
+	MaxLogSizeMB      int `mapstructure:"max_log_size_mb"`
+	MaxLogFiles       int `mapstructure:"max_log_files"`
 }
 
 // CircuitBreakerConfig controls stagnation detection.
@@ -99,9 +101,9 @@ type CircuitBreakerConfig struct {
 
 // SSHConfig controls remote execution settings.
 type SSHConfig struct {
-	Enabled          bool   `mapstructure:"enabled"`
-	ReconnectScript  string `mapstructure:"reconnect_script"`
-	DevExecScript    string `mapstructure:"dev_exec_script"`
+	Enabled         bool   `mapstructure:"enabled"`
+	ReconnectScript string `mapstructure:"reconnect_script"`
+	DevExecScript   string `mapstructure:"dev_exec_script"`
 }
 
 // SecurityConfig controls security-related settings.
@@ -133,6 +135,51 @@ type PathsConfig struct {
 	Rules string `mapstructure:"rules"`
 	// Custom paths — arbitrary key-value pairs for project-specific artifacts
 	Custom map[string]string `mapstructure:"custom"`
+}
+
+// ResearchConfig configures research-first workflow with RAG, MCP tools, and web search.
+// The engine injects research instructions into the agent prompt based on configured tools.
+// Tools are agnostic — any MCP server, RAG provider, or search tool can be configured.
+type ResearchConfig struct {
+	// Enabled controls whether research instructions are injected into prompts.
+	Enabled bool `mapstructure:"enabled"`
+	// Strategy defines when to research: "always", "story-start", "on-demand"
+	Strategy string `mapstructure:"strategy"`
+	// Tools is a list of configured research tools (MCP servers, RAG, search, etc.)
+	Tools []ResearchTool `mapstructure:"tools"`
+}
+
+// ResearchTool represents a single research tool available to the agent.
+// Tools are injected into the prompt so the agent knows WHAT to use, WHEN, and HOW.
+// The engine does NOT call tools directly — it tells the agent how to use them.
+type ResearchTool struct {
+	// Name is the display name (e.g., "Archon RAG", "Context7", "WebSearch")
+	Name string `mapstructure:"name"`
+	// Type classifies the tool: "rag", "mcp", "search", "docs", "custom"
+	Type string `mapstructure:"type"`
+	// Priority defines search order (1 = first). Tools with same priority run in parallel.
+	Priority int `mapstructure:"priority"`
+	// Description explains what the tool provides (injected into prompt).
+	Description string `mapstructure:"description"`
+	// WhenToUse explains when the agent should use this tool.
+	WhenToUse string `mapstructure:"when_to_use"`
+	// HowToUse provides usage examples or MCP tool names.
+	HowToUse string `mapstructure:"how_to_use"`
+	// Sources is an optional list of pre-indexed knowledge sources (for RAG tools).
+	Sources []ResearchSource `mapstructure:"sources"`
+	// Enabled controls whether this tool is active.
+	Enabled bool `mapstructure:"enabled"`
+}
+
+// ResearchSource represents a pre-indexed knowledge source within a RAG tool.
+// For example, Archon RAG has 50+ indexed documentation sources with source IDs.
+type ResearchSource struct {
+	// Name of the library/framework (e.g., "NestJS", "Prisma", "Mantine")
+	Name string `mapstructure:"name"`
+	// ID is the source identifier used when searching (e.g., Archon source_id)
+	ID string `mapstructure:"id"`
+	// Description explains what this source covers.
+	Description string `mapstructure:"description"`
 }
 
 const (
@@ -208,6 +255,11 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("paths.decisions", "")
 	v.SetDefault("paths.status", "")
 	v.SetDefault("paths.rules", "")
+
+	// Research — disabled by default. User configures per project.
+	v.SetDefault("research.enabled", false)
+	v.SetDefault("research.strategy", "always")
+	v.SetDefault("research.tools", []interface{}{})
 }
 
 // userConfigDir returns the platform-appropriate user config directory.
@@ -268,7 +320,6 @@ func Load(projectDir string) (*Config, error) {
 	return &cfg, nil
 }
 
-// Save writes a key-value pair to the user config file.
 // Save writes a value to the user-level config (~/.config/ralph-engine/config.yaml).
 func Save(key, value string) error {
 	userDir := userConfigDir()
@@ -336,11 +387,13 @@ func InitProject(projectDir, preset string) error {
 
 	// Write .gitignore for state files (only if not exists).
 	gitignorePath := filepath.Join(configDir, ".gitignore")
-	writeIfNotExists(gitignorePath, `# Runtime state — do not commit
+	if err := writeIfNotExists(gitignorePath, `# Runtime state — do not commit
 state.json
 state.json.tmp
 *.log
-`)
+`); err != nil {
+		return fmt.Errorf("writing gitignore: %w", err)
+	}
 
 	return nil
 }
@@ -400,6 +453,40 @@ ssh:
   enabled: true
   dev_exec_script: "./scripts/dev-exec.sh"
   reconnect_script: "./scripts/claude-dev.sh"
+
+# Research-first workflow — configure your RAG/MCP/search tools.
+# The engine injects these instructions into the agent prompt.
+# It does NOT call tools directly — the agent uses them autonomously.
+research:
+  enabled: true
+  strategy: "always"
+  tools: []
+  # Example tools (uncomment and customize):
+  # - name: "Project RAG"
+  #   type: "rag"
+  #   priority: 1
+  #   enabled: true
+  #   description: "Project knowledge base with indexed documentation"
+  #   when_to_use: "First choice for any library/framework used in the project"
+  #   how_to_use: "rag_search_knowledge_base(query='<2-5 keywords>', source_id='<id>')"
+  #   sources:
+  #     - name: "NestJS"
+  #       id: "src_abc123"
+  #       description: "Backend framework docs"
+  # - name: "Context7"
+  #   type: "mcp"
+  #   priority: 2
+  #   enabled: true
+  #   description: "Up-to-date library documentation on demand"
+  #   when_to_use: "When docs are not in RAG, or for newer library versions"
+  #   how_to_use: "resolve-library-id then query-docs"
+  # - name: "WebSearch"
+  #   type: "search"
+  #   priority: 3
+  #   enabled: true
+  #   description: "Broad web search for edge cases, errors, GitHub issues"
+  #   when_to_use: "When RAG and MCP tools don't have the answer"
+  #   how_to_use: "WebSearch tool with focused query"
 `
 	case "tdd-strict":
 		return `# ralph-engine config — TDD strict preset
@@ -455,6 +542,20 @@ tracker:
 circuit_breaker:
   max_failures: 3
   cooldown_minutes: 5
+
+# Research-first workflow (disabled by default for basic preset).
+# Enable and configure when you have RAG/MCP/search tools available.
+# research:
+#   enabled: true
+#   strategy: "always"
+#   tools:
+#     - name: "WebSearch"
+#       type: "search"
+#       priority: 1
+#       enabled: true
+#       description: "Search the web for docs, examples, and solutions"
+#       when_to_use: "When implementing unfamiliar APIs or debugging errors"
+#       how_to_use: "WebSearch tool with focused 2-5 keyword query"
 `
 	}
 }

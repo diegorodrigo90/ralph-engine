@@ -15,7 +15,7 @@ import (
 // This is the BMAD v6 format used by many projects with flat sprint tracking.
 type flatStatusFile struct {
 	DevelopmentStatus map[string]string `yaml:"development_status"`
-	StoryLocation     string           `yaml:"story_location"`
+	StoryLocation     string            `yaml:"story_location"`
 }
 
 var epicKeyPattern = regexp.MustCompile(`^epic-(\d+)$`)

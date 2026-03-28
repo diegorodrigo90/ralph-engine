@@ -68,6 +68,9 @@ internal/deps/                 ← Dependencies
 
 internal/logger/               ← Logging
     └── logger.go              ← Human (colored) + JSON (AI-friendly) formats
+
+internal/updater/              ← Self-update
+    └── updater.go             ← Check + download + replace from GitHub Releases
 ```
 
 ## Data Flow

@@ -152,6 +152,7 @@ ralph-engine config list
 | `ralph-engine config set <key> <value>` | Set user config           |
 | `ralph-engine config list`              | Show merged config        |
 | `ralph-engine init [--preset name]`     | Initialize project        |
+| `ralph-engine update`                   | Self-update to latest     |
 | `ralph-engine version`                  | Show version              |
 
 ### Debug Mode
@@ -259,7 +260,8 @@ ralph-engine/
 │   ├── ssh/                     # SSH health + self-healing
 │   ├── state/                   # Persistent state.json
 │   ├── system/                  # Resource monitoring (cross-platform)
-│   └── tracker/                 # Pluggable task tracking
+│   ├── tracker/                 # Pluggable task tracking
+│   └── updater/                 # Self-update from GitHub Releases
 ├── AGENTS.md                    # AI assistant instructions (universal)
 ├── CONTRIBUTING.md              # Contribution guide
 ├── .golangci.yml                # Linter config (21 rules)

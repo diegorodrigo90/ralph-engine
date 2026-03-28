@@ -27,9 +27,9 @@ func TestStoryStatusConstants(t *testing.T) {
 
 func TestStoryIsActionable(t *testing.T) {
 	tests := []struct {
-		name   string
-		story  Story
-		want   bool
+		name  string
+		story Story
+		want  bool
 	}{
 		{
 			name:  "ready-for-dev is actionable",

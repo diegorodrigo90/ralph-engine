@@ -73,8 +73,8 @@ type DashboardState struct {
 	SSHStatus string
 
 	// Circuit breaker
-	Failures    int
-	MaxFailures int
+	Failures     int
+	MaxFailures  int
 	BreakerState string
 
 	// Cost

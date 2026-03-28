@@ -73,6 +73,22 @@ sudo mv ralph-engine /usr/local/bin/
 ralph-engine version
 ```
 
+## Updating
+
+```bash
+# Self-update (binary installs — curl, go install, manual download)
+ralph-engine update
+
+# Check for updates without installing
+ralph-engine update --check
+
+# npm
+npm update -g ralph-engine
+
+# Homebrew
+brew upgrade ralph-engine
+```
+
 ## Uninstall
 
 ```bash

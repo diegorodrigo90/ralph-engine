@@ -137,6 +137,36 @@ Show version information.
 ralph-engine version
 ```
 
+### `ralph-engine update`
+
+Update to the latest version.
+
+```bash
+ralph-engine update [flags]
+```
+
+| Flag      | Description                               | Default |
+| --------- | ----------------------------------------- | ------- |
+| `--check` | Only check for updates without installing | `false` |
+
+**Examples:**
+
+```bash
+# Check if a new version is available
+ralph-engine update --check
+
+# Update to the latest version
+ralph-engine update
+```
+
+**Notes:**
+
+- Downloads from GitHub Releases — requires internet access
+- Replaces the running binary in-place (requires write permission)
+- Development builds (`dev` version) cannot be updated — install from a release first
+- For npm installs, use `npm update -g ralph-engine` instead
+- For Homebrew installs, use `brew upgrade ralph-engine` instead
+
 ## Exit codes
 
 | Code  | Meaning                                      |

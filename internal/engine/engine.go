@@ -22,23 +22,23 @@ const DefaultCooldown = 10 * time.Second
 type EngineStatus string
 
 const (
-	StatusIdle     EngineStatus = "idle"
-	StatusRunning  EngineStatus = "running"
-	StatusPaused   EngineStatus = "paused"
-	StatusStopped  EngineStatus = "stopped"
-	StatusBlocked  EngineStatus = "blocked"
+	StatusIdle    EngineStatus = "idle"
+	StatusRunning EngineStatus = "running"
+	StatusPaused  EngineStatus = "paused"
+	StatusStopped EngineStatus = "stopped"
+	StatusBlocked EngineStatus = "blocked"
 )
 
 // ExitReason indicates why the engine stopped.
 type ExitReason string
 
 const (
-	ExitAllComplete     ExitReason = "all_complete"
-	ExitCircuitBreaker  ExitReason = "circuit_breaker"
-	ExitUsageLimit      ExitReason = "usage_limit"
-	ExitUserInterrupt   ExitReason = "user_interrupt"
+	ExitAllComplete      ExitReason = "all_complete"
+	ExitCircuitBreaker   ExitReason = "circuit_breaker"
+	ExitUsageLimit       ExitReason = "usage_limit"
+	ExitUserInterrupt    ExitReason = "user_interrupt"
 	ExitResourceCritical ExitReason = "resource_critical"
-	ExitBlocked         ExitReason = "blocked"
+	ExitBlocked          ExitReason = "blocked"
 )
 
 // PreflightResult holds the outcome of a single preflight check.

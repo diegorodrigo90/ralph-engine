@@ -51,13 +51,13 @@ func TestNewResourceMonitorRespectsCustomThresholds(t *testing.T) {
 func TestEvaluateHealthyResources(t *testing.T) {
 	rm := NewResourceMonitor(ResourceThresholds{})
 	snapshot := ResourceSnapshot{
-		FreeRAMMB:      8192,
-		TotalRAMMB:     16384,
-		CPUPercent:     30.0,
-		FreeDiskGB:     50,
-		TotalDiskGB:    100,
-		NumCPU:         8,
-		LoadAvg1Min:    1.5,
+		FreeRAMMB:   8192,
+		TotalRAMMB:  16384,
+		CPUPercent:  30.0,
+		FreeDiskGB:  50,
+		TotalDiskGB: 100,
+		NumCPU:      8,
+		LoadAvg1Min: 1.5,
 	}
 
 	status := rm.Evaluate(snapshot)
@@ -199,7 +199,7 @@ func TestEvaluateMultipleIssuesReportsAll(t *testing.T) {
 		CriticalDiskGB: 2,
 	})
 	snapshot := ResourceSnapshot{
-		FreeRAMMB:   512,  // Critical RAM
+		FreeRAMMB:   512, // Critical RAM
 		TotalRAMMB:  16384,
 		CPUPercent:  90.0, // High CPU
 		FreeDiskGB:  1,    // Critical disk

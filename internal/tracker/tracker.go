@@ -22,14 +22,14 @@ const (
 
 // Story represents a unit of work the engine can execute.
 type Story struct {
-	ID          string      `json:"id" yaml:"id"`
-	Title       string      `json:"title" yaml:"title"`
-	Status      StoryStatus `json:"status" yaml:"status"`
-	EpicID      string      `json:"epic_id" yaml:"epic_id"`
-	EpicTitle   string      `json:"epic_title" yaml:"epic_title"`
-	FilePath    string      `json:"file_path,omitempty" yaml:"file_path,omitempty"`
-	Tags        []string    `json:"tags,omitempty" yaml:"tags,omitempty"`
-	DependsOn   []string    `json:"depends_on,omitempty" yaml:"depends_on,omitempty"`
+	ID        string      `json:"id" yaml:"id"`
+	Title     string      `json:"title" yaml:"title"`
+	Status    StoryStatus `json:"status" yaml:"status"`
+	EpicID    string      `json:"epic_id" yaml:"epic_id"`
+	EpicTitle string      `json:"epic_title" yaml:"epic_title"`
+	FilePath  string      `json:"file_path,omitempty" yaml:"file_path,omitempty"`
+	Tags      []string    `json:"tags,omitempty" yaml:"tags,omitempty"`
+	DependsOn []string    `json:"depends_on,omitempty" yaml:"depends_on,omitempty"`
 }
 
 // IsActionable returns true if the story can be worked on.
