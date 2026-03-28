@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/diegorodrigo90/ralph-engine/internal/claude"
@@ -230,17 +231,10 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 
 		if sessionResult != nil && sessionResult.ExitCode == 0 {
 			// Run quality gate hooks (with path filtering).
+			// If gates fail, retry: ask agent to fix → re-run gates (max 3 attempts).
 			gatesPassed := true
 			if e.opts.Hooks != nil && len(e.opts.Hooks.QualityGates.Steps) > 0 {
-				changedFiles := hooks.GetChangedFiles(e.opts.ProjectDir)
-				if !e.runHookPhase(ctx, "quality-gates", e.opts.Hooks.QualityGates, changedFiles, emit) {
-					gatesPassed = false
-					msg := e.circuitBreaker.RecordFailure(fmt.Errorf("quality gates failed for story %s", story.ID))
-					emit("error", fmt.Sprintf("Quality gates FAILED for story %s — not marking complete", story.ID))
-					if msg != "" {
-						emit("error", msg)
-					}
-				}
+				gatesPassed = e.runGatesWithRetry(ctx, client, story, prompt, emit)
 			}
 
 			if gatesPassed {
@@ -257,6 +251,16 @@ func (e *Engine) Run(ctx context.Context, tk tracker.TaskTracker, onEvent EventH
 				// Run post-story hooks.
 				if e.opts.Hooks != nil {
 					e.runHookPhase(ctx, "post-story", e.opts.Hooks.PostStory, nil, emit)
+				}
+			} else {
+				// Gates failed after retries — revert story to ready-for-dev.
+				if err := tk.RevertToReady(story.ID); err != nil {
+					log.Printf("Warning: could not revert story status: %v", err)
+				}
+				msg := e.circuitBreaker.RecordFailure(fmt.Errorf("quality gates failed for story %s after retries", story.ID))
+				emit("error", fmt.Sprintf("Quality gates FAILED for story %s after retries — reverted to ready-for-dev", story.ID))
+				if msg != "" {
+					emit("error", msg)
 				}
 			}
 		} else {
@@ -490,6 +494,78 @@ func countTotal(tk tracker.TaskTracker) int {
 		return 0
 	}
 	return len(all)
+}
+
+// maxGateRetries is the maximum number of times the agent can attempt to fix quality gate failures.
+const maxGateRetries = 3
+
+// runGatesWithRetry runs quality gates and, on failure, asks the agent to fix issues.
+// Returns true if gates eventually pass, false if all retries exhausted.
+func (e *Engine) runGatesWithRetry(ctx context.Context, client *claude.Client, story *tracker.Story, systemPrompt string, emit func(string, string)) bool {
+	for attempt := 0; attempt <= maxGateRetries; attempt++ {
+		changedFiles := hooks.GetChangedFiles(e.opts.ProjectDir)
+		if e.runHookPhase(ctx, "quality-gates", e.opts.Hooks.QualityGates, changedFiles, emit) {
+			return true // Gates passed.
+		}
+
+		if attempt >= maxGateRetries {
+			break // No more retries.
+		}
+
+		if ctx.Err() != nil {
+			break // Context cancelled.
+		}
+
+		// Collect failure details for the agent.
+		failures := e.collectGateFailures(ctx, changedFiles)
+		emit("info", fmt.Sprintf("Quality gates failed (attempt %d/%d) — asking agent to fix...", attempt+1, maxGateRetries))
+
+		// Ask agent to fix the failures.
+		fixPrompt := fmt.Sprintf("Quality gates FAILED for story %s. Fix these issues:\n\n%s\n\nFix ALL failures, then confirm with a commit.", story.ID, failures)
+
+		_, err := client.Run(ctx, claude.SessionRequest{
+			Prompt:       fixPrompt,
+			ProjectDir:   e.opts.ProjectDir,
+			SystemPrompt: systemPrompt,
+		}, func(event claude.StreamEvent) {
+			if e.opts.DryRun {
+				return
+			}
+		})
+
+		if err != nil {
+			emit("error", fmt.Sprintf("Fix session failed: %v", err))
+			break
+		}
+	}
+
+	return false
+}
+
+// collectGateFailures runs gates in dry mode and collects failure messages.
+func (e *Engine) collectGateFailures(ctx context.Context, changedFiles []string) string {
+	var failures []string
+	hooks.RunPhase(ctx, e.opts.Hooks.QualityGates, e.opts.ProjectDir, changedFiles, func(sr hooks.StepResult) {
+		if !sr.OK && !sr.Skipped {
+			msg := fmt.Sprintf("- %s: FAILED", sr.Name)
+			if sr.Error != nil {
+				msg += fmt.Sprintf(" (%s)", sr.Error.Error())
+			}
+			if sr.Output != "" {
+				// Include last 500 chars of output for context.
+				out := sr.Output
+				if len(out) > 500 {
+					out = out[len(out)-500:]
+				}
+				msg += fmt.Sprintf("\n  Output: %s", out)
+			}
+			failures = append(failures, msg)
+		}
+	})
+	if len(failures) == 0 {
+		return "Unknown failure"
+	}
+	return strings.Join(failures, "\n")
 }
 
 // runHookPhase executes a hook phase and emits events for each step.

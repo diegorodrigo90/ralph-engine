@@ -65,6 +65,8 @@ type TaskTracker interface {
 	ListPending() ([]Story, error)
 	// ListAll returns all stories regardless of status.
 	ListAll() ([]Story, error)
+	// RevertToReady transitions a story back to ready-for-dev (e.g., after quality gate failure).
+	RevertToReady(storyID string) error
 }
 
 // SortByPriority sorts stories with in-progress first, then ready-for-dev.

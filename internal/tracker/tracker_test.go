@@ -166,6 +166,16 @@ func (m *mockTracker) MarkInProgress(storyID string) error {
 	return nil
 }
 
+func (m *mockTracker) RevertToReady(storyID string) error {
+	for i := range m.stories {
+		if m.stories[i].ID == storyID {
+			m.stories[i].Status = StatusReadyForDev
+			return nil
+		}
+	}
+	return nil
+}
+
 func (m *mockTracker) ListPending() ([]Story, error) {
 	var pending []Story
 	for _, s := range m.stories {

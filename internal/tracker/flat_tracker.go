@@ -60,6 +60,11 @@ func (ft *FlatFileTracker) MarkInProgress(storyID string) error {
 	return ft.updateStatus(storyID, StatusInProgress)
 }
 
+// RevertToReady transitions a story back to ready-for-dev.
+func (ft *FlatFileTracker) RevertToReady(storyID string) error {
+	return ft.updateStatus(storyID, StatusReadyForDev)
+}
+
 // ListPending returns all actionable stories sorted by priority.
 func (ft *FlatFileTracker) ListPending() ([]Story, error) {
 	all, err := ft.ListAll()

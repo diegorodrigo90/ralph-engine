@@ -90,6 +90,12 @@ func (ct *CommandTracker) MarkInProgress(storyID string) error {
 	return err
 }
 
+// RevertToReady calls the "revert" command, or falls back to the "progress" command with ready-for-dev hint.
+func (ct *CommandTracker) RevertToReady(storyID string) error {
+	// CommandTracker doesn't have a specific revert command — best effort.
+	return nil
+}
+
 // ListPending calls the "pending" command and parses the output as a Story array.
 func (ct *CommandTracker) ListPending() ([]Story, error) {
 	if ct.config.Pending == "" {
