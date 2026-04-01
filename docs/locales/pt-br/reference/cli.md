@@ -18,6 +18,9 @@ ralph-engine hooks show <hook-id>
 ralph-engine policies
 ralph-engine policies list
 ralph-engine policies show <policy-id>
+ralph-engine providers
+ralph-engine providers list
+ralph-engine providers show <provider-id>
 ralph-engine config
 ralph-engine config budgets
 ralph-engine config layers
@@ -50,12 +53,14 @@ A família `hooks` imprime o registro tipado de runtime hooks do runtime para qu
 
 A família `policies` imprime o registro tipado de policies do runtime para que os providers de policy permaneçam explícitos, inspecionáveis e separados de listagens genéricas de capability.
 
+A família `providers` imprime o registro tipado de providers do runtime para que contribuições de data source, context provider, forge provider e remote control permaneçam explícitas, em vez de ficarem escondidas só na saída genérica de capability.
+
 O comando `mcp show` imprime o contrato tipado de lançamento do MCP, incluindo modelo de processo, policy de lançamento, fronteiras de comando, policy de diretório de trabalho, policy de ambiente e disponibilidade.
 
-O comando `runtime show` imprime a topologia resolvida do runtime, incluindo ativação efetiva de plugin, registro de capability, registro de policy, registro de hook e enablement de MCP.
+O comando `runtime show` imprime a topologia resolvida do runtime, incluindo ativação efetiva de plugin, registro de capability, registro de provider, registro de policy, registro de hook e enablement de MCP.
 
-O comando `runtime status` imprime o resumo tipado de health do runtime, incluindo providers habilitados e desabilitados em plugins, capabilities, policies, runtime hooks e servidores MCP.
+O comando `runtime status` imprime o resumo tipado de health do runtime, incluindo providers habilitados e desabilitados em plugins, capabilities, providers tipados, policies, runtime hooks e servidores MCP.
 
-O comando `runtime issues` imprime a lista tipada de issues pendentes do runtime e as ações recomendadas, incluindo providers de policy e de runtime hook desabilitados, em vez de depender de heurísticas locais em cada comando.
+O comando `runtime issues` imprime a lista tipada de issues pendentes do runtime e as ações recomendadas, incluindo providers tipados, providers de policy e providers de runtime hook desabilitados, em vez de depender de heurísticas locais em cada comando.
 
-O comando `runtime plan` imprime o plano tipado de remediação derivado da topologia resolvida, incluindo enablement de providers de policy e de hook, para que o próximo passo de enablement permaneça explícito e modular em vez de ser inferido ad hoc na CLI.
+O comando `runtime plan` imprime o plano tipado de remediação derivado da topologia resolvida, incluindo enablement de providers tipados, de policy e de hook, para que o próximo passo de enablement permaneça explícito e modular em vez de ser inferido ad hoc na CLI.

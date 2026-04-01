@@ -137,6 +137,40 @@ fn binary_policies_show_succeeds() {
 }
 
 #[test]
+fn binary_providers_list_succeeds() {
+    // Arrange
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["providers", "list"]);
+
+    // Act
+    let output = command.output().expect("binary should run");
+
+    // Assert
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Providers (4)"));
+    assert!(stdout.contains("data_source"));
+    assert!(stdout.contains("remote_control"));
+}
+
+#[test]
+fn binary_providers_show_succeeds() {
+    // Arrange
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["providers", "show", "data_source"]);
+
+    // Act
+    let output = command.output().expect("binary should run");
+
+    // Assert
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Provider: data_source"));
+    assert!(stdout.contains("official.github"));
+    assert!(stdout.contains("registration_hook=true"));
+}
+
+#[test]
 fn binary_mcp_list_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
@@ -186,6 +220,7 @@ fn binary_runtime_show_succeeds() {
     assert!(stdout.contains("Runtime phase: ready"));
     assert!(stdout.contains("Plugins (8)"));
     assert!(stdout.contains("Capabilities (18)"));
+    assert!(stdout.contains("Providers (4)"));
     assert!(stdout.contains("Policies (1)"));
     assert!(stdout.contains("Runtime hooks (18)"));
     assert!(stdout.contains("MCP servers (4)"));
@@ -205,6 +240,7 @@ fn binary_runtime_status_succeeds() {
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
     assert!(stdout.contains("Runtime health: degraded"));
     assert!(stdout.contains("Plugins: enabled=1, disabled=7"));
+    assert!(stdout.contains("Providers: enabled=0, disabled=4"));
     assert!(stdout.contains("Policies: enabled=0, disabled=1"));
     assert!(stdout.contains("Runtime hooks: enabled=1, disabled=17"));
 }
@@ -221,7 +257,8 @@ fn binary_runtime_issues_succeeds() {
     // Assert
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    assert!(stdout.contains("Runtime issues (46)"));
+    assert!(stdout.contains("Runtime issues (50)"));
+    assert!(stdout.contains("provider_disabled"));
     assert!(stdout.contains("plugin_disabled"));
     assert!(stdout.contains("policy_disabled"));
     assert!(stdout.contains("hook_disabled"));
@@ -240,8 +277,9 @@ fn binary_runtime_plan_succeeds() {
     // Assert
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    assert!(stdout.contains("Runtime action plan (46)"));
+    assert!(stdout.contains("Runtime action plan (50)"));
     assert!(stdout.contains("enable_plugin"));
+    assert!(stdout.contains("enable_provider"));
     assert!(stdout.contains("enable_policy_provider"));
     assert!(stdout.contains("enable_hook_provider"));
     assert!(stdout.contains("enable_capability_provider"));
@@ -311,8 +349,8 @@ fn binary_doctor_succeeds() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
     assert!(stdout.contains("Runtime doctor"));
-    assert!(stdout.contains("Runtime issues (46)"));
-    assert!(stdout.contains("Runtime action plan (46)"));
+    assert!(stdout.contains("Runtime issues (50)"));
+    assert!(stdout.contains("Runtime action plan (50)"));
 }
 
 #[test]

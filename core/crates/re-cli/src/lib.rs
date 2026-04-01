@@ -210,6 +210,60 @@ mod tests {
     }
 
     #[test]
+    fn execute_providers_lists_runtime_providers() {
+        // Arrange
+        let command = args(&["ralph-engine", "providers", "list"]);
+
+        // Act
+        let output = execute(command).expect("providers list should succeed");
+
+        // Assert
+        assert!(output.contains("Providers (4)"));
+        assert!(output.contains("- data_source | providers=1 | enabled=0"));
+        assert!(output.contains("- remote_control | providers=1 | enabled=0"));
+    }
+
+    #[test]
+    fn execute_providers_show_returns_provider_detail() {
+        // Arrange
+        let command = args(&["ralph-engine", "providers", "show", "data_source"]);
+
+        // Act
+        let output = execute(command).expect("providers show should succeed");
+
+        // Assert
+        assert!(output.contains("Provider: data_source"));
+        assert!(output.contains("Providers (1)"));
+        assert!(output.contains(
+            "- official.github | activation=disabled | boundary=in_process | registration_hook=true"
+        ));
+    }
+
+    #[test]
+    fn execute_providers_show_requires_provider_id() {
+        // Arrange
+        let command = args(&["ralph-engine", "providers", "show"]);
+
+        // Act
+        let error = execute(command).expect_err("missing provider id should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "providers show requires a provider id");
+    }
+
+    #[test]
+    fn execute_providers_show_rejects_unknown_provider() {
+        // Arrange
+        let command = args(&["ralph-engine", "providers", "show", "unknown"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown provider should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown provider: unknown");
+    }
+
+    #[test]
     fn execute_plugins_lists_official_plugins() {
         // Arrange
         let command = args(&["ralph-engine", "plugins", "list"]);
@@ -428,8 +482,8 @@ mod tests {
         // Assert
         assert!(output.contains("Runtime doctor"));
         assert!(output.contains("Runtime health: degraded"));
-        assert!(output.contains("Runtime issues (46)"));
-        assert!(output.contains("Runtime action plan (46)"));
+        assert!(output.contains("Runtime issues (50)"));
+        assert!(output.contains("Runtime action plan (50)"));
     }
 
     #[test]
@@ -442,7 +496,7 @@ mod tests {
 
         // Assert
         assert!(output.contains("Runtime doctor"));
-        assert!(output.contains("Runtime issues (46)"));
+        assert!(output.contains("Runtime issues (50)"));
     }
 
     #[test]
@@ -553,6 +607,9 @@ mod tests {
         assert!(output.contains("official.github | activation=disabled | scope=built_in_defaults"));
         assert!(output.contains("Capabilities (18)"));
         assert!(output.contains("template | plugin=official.basic | activation=enabled"));
+        assert!(output.contains("Providers (4)"));
+        assert!(output.contains("data_source | plugin=official.github | activation=disabled"));
+        assert!(output.contains("remote_control | plugin=official.ssh | activation=disabled"));
         assert!(output.contains("Policies (1)"));
         assert!(
             output
@@ -576,6 +633,7 @@ mod tests {
         assert!(output.contains("Runtime health: degraded"));
         assert!(output.contains("Plugins: enabled=1, disabled=7"));
         assert!(output.contains("Capabilities: enabled=1, disabled=17"));
+        assert!(output.contains("Providers: enabled=0, disabled=4"));
         assert!(output.contains("Policies: enabled=0, disabled=1"));
         assert!(output.contains("Runtime hooks: enabled=1, disabled=17"));
         assert!(output.contains("MCP servers: enabled=0, disabled=4"));
@@ -590,9 +648,12 @@ mod tests {
         let output = execute(command).expect("runtime issues should succeed");
 
         // Assert
-        assert!(output.contains("Runtime issues (46)"));
+        assert!(output.contains("Runtime issues (50)"));
         assert!(output.contains(
             "plugin_disabled | subject=official.github | action=enable the plugin in typed project configuration"
+        ));
+        assert!(output.contains(
+            "provider_disabled | subject=data_source | action=enable the provider plugin that owns this contribution"
         ));
         assert!(output.contains(
             "policy_disabled | subject=official.tdd-strict | action=enable the provider plugin that owns this policy"
@@ -614,9 +675,12 @@ mod tests {
         let output = execute(command).expect("runtime plan should succeed");
 
         // Assert
-        assert!(output.contains("Runtime action plan (46)"));
+        assert!(output.contains("Runtime action plan (50)"));
         assert!(output.contains(
             "enable_plugin | target=official.github | reason=the plugin is registered but disabled"
+        ));
+        assert!(output.contains(
+            "enable_provider | target=official.github | reason=the provider still disables contribution data_source"
         ));
         assert!(output.contains(
             "enable_capability_provider | target=official.github | reason=the provider still disables capability forge_provider"
@@ -693,6 +757,18 @@ mod tests {
     }
 
     #[test]
+    fn execute_providers_without_subcommand_lists_runtime_providers() {
+        // Arrange
+        let command = args(&["ralph-engine", "providers"]);
+
+        // Act
+        let output = execute(command).expect("providers command should succeed");
+
+        // Assert
+        assert!(output.contains("Providers (4)"));
+    }
+
+    #[test]
     fn execute_unknown_capabilities_subcommand_fails() {
         // Arrange
         let command = args(&["ralph-engine", "capabilities", "doctor"]);
@@ -726,6 +802,18 @@ mod tests {
 
         // Assert
         assert_eq!(error.to_string(), "unknown policies command: doctor");
+    }
+
+    #[test]
+    fn execute_unknown_providers_subcommand_fails() {
+        // Arrange
+        let command = args(&["ralph-engine", "providers", "doctor"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown providers command should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown providers command: doctor");
     }
 
     #[test]
