@@ -148,6 +148,12 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             docs/package-lock.json
+      - name: Preflight SonarCloud access
+        shell: bash
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
+        run: ./scripts/verify-sonarcloud-access.sh
       - name: Install Rust toolchain
         shell: bash
         run: |
@@ -169,3 +175,4 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: https://sonarcloud.io
