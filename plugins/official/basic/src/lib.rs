@@ -1,6 +1,8 @@
 //! Official basic starter plugin metadata.
 
-use re_plugin::{PluginDescriptor, PluginLifecycleStage, PluginLoadBoundary, TEMPLATE};
+use re_plugin::{
+    PluginDescriptor, PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook, TEMPLATE,
+};
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.basic";
@@ -12,6 +14,7 @@ const LIFECYCLE: &[PluginLifecycleStage] = &[
     PluginLifecycleStage::Configure,
     PluginLifecycleStage::Load,
 ];
+const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[PluginRuntimeHook::Scaffold];
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
     PLUGIN_NAME,
@@ -19,6 +22,7 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     CAPABILITIES,
     LIFECYCLE,
     PluginLoadBoundary::InProcess,
+    RUNTIME_HOOKS,
 );
 
 /// Declared capabilities for the official plugin foundation.
@@ -33,6 +37,12 @@ pub fn lifecycle() -> &'static [PluginLifecycleStage] {
     DESCRIPTOR.lifecycle
 }
 
+/// Declared runtime hooks for the official plugin foundation.
+#[must_use]
+pub fn runtime_hooks() -> &'static [PluginRuntimeHook] {
+    DESCRIPTOR.runtime_hooks
+}
+
 /// Returns the immutable plugin descriptor.
 #[must_use]
 pub const fn descriptor() -> PluginDescriptor {
@@ -41,7 +51,7 @@ pub const fn descriptor() -> PluginDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, capabilities, descriptor, lifecycle};
+    use super::{PLUGIN_ID, capabilities, descriptor, lifecycle, runtime_hooks};
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -89,5 +99,17 @@ mod tests {
 
         // Assert
         assert!(has_lifecycle);
+    }
+
+    #[test]
+    fn plugin_declares_runtime_hooks() {
+        // Arrange
+        let declared_hooks = runtime_hooks();
+
+        // Act
+        let has_hooks = !declared_hooks.is_empty();
+
+        // Assert
+        assert!(has_hooks);
     }
 }

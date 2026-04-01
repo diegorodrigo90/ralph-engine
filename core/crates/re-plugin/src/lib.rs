@@ -110,6 +110,59 @@ impl fmt::Display for PluginLoadBoundary {
     }
 }
 
+/// Typed runtime hook identifier for plugin contributions.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PluginRuntimeHook {
+    /// The plugin contributes project scaffolding behavior.
+    Scaffold,
+    /// The plugin contributes prepare-time checks.
+    Prepare,
+    /// The plugin contributes doctor-time checks.
+    Doctor,
+    /// The plugin contributes prompt assembly behavior.
+    PromptAssembly,
+    /// The plugin contributes agent runtime bootstrap behavior.
+    AgentBootstrap,
+    /// The plugin contributes MCP server registration.
+    McpRegistration,
+    /// The plugin contributes data-source registration.
+    DataSourceRegistration,
+    /// The plugin contributes context-provider registration.
+    ContextProviderRegistration,
+    /// The plugin contributes forge-provider registration.
+    ForgeProviderRegistration,
+    /// The plugin contributes remote-control bootstrap behavior.
+    RemoteControlBootstrap,
+    /// The plugin contributes policy enforcement behavior.
+    PolicyEnforcement,
+}
+
+impl PluginRuntimeHook {
+    /// Returns the stable runtime-hook identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Scaffold => "scaffold",
+            Self::Prepare => "prepare",
+            Self::Doctor => "doctor",
+            Self::PromptAssembly => "prompt_assembly",
+            Self::AgentBootstrap => "agent_bootstrap",
+            Self::McpRegistration => "mcp_registration",
+            Self::DataSourceRegistration => "data_source_registration",
+            Self::ContextProviderRegistration => "context_provider_registration",
+            Self::ForgeProviderRegistration => "forge_provider_registration",
+            Self::RemoteControlBootstrap => "remote_control_bootstrap",
+            Self::PolicyEnforcement => "policy_enforcement",
+        }
+    }
+}
+
+impl fmt::Display for PluginRuntimeHook {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// Immutable metadata for a Ralph Engine plugin.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PluginDescriptor {
@@ -125,6 +178,8 @@ pub struct PluginDescriptor {
     pub lifecycle: &'static [PluginLifecycleStage],
     /// Declared runtime loading boundary for the plugin.
     pub load_boundary: PluginLoadBoundary,
+    /// Declared runtime hooks contributed by the plugin.
+    pub runtime_hooks: &'static [PluginRuntimeHook],
 }
 
 impl PluginDescriptor {
@@ -137,6 +192,7 @@ impl PluginDescriptor {
         capabilities: &'static [PluginCapability],
         lifecycle: &'static [PluginLifecycleStage],
         load_boundary: PluginLoadBoundary,
+        runtime_hooks: &'static [PluginRuntimeHook],
     ) -> Self {
         Self {
             id,
@@ -145,6 +201,7 @@ impl PluginDescriptor {
             capabilities,
             lifecycle,
             load_boundary,
+            runtime_hooks,
         }
     }
 
@@ -164,6 +221,12 @@ impl PluginDescriptor {
     #[must_use]
     pub fn has_lifecycle(&self) -> bool {
         !self.lifecycle.is_empty()
+    }
+
+    /// Returns whether the plugin declares at least one runtime hook.
+    #[must_use]
+    pub fn has_runtime_hooks(&self) -> bool {
+        !self.runtime_hooks.is_empty()
     }
 }
 
@@ -205,9 +268,21 @@ pub fn render_plugin_detail(plugin: &PluginDescriptor) -> String {
         .map(ToString::to_string)
         .collect::<Vec<_>>()
         .join(" -> ");
+    let runtime_hooks = plugin
+        .runtime_hooks
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ");
 
     format!(
-        "Plugin: {}\nName: {}\nVersion: v{}\nCapabilities: {}\nLifecycle: {}\nLoad boundary: {}",
-        plugin.id, plugin.name, plugin.version, capabilities, lifecycle, plugin.load_boundary
+        "Plugin: {}\nName: {}\nVersion: v{}\nCapabilities: {}\nLifecycle: {}\nLoad boundary: {}\nRuntime hooks: {}",
+        plugin.id,
+        plugin.name,
+        plugin.version,
+        capabilities,
+        lifecycle,
+        plugin.load_boundary,
+        runtime_hooks
     )
 }

@@ -76,6 +76,9 @@ mod tests {
         assert!(output.contains("Name: GitHub"));
         assert!(output.contains("Lifecycle: discover -> configure -> load"));
         assert!(output.contains("Load boundary: in_process"));
+        assert!(output.contains(
+            "Runtime hooks: mcp_registration, data_source_registration, context_provider_registration, forge_provider_registration"
+        ));
         assert!(output.contains("Default activation: disabled"));
     }
 

@@ -1,6 +1,8 @@
 //! Official SSH remote-control plugin metadata.
 
-use re_plugin::{PluginDescriptor, PluginLifecycleStage, PluginLoadBoundary, REMOTE_CONTROL};
+use re_plugin::{
+    PluginDescriptor, PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook, REMOTE_CONTROL,
+};
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.ssh";
@@ -9,6 +11,7 @@ const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[REMOTE_CONTROL];
 const LIFECYCLE: &[PluginLifecycleStage] =
     &[PluginLifecycleStage::Discover, PluginLifecycleStage::Load];
+const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[PluginRuntimeHook::RemoteControlBootstrap];
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
     PLUGIN_NAME,
@@ -16,6 +19,7 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     CAPABILITIES,
     LIFECYCLE,
     PluginLoadBoundary::InProcess,
+    RUNTIME_HOOKS,
 );
 
 /// Declared capabilities for the official plugin foundation.
@@ -30,6 +34,12 @@ pub fn lifecycle() -> &'static [PluginLifecycleStage] {
     DESCRIPTOR.lifecycle
 }
 
+/// Declared runtime hooks for the official plugin foundation.
+#[must_use]
+pub fn runtime_hooks() -> &'static [PluginRuntimeHook] {
+    DESCRIPTOR.runtime_hooks
+}
+
 /// Returns the immutable plugin descriptor.
 #[must_use]
 pub const fn descriptor() -> PluginDescriptor {
@@ -38,7 +48,7 @@ pub const fn descriptor() -> PluginDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, capabilities, descriptor, lifecycle};
+    use super::{PLUGIN_ID, capabilities, descriptor, lifecycle, runtime_hooks};
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -86,5 +96,17 @@ mod tests {
 
         // Assert
         assert!(has_lifecycle);
+    }
+
+    #[test]
+    fn plugin_declares_runtime_hooks() {
+        // Arrange
+        let declared_hooks = runtime_hooks();
+
+        // Act
+        let has_hooks = !declared_hooks.is_empty();
+
+        // Assert
+        assert!(has_hooks);
     }
 }
