@@ -88,6 +88,22 @@ fn binary_capabilities_list_succeeds() {
 }
 
 #[test]
+fn binary_hooks_list_succeeds() {
+    // Arrange
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["hooks", "list"]);
+
+    // Act
+    let output = command.output().expect("binary should run");
+
+    // Assert
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Runtime hooks (11)"));
+    assert!(stdout.contains("mcp_registration"));
+}
+
+#[test]
 fn binary_mcp_list_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
@@ -137,6 +153,7 @@ fn binary_runtime_show_succeeds() {
     assert!(stdout.contains("Runtime phase: ready"));
     assert!(stdout.contains("Plugins (8)"));
     assert!(stdout.contains("Capabilities (18)"));
+    assert!(stdout.contains("Runtime hooks (18)"));
     assert!(stdout.contains("MCP servers (4)"));
 }
 

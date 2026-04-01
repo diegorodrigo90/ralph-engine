@@ -2,7 +2,7 @@
 
 use re_config::{ConfigScope, PluginActivation};
 use re_mcp::McpServerDescriptor;
-use re_plugin::{PluginCapability, PluginDescriptor, PluginLoadBoundary};
+use re_plugin::{PluginCapability, PluginDescriptor, PluginLoadBoundary, PluginRuntimeHook};
 
 /// Public product name.
 pub const PRODUCT_NAME: &str = "Ralph Engine";
@@ -195,6 +195,43 @@ impl RuntimeCapabilityRegistration {
     }
 }
 
+/// One typed runtime-hook registration in the resolved runtime topology.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimeHookRegistration {
+    /// Stable hook identifier.
+    pub hook: PluginRuntimeHook,
+    /// Plugin providing the hook.
+    pub plugin_id: &'static str,
+    /// Effective activation state for the provider plugin.
+    pub activation: PluginActivation,
+    /// Declared load boundary for the provider plugin.
+    pub load_boundary: PluginLoadBoundary,
+}
+
+impl RuntimeHookRegistration {
+    /// Creates a new immutable runtime-hook registration.
+    #[must_use]
+    pub const fn new(
+        hook: PluginRuntimeHook,
+        plugin_id: &'static str,
+        activation: PluginActivation,
+        load_boundary: PluginLoadBoundary,
+    ) -> Self {
+        Self {
+            hook,
+            plugin_id,
+            activation,
+            load_boundary,
+        }
+    }
+
+    /// Returns whether the runtime-hook provider is enabled in the resolved topology.
+    #[must_use]
+    pub const fn is_enabled(self) -> bool {
+        matches!(self.activation, PluginActivation::Enabled)
+    }
+}
+
 /// Immutable snapshot of the resolved runtime topology.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RuntimeTopology<'a> {
@@ -206,6 +243,8 @@ pub struct RuntimeTopology<'a> {
     pub plugins: &'a [RuntimePluginRegistration],
     /// Resolved capability registrations.
     pub capabilities: &'a [RuntimeCapabilityRegistration],
+    /// Resolved runtime-hook registrations.
+    pub hooks: &'a [RuntimeHookRegistration],
     /// Resolved MCP registrations.
     pub mcp_servers: &'a [RuntimeMcpRegistration],
 }
@@ -309,6 +348,18 @@ pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
             capability.plugin_id,
             capability.activation.as_str(),
             capability.load_boundary.as_str()
+        ));
+    }
+
+    lines.push(format!("Runtime hooks ({})", topology.hooks.len()));
+
+    for hook in topology.hooks {
+        lines.push(format!(
+            "- {} | plugin={} | activation={} | boundary={}",
+            hook.hook.as_str(),
+            hook.plugin_id,
+            hook.activation.as_str(),
+            hook.load_boundary.as_str()
         ));
     }
 
@@ -520,11 +571,11 @@ mod tests {
 
     use super::{
         PRODUCT_NAME, PRODUCT_TAGLINE, RuntimeAction, RuntimeActionKind,
-        RuntimeCapabilityRegistration, RuntimeHealth, RuntimeIssue, RuntimeIssueKind,
-        RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration, RuntimeTopology, banner,
-        build_runtime_action_plan, collect_runtime_issues, evaluate_runtime_status,
-        render_runtime_action_plan, render_runtime_issues, render_runtime_status,
-        render_runtime_topology,
+        RuntimeCapabilityRegistration, RuntimeHealth, RuntimeHookRegistration, RuntimeIssue,
+        RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
+        RuntimeTopology, banner, build_runtime_action_plan, collect_runtime_issues,
+        evaluate_runtime_status, render_runtime_action_plan, render_runtime_issues,
+        render_runtime_status, render_runtime_topology,
     };
 
     const CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -557,6 +608,15 @@ mod tests {
     fn capability_registration() -> RuntimeCapabilityRegistration {
         RuntimeCapabilityRegistration::new(
             PluginCapability::new("template"),
+            "official.basic",
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
+        )
+    }
+
+    fn hook_registration() -> RuntimeHookRegistration {
+        RuntimeHookRegistration::new(
+            PluginRuntimeHook::Scaffold,
             "official.basic",
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
@@ -705,6 +765,18 @@ mod tests {
     }
 
     #[test]
+    fn runtime_hook_registration_tracks_enabled_state() {
+        // Arrange
+        let registration = hook_registration();
+
+        // Act
+        let enabled = registration.is_enabled();
+
+        // Assert
+        assert!(enabled);
+    }
+
+    #[test]
     fn render_runtime_topology_is_human_readable() {
         // Arrange
         let plugins = [RuntimePluginRegistration::new(
@@ -713,12 +785,14 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let hooks = [hook_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
         let topology = RuntimeTopology {
             phase: RuntimePhase::Ready,
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
 
@@ -736,6 +810,10 @@ mod tests {
         assert!(rendered.contains(
             "- template | plugin=official.basic | activation=enabled | boundary=in_process"
         ));
+        assert!(rendered.contains("Runtime hooks (1)"));
+        assert!(rendered.contains(
+            "- scaffold | plugin=official.basic | activation=enabled | boundary=in_process"
+        ));
         assert!(rendered.contains("MCP servers (1)"));
         assert!(rendered.contains("- official.codex.session | enabled=true | process=plugin_managed | availability=on_demand"));
     }
@@ -749,12 +827,14 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let hooks = [hook_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
         let topology = RuntimeTopology {
             phase: RuntimePhase::Ready,
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
 
@@ -785,12 +865,19 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let hooks = [RuntimeHookRegistration::new(
+            PluginRuntimeHook::Scaffold,
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+        )];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), false)];
         let topology = RuntimeTopology {
             phase: RuntimePhase::Bootstrapped,
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
 
@@ -821,12 +908,14 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let hooks = [hook_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), false)];
         let topology = RuntimeTopology {
             phase: RuntimePhase::Ready,
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
 
@@ -863,12 +952,19 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let hooks = [RuntimeHookRegistration::new(
+            PluginRuntimeHook::Scaffold,
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+        )];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), false)];
         let topology = RuntimeTopology {
             phase: RuntimePhase::Bootstrapped,
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
 
@@ -907,12 +1003,14 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let hooks = [hook_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
         let topology = RuntimeTopology {
             phase: RuntimePhase::Ready,
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
 
@@ -968,12 +1066,19 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let hooks = [RuntimeHookRegistration::new(
+            PluginRuntimeHook::Scaffold,
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+        )];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), false)];
         let topology = RuntimeTopology {
             phase: RuntimePhase::Bootstrapped,
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
 
@@ -1012,12 +1117,14 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let hooks = [hook_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
         let topology = RuntimeTopology {
             phase: RuntimePhase::Ready,
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
 
@@ -1067,6 +1174,7 @@ mod tests {
             locale: "en",
             plugins: &[],
             capabilities: &[],
+            hooks: &[],
             mcp_servers: &[],
         };
 
@@ -1077,6 +1185,7 @@ mod tests {
         assert!(rendered.contains("Runtime phase: bootstrapped"));
         assert!(rendered.contains("Plugins (0)"));
         assert!(rendered.contains("Capabilities (0)"));
+        assert!(rendered.contains("Runtime hooks (0)"));
         assert!(rendered.contains("MCP servers (0)"));
     }
 }

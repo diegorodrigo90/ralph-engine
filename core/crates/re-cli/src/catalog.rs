@@ -5,8 +5,8 @@ use re_config::{
     resolve_plugin_config,
 };
 use re_core::{
-    RuntimeCapabilityRegistration, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
-    RuntimeTopology,
+    RuntimeCapabilityRegistration, RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase,
+    RuntimePluginRegistration, RuntimeTopology,
 };
 use re_mcp::McpServerDescriptor;
 use re_plugin::PluginDescriptor;
@@ -121,11 +121,35 @@ pub fn official_runtime_capabilities() -> Vec<RuntimeCapabilityRegistration> {
         .collect()
 }
 
+/// Returns the resolved runtime-hook registrations for the official catalog.
+#[must_use]
+pub fn official_runtime_hooks() -> Vec<RuntimeHookRegistration> {
+    official_runtime_plugins()
+        .into_iter()
+        .flat_map(|plugin| {
+            plugin
+                .descriptor
+                .runtime_hooks
+                .iter()
+                .copied()
+                .map(move |hook| {
+                    RuntimeHookRegistration::new(
+                        hook,
+                        plugin.descriptor.id,
+                        plugin.activation,
+                        plugin.descriptor.load_boundary,
+                    )
+                })
+        })
+        .collect()
+}
+
 /// Returns the resolved runtime topology for the official catalog.
 #[must_use]
 pub fn official_runtime_topology<'a>(
     plugins: &'a [RuntimePluginRegistration],
     capabilities: &'a [RuntimeCapabilityRegistration],
+    hooks: &'a [RuntimeHookRegistration],
     mcp_servers: &'a [RuntimeMcpRegistration],
 ) -> RuntimeTopology<'a> {
     RuntimeTopology {
@@ -133,6 +157,7 @@ pub fn official_runtime_topology<'a>(
         locale: default_project_config_layer().config.default_locale,
         plugins,
         capabilities,
+        hooks,
         mcp_servers,
     }
 }

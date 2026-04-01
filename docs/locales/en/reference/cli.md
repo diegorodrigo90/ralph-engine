@@ -10,6 +10,9 @@ ralph-engine --version
 ralph-engine capabilities
 ralph-engine capabilities list
 ralph-engine capabilities show <capability-id>
+ralph-engine hooks
+ralph-engine hooks list
+ralph-engine hooks show <hook-id>
 ralph-engine config
 ralph-engine config show-defaults
 ralph-engine config show-plugin <plugin-id>
@@ -30,9 +33,11 @@ The `plugins show` command prints the immutable plugin contract, including lifec
 
 The `capabilities` command family prints the typed runtime capability registry so capability providers remain explicit and modular.
 
+The `hooks` command family prints the typed runtime-hook registry so hook providers remain explicit and modular.
+
 The `mcp show` command prints the typed MCP launch contract, including process model, launch policy, command boundaries, working-directory policy, environment policy, and availability.
 
-The `runtime show` command prints the resolved runtime topology, including effective plugin activation, capability registration, and MCP enablement.
+The `runtime show` command prints the resolved runtime topology, including effective plugin activation, capability registration, runtime-hook registration, and MCP enablement.
 
 The `runtime status` command prints the typed runtime health summary, including enabled and disabled providers across plugins, capabilities, and MCP servers.
 
