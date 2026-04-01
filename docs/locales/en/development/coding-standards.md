@@ -6,7 +6,7 @@ Ralph Engine uses a strict Rust-first quality baseline.
 
 - Public Rust APIs use `rustdoc` comments with `///` or `//!`.
 - Public undocumented items fail the repository lint contract.
-- `cargo fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, and docs build are mandatory.
+- `cargo fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, docs build, and public-surface assembly are mandatory.
 - `unsafe` is forbidden by default.
 - `unwrap`, `expect`, `panic!`, `todo!`, and `unimplemented!` are forbidden in production code.
 

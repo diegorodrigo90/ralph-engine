@@ -133,7 +133,7 @@ export default defineConfig({
       description: "Runtime open source, orientado a plugins, para fluxos de desenvolvimento com agentes",
       themeConfig: {
         nav: [
-          { text: "Início", link: "https://ralphengine.com/" },
+          { text: "Início", link: "https://ralphengine.com/pt-br/" },
           { text: "Docs", link: "/pt-br/" },
           { text: "Plugins", link: "https://ralphengine.com/pt-br/plugins/" },
           { text: "Roadmap", link: "/pt-br/development/roadmap" },

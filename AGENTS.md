@@ -39,7 +39,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 17. The repository SHALL optimize for low token cost and high signal: prompt/context control, MCP governance, and plugin contracts are core responsibilities.
 18. Pre-1.0 cleanup MAY break compatibility when it improves the final architecture. Compatibility debt SHALL not block necessary refactors.
 19. Selective validation MAY skip checks only when the changed files fit an explicit, reviewed safe scope. If the change set crosses domains, touches tooling, or falls outside a known-safe scope, validation SHALL fall back to the full contract.
-20. CI, hooks, and local validation SHALL use the same selective-validation rules. The optimization SHALL be conservative: skip only for clearly docs-only or clearly Rust-only change sets; uncertainty SHALL resolve to full validation.
+20. CI, hooks, and local validation SHALL use the same selective-validation rules. The optimization SHALL be conservative: skip only for clearly public-surface-only or clearly Rust-only change sets; uncertainty SHALL resolve to full validation.
 21. Local GitHub Actions simulation MAY be used to catch workflow failures before push, but it SHALL complement `scripts/validate.sh`, not replace it.
 
 ## Structure
@@ -66,6 +66,11 @@ cargo doc --workspace --no-deps
 cargo deny check
 cargo audit
 ```
+
+For public-surface-only change sets, the `public` validation step SHALL cover both:
+
+- `npm --prefix docs run build`
+- `./scripts/assemble-public-surfaces.sh .site-dist`
 
 ## Release and Git Flow
 

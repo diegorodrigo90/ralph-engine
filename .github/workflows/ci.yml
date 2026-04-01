@@ -35,13 +35,13 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            checks: fmt,clippy,test,coverage,rustdoc,deny,audit,gitleaks,trivy,docs
+            checks: fmt,clippy,test,coverage,rustdoc,deny,audit,gitleaks,trivy,public
             install_dev_tools: true
           - os: macos-latest
-            checks: fmt,clippy,test,rustdoc,docs
+            checks: fmt,clippy,test,rustdoc,public
             install_dev_tools: false
           - os: windows-latest
-            checks: fmt,clippy,test,rustdoc,docs
+            checks: fmt,clippy,test,rustdoc,public
             install_dev_tools: false
     steps:
       - name: Harden Runner

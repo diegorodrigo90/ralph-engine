@@ -18,7 +18,7 @@
           </div>
 
           <aside class="hero-panel" aria-label="Current machine endpoint">
-            <p class="catalog-kicker">Machine endpoint</p>
+            <p class="plugins-kicker">Machine endpoint</p>
             <h2 class="panel-heading"><code>/plugins/index.json</code></h2>
             <p>
               Empty by design in this phase. The point is to keep the public contract stable while the Rust-first runtime and plugin trust model continue to harden.
@@ -43,7 +43,7 @@
               A good plugin surface should help a technical reader answer practical questions fast: who owns this, how mature is it, what capability does it expose, and how do I verify it without guesswork.
             </p>
           </div>
-          <div class="catalog-layout">
+          <div class="plugins-layout">
             <article class="editorial-panel">
               <h3>Discovery should stay useful before it becomes crowded.</h3>
               <p>
@@ -53,9 +53,9 @@
                 Until then, the docs remain the deeper source of truth and the plugin surface stays focused on comparison, trust, and public contract clarity.
               </p>
             </article>
-            <aside class="catalog-callout">
+            <aside class="plugins-callout">
               <div>
-                <p class="catalog-kicker">Current state</p>
+                <p class="plugins-kicker">Current state</p>
                 <h3>Official plugins first, broader ecosystem later.</h3>
                 <p>
                   The surface starts narrow on purpose so every future entry can carry clearer publisher, compatibility, and security signals.
@@ -71,51 +71,51 @@
           </div>
         </section>
 
-        <section class="section" aria-labelledby="catalog-pillars-title">
+        <section class="section" aria-labelledby="plugins-pillars-title">
           <div class="section-header">
             <div>
               <p class="eyebrow">Plugin surface pillars</p>
-              <h2 id="catalog-pillars-title">The surface is designed for trust, comparison, and durable automation.</h2>
+              <h2 id="plugins-pillars-title">The surface is designed for trust, comparison, and durable automation.</h2>
             </div>
             <p>
               A good plugins surface should help people understand what a plugin does, who published it, what it depends on, and whether it is safe to adopt.
             </p>
           </div>
-          <div class="catalog-grid">
-            <article class="catalog-card">
-              <p class="catalog-kicker">Official plugins</p>
+          <div class="plugins-grid">
+            <article class="plugins-card">
+              <p class="plugins-kicker">Official plugins</p>
               <h3>Rust-first reference implementations stay visible.</h3>
               <p>
                 Official plugins establish the quality baseline for capabilities, packaging, trust notes, and public documentation.
               </p>
-              <ul class="catalog-list">
+              <ul class="plugins-list">
                 <li>Agent runtimes</li>
                 <li>Workflow templates</li>
                 <li>Remote control and MCP adapters</li>
               </ul>
             </article>
-            <article class="catalog-card">
-              <p class="catalog-kicker">Trust model</p>
+            <article class="plugins-card">
+              <p class="plugins-kicker">Trust model</p>
               <h3>Publisher identity and risk framing will be explicit.</h3>
               <p>
                 Trust signals should clarify source, review status, and compatibility without hiding behind marketplace gloss.
               </p>
-              <ul class="catalog-list">
+              <ul class="plugins-list">
                 <li>Official</li>
                 <li>Verified publisher</li>
                 <li>Community</li>
               </ul>
             </article>
-            <article class="catalog-card">
-              <p class="catalog-kicker">Stable metadata</p>
+            <article class="plugins-card">
+              <p class="plugins-kicker">Stable metadata</p>
               <h3>Machine-readable paths are part of the product contract.</h3>
               <p>
                 Scripts and agents can start from stable endpoints before the visual marketplace grows denser.
               </p>
               <a class="surface-link" href="/plugins/index.json">Open index.json</a>
             </article>
-            <article class="catalog-card">
-              <p class="catalog-kicker">Docs-led discovery</p>
+            <article class="plugins-card">
+              <p class="plugins-kicker">Docs-led discovery</p>
               <h3>The plugin guide remains the primary source of truth today.</h3>
               <p>
                 The plugins surface should complement the docs, not compete with them, until the runtime and trust contracts are fully rebuilt.

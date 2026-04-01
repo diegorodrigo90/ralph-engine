@@ -41,6 +41,7 @@ The repository contract is enforced through:
 - `cargo deny check`
 - `cargo audit`
 - `npm --prefix docs run build`
+- `./scripts/assemble-public-surfaces.sh .site-dist`
 - `./scripts/validate.sh --mode local`
 - `./scripts/validate-ci-local.sh`
 
