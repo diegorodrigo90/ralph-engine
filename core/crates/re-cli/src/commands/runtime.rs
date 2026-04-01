@@ -1,7 +1,8 @@
 //! Runtime command handlers.
 
 use re_core::{
-    collect_runtime_issues, evaluate_runtime_status, render_runtime_issues, render_runtime_status,
+    build_runtime_action_plan, collect_runtime_issues, evaluate_runtime_status,
+    render_runtime_action_plan, render_runtime_issues, render_runtime_status,
     render_runtime_topology,
 };
 
@@ -12,6 +13,7 @@ pub fn execute(args: &[String]) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
         None | Some("show") => Ok(show_runtime()),
         Some("issues") => Ok(show_runtime_issues()),
+        Some("plan") => Ok(show_runtime_action_plan()),
         Some("status") => Ok(show_runtime_status()),
         Some(other) => Err(CliError::new(format!("unknown runtime command: {other}"))),
     }
@@ -44,4 +46,14 @@ fn show_runtime_issues() -> String {
     let issues = collect_runtime_issues(&topology);
 
     render_runtime_issues(&issues)
+}
+
+fn show_runtime_action_plan() -> String {
+    let plugins = catalog::official_runtime_plugins();
+    let capabilities = catalog::official_runtime_capabilities();
+    let mcp_servers = catalog::official_runtime_mcp_registrations();
+    let topology = catalog::official_runtime_topology(&plugins, &capabilities, &mcp_servers);
+    let actions = build_runtime_action_plan(&topology);
+
+    render_runtime_action_plan(&actions)
 }

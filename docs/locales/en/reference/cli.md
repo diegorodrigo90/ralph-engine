@@ -20,6 +20,7 @@ ralph-engine runtime
 ralph-engine runtime show
 ralph-engine runtime status
 ralph-engine runtime issues
+ralph-engine runtime plan
 ralph-engine mcp
 ralph-engine mcp list
 ralph-engine mcp show <server-id>
@@ -36,3 +37,5 @@ The `runtime show` command prints the resolved runtime topology, including effec
 The `runtime status` command prints the typed runtime health summary, including enabled and disabled providers across plugins, capabilities, and MCP servers.
 
 The `runtime issues` command prints the typed list of unresolved runtime issues and recommended actions, instead of requiring command-local heuristics.
+
+The `runtime plan` command prints the typed runtime remediation plan derived from the resolved topology, so the next enablement step stays explicit and modular instead of being inferred ad hoc in the CLI.
