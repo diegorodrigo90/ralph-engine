@@ -7,7 +7,11 @@ The current shared descriptor already models:
 - server identifier
 - owning plugin identifier
 - transport
+- launch policy
 - process model
+- command contract
+- working-directory policy
+- environment policy
 - availability policy
 
 The current CLI can inspect the built-in MCP catalog with:

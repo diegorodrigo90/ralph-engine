@@ -22,4 +22,6 @@ ralph-engine mcp show <server-id>
 
 The `plugins show` command prints the immutable plugin contract, including lifecycle, load boundary, runtime hooks, and resolved activation state.
 
+The `mcp show` command prints the typed MCP launch contract, including process model, launch policy, command boundaries, working-directory policy, environment policy, and availability.
+
 The `runtime show` command prints the resolved runtime topology, including effective plugin activation and MCP enablement.

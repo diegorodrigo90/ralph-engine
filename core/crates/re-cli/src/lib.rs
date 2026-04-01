@@ -236,7 +236,11 @@ mod tests {
         // Assert
         assert!(output.contains("MCP server: official.github.repository"));
         assert!(output.contains("Process model: external_binary"));
+        assert!(output.contains("Launch policy: spawn_process"));
         assert!(output.contains("Availability: explicit_opt_in"));
+        assert!(output.contains("Command: ralph-engine-github-mcp serve"));
+        assert!(output.contains("Working directory: project_root"));
+        assert!(output.contains("Environment: plugin_scoped"));
     }
 
     #[test]

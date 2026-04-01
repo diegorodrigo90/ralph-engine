@@ -1,6 +1,6 @@
 //! Official Claude Box runtime plugin metadata.
 
-use re_mcp::{McpAvailability, McpProcessModel, McpServerDescriptor, McpTransport};
+use re_mcp::{McpAvailability, McpLaunchPolicy, McpServerDescriptor, McpTransport};
 use re_plugin::{
     AGENT_RUNTIME, MCP_CONTRIBUTION, PluginDescriptor, PluginLifecycleStage, PluginLoadBoundary,
     PluginRuntimeHook,
@@ -31,7 +31,7 @@ const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
     PLUGIN_ID,
     "Claude Box Session",
     McpTransport::Stdio,
-    McpProcessModel::PluginManaged,
+    McpLaunchPolicy::PluginRuntime,
     McpAvailability::OnDemand,
 )];
 

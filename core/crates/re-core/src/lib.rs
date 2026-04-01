@@ -131,7 +131,7 @@ pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
             "- {} | enabled={} | process={} | availability={}",
             server.descriptor.id,
             server.enabled,
-            server.descriptor.process_model.as_str(),
+            server.descriptor.process_model().as_str(),
             server.descriptor.availability.as_str()
         ));
     }
@@ -142,7 +142,7 @@ pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
 #[cfg(test)]
 mod tests {
     use re_config::{ConfigScope, PluginActivation};
-    use re_mcp::{McpAvailability, McpProcessModel, McpServerDescriptor, McpTransport};
+    use re_mcp::{McpAvailability, McpLaunchPolicy, McpServerDescriptor, McpTransport};
     use re_plugin::{
         PluginCapability, PluginDescriptor, PluginLifecycleStage, PluginLoadBoundary,
         PluginRuntimeHook,
@@ -175,7 +175,7 @@ mod tests {
             "official.codex",
             "Codex Session",
             McpTransport::Stdio,
-            McpProcessModel::PluginManaged,
+            McpLaunchPolicy::PluginRuntime,
             McpAvailability::OnDemand,
         )
     }

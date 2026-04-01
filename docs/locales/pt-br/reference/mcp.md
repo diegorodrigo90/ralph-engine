@@ -7,7 +7,11 @@ O descritor compartilhado atual já modela:
 - identificador do servidor
 - identificador do plugin dono
 - transporte
+- policy de lançamento
 - modelo de processo
+- contrato de comando
+- policy de diretório de trabalho
+- policy de ambiente
 - policy de disponibilidade
 
 A CLI atual consegue inspecionar o catálogo MCP embutido com:
