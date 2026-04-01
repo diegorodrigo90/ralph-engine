@@ -168,6 +168,44 @@ mod tests {
     }
 
     #[test]
+    fn execute_mcp_show_returns_server_detail() {
+        // Arrange
+        let command = args(&["ralph-engine", "mcp", "show", "official.github.repository"]);
+
+        // Act
+        let output = execute(command).expect("mcp show should succeed");
+
+        // Assert
+        assert!(output.contains("MCP server: official.github.repository"));
+        assert!(output.contains("Process model: external_binary"));
+        assert!(output.contains("Availability: explicit_opt_in"));
+    }
+
+    #[test]
+    fn execute_mcp_show_requires_server_id() {
+        // Arrange
+        let command = args(&["ralph-engine", "mcp", "show"]);
+
+        // Act
+        let error = execute(command).expect_err("missing server id should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "mcp show requires a server id");
+    }
+
+    #[test]
+    fn execute_mcp_show_rejects_unknown_server() {
+        // Arrange
+        let command = args(&["ralph-engine", "mcp", "show", "official.unknown"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown server id should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown mcp server: official.unknown");
+    }
+
+    #[test]
     fn execute_mcp_without_subcommand_lists_official_servers() {
         // Arrange
         let command = args(&["ralph-engine", "mcp"]);

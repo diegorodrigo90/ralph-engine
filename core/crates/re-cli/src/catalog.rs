@@ -36,3 +36,11 @@ pub fn official_mcp_servers() -> [McpServerDescriptor; 4] {
         re_plugin_github::mcp_servers()[0],
     ]
 }
+
+/// Returns one immutable official MCP server descriptor by identifier.
+#[must_use]
+pub fn find_official_mcp_server(server_id: &str) -> Option<McpServerDescriptor> {
+    official_mcp_servers()
+        .into_iter()
+        .find(|server| server.id == server_id)
+}

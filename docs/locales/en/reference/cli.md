@@ -14,4 +14,5 @@ ralph-engine plugins list
 ralph-engine plugins show <plugin-id>
 ralph-engine mcp
 ralph-engine mcp list
+ralph-engine mcp show <server-id>
 ```
