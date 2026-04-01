@@ -64,6 +64,44 @@ mod tests {
     }
 
     #[test]
+    fn execute_plugins_show_returns_plugin_detail() {
+        // Arrange
+        let command = args(&["ralph-engine", "plugins", "show", "official.github"]);
+
+        // Act
+        let output = execute(command).expect("plugins show should succeed");
+
+        // Assert
+        assert!(output.contains("Plugin: official.github"));
+        assert!(output.contains("Name: GitHub"));
+        assert!(output.contains("Lifecycle: discover -> configure -> load"));
+    }
+
+    #[test]
+    fn execute_plugins_show_requires_plugin_id() {
+        // Arrange
+        let command = args(&["ralph-engine", "plugins", "show"]);
+
+        // Act
+        let error = execute(command).expect_err("missing plugin id should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "plugins show requires a plugin id");
+    }
+
+    #[test]
+    fn execute_plugins_show_rejects_unknown_plugin() {
+        // Arrange
+        let command = args(&["ralph-engine", "plugins", "show", "official.unknown"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown plugin id should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown plugin: official.unknown");
+    }
+
+    #[test]
     fn execute_config_show_defaults_returns_yaml_contract() {
         // Arrange
         let command = args(&["ralph-engine", "config", "show-defaults"]);

@@ -11,6 +11,7 @@ ralph-engine config
 ralph-engine config show-defaults
 ralph-engine plugins
 ralph-engine plugins list
+ralph-engine plugins show <plugin-id>
 ralph-engine mcp
 ralph-engine mcp list
 ```

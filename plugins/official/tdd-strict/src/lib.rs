@@ -1,19 +1,36 @@
 //! Official TDD strict policy plugin metadata.
 
-use re_plugin::{POLICY, PluginDescriptor, TEMPLATE};
+use re_plugin::{POLICY, PluginDescriptor, PluginLifecycleStage, TEMPLATE};
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.tdd-strict";
 const PLUGIN_NAME: &str = "TDD Strict";
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[TEMPLATE, POLICY];
-const DESCRIPTOR: PluginDescriptor =
-    PluginDescriptor::new(PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION, CAPABILITIES);
+const LIFECYCLE: &[PluginLifecycleStage] = &[
+    PluginLifecycleStage::Discover,
+    PluginLifecycleStage::Configure,
+    PluginLifecycleStage::Validate,
+    PluginLifecycleStage::Load,
+];
+const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
+    PLUGIN_ID,
+    PLUGIN_NAME,
+    PLUGIN_VERSION,
+    CAPABILITIES,
+    LIFECYCLE,
+);
 
 /// Declared capabilities for the official plugin foundation.
 #[must_use]
 pub fn capabilities() -> &'static [re_plugin::PluginCapability] {
     DESCRIPTOR.capabilities
+}
+
+/// Declared lifecycle stages for the official plugin foundation.
+#[must_use]
+pub fn lifecycle() -> &'static [PluginLifecycleStage] {
+    DESCRIPTOR.lifecycle
 }
 
 /// Returns the immutable plugin descriptor.
@@ -24,7 +41,7 @@ pub const fn descriptor() -> PluginDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, capabilities, descriptor};
+    use super::{PLUGIN_ID, capabilities, descriptor, lifecycle};
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -60,5 +77,17 @@ mod tests {
 
         // Assert
         assert!(descriptor_matches);
+    }
+
+    #[test]
+    fn plugin_declares_lifecycle_stages() {
+        // Arrange
+        let declared_lifecycle = lifecycle();
+
+        // Act
+        let has_lifecycle = !declared_lifecycle.is_empty();
+
+        // Assert
+        assert!(has_lifecycle);
     }
 }

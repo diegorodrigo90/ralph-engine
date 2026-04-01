@@ -18,6 +18,14 @@ pub fn official_plugins() -> [PluginDescriptor; 8] {
     ]
 }
 
+/// Returns one immutable official plugin descriptor by identifier.
+#[must_use]
+pub fn find_official_plugin(plugin_id: &str) -> Option<PluginDescriptor> {
+    official_plugins()
+        .into_iter()
+        .find(|plugin| plugin.id == plugin_id)
+}
+
 /// Returns the immutable catalog of official MCP server contributions.
 #[must_use]
 pub fn official_mcp_servers() -> [McpServerDescriptor; 4] {

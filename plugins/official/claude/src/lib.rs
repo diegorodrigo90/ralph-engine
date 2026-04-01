@@ -1,15 +1,22 @@
 //! Official Claude runtime plugin metadata.
 
 use re_mcp::{McpServerDescriptor, McpTransport};
-use re_plugin::{AGENT_RUNTIME, MCP_CONTRIBUTION, PluginDescriptor};
+use re_plugin::{AGENT_RUNTIME, MCP_CONTRIBUTION, PluginDescriptor, PluginLifecycleStage};
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.claude";
 const PLUGIN_NAME: &str = "Claude";
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[AGENT_RUNTIME, MCP_CONTRIBUTION];
-const DESCRIPTOR: PluginDescriptor =
-    PluginDescriptor::new(PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION, CAPABILITIES);
+const LIFECYCLE: &[PluginLifecycleStage] =
+    &[PluginLifecycleStage::Discover, PluginLifecycleStage::Load];
+const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
+    PLUGIN_ID,
+    PLUGIN_NAME,
+    PLUGIN_VERSION,
+    CAPABILITIES,
+    LIFECYCLE,
+);
 const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
     "official.claude.session",
     PLUGIN_ID,
@@ -21,6 +28,12 @@ const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
 #[must_use]
 pub fn capabilities() -> &'static [re_plugin::PluginCapability] {
     DESCRIPTOR.capabilities
+}
+
+/// Declared lifecycle stages for the official plugin foundation.
+#[must_use]
+pub fn lifecycle() -> &'static [PluginLifecycleStage] {
+    DESCRIPTOR.lifecycle
 }
 
 /// Returns the immutable plugin descriptor.
@@ -37,7 +50,7 @@ pub const fn mcp_servers() -> &'static [McpServerDescriptor] {
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, capabilities, descriptor, mcp_servers};
+    use super::{PLUGIN_ID, capabilities, descriptor, lifecycle, mcp_servers};
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -85,5 +98,17 @@ mod tests {
 
         // Assert
         assert!(contributes_servers);
+    }
+
+    #[test]
+    fn plugin_declares_lifecycle_stages() {
+        // Arrange
+        let declared_lifecycle = lifecycle();
+
+        // Act
+        let has_lifecycle = !declared_lifecycle.is_empty();
+
+        // Assert
+        assert!(has_lifecycle);
     }
 }
