@@ -15,4 +15,5 @@ Atualizado: 2026-04-01
 - [ ] Reintroduzir configuração, state, MCP e ciclo de vida de plugins no novo core.
 - [ ] Ligar a publicação em npm e Homebrew ao pipeline de release em Rust.
 - [ ] Reconstruir os plugins oficiais sobre os novos contratos em Rust.
-- [ ] Consolidar um sistema coerente de UX entre site, docs e catalog com navegação clara e baseline A de acessibilidade, performance e SEO.
+- [ ] Introduzir suporte bilíngue de primeira classe para CLI, docs, site e superfície de plugins em inglês e pt-BR.
+- [ ] Consolidar um sistema coerente de UX entre site, docs e plugins com navegação clara e baseline A de acessibilidade, performance e SEO.
