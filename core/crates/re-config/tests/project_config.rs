@@ -3,9 +3,10 @@
 use re_config::{
     CANONICAL_CONFIG_LAYERS, ConfigScope, DEFAULT_LOCALE, McpConfig, McpDiscovery,
     PluginActivation, PluginConfig, ProjectConfig, ProjectConfigLayer, ResolvedPluginConfig,
-    canonical_config_layers, default_project_config, default_project_config_layer,
-    find_plugin_config, render_config_layers_yaml, render_project_config_yaml,
-    render_resolved_plugin_config_yaml, resolve_plugin_config,
+    RuntimeBudgetConfig, canonical_config_layers, default_project_config,
+    default_project_config_layer, find_plugin_config, render_config_layers_yaml,
+    render_project_config_yaml, render_resolved_plugin_config_yaml, render_runtime_budgets_yaml,
+    resolve_plugin_config,
 };
 
 #[test]
@@ -16,7 +17,9 @@ fn default_project_config_uses_stable_schema_defaults() {
     // Act
     let is_expected = config.schema_version == 1
         && config.default_locale == DEFAULT_LOCALE
-        && config.mcp.discovery == McpDiscovery::OfficialOnly;
+        && config.mcp.discovery == McpDiscovery::OfficialOnly
+        && config.budgets.prompt_tokens == 8_192
+        && config.budgets.context_tokens == 32_768;
 
     // Assert
     assert!(is_expected);
@@ -54,6 +57,9 @@ fn render_project_config_yaml_is_human_readable() {
     assert!(yaml.contains("    activation: enabled"));
     assert!(yaml.contains("mcp:"));
     assert!(yaml.contains("  discovery: official_only"));
+    assert!(yaml.contains("budgets:"));
+    assert!(yaml.contains("  prompt_tokens: 8192"));
+    assert!(yaml.contains("  context_tokens: 32768"));
 }
 
 #[test]
@@ -179,6 +185,10 @@ fn resolve_plugin_config_returns_effective_entry_from_highest_precedence_layer()
                     enabled: true,
                     discovery: McpDiscovery::OfficialOnly,
                 },
+                budgets: RuntimeBudgetConfig {
+                    prompt_tokens: 8_192,
+                    context_tokens: 32_768,
+                },
             },
         ),
         ProjectConfigLayer::new(
@@ -190,6 +200,10 @@ fn resolve_plugin_config_returns_effective_entry_from_highest_precedence_layer()
                 mcp: McpConfig {
                     enabled: true,
                     discovery: McpDiscovery::OfficialOnly,
+                },
+                budgets: RuntimeBudgetConfig {
+                    prompt_tokens: 8_192,
+                    context_tokens: 32_768,
                 },
             },
         ),
@@ -244,6 +258,10 @@ fn render_project_config_yaml_handles_empty_plugin_sets() {
             enabled: true,
             discovery: McpDiscovery::OfficialOnly,
         },
+        budgets: RuntimeBudgetConfig {
+            prompt_tokens: 8_192,
+            context_tokens: 32_768,
+        },
     };
 
     // Act
@@ -288,4 +306,23 @@ fn render_config_layers_yaml_is_human_readable() {
     assert!(yaml.contains("schema_version: 1"));
     assert!(yaml.contains("plugin_count: 1"));
     assert!(yaml.contains("mcp_enabled: true"));
+    assert!(yaml.contains("prompt_tokens: 8192"));
+    assert!(yaml.contains("context_tokens: 32768"));
+}
+
+#[test]
+fn render_runtime_budgets_yaml_is_human_readable() {
+    // Arrange
+    let budgets = RuntimeBudgetConfig {
+        prompt_tokens: 4_096,
+        context_tokens: 16_384,
+    };
+
+    // Act
+    let yaml = render_runtime_budgets_yaml(&budgets);
+
+    // Assert
+    assert!(yaml.contains("budgets:"));
+    assert!(yaml.contains("prompt_tokens: 4096"));
+    assert!(yaml.contains("context_tokens: 16384"));
 }

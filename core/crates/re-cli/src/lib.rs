@@ -258,6 +258,8 @@ mod tests {
         assert!(output.contains("schema_version: 1"));
         assert!(output.contains("plugin_count: 1"));
         assert!(output.contains("mcp_enabled: true"));
+        assert!(output.contains("prompt_tokens: 8192"));
+        assert!(output.contains("context_tokens: 32768"));
     }
 
     #[test]
@@ -271,6 +273,33 @@ mod tests {
         // Assert
         assert!(output.contains("layers:"));
         assert!(output.contains("scope: built_in_defaults"));
+    }
+
+    #[test]
+    fn execute_config_budgets_returns_typed_budget_contract() {
+        // Arrange
+        let command = args(&["ralph-engine", "config", "budgets"]);
+
+        // Act
+        let output = execute(command).expect("config budgets should succeed");
+
+        // Assert
+        assert!(output.contains("budgets:"));
+        assert!(output.contains("prompt_tokens: 8192"));
+        assert!(output.contains("context_tokens: 32768"));
+    }
+
+    #[test]
+    fn execute_config_show_budgets_alias_returns_typed_budget_contract() {
+        // Arrange
+        let command = args(&["ralph-engine", "config", "show-budgets"]);
+
+        // Act
+        let output = execute(command).expect("config show-budgets should succeed");
+
+        // Assert
+        assert!(output.contains("budgets:"));
+        assert!(output.contains("prompt_tokens: 8192"));
     }
 
     #[test]

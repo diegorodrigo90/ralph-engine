@@ -16,7 +16,9 @@ ralph-engine hooks
 ralph-engine hooks list
 ralph-engine hooks show <hook-id>
 ralph-engine config
+ralph-engine config budgets
 ralph-engine config layers
+ralph-engine config show-budgets
 ralph-engine config show-defaults
 ralph-engine config show-layers
 ralph-engine config show-plugin <plugin-id>
@@ -38,6 +40,8 @@ O comando `plugins show` imprime o contrato imutável do plugin, incluindo lifec
 A família `capabilities` imprime o registro tipado de capabilities do runtime para que os providers permaneçam explícitos e modulares.
 
 A família `doctor` imprime o relatório tipado de diagnóstico do runtime, compondo status, issues pendentes e ações de remediação a partir de um snapshot compartilhado do runtime, em vez de espalhar o diagnóstico por lógicas ad hoc em cada comando.
+
+A família `config budgets` imprime o contrato tipado de limites de prompt e contexto, para que os tetos de tokens permaneçam explícitos na fundação do runtime em vez de ficarem escondidos em lógica futura de provider.
 
 A família `hooks` imprime o registro tipado de runtime hooks do runtime para que os providers permaneçam explícitos e modulares.
 

@@ -14,6 +14,8 @@ pub struct ProjectConfig {
     pub plugins: &'static [PluginConfig],
     /// MCP configuration defaults.
     pub mcp: McpConfig,
+    /// Runtime budget defaults.
+    pub budgets: RuntimeBudgetConfig,
 }
 
 /// Typed configuration scope identifier.
@@ -145,6 +147,15 @@ pub enum McpDiscovery {
     OfficialOnly,
 }
 
+/// Typed runtime budget defaults.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimeBudgetConfig {
+    /// Maximum prompt tokens per assembly cycle.
+    pub prompt_tokens: u32,
+    /// Maximum context tokens retained for one agent cycle.
+    pub context_tokens: u32,
+}
+
 const DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
     "official.basic",
     PluginActivation::Enabled,
@@ -153,11 +164,16 @@ const DEFAULT_MCP: McpConfig = McpConfig {
     enabled: true,
     discovery: McpDiscovery::OfficialOnly,
 };
+const DEFAULT_BUDGETS: RuntimeBudgetConfig = RuntimeBudgetConfig {
+    prompt_tokens: 8_192,
+    context_tokens: 32_768,
+};
 const DEFAULT_PROJECT_CONFIG: ProjectConfig = ProjectConfig {
     schema_version: 1,
     default_locale: DEFAULT_LOCALE,
     plugins: DEFAULT_PLUGINS,
     mcp: DEFAULT_MCP,
+    budgets: DEFAULT_BUDGETS,
 };
 const DEFAULT_PROJECT_CONFIG_LAYER: ProjectConfigLayer =
     ProjectConfigLayer::new(ConfigScope::BuiltInDefaults, DEFAULT_PROJECT_CONFIG);
@@ -229,6 +245,12 @@ pub fn render_project_config_yaml(config: &ProjectConfig) -> String {
             McpDiscovery::OfficialOnly => "official_only",
         }
     ));
+    lines.push("budgets:".to_owned());
+    lines.push(format!("  prompt_tokens: {}", config.budgets.prompt_tokens));
+    lines.push(format!(
+        "  context_tokens: {}",
+        config.budgets.context_tokens
+    ));
 
     lines.join("\n")
 }
@@ -261,7 +283,26 @@ pub fn render_config_layers_yaml(layers: &[ProjectConfigLayer]) -> String {
         ));
         lines.push(format!("    plugin_count: {}", layer.config.plugins.len()));
         lines.push(format!("    mcp_enabled: {}", layer.config.mcp.enabled));
+        lines.push(format!(
+            "    prompt_tokens: {}",
+            layer.config.budgets.prompt_tokens
+        ));
+        lines.push(format!(
+            "    context_tokens: {}",
+            layer.config.budgets.context_tokens
+        ));
     }
 
     lines.join("\n")
+}
+
+/// Renders typed runtime budgets as YAML.
+#[must_use]
+pub fn render_runtime_budgets_yaml(budgets: &RuntimeBudgetConfig) -> String {
+    [
+        "budgets:".to_owned(),
+        format!("  prompt_tokens: {}", budgets.prompt_tokens),
+        format!("  context_tokens: {}", budgets.context_tokens),
+    ]
+    .join("\n")
 }

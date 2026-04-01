@@ -245,6 +245,23 @@ fn binary_config_layers_succeeds() {
 }
 
 #[test]
+fn binary_config_budgets_succeeds() {
+    // Arrange
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["config", "budgets"]);
+
+    // Act
+    let output = command.output().expect("binary should run");
+
+    // Assert
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("budgets:"));
+    assert!(stdout.contains("prompt_tokens: 8192"));
+    assert!(stdout.contains("context_tokens: 32768"));
+}
+
+#[test]
 fn binary_doctor_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));

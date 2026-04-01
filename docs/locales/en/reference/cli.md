@@ -16,7 +16,9 @@ ralph-engine hooks
 ralph-engine hooks list
 ralph-engine hooks show <hook-id>
 ralph-engine config
+ralph-engine config budgets
 ralph-engine config layers
+ralph-engine config show-budgets
 ralph-engine config show-defaults
 ralph-engine config show-layers
 ralph-engine config show-plugin <plugin-id>
@@ -38,6 +40,8 @@ The `plugins show` command prints the immutable plugin contract, including lifec
 The `capabilities` command family prints the typed runtime capability registry so capability providers remain explicit and modular.
 
 The `doctor` command family prints the typed runtime diagnostic report by composing runtime status, unresolved issues, and remediation actions from one shared runtime snapshot instead of spreading diagnosis across ad hoc command logic.
+
+The `config budgets` command prints the typed prompt and context budget contract so token ceilings remain explicit in the runtime foundation instead of hiding in future provider-specific logic.
 
 The `hooks` command family prints the typed runtime-hook registry so hook providers remain explicit and modular.
 
