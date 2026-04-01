@@ -106,6 +106,59 @@ mod tests {
     }
 
     #[test]
+    fn execute_hooks_lists_runtime_hooks() {
+        // Arrange
+        let command = args(&["ralph-engine", "hooks", "list"]);
+
+        // Act
+        let output = execute(command).expect("hooks list should succeed");
+
+        // Assert
+        assert!(output.contains("Runtime hooks (11)"));
+        assert!(output.contains("- scaffold | providers=3 | enabled=1"));
+        assert!(output.contains("- mcp_registration | providers=4 | enabled=0"));
+    }
+
+    #[test]
+    fn execute_hooks_show_returns_provider_detail() {
+        // Arrange
+        let command = args(&["ralph-engine", "hooks", "show", "mcp_registration"]);
+
+        // Act
+        let output = execute(command).expect("hooks show should succeed");
+
+        // Assert
+        assert!(output.contains("Runtime hook: mcp_registration"));
+        assert!(output.contains("Providers (4)"));
+        assert!(output.contains("- official.claude | activation=disabled | boundary=in_process"));
+        assert!(output.contains("- official.github | activation=disabled | boundary=in_process"));
+    }
+
+    #[test]
+    fn execute_hooks_show_requires_hook_id() {
+        // Arrange
+        let command = args(&["ralph-engine", "hooks", "show"]);
+
+        // Act
+        let error = execute(command).expect_err("missing hook id should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "hooks show requires a hook id");
+    }
+
+    #[test]
+    fn execute_hooks_show_rejects_unknown_hook() {
+        // Arrange
+        let command = args(&["ralph-engine", "hooks", "show", "unknown"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown hook should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown hook: unknown");
+    }
+
+    #[test]
     fn execute_plugins_lists_official_plugins() {
         // Arrange
         let command = args(&["ralph-engine", "plugins", "list"]);
@@ -351,6 +404,8 @@ mod tests {
         assert!(output.contains("official.github | activation=disabled | scope=built_in_defaults"));
         assert!(output.contains("Capabilities (18)"));
         assert!(output.contains("template | plugin=official.basic | activation=enabled"));
+        assert!(output.contains("Runtime hooks (18)"));
+        assert!(output.contains("scaffold | plugin=official.basic | activation=enabled"));
         assert!(output.contains("MCP servers (4)"));
     }
 
@@ -446,6 +501,18 @@ mod tests {
     }
 
     #[test]
+    fn execute_hooks_without_subcommand_lists_runtime_hooks() {
+        // Arrange
+        let command = args(&["ralph-engine", "hooks"]);
+
+        // Act
+        let output = execute(command).expect("hooks command should succeed");
+
+        // Assert
+        assert!(output.contains("Runtime hooks (11)"));
+    }
+
+    #[test]
     fn execute_unknown_capabilities_subcommand_fails() {
         // Arrange
         let command = args(&["ralph-engine", "capabilities", "doctor"]);
@@ -455,6 +522,18 @@ mod tests {
 
         // Assert
         assert_eq!(error.to_string(), "unknown capabilities command: doctor");
+    }
+
+    #[test]
+    fn execute_unknown_hooks_subcommand_fails() {
+        // Arrange
+        let command = args(&["ralph-engine", "hooks", "doctor"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown hooks command should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown hooks command: doctor");
     }
 
     #[test]

@@ -2,6 +2,7 @@
 
 mod capabilities;
 mod config;
+mod hooks;
 mod mcp;
 mod plugins;
 mod runtime;
@@ -21,6 +22,10 @@ const COMMANDS: &[CommandDescriptor] = &[
     CommandDescriptor {
         name: "config",
         handler: config::execute,
+    },
+    CommandDescriptor {
+        name: "hooks",
+        handler: hooks::execute,
     },
     CommandDescriptor {
         name: "mcp",
