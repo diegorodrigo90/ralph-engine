@@ -49,6 +49,8 @@ jobs:
         with:
           egress-policy: audit
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '20.19.0'
@@ -71,6 +73,9 @@ jobs:
         run: ./scripts/install-dev-tools.ps1
       - name: Run validation contract
         shell: bash
+        env:
+          GIT_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          GIT_HEAD_SHA: ${{ github.sha }}
         run: ./scripts/validate.sh --mode ci --checks "${{ matrix.checks }}"
 
   sonar:

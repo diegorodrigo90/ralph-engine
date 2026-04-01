@@ -14,6 +14,7 @@ git clone https://github.com/diegorodrigo90/ralph-engine.git
 cd ralph-engine
 ./scripts/bootstrap-dev.sh
 ./scripts/validate.sh --mode local
+./scripts/validate-ci-local.sh
 ```
 
 ## Workflow
@@ -24,6 +25,7 @@ cd ralph-engine
 - Document public Rust APIs with `rustdoc`
 - Prefer Arrange, Act, Assert in tests
 - Run the full validation contract before pushing
+- When workflow changes are involved, run the local CI smoke check before pushing
 - Open a PR with Conventional Commit messages
 - Expect code review and quality gates before merge
 
@@ -40,6 +42,7 @@ The repository contract is enforced through:
 - `cargo audit`
 - `npm --prefix docs run build`
 - `./scripts/validate.sh --mode local`
+- `./scripts/validate-ci-local.sh`
 
 ## Commit messages
 
