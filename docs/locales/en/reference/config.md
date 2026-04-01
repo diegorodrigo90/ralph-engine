@@ -21,9 +21,13 @@ The broader target architecture still includes:
 The current CLI can render the default typed contract with:
 
 ```bash
+ralph-engine config layers
 ralph-engine config show-defaults
+ralph-engine config show-layers
 ralph-engine config show-plugin <plugin-id>
 ```
+
+The `config layers` command renders the canonical typed configuration stack in resolution order so defaults, future workspace settings, project settings, and user overrides stay explicit in the runtime contract.
 
 The `config show-plugin` command now renders the effective plugin activation together with the scope that supplied it.
 

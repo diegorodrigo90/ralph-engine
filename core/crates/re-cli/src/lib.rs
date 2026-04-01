@@ -245,6 +245,35 @@ mod tests {
     }
 
     #[test]
+    fn execute_config_layers_returns_typed_resolution_stack() {
+        // Arrange
+        let command = args(&["ralph-engine", "config", "layers"]);
+
+        // Act
+        let output = execute(command).expect("config layers should succeed");
+
+        // Assert
+        assert!(output.contains("layers:"));
+        assert!(output.contains("scope: built_in_defaults"));
+        assert!(output.contains("schema_version: 1"));
+        assert!(output.contains("plugin_count: 1"));
+        assert!(output.contains("mcp_enabled: true"));
+    }
+
+    #[test]
+    fn execute_config_show_layers_alias_returns_typed_resolution_stack() {
+        // Arrange
+        let command = args(&["ralph-engine", "config", "show-layers"]);
+
+        // Act
+        let output = execute(command).expect("config show-layers should succeed");
+
+        // Assert
+        assert!(output.contains("layers:"));
+        assert!(output.contains("scope: built_in_defaults"));
+    }
+
+    #[test]
     fn execute_config_show_plugin_returns_resolved_yaml() {
         // Arrange
         let command = args(&["ralph-engine", "config", "show-plugin", "official.basic"]);

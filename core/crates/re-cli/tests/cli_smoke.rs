@@ -228,6 +228,23 @@ fn binary_config_show_defaults_succeeds() {
 }
 
 #[test]
+fn binary_config_layers_succeeds() {
+    // Arrange
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["config", "layers"]);
+
+    // Act
+    let output = command.output().expect("binary should run");
+
+    // Assert
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("layers:"));
+    assert!(stdout.contains("scope: built_in_defaults"));
+    assert!(stdout.contains("plugin_count: 1"));
+}
+
+#[test]
 fn binary_config_show_plugin_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));

@@ -21,9 +21,13 @@ A arquitetura-alvo mais ampla continua incluindo:
 A CLI atual consegue renderizar esse contrato tipado com:
 
 ```bash
+ralph-engine config layers
 ralph-engine config show-defaults
+ralph-engine config show-layers
 ralph-engine config show-plugin <plugin-id>
 ```
+
+O comando `config layers` renderiza a pilha canônica tipada de configuração na ordem de resolução, para que defaults, futuras configurações de workspace, configuração de projeto e overrides de usuário continuem explícitos no contrato do runtime.
 
 O comando `config show-plugin` agora renderiza a ativação efetiva do plugin junto com o escopo que forneceu esse resultado.
 

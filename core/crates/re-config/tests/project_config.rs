@@ -1,9 +1,10 @@
 //! Integration tests for the shared Ralph Engine config contract.
 
 use re_config::{
-    ConfigScope, DEFAULT_LOCALE, McpConfig, McpDiscovery, PluginActivation, PluginConfig,
-    ProjectConfig, ProjectConfigLayer, ResolvedPluginConfig, default_project_config,
-    default_project_config_layer, find_plugin_config, render_project_config_yaml,
+    CANONICAL_CONFIG_LAYERS, ConfigScope, DEFAULT_LOCALE, McpConfig, McpDiscovery,
+    PluginActivation, PluginConfig, ProjectConfig, ProjectConfigLayer, ResolvedPluginConfig,
+    canonical_config_layers, default_project_config, default_project_config_layer,
+    find_plugin_config, render_config_layers_yaml, render_project_config_yaml,
     render_resolved_plugin_config_yaml, resolve_plugin_config,
 };
 
@@ -143,6 +144,20 @@ fn default_project_config_layer_uses_built_in_scope() {
 }
 
 #[test]
+fn canonical_config_layers_returns_stable_defaults_stack() {
+    // Arrange
+    let layers = canonical_config_layers();
+
+    // Act
+    let matches = layers == CANONICAL_CONFIG_LAYERS
+        && layers.len() == 1
+        && layers[0].scope == ConfigScope::BuiltInDefaults;
+
+    // Assert
+    assert!(matches);
+}
+
+#[test]
 fn resolve_plugin_config_returns_effective_entry_from_highest_precedence_layer() {
     // Arrange
     const DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
@@ -257,4 +272,20 @@ fn render_resolved_plugin_config_yaml_is_human_readable() {
     assert!(yaml.contains("id: official.basic"));
     assert!(yaml.contains("activation: enabled"));
     assert!(yaml.contains("resolved_from: built_in_defaults"));
+}
+
+#[test]
+fn render_config_layers_yaml_is_human_readable() {
+    // Arrange
+    let layers = canonical_config_layers();
+
+    // Act
+    let yaml = render_config_layers_yaml(layers);
+
+    // Assert
+    assert!(yaml.contains("layers:"));
+    assert!(yaml.contains("scope: built_in_defaults"));
+    assert!(yaml.contains("schema_version: 1"));
+    assert!(yaml.contains("plugin_count: 1"));
+    assert!(yaml.contains("mcp_enabled: true"));
 }
