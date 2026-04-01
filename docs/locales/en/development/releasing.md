@@ -24,6 +24,7 @@ Secrets used by this workflow:
 - `HOMEBREW_TAP_TOKEN` when `publish_homebrew=true`
 
 The `tag` input SHALL include the leading `v`, for example `v0.2.0-alpha.1`. The workflow strips that prefix before preparing npm package versions.
+Before it builds or publishes anything, the workflow verifies that the selected SHA is the current `origin/main` head and that the canonical `CI` workflow has already completed successfully for that exact push.
 
 ## Rules
 
@@ -31,7 +32,8 @@ The `tag` input SHALL include the leading `v`, for example `v0.2.0-alpha.1`. The
 - Conventional Commits are mandatory.
 - Actions are pinned by SHA.
 - Release tooling is pinned to reviewed versions.
-- The release contract SHALL run through `./scripts/validate.sh --mode release` before artifacts are published.
+- The release workflow SHALL verify the target `main` SHA against the canonical `CI` workflow before artifacts are published.
+- The release workflow SHALL reuse prior green CI evidence for the target `main` SHA instead of rerunning the full validation contract inside the publish workflow.
 - `cargo-dist` SHALL be the Rust artifact builder for release distribution.
 - `Quality`, `Security`, and `SonarCloud` SHALL all pass before a release tag is created.
 - `SONAR_TOKEN` SHALL resolve to a SonarCloud token that can browse and analyze the target project.
