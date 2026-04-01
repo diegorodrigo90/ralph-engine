@@ -32,13 +32,11 @@
   </head>
   <body>
     <a class="skip-link" href="#content">Skip to content</a>
-    <main class="page">
-      <header class="site-header">
+    <main class="shell">
+      <header class="topbar-wrap">
         <nav class="topbar" aria-label="Primary">
           <a class="brand" href="/" aria-label="Ralph Engine home">
-            <picture>
-              <img src="/logo-icon.svg" alt="" width="28" height="28" decoding="async" />
-            </picture>
+            <img src="/logo-icon.svg" alt="" width="28" height="28" decoding="async" />
             <span>Ralph Engine</span>
           </a>
           <div class="topbar-links">
@@ -49,7 +47,7 @@
         </nav>
       </header>
 
-      <div id="content">
+      <div class="page" id="content">
         <section class="hero hero-catalog">
           <div class="hero-copy">
             <p class="eyebrow">Catalog</p>
@@ -64,34 +62,53 @@
               <a class="button secondary" href="/catalog/index.json">Open index.json</a>
             </div>
           </div>
-          <div class="catalog-panel">
-            <p class="feature-kicker">Current machine endpoint</p>
+
+          <aside class="catalog-panel" aria-label="Current machine endpoint">
+            <p class="feature-kicker">Machine endpoint</p>
             <h2><code>/catalog/index.json</code></h2>
             <p>
-              Empty by design in this phase. The placeholder keeps human and machine surfaces
-              stable while the Rust-first runtime and plugin contracts continue to evolve.
+              Empty by design in this phase. The placeholder keeps human and machine surfaces stable
+              while the Rust-first runtime and plugin contracts continue to evolve.
             </p>
-          </div>
+          </aside>
         </section>
 
         <section class="grid" aria-label="Catalog pillars">
           <article class="card">
-            <h2>Publishers</h2>
-            <p>Verified publisher metadata will land here once the trust and signing model is ready.</p>
+            <p class="feature-kicker">Publishers</p>
+            <h2>Verified publisher metadata lands here when the trust model is ready.</h2>
+            <p>
+              The public route is stable now, even before signing and verification flows are finalized.
+            </p>
           </article>
+
           <article class="card">
-            <h2>Plugins</h2>
-            <p>Official and third-party plugin discovery can grow on top of this path without changing URLs.</p>
+            <p class="feature-kicker">Plugins</p>
+            <h2>Official and third-party plugin discovery can grow without changing URLs.</h2>
+            <p>
+              The catalog path is reserved so the ecosystem can expand on top of a fixed public structure.
+            </p>
           </article>
+
           <article class="card">
-            <h2>APIs</h2>
-            <p>The JSON placeholder is already versioned so automation can start against a stable endpoint contract.</p>
+            <p class="feature-kicker">APIs</p>
+            <h2>The JSON placeholder is already versioned for future automation.</h2>
+            <p>
+              Clients can start against a stable endpoint contract instead of waiting for the marketplace UX.
+            </p>
           </article>
         </section>
       </div>
 
       <footer class="site-footer">
-        <p>Catalog path reserved for the public plugin ecosystem.</p>
+        <div class="page footer-inner">
+          <p>Catalog path reserved for the public plugin ecosystem.</p>
+          <div class="footer-links">
+            <a href="/">Home</a>
+            <a href="/docs/">Docs</a>
+            <a href="/catalog/index.json">index.json</a>
+          </div>
+        </div>
       </footer>
     </main>
     <!-- Cloudflare Web Analytics -->

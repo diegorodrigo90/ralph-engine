@@ -50,13 +50,11 @@
   </head>
   <body>
     <a class="skip-link" href="#content">Skip to content</a>
-    <main class="page">
-      <header class="site-header">
+    <main class="shell">
+      <header class="topbar-wrap">
         <nav class="topbar" aria-label="Primary">
           <a class="brand" href="/" aria-label="Ralph Engine home">
-            <picture>
-              <img src="/logo-icon.svg" alt="" width="28" height="28" decoding="async" />
-            </picture>
+            <img src="/logo-icon.svg" alt="" width="28" height="28" decoding="async" />
             <span>Ralph Engine</span>
           </a>
           <div class="topbar-links">
@@ -67,56 +65,45 @@
         </nav>
       </header>
 
-      <div class="hero-shell" aria-hidden="true">
-        <div class="hero-glow hero-glow-left"></div>
-        <div class="hero-glow hero-glow-right"></div>
-      </div>
-
-      <div id="content">
-        <section class="hero hero-home">
+      <div class="page" id="content">
+        <section class="hero">
           <div class="hero-copy">
             <p class="eyebrow">Open-source plugin-first runtime</p>
-            <h1>Agentic coding needs a runtime, not another thin wrapper.</h1>
+            <h1>Agentic coding needs a runtime, not another shallow wrapper.</h1>
             <p class="lede">
               Ralph Engine gives teams a Rust-first runtime for agent loops, plugin capabilities,
               MCP-aware integrations, quality gates, and operational checks that stay coherent
               across local development and CI.
             </p>
-            <ul class="hero-points">
-              <li>Plugin-first architecture with official Rust plugins</li>
-              <li>Prepare, doctor, status, and release contracts built in</li>
-              <li>npm, Homebrew, docs, site, and catalog aligned from the start</li>
-            </ul>
             <div class="actions">
               <a class="button primary" href="/docs/">Read the docs</a>
               <a class="button secondary" href="/catalog/">Open catalog</a>
             </div>
           </div>
-          <div class="hero-mark">
-            <div class="hero-mark-panel">
-              <picture>
-                <img
-                  src="/logo.svg"
-                  alt="Ralph Engine"
-                  width="420"
-                  height="146"
-                  loading="eager"
-                  fetchpriority="high"
-                  decoding="async"
-                />
-              </picture>
-              <p class="hero-mark-copy">
-                Rust-first runtime foundation, public docs under <code>/docs</code>,
-                and a stable public catalog path under <code>/catalog</code>.
-              </p>
+
+          <aside class="hero-panel" aria-label="Current product baseline">
+            <img
+              class="hero-logo"
+              src="/logo.svg"
+              alt="Ralph Engine"
+              width="420"
+              height="146"
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
+            />
+            <div class="signal-list">
+              <p><strong>Core:</strong> Rust-first runtime foundation</p>
+              <p><strong>Docs:</strong> Reference-grade surface at <code>/docs</code></p>
+              <p><strong>Catalog:</strong> Stable public discovery path at <code>/catalog</code></p>
             </div>
-          </div>
+          </aside>
         </section>
 
-        <section class="highlight-grid" aria-label="Core surfaces">
+        <section class="stripe" aria-label="Key product surfaces">
           <article class="feature feature-primary">
             <p class="feature-kicker">Docs</p>
-            <h2>Reference-grade documentation is already the deepest product surface.</h2>
+            <h2>The primary product surface is already deep and structured.</h2>
             <p>
               Installation, architecture, configuration, coding standards, release flow,
               and roadmap already live under the same contract the code follows.
@@ -126,49 +113,66 @@
 
           <article class="feature">
             <p class="feature-kicker">Catalog</p>
-            <h2>The public information architecture is stable before marketplace content arrives.</h2>
+            <h2>The public information architecture is stable before marketplace content lands.</h2>
             <p>
-              The catalog endpoint is already reserved so plugin metadata and verified publishers
-              can ship later without forcing a public URL redesign.
+              Plugin metadata and verified publishers can arrive later without forcing a redesign
+              of the public paths.
             </p>
             <a href="/catalog/">Open catalog</a>
           </article>
         </section>
 
-        <section class="grid" aria-label="Product capabilities">
+        <section class="grid" aria-label="What Ralph Engine exposes today">
           <article class="card">
-            <h2>Runtime</h2>
-            <p>Rust-first core and official plugins with hard quality gates, stable contracts, and a release path built for open source.</p>
+            <p class="feature-kicker">Runtime</p>
+            <h2>Rust-first core and official plugins with hard quality gates.</h2>
+            <p>
+              Stable contracts, aggressive pre-1.0 cleanup, and a release path designed for open source.
+            </p>
             <a href="/docs/reference/architecture">See architecture</a>
           </article>
 
           <article class="card">
-            <h2>Releases</h2>
-            <p>SemVer, Conventional Commits, pinned Actions, supply-chain checks, and GitHub-driven release automation stay part of the product contract.</p>
+            <p class="feature-kicker">Releases</p>
+            <h2>SemVer, pinned Actions, and supply-chain-aware automation.</h2>
+            <p>
+              Conventional Commits, hardened CI, release automation, and public artifacts stay part of the product contract.
+            </p>
             <a href="https://github.com/diegorodrigo90/ralph-engine/releases">View releases</a>
           </article>
 
           <article class="card">
-            <h2>AI Context</h2>
-            <p><code>llms.txt</code>, docs, catalog, and public repo metadata are intentionally aligned so agents can discover the right surfaces quickly.</p>
+            <p class="feature-kicker">AI Context</p>
+            <h2>Public surfaces are aligned so agents can discover the right context fast.</h2>
+            <p>
+              <code>llms.txt</code>, docs, catalog, and repo metadata are intentionally kept coherent.
+            </p>
             <a href="/llms.txt">Open llms.txt</a>
           </article>
         </section>
 
-        <section class="notes split" aria-label="Project state">
-          <div>
+        <section class="statement" aria-label="Current state">
+          <div class="statement-lead">
             <p class="feature-kicker">Right now</p>
             <h2>The reboot baseline is already public and coherent.</h2>
           </div>
           <p>
-            Docs are the deepest surface today, while the landing page and catalog establish the durable public structure:
-            root for product positioning, <code>/docs</code> for reference, and <code>/catalog</code> for plugin discovery.
+            Docs are the deepest surface today, while the landing page and catalog establish the durable
+            public structure: root for product positioning, <code>/docs</code> for reference, and
+            <code>/catalog</code> for plugin discovery.
           </p>
         </section>
       </div>
 
       <footer class="site-footer">
-        <p>Released under the MIT License.</p>
+        <div class="page footer-inner">
+          <p>Released under the MIT License.</p>
+          <div class="footer-links">
+            <a href="/docs/">Docs</a>
+            <a href="/catalog/">Catalog</a>
+            <a href="https://github.com/diegorodrigo90/ralph-engine">GitHub</a>
+          </div>
+        </div>
       </footer>
     </main>
     <!-- Cloudflare Web Analytics -->
