@@ -54,6 +54,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 32. The canonical `CI` workflow on `main` SHALL build reusable cross-platform release artifacts for the exact approved SHA only after `Quality`, `Security`, and `SonarCloud` have all passed. The publish workflow SHALL promote those artifacts instead of rebuilding them.
 33. Reviewed pinned tool binaries that are installed by repository scripts MAY be cached in CI only when the cache key stays scoped by operating system, installer definition, and job purpose. Tool caches SHALL NOT be shared blindly across unrelated jobs or platforms.
 34. Workflows SHALL avoid no-op cache restores and unnecessary setup steps. If a job does not install or consume a dependency set, it SHALL NOT restore that cache just for symmetry.
+35. Matrix fail-fast behavior SHALL match the purpose of the matrix. Quality matrices SHOULD keep `fail-fast: false` to surface cross-platform regressions in one run, while release-artifact matrices SHOULD keep `fail-fast: true` because one failed platform already invalidates the publishable set.
 
 ## Structure
 
@@ -93,6 +94,7 @@ CI cache design SHALL follow these rules:
 - Reviewed pinned tool caches SHALL stay purpose-specific, such as separate caches for coverage tooling, security tooling, and release-only tooling.
 - Cache misses SHALL degrade safely to fresh installs; they SHALL NOT change validation behavior.
 - Cross-platform correctness SHALL be checked in the quality matrix.
+- Fail-fast SHOULD be used to stop matrices early only when additional running jobs would no longer add decision value for the workflow outcome.
 - Platform-independent supply-chain and secret scanners MAY be centralized on the canonical Linux runner to avoid repeated installs and duplicate findings.
 - SonarCloud tokens SHALL be dedicated to repository analysis and keep Browse plus Execute Analysis access to the target project.
 
