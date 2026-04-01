@@ -8,12 +8,13 @@ use re_core::{
     RuntimeAgentRegistration, RuntimeCapabilityRegistration, RuntimeCheckKind,
     RuntimeCheckRegistration, RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase,
     RuntimePluginRegistration, RuntimePolicyRegistration, RuntimeProviderKind,
-    RuntimeProviderRegistration, RuntimeTopology,
+    RuntimeProviderRegistration, RuntimeTemplateRegistration, RuntimeTopology,
 };
 use re_mcp::McpServerDescriptor;
 use re_plugin::{
     AGENT_RUNTIME, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, POLICY,
     PREPARE_CHECKS, PluginCapability, PluginDescriptor, PluginRuntimeHook, REMOTE_CONTROL,
+    TEMPLATE,
 };
 
 /// Immutable owned snapshot of the official runtime catalog.
@@ -23,6 +24,8 @@ pub struct OfficialRuntimeSnapshot {
     pub plugins: [RuntimePluginRegistration; 8],
     /// Resolved official capability registrations.
     pub capabilities: Vec<RuntimeCapabilityRegistration>,
+    /// Resolved official template registrations.
+    pub templates: Vec<RuntimeTemplateRegistration>,
     /// Resolved official agent runtime registrations.
     pub agents: Vec<RuntimeAgentRegistration>,
     /// Resolved official runtime check registrations.
@@ -46,6 +49,7 @@ impl OfficialRuntimeSnapshot {
             locale: default_project_config_layer().config.default_locale,
             plugins: &self.plugins,
             capabilities: &self.capabilities,
+            templates: &self.templates,
             agents: &self.agents,
             checks: &self.checks,
             providers: &self.providers,
@@ -162,6 +166,26 @@ pub fn official_runtime_capabilities() -> Vec<RuntimeCapabilityRegistration> {
                         plugin.descriptor.load_boundary,
                     )
                 })
+        })
+        .collect()
+}
+
+/// Returns the resolved template registrations for the official catalog.
+#[must_use]
+pub fn official_runtime_templates() -> Vec<RuntimeTemplateRegistration> {
+    official_runtime_plugins()
+        .into_iter()
+        .filter(|plugin| plugin.descriptor.capabilities.contains(&TEMPLATE))
+        .map(|plugin| {
+            RuntimeTemplateRegistration::new(
+                plugin.descriptor.id,
+                plugin.activation,
+                plugin.descriptor.load_boundary,
+                plugin
+                    .descriptor
+                    .runtime_hooks
+                    .contains(&PluginRuntimeHook::Scaffold),
+            )
         })
         .collect()
 }
@@ -327,6 +351,7 @@ pub fn official_runtime_policies() -> Vec<RuntimePolicyRegistration> {
 pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
     let plugins = official_runtime_plugins();
     let capabilities = official_runtime_capabilities();
+    let templates = official_runtime_templates();
     let agents = official_runtime_agents();
     let checks = official_runtime_checks();
     let providers = official_runtime_providers();
@@ -337,6 +362,7 @@ pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
     OfficialRuntimeSnapshot {
         plugins,
         capabilities,
+        templates,
         agents,
         checks,
         providers,

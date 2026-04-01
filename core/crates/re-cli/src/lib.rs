@@ -104,6 +104,63 @@ mod tests {
     }
 
     #[test]
+    fn execute_templates_list_runtime_templates() {
+        // Arrange
+        let command = args(&["ralph-engine", "templates", "list"]);
+
+        // Act
+        let output = execute(command).expect("templates list should succeed");
+
+        // Assert
+        assert!(output.contains("Templates (3)"));
+        assert!(output.contains("- official.basic | activation=enabled"));
+        assert!(output.contains("- official.bmad | activation=disabled"));
+    }
+
+    #[test]
+    fn execute_templates_show_returns_provider_detail() {
+        // Arrange
+        let command = args(&["ralph-engine", "templates", "show", "official.basic"]);
+
+        // Act
+        let output = execute(command).expect("templates show should succeed");
+
+        // Assert
+        assert!(output.contains("Template provider: official.basic"));
+        assert!(output.contains("Providers (1)"));
+        assert!(output.contains(
+            "- official.basic | activation=enabled | boundary=in_process | scaffold_hook=true"
+        ));
+    }
+
+    #[test]
+    fn execute_templates_show_requires_plugin_id() {
+        // Arrange
+        let command = args(&["ralph-engine", "templates", "show"]);
+
+        // Act
+        let error = execute(command).expect_err("missing template plugin id should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "templates show requires a plugin id");
+    }
+
+    #[test]
+    fn execute_templates_show_rejects_unknown_plugin() {
+        // Arrange
+        let command = args(&["ralph-engine", "templates", "show", "official.unknown"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown template provider should fail");
+
+        // Assert
+        assert_eq!(
+            error.to_string(),
+            "unknown template provider: official.unknown"
+        );
+    }
+
+    #[test]
     fn execute_capabilities_lists_runtime_capabilities() {
         // Arrange
         let command = args(&["ralph-engine", "capabilities", "list"]);
@@ -590,8 +647,8 @@ mod tests {
         // Assert
         assert!(output.contains("Runtime doctor"));
         assert!(output.contains("Runtime health: degraded"));
-        assert!(output.contains("Runtime issues (55)"));
-        assert!(output.contains("Runtime action plan (55)"));
+        assert!(output.contains("Runtime issues (57)"));
+        assert!(output.contains("Runtime action plan (57)"));
     }
 
     #[test]
@@ -604,7 +661,7 @@ mod tests {
 
         // Assert
         assert!(output.contains("Runtime doctor"));
-        assert!(output.contains("Runtime issues (55)"));
+        assert!(output.contains("Runtime issues (57)"));
     }
 
     #[test]
@@ -715,6 +772,9 @@ mod tests {
         assert!(output.contains("official.github | activation=disabled | scope=built_in_defaults"));
         assert!(output.contains("Capabilities (18)"));
         assert!(output.contains("template | plugin=official.basic | activation=enabled"));
+        assert!(output.contains("Templates (3)"));
+        assert!(output.contains("official.basic | activation=enabled"));
+        assert!(output.contains("official.tdd-strict | activation=disabled"));
         assert!(output.contains("Agent runtimes (3)"));
         assert!(output.contains("official.claude | activation=disabled"));
         assert!(output.contains("official.codex | activation=disabled"));
@@ -747,6 +807,7 @@ mod tests {
         assert!(output.contains("Runtime health: degraded"));
         assert!(output.contains("Plugins: enabled=1, disabled=7"));
         assert!(output.contains("Capabilities: enabled=1, disabled=17"));
+        assert!(output.contains("Templates: enabled=1, disabled=2"));
         assert!(output.contains("Agent runtimes: enabled=0, disabled=3"));
         assert!(output.contains("Checks: enabled=0, disabled=2"));
         assert!(output.contains("Providers: enabled=0, disabled=4"));
@@ -764,9 +825,12 @@ mod tests {
         let output = execute(command).expect("runtime issues should succeed");
 
         // Assert
-        assert!(output.contains("Runtime issues (55)"));
+        assert!(output.contains("Runtime issues (57)"));
         assert!(output.contains(
             "plugin_disabled | subject=official.github | action=enable the plugin in typed project configuration"
+        ));
+        assert!(output.contains(
+            "template_disabled | subject=official.bmad | action=enable the provider plugin that owns this template surface"
         ));
         assert!(output.contains(
             "agent_runtime_disabled | subject=official.codex | action=enable the provider plugin that owns this agent runtime"
@@ -797,9 +861,12 @@ mod tests {
         let output = execute(command).expect("runtime plan should succeed");
 
         // Assert
-        assert!(output.contains("Runtime action plan (55)"));
+        assert!(output.contains("Runtime action plan (57)"));
         assert!(output.contains(
             "enable_plugin | target=official.github | reason=the plugin is registered but disabled"
+        ));
+        assert!(output.contains(
+            "enable_template_provider | target=official.bmad | reason=the provider still disables the template surface"
         ));
         assert!(output.contains(
             "enable_agent_runtime_provider | target=official.codex | reason=the provider still disables the agent runtime"
@@ -873,6 +940,18 @@ mod tests {
     }
 
     #[test]
+    fn execute_templates_without_subcommand_lists_runtime_templates() {
+        // Arrange
+        let command = args(&["ralph-engine", "templates"]);
+
+        // Act
+        let output = execute(command).expect("templates command should succeed");
+
+        // Assert
+        assert!(output.contains("Templates (3)"));
+    }
+
+    #[test]
     fn execute_checks_without_subcommand_lists_runtime_checks() {
         // Arrange
         let command = args(&["ralph-engine", "checks"]);
@@ -942,6 +1021,18 @@ mod tests {
 
         // Assert
         assert_eq!(error.to_string(), "unknown agents command: runtime");
+    }
+
+    #[test]
+    fn execute_unknown_templates_subcommand_fails() {
+        // Arrange
+        let command = args(&["ralph-engine", "templates", "runtime"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown templates command should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown templates command: runtime");
     }
 
     #[test]

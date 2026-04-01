@@ -66,6 +66,8 @@ pub enum RuntimeIssueKind {
     PluginDisabled,
     /// A capability provider is registered but still disabled.
     CapabilityDisabled,
+    /// A template provider is registered but still disabled.
+    TemplateDisabled,
     /// An agent runtime provider is registered but still disabled.
     AgentRuntimeDisabled,
     /// A runtime check is registered but still disabled.
@@ -87,6 +89,7 @@ impl RuntimeIssueKind {
         match self {
             Self::PluginDisabled => "plugin_disabled",
             Self::CapabilityDisabled => "capability_disabled",
+            Self::TemplateDisabled => "template_disabled",
             Self::AgentRuntimeDisabled => "agent_runtime_disabled",
             Self::CheckDisabled => "check_disabled",
             Self::ProviderDisabled => "provider_disabled",
@@ -104,6 +107,8 @@ pub enum RuntimeActionKind {
     EnablePlugin,
     /// Re-enable a disabled capability provider.
     EnableCapabilityProvider,
+    /// Re-enable a disabled template provider.
+    EnableTemplateProvider,
     /// Re-enable a disabled agent runtime provider.
     EnableAgentRuntimeProvider,
     /// Re-enable a disabled runtime check provider.
@@ -125,6 +130,7 @@ impl RuntimeActionKind {
         match self {
             Self::EnablePlugin => "enable_plugin",
             Self::EnableCapabilityProvider => "enable_capability_provider",
+            Self::EnableTemplateProvider => "enable_template_provider",
             Self::EnableAgentRuntimeProvider => "enable_agent_runtime_provider",
             Self::EnableCheckProvider => "enable_check_provider",
             Self::EnableProvider => "enable_provider",
@@ -219,6 +225,43 @@ impl RuntimeCapabilityRegistration {
     }
 
     /// Returns whether the capability provider is enabled in the resolved topology.
+    #[must_use]
+    pub const fn is_enabled(self) -> bool {
+        matches!(self.activation, PluginActivation::Enabled)
+    }
+}
+
+/// One typed template registration in the resolved runtime topology.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimeTemplateRegistration {
+    /// Plugin providing the template surface.
+    pub plugin_id: &'static str,
+    /// Effective activation state for the provider plugin.
+    pub activation: PluginActivation,
+    /// Declared load boundary for the provider plugin.
+    pub load_boundary: PluginLoadBoundary,
+    /// Whether the provider also declares the matching runtime hook.
+    pub scaffold_hook_registered: bool,
+}
+
+impl RuntimeTemplateRegistration {
+    /// Creates a new immutable runtime template registration.
+    #[must_use]
+    pub const fn new(
+        plugin_id: &'static str,
+        activation: PluginActivation,
+        load_boundary: PluginLoadBoundary,
+        scaffold_hook_registered: bool,
+    ) -> Self {
+        Self {
+            plugin_id,
+            activation,
+            load_boundary,
+            scaffold_hook_registered,
+        }
+    }
+
+    /// Returns whether the template provider is enabled in the resolved topology.
     #[must_use]
     pub const fn is_enabled(self) -> bool {
         matches!(self.activation, PluginActivation::Enabled)
@@ -479,6 +522,8 @@ pub struct RuntimeTopology<'a> {
     pub plugins: &'a [RuntimePluginRegistration],
     /// Resolved capability registrations.
     pub capabilities: &'a [RuntimeCapabilityRegistration],
+    /// Resolved template registrations.
+    pub templates: &'a [RuntimeTemplateRegistration],
     /// Resolved agent-runtime registrations.
     pub agents: &'a [RuntimeAgentRegistration],
     /// Resolved runtime check registrations.
@@ -508,6 +553,10 @@ pub struct RuntimeStatus {
     pub enabled_capabilities: usize,
     /// Number of disabled capability providers.
     pub disabled_capabilities: usize,
+    /// Number of enabled templates.
+    pub enabled_templates: usize,
+    /// Number of disabled templates.
+    pub disabled_templates: usize,
     /// Number of enabled agent runtimes.
     pub enabled_agents: usize,
     /// Number of disabled agent runtimes.
@@ -642,6 +691,18 @@ pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
         ));
     }
 
+    lines.push(format!("Templates ({})", topology.templates.len()));
+
+    for template in topology.templates {
+        lines.push(format!(
+            "- {} | activation={} | boundary={} | scaffold_hook={}",
+            template.plugin_id,
+            template.activation.as_str(),
+            template.load_boundary.as_str(),
+            template.scaffold_hook_registered
+        ));
+    }
+
     lines.push(format!("Agent runtimes ({})", topology.agents.len()));
 
     for agent in topology.agents {
@@ -735,6 +796,12 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
         .filter(|capability| capability.is_enabled())
         .count();
     let disabled_capabilities = topology.capabilities.len() - enabled_capabilities;
+    let enabled_templates = topology
+        .templates
+        .iter()
+        .filter(|template| template.is_enabled())
+        .count();
+    let disabled_templates = topology.templates.len() - enabled_templates;
     let enabled_agents = topology
         .agents
         .iter()
@@ -773,6 +840,7 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
     let disabled_mcp_servers = topology.mcp_servers.len() - enabled_mcp_servers;
     let health = if disabled_plugins == 0
         && disabled_capabilities == 0
+        && disabled_templates == 0
         && disabled_agents == 0
         && disabled_checks == 0
         && disabled_providers == 0
@@ -792,6 +860,8 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
         disabled_plugins,
         enabled_capabilities,
         disabled_capabilities,
+        enabled_templates,
+        disabled_templates,
         enabled_agents,
         disabled_agents,
         enabled_checks,
@@ -820,6 +890,10 @@ pub fn render_runtime_status(status: &RuntimeStatus) -> String {
         format!(
             "Capabilities: enabled={}, disabled={}",
             status.enabled_capabilities, status.disabled_capabilities
+        ),
+        format!(
+            "Templates: enabled={}, disabled={}",
+            status.enabled_templates, status.disabled_templates
         ),
         format!(
             "Agent runtimes: enabled={}, disabled={}",
@@ -870,6 +944,16 @@ pub fn collect_runtime_issues(topology: &RuntimeTopology<'_>) -> Vec<RuntimeIssu
                 RuntimeIssueKind::CapabilityDisabled,
                 capability.capability.as_str(),
                 "enable the provider plugin that owns this capability",
+            ));
+        }
+    }
+
+    for template in topology.templates {
+        if !template.is_enabled() {
+            issues.push(RuntimeIssue::new(
+                RuntimeIssueKind::TemplateDisabled,
+                template.plugin_id,
+                "enable the provider plugin that owns this template surface",
             ));
         }
     }
@@ -982,6 +1066,16 @@ pub fn build_runtime_action_plan(topology: &RuntimeTopology<'_>) -> Vec<RuntimeA
                     "the provider still disables capability {}",
                     capability.capability.as_str()
                 ),
+            ));
+        }
+    }
+
+    for template in topology.templates {
+        if !template.is_enabled() {
+            actions.push(RuntimeAction::new(
+                RuntimeActionKind::EnableTemplateProvider,
+                template.plugin_id,
+                "the provider still disables the template surface",
             ));
         }
     }
@@ -1119,10 +1213,10 @@ mod tests {
         RuntimeDoctorReport, RuntimeHealth, RuntimeHookRegistration, RuntimeIssue,
         RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
         RuntimePolicyRegistration, RuntimeProviderKind, RuntimeProviderRegistration,
-        RuntimeTopology, banner, build_runtime_action_plan, build_runtime_doctor_report,
-        collect_runtime_issues, evaluate_runtime_status, render_runtime_action_plan,
-        render_runtime_doctor_report, render_runtime_issues, render_runtime_status,
-        render_runtime_topology,
+        RuntimeTemplateRegistration, RuntimeTopology, banner, build_runtime_action_plan,
+        build_runtime_doctor_report, collect_runtime_issues, evaluate_runtime_status,
+        render_runtime_action_plan, render_runtime_doctor_report, render_runtime_issues,
+        render_runtime_status, render_runtime_topology,
     };
 
     const CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -1158,6 +1252,15 @@ mod tests {
             "official.basic",
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
+        )
+    }
+
+    fn template_registration() -> RuntimeTemplateRegistration {
+        RuntimeTemplateRegistration::new(
+            "official.basic",
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
+            true,
         )
     }
 
@@ -1260,6 +1363,7 @@ mod tests {
         let values = [
             RuntimeIssueKind::PluginDisabled,
             RuntimeIssueKind::CapabilityDisabled,
+            RuntimeIssueKind::TemplateDisabled,
             RuntimeIssueKind::AgentRuntimeDisabled,
             RuntimeIssueKind::CheckDisabled,
             RuntimeIssueKind::ProviderDisabled,
@@ -1280,6 +1384,7 @@ mod tests {
             vec![
                 "plugin_disabled",
                 "capability_disabled",
+                "template_disabled",
                 "agent_runtime_disabled",
                 "check_disabled",
                 "provider_disabled",
@@ -1296,6 +1401,7 @@ mod tests {
         let values = [
             RuntimeActionKind::EnablePlugin,
             RuntimeActionKind::EnableCapabilityProvider,
+            RuntimeActionKind::EnableTemplateProvider,
             RuntimeActionKind::EnableAgentRuntimeProvider,
             RuntimeActionKind::EnableCheckProvider,
             RuntimeActionKind::EnableProvider,
@@ -1316,6 +1422,7 @@ mod tests {
             vec![
                 "enable_plugin",
                 "enable_capability_provider",
+                "enable_template_provider",
                 "enable_agent_runtime_provider",
                 "enable_check_provider",
                 "enable_provider",
@@ -1427,6 +1534,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let templates = [template_registration()];
         let agents = [agent_registration()];
         let checks = [check_registration()];
         let providers = [provider_registration()];
@@ -1438,6 +1546,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            templates: &templates,
             agents: &agents,
             checks: &checks,
             providers: &providers,
@@ -1459,6 +1568,10 @@ mod tests {
         assert!(rendered.contains("Capabilities (1)"));
         assert!(rendered.contains(
             "- template | plugin=official.basic | activation=enabled | boundary=in_process"
+        ));
+        assert!(rendered.contains("Templates (1)"));
+        assert!(rendered.contains(
+            "- official.basic | activation=enabled | boundary=in_process | scaffold_hook=true"
         ));
         assert!(rendered.contains("Agent runtimes (1)"));
         assert!(rendered.contains(
@@ -1493,6 +1606,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let templates = [template_registration()];
         let agents = [agent_registration()];
         let checks = [check_registration()];
         let providers = [provider_registration()];
@@ -1504,6 +1618,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            templates: &templates,
             agents: &agents,
             checks: &checks,
             providers: &providers,
@@ -1521,6 +1636,8 @@ mod tests {
         assert_eq!(status.disabled_plugins, 0);
         assert_eq!(status.enabled_capabilities, 1);
         assert_eq!(status.disabled_capabilities, 0);
+        assert_eq!(status.enabled_templates, 1);
+        assert_eq!(status.disabled_templates, 0);
         assert_eq!(status.enabled_agents, 1);
         assert_eq!(status.disabled_agents, 0);
         assert_eq!(status.enabled_checks, 1);
@@ -1549,6 +1666,12 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let templates = [RuntimeTemplateRegistration::new(
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let checks = [RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
             "official.bmad",
@@ -1588,6 +1711,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            templates: &templates,
             agents: &agents,
             checks: &checks,
             providers: &providers,
@@ -1606,6 +1730,7 @@ mod tests {
         assert!(rendered.contains("Runtime health: degraded"));
         assert!(rendered.contains("Plugins: enabled=0, disabled=1"));
         assert!(rendered.contains("Capabilities: enabled=0, disabled=1"));
+        assert!(rendered.contains("Templates: enabled=0, disabled=1"));
         assert!(rendered.contains("Agent runtimes: enabled=0, disabled=1"));
         assert!(rendered.contains("Checks: enabled=0, disabled=1"));
         assert!(rendered.contains("Providers: enabled=0, disabled=1"));
@@ -1627,6 +1752,12 @@ mod tests {
             "official.basic",
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
+        )];
+        let templates = [RuntimeTemplateRegistration::new(
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
         )];
         let checks = [RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
@@ -1662,6 +1793,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            templates: &templates,
             agents: &agents,
             checks: &checks,
             providers: &providers,
@@ -1680,6 +1812,8 @@ mod tests {
         assert_eq!(status.disabled_plugins, 0);
         assert_eq!(status.enabled_capabilities, 0);
         assert_eq!(status.disabled_capabilities, 1);
+        assert_eq!(status.enabled_templates, 0);
+        assert_eq!(status.disabled_templates, 1);
         assert_eq!(status.enabled_agents, 0);
         assert_eq!(status.disabled_agents, 1);
         assert_eq!(status.enabled_checks, 0);
@@ -1696,6 +1830,7 @@ mod tests {
         assert!(rendered.contains("Runtime health: degraded"));
         assert!(rendered.contains("Plugins: enabled=1, disabled=0"));
         assert!(rendered.contains("Capabilities: enabled=0, disabled=1"));
+        assert!(rendered.contains("Templates: enabled=0, disabled=1"));
         assert!(rendered.contains("Agent runtimes: enabled=0, disabled=1"));
         assert!(rendered.contains("Checks: enabled=0, disabled=1"));
         assert!(rendered.contains("Providers: enabled=0, disabled=1"));
@@ -1717,6 +1852,12 @@ mod tests {
             "official.basic",
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
+        )];
+        let templates = [RuntimeTemplateRegistration::new(
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
         )];
         let checks = [RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
@@ -1757,6 +1898,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            templates: &templates,
             agents: &agents,
             checks: &checks,
             providers: &providers,
@@ -1781,6 +1923,11 @@ mod tests {
                     RuntimeIssueKind::CapabilityDisabled,
                     "template",
                     "enable the provider plugin that owns this capability",
+                ),
+                RuntimeIssue::new(
+                    RuntimeIssueKind::TemplateDisabled,
+                    "official.basic",
+                    "enable the provider plugin that owns this template surface",
                 ),
                 RuntimeIssue::new(
                     RuntimeIssueKind::AgentRuntimeDisabled,
@@ -1825,6 +1972,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let templates = [template_registration()];
         let agents = [agent_registration()];
         let checks = [check_registration()];
         let providers = [provider_registration()];
@@ -1836,6 +1984,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            templates: &templates,
             agents: &agents,
             checks: &checks,
             providers: &providers,
@@ -1896,6 +2045,12 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let templates = [RuntimeTemplateRegistration::new(
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let checks = [RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
             "official.bmad",
@@ -1935,6 +2090,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            templates: &templates,
             agents: &agents,
             checks: &checks,
             providers: &providers,
@@ -1959,6 +2115,11 @@ mod tests {
                     RuntimeActionKind::EnableCapabilityProvider,
                     "official.basic",
                     "the provider still disables capability template",
+                ),
+                RuntimeAction::new(
+                    RuntimeActionKind::EnableTemplateProvider,
+                    "official.basic",
+                    "the provider still disables the template surface",
                 ),
                 RuntimeAction::new(
                     RuntimeActionKind::EnableAgentRuntimeProvider,
@@ -2003,6 +2164,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let templates = [template_registration()];
         let agents = [agent_registration()];
         let checks = [check_registration()];
         let providers = [provider_registration()];
@@ -2014,6 +2176,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            templates: &templates,
             agents: &agents,
             checks: &checks,
             providers: &providers,
@@ -2074,6 +2237,12 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let templates = [RuntimeTemplateRegistration::new(
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let checks = [RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
             "official.basic",
@@ -2113,6 +2282,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            templates: &templates,
             agents: &agents,
             checks: &checks,
             providers: &providers,
@@ -2146,6 +2316,8 @@ mod tests {
                 disabled_plugins: 1,
                 enabled_capabilities: 1,
                 disabled_capabilities: 1,
+                enabled_templates: 0,
+                disabled_templates: 1,
                 enabled_agents: 0,
                 disabled_agents: 1,
                 enabled_checks: 0,
@@ -2189,6 +2361,7 @@ mod tests {
             locale: "en",
             plugins: &[],
             capabilities: &[],
+            templates: &[],
             agents: &[],
             checks: &[],
             providers: &[],
@@ -2204,6 +2377,7 @@ mod tests {
         assert!(rendered.contains("Runtime phase: bootstrapped"));
         assert!(rendered.contains("Plugins (0)"));
         assert!(rendered.contains("Capabilities (0)"));
+        assert!(rendered.contains("Templates (0)"));
         assert!(rendered.contains("Checks (0)"));
         assert!(rendered.contains("Providers (0)"));
         assert!(rendered.contains("Policies (0)"));

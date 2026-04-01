@@ -11,6 +11,7 @@ mod plugins;
 mod policies;
 mod providers;
 mod runtime;
+mod templates;
 
 use crate::CliError;
 
@@ -63,6 +64,10 @@ const COMMANDS: &[CommandDescriptor] = &[
     CommandDescriptor {
         name: "runtime",
         handler: runtime::execute,
+    },
+    CommandDescriptor {
+        name: "templates",
+        handler: templates::execute,
     },
 ];
 
