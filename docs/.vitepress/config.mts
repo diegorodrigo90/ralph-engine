@@ -1,20 +1,5 @@
 import { defineConfig } from "vitepress";
 
-const sharedLinks = [
-  {
-    text: "GitHub",
-    link: "https://github.com/diegorodrigo90/ralph-engine",
-  },
-  {
-    text: "Releases",
-    link: "https://github.com/diegorodrigo90/ralph-engine/releases",
-  },
-  {
-    text: "llms.txt",
-    link: "https://ralphengine.com/llms.txt",
-  },
-] as const;
-
 function buildSidebar(prefix: string, labels: {
   gettingStarted: string;
   guides: string;
@@ -107,13 +92,11 @@ export default defineConfig({
       description: "Open-source plugin-first runtime for agentic coding workflows",
       themeConfig: {
         nav: [
-          { text: "Guide", link: "/getting-started/installation" },
-          { text: "Reference", link: "/reference/cli" },
+          { text: "Home", link: "https://ralphengine.com/" },
+          { text: "Docs", link: "/" },
           { text: "Plugins", link: "https://ralphengine.com/plugins/" },
-          {
-            text: "Links",
-            items: sharedLinks,
-          },
+          { text: "Roadmap", link: "/development/roadmap" },
+          { text: "GitHub", link: "https://github.com/diegorodrigo90/ralph-engine" },
         ],
         sidebar: buildSidebar("", {
           gettingStarted: "Getting Started",
@@ -150,13 +133,11 @@ export default defineConfig({
       description: "Runtime open source, orientado a plugins, para fluxos de desenvolvimento com agentes",
       themeConfig: {
         nav: [
-          { text: "Guia", link: "/pt-br/getting-started/installation" },
-          { text: "Referência", link: "/pt-br/reference/cli" },
+          { text: "Início", link: "https://ralphengine.com/" },
+          { text: "Docs", link: "/pt-br/" },
           { text: "Plugins", link: "https://ralphengine.com/pt-br/plugins/" },
-          {
-            text: "Links",
-            items: sharedLinks,
-          },
+          { text: "Roadmap", link: "/pt-br/development/roadmap" },
+          { text: "GitHub", link: "https://github.com/diegorodrigo90/ralph-engine" },
         ],
         sidebar: buildSidebar("/pt-br", {
           gettingStarted: "Primeiros passos",
@@ -195,6 +176,7 @@ export default defineConfig({
     },
 
     siteTitle: false,
+    logoLink: "https://ralphengine.com/",
 
     socialLinks: [
       {
