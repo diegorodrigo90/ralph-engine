@@ -14,4 +14,5 @@ commit-msg:
 pre-push:
   commands:
     validate:
-      run: ./scripts/validate.sh --mode local
+      interactive: true
+      run: ./scripts/validate.sh --mode hook
