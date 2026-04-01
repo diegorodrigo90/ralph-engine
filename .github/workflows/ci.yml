@@ -18,7 +18,7 @@ permissions:
 
 jobs:
   commitlint:
-    name: Commit Messages
+    name: Validate commit messages
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     timeout-minutes: 10
@@ -34,11 +34,13 @@ jobs:
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:
           node-version: '20.19.0'
-      - run: npm ci
-      - run: npx commitlint --from origin/main --to HEAD --verbose
+      - name: Install commitlint dependencies
+        run: npm ci
+      - name: Lint commit messages against Conventional Commits
+        run: npx commitlint --from origin/main --to HEAD --verbose
 
   quality:
-    name: Quality (${{ matrix.os }})
+    name: Validate code quality (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
@@ -67,7 +69,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             docs/package-lock.json
-      - name: Install Rust toolchain
+      - name: Install pinned Rust toolchain
         shell: bash
         run: |
           rustup toolchain install 1.91.1 --profile minimal --component rustfmt --component clippy
@@ -76,27 +78,27 @@ jobs:
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
         with:
           shared-key: quality-${{ matrix.os }}
-      - name: Install repository Node tools
+      - name: Install repository Node dependencies
         run: npm ci
-      - name: Install docs Node tools
+      - name: Install docs Node dependencies
         run: npm --prefix docs ci
-      - name: Install pinned coverage tools
+      - name: Install pinned coverage tooling
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: ./scripts/install-dev-tools.sh --tools cargo-llvm-cov
-      - name: Run validation contract
+      - name: Run quality validation contract
         shell: bash
         env:
           GIT_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           GIT_HEAD_SHA: ${{ github.sha }}
         run: ./scripts/validate.sh --mode ci --checks "${{ matrix.checks }}"
-      - name: Generate coverage artifact
+      - name: Generate Rust coverage report
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: |
           mkdir -p coverage
           cargo llvm-cov --workspace --all-features --lcov --output-path coverage/lcov.info
-      - name: Upload coverage artifact
+      - name: Upload Rust coverage artifact
         if: matrix.os == 'ubuntu-latest'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
@@ -106,7 +108,7 @@ jobs:
           retention-days: 3
 
   security:
-    name: Security (ubuntu-latest)
+    name: Run security scanners (ubuntu-latest)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # Security scanners here are platform-independent for this repository shape.
@@ -128,7 +130,7 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             docs/package-lock.json
-      - name: Install Rust toolchain
+      - name: Install pinned Rust toolchain
         shell: bash
         run: |
           rustup toolchain install 1.91.1 --profile minimal
@@ -137,14 +139,14 @@ jobs:
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
         with:
           shared-key: security-ubuntu-latest
-      - name: Install repository Node tools
+      - name: Install repository Node dependencies
         run: npm ci
-      - name: Install docs Node tools
+      - name: Install docs Node dependencies
         run: npm --prefix docs ci
-      - name: Install pinned security tools
+      - name: Install pinned security tooling
         shell: bash
         run: ./scripts/install-dev-tools.sh --tools cargo-audit,cargo-deny,gitleaks,trivy
-      - name: Run security contract
+      - name: Run security validation contract
         shell: bash
         env:
           GIT_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
@@ -152,7 +154,7 @@ jobs:
         run: ./scripts/validate.sh --mode ci --checks deny,audit,gitleaks,trivy
 
   sonar:
-    name: SonarCloud
+    name: Analyze code in SonarCloud
     runs-on: ubuntu-latest
     needs: [quality, security]
     timeout-minutes: 20
@@ -172,21 +174,21 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             docs/package-lock.json
-      - name: Preflight SonarCloud access
+      - name: Verify SonarCloud token and project access
         shell: bash
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
         run: ./scripts/verify-sonarcloud-access.sh
-      - name: Resolve SonarCloud metadata
+      - name: Resolve SonarCloud project metadata
         shell: bash
         run: ./scripts/export-sonarcloud-metadata.sh
-      - name: Download coverage artifact
+      - name: Download Rust coverage artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
           name: rust-coverage-lcov
           path: coverage
-      - name: SonarCloud Scan
+      - name: Run SonarCloud analysis and quality gate
         uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9
         with:
           args: >-
