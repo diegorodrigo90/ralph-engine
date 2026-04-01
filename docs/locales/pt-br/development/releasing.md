@@ -8,6 +8,21 @@
 4. A publicação de release fica desativada até o pipeline de distribuição em Rust estar fechado e validado ponta a ponta.
 5. O workflow endurecido de publicação vai criar a tag SemVer só depois de os gates obrigatórios passarem para o commit alvo da `main`.
 
+## Workflow manual de publicação
+
+O workflow `Release` é manual e espera:
+
+- `tag`
+- `publish_github_release`
+- `publish_npm`
+- `publish_homebrew`
+- `homebrew_tap_repository` quando o tap não for inferido por outro meio
+
+Secrets usados por esse workflow:
+
+- `NPM_TOKEN` quando `publish_npm=true`
+- `HOMEBREW_TAP_TOKEN` quando `publish_homebrew=true`
+
 ## Regras
 
 - SemVer é obrigatório.

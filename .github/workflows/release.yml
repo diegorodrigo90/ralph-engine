@@ -2,6 +2,31 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: SemVer tag to publish, for example v0.2.0-alpha.1
+        required: true
+        type: string
+      publish_github_release:
+        description: Create or update the GitHub Release and upload assets
+        required: true
+        default: true
+        type: boolean
+      publish_npm:
+        description: Publish the npm channels (`ralph-engine` and `create-ralph-engine`)
+        required: true
+        default: false
+        type: boolean
+      publish_homebrew:
+        description: Update the Homebrew tap with the rendered formula
+        required: true
+        default: false
+        type: boolean
+      homebrew_tap_repository:
+        description: Optional owner/repo override for the Homebrew tap
+        required: false
+        default: ""
+        type: string
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -9,9 +34,10 @@ env:
 permissions:
   contents: write
   id-token: write
+  attestations: write
 
 jobs:
-  release:
+  validate-release:
     runs-on: ubuntu-latest
     steps:
       - name: Harden Runner
@@ -39,15 +65,154 @@ jobs:
           shared-key: release-ubuntu-latest
       - name: Install docs Node tools
         run: npm --prefix docs ci
+      - name: Test create-ralph-engine
+        run: npm --prefix tools/create-ralph-engine test
       - name: Install pinned developer tools
         shell: bash
         run: ./scripts/install-dev-tools.sh --tools cargo-llvm-cov,cargo-audit,cargo-deny,cargo-dist,gitleaks,trivy
       - name: Validate release tag
         shell: bash
-        run: ./scripts/release-check.sh
+        run: ./scripts/release-check.sh "${{ inputs.tag }}"
       - name: Run release contract
         shell: bash
         run: ./scripts/validate.sh --mode release
+
+  build-artifacts:
+    needs: validate-release
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: dist-ubuntu
+          - os: macos-latest
+            artifact_name: dist-macos
+          - os: windows-latest
+            artifact_name: dist-windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install 1.91.1 --profile minimal
+          rustup default 1.91.1
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
+        with:
+          shared-key: release-${{ matrix.os }}
+      - name: Install cargo-dist
+        shell: bash
+        run: ./scripts/install-dev-tools.sh --tools cargo-dist
       - name: Build release artifacts
         shell: bash
-        run: dist build --tag ${{ github.ref_name }}
+        run: dist build --tag ${{ inputs.tag }}
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: target/distrib/*
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    needs: build-artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: '20.19.0'
+      - name: Download Ubuntu dist artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: dist-ubuntu
+          path: .release/dist/ubuntu
+      - name: Download macOS dist artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: dist-macos
+          path: .release/dist/macos
+      - name: Download Windows dist artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: dist-windows
+          path: .release/dist/windows
+      - name: Stage release assets
+        shell: bash
+        run: |
+          mkdir -p .release/assets
+          find .release/dist -type f -print0 | while IFS= read -r -d '' file; do
+            cp -n "$file" .release/assets/
+          done
+          ls -1 .release/assets
+      - name: Create git tag when missing
+        shell: bash
+        run: |
+          git fetch --tags origin
+          if ! git rev-parse "${{ inputs.tag }}" >/dev/null 2>&1; then
+            git tag "${{ inputs.tag }}" "${GITHUB_SHA}"
+            git push origin "${{ inputs.tag }}"
+          fi
+      - name: Create or update GitHub Release
+        if: inputs.publish_github_release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view "${{ inputs.tag }}" >/dev/null 2>&1; then
+            gh release upload "${{ inputs.tag }}" .release/assets/* --clobber
+          else
+            gh release create "${{ inputs.tag }}" .release/assets/* --title "${{ inputs.tag }}" --generate-notes
+          fi
+      - name: Attest release assets
+        if: inputs.publish_github_release
+        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
+        with:
+          subject-path: .release/assets/*
+      - name: Prepare npm packages
+        if: inputs.publish_npm
+        shell: bash
+        run: node ./scripts/prepare-npm-release.mjs --version "${{ inputs.tag }}" --out-dir .release/npm
+      - name: Publish npm channels
+        if: inputs.publish_npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        shell: bash
+        run: |
+          if [[ -z "${NODE_AUTH_TOKEN:-}" ]]; then
+            echo "NPM_TOKEN is required when publish_npm=true" >&2
+            exit 1
+          fi
+          (
+            cd .release/npm/ralph-engine
+            npm publish --provenance --access public
+          )
+          (
+            cd .release/npm/create-ralph-engine
+            npm publish --provenance --access public
+          )
+      - name: Render Homebrew formula
+        if: inputs.publish_homebrew
+        shell: bash
+        run: |
+          VERSION="${{ inputs.tag }}"
+          VERSION="${VERSION#v}"
+          node ./scripts/render-homebrew-formula.mjs --version "$VERSION" --dist-dir .release/assets --output .release/homebrew/ralph-engine.rb
+      - name: Publish Homebrew tap
+        if: inputs.publish_homebrew
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        shell: bash
+        run: bash ./scripts/publish-homebrew-tap.sh "${{ inputs.tag }}" .release/homebrew/ralph-engine.rb "${{ inputs.homebrew_tap_repository }}"
