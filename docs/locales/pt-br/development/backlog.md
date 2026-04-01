@@ -5,6 +5,7 @@ Atualizado: 2026-04-01
 - Expandir `re-cli` além da superfície inicial de bootstrap.
 - Introduzir os crates `re-plugin` e `re-mcp`.
 - Adicionar empacotamento cross-platform para os artefatos de release.
+- Adicionar validação explícita para `dist-workspace.toml` e para os artefatos gerados por release.
 - Restaurar exemplos mais ricos nas docs quando os contratos do runtime estiverem de volta.
 - Definir contratos de i18n para mensagens da CLI, docs, site e plugins com inglês e pt-BR como idiomas de primeira classe.
 - Definir metas de performance, acessibilidade e SEO para as superfícies públicas, para que site, docs e plugins continuem em baseline A.

@@ -15,6 +15,7 @@
 - Actions are pinned by SHA.
 - Release tooling is pinned to reviewed versions.
 - The release contract SHALL run through `./scripts/validate.sh --mode release` before artifacts are published.
+- `cargo-dist` SHALL be the Rust artifact builder for release distribution.
 - `Quality`, `Security`, and `SonarCloud` SHALL all pass before a release tag is created.
 - Checksums, SBOMs, and artifact attestations are part of the target release contract.
 - npm and Homebrew remain official channels, but they are not wired yet.
