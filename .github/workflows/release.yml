@@ -23,16 +23,24 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '20.19.0'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            docs/package-lock.json
       - name: Install Rust toolchain
         shell: bash
         run: |
           rustup toolchain install 1.91.1 --profile minimal --component rustfmt --component clippy
           rustup default 1.91.1
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@bc2d2e71bd35c5549942babaa51a89c586b981d1
+        with:
+          shared-key: release-ubuntu-latest
       - name: Install docs Node tools
         run: npm --prefix docs ci
       - name: Install pinned developer tools
         shell: bash
-        run: ./scripts/install-dev-tools.sh
+        run: ./scripts/install-dev-tools.sh --tools cargo-llvm-cov,cargo-audit,cargo-deny,cargo-dist,gitleaks,trivy
       - name: Validate release tag
         shell: bash
         run: ./scripts/release-check.sh
