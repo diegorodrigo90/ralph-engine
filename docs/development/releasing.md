@@ -3,9 +3,9 @@
 ## Flow
 
 1. Merge reviewed Conventional Commit changes into `main`.
-2. `release-please` opens or updates the release PR.
+2. `release-plz release-pr` opens or updates the release PR.
 3. Merge the release PR.
-4. The merge creates the SemVer tag.
+4. `release-plz release` creates the SemVer tag and GitHub release from `main`.
 5. Tag workflows run the release contract and build artifacts.
 
 ## Rules

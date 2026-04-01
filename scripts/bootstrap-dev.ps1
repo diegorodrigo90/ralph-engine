@@ -12,5 +12,6 @@ if (Get-Command asdf -ErrorAction SilentlyContinue) {
 }
 
 npm ci
+npm --prefix docs ci
 ./scripts/install-dev-tools.ps1
-npx lefthook install
+npx --no -- lefthook install

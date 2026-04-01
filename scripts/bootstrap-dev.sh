@@ -12,5 +12,6 @@ else
 fi
 
 npm ci
+npm --prefix docs ci
 ./scripts/install-dev-tools.sh
-npx lefthook install
+npx --no -- lefthook install

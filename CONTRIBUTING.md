@@ -50,4 +50,4 @@ Examples:
 - `feat(core): add mcp registry foundations`
 - `fix(plugin): reject duplicate capability ids`
 - `docs(architecture): align rust workspace model`
-- `build(ci): pin release-please workflow`
+- `build(ci): pin release-plz workflow`

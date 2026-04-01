@@ -6,7 +6,7 @@ Updated: 2026-04-01
 
 - [x] Reboot the repository onto a Rust-first foundation.
 - [x] Pin Rust, Node, commitlint, hooks, and core validation tooling.
-- [x] Establish SemVer + Conventional Commits + release-please as the release model.
+- [x] Establish SemVer + Conventional Commits + release-plz as the release model.
 - [x] Move the validation contract to repository-level scripts.
 
 ## Next
