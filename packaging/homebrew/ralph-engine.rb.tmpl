@@ -1,0 +1,31 @@
+class RalphEngine < Formula
+  desc "Open-source plugin-first runtime for agentic coding workflows"
+  homepage "https://ralphengine.com"
+  license "MIT"
+  version "{{ version }}"
+
+  on_macos do
+    if Hardware::CPU.arm?
+      url "https://github.com/diegorodrigo90/ralph-engine/releases/download/v{{ version }}/re-cli-aarch64-apple-darwin.tar.xz"
+      sha256 "{{ sha256_aarch64_apple_darwin }}"
+    else
+      url "https://github.com/diegorodrigo90/ralph-engine/releases/download/v{{ version }}/re-cli-x86_64-apple-darwin.tar.xz"
+      sha256 "{{ sha256_x86_64_apple_darwin }}"
+    end
+  end
+
+  on_linux do
+    if Hardware::CPU.intel?
+      url "https://github.com/diegorodrigo90/ralph-engine/releases/download/v{{ version }}/re-cli-x86_64-unknown-linux-gnu.tar.xz"
+      sha256 "{{ sha256_x86_64_unknown_linux_gnu }}"
+    end
+  end
+
+  def install
+    bin.install "ralph-engine"
+  end
+
+  test do
+    assert_match version.to_s, shell_output("#{bin}/ralph-engine version")
+  end
+end

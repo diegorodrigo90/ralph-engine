@@ -3,6 +3,17 @@
   "version": "0.2.0-alpha.1",
   "description": "Open-source plugin-first runtime for agentic coding workflows.",
   "private": true,
+  "bin": {
+    "ralph-engine": "bin/ralph-engine"
+  },
+  "files": [
+    "bin/",
+    "install.js",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node install.js"
+  },
   "keywords": [
     "agentic",
     "cli",

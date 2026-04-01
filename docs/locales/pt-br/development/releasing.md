@@ -19,5 +19,6 @@
 - `Quality`, `Security` e `SonarCloud` DEVEM passar antes da criação de uma tag de release.
 - `SONAR_TOKEN` DEVE apontar para um token do SonarCloud com permissão para navegar e analisar o projeto alvo.
 - Checksums, SBOMs e atestações de artefato fazem parte do contrato-alvo de release.
-- npm e Homebrew continuam canais oficiais, mas ainda não estão integrados.
+- O npm DEVE instalar a partir de assets revisados do `cargo-dist` e verificar o checksum `.sha256` publicado antes da extração.
+- O Homebrew DEVE ser derivado dos mesmos assets e checksums do `cargo-dist` usados pelo canal npm.
 - A publicação automática NÃO DEVE sair da `main` enquanto GitHub Releases, npm e Homebrew não estiverem conectados ao pipeline em Rust.
