@@ -21,15 +21,41 @@ pub struct ProjectConfig {
 pub struct PluginConfig {
     /// Stable plugin identifier.
     pub id: &'static str,
-    /// Whether the plugin is enabled by default.
-    pub enabled: bool,
+    /// Default activation state for the plugin.
+    pub activation: PluginActivation,
 }
 
 impl PluginConfig {
     /// Creates a new immutable plugin config entry.
     #[must_use]
-    pub const fn new(id: &'static str, enabled: bool) -> Self {
-        Self { id, enabled }
+    pub const fn new(id: &'static str, activation: PluginActivation) -> Self {
+        Self { id, activation }
+    }
+
+    /// Returns whether the plugin is enabled by default.
+    #[must_use]
+    pub const fn is_enabled(self) -> bool {
+        matches!(self.activation, PluginActivation::Enabled)
+    }
+}
+
+/// Typed plugin activation states.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PluginActivation {
+    /// The plugin is enabled by default.
+    Enabled,
+    /// The plugin is disabled by default.
+    Disabled,
+}
+
+impl PluginActivation {
+    /// Returns the stable activation identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Enabled => "enabled",
+            Self::Disabled => "disabled",
+        }
     }
 }
 
@@ -49,7 +75,10 @@ pub enum McpDiscovery {
     OfficialOnly,
 }
 
-const DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new("official.basic", true)];
+const DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
+    "official.basic",
+    PluginActivation::Enabled,
+)];
 const DEFAULT_MCP: McpConfig = McpConfig {
     enabled: true,
     discovery: McpDiscovery::OfficialOnly,
@@ -67,6 +96,16 @@ pub const fn default_project_config() -> ProjectConfig {
     DEFAULT_PROJECT_CONFIG
 }
 
+/// Returns one immutable plugin config entry by identifier.
+#[must_use]
+pub fn find_plugin_config(config: &ProjectConfig, plugin_id: &str) -> Option<PluginConfig> {
+    config
+        .plugins
+        .iter()
+        .find(|plugin| plugin.id == plugin_id)
+        .copied()
+}
+
 /// Renders the project configuration contract as YAML.
 #[must_use]
 pub fn render_project_config_yaml(config: &ProjectConfig) -> String {
@@ -78,7 +117,7 @@ pub fn render_project_config_yaml(config: &ProjectConfig) -> String {
 
     for plugin in config.plugins {
         lines.push(format!("  - id: {}", plugin.id));
-        lines.push(format!("    enabled: {}", plugin.enabled));
+        lines.push(format!("    activation: {}", plugin.activation.as_str()));
     }
 
     lines.push("mcp:".to_owned());

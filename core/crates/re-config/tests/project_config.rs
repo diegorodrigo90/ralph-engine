@@ -1,8 +1,8 @@
 //! Integration tests for the shared Ralph Engine config contract.
 
 use re_config::{
-    DEFAULT_LOCALE, McpConfig, McpDiscovery, PluginConfig, ProjectConfig, default_project_config,
-    render_project_config_yaml,
+    DEFAULT_LOCALE, McpConfig, McpDiscovery, PluginActivation, PluginConfig, ProjectConfig,
+    default_project_config, find_plugin_config, render_project_config_yaml,
 };
 
 #[test]
@@ -29,7 +29,10 @@ fn default_project_config_enables_basic_plugin_by_default() {
 
     // Assert
     assert_eq!(basic_plugin.map(|plugin| plugin.id), Some("official.basic"));
-    assert_eq!(basic_plugin.map(|plugin| plugin.enabled), Some(true));
+    assert_eq!(
+        basic_plugin.map(|plugin| plugin.activation),
+        Some(PluginActivation::Enabled)
+    );
 }
 
 #[test]
@@ -45,6 +48,7 @@ fn render_project_config_yaml_is_human_readable() {
     assert!(yaml.contains("default_locale: en"));
     assert!(yaml.contains("plugins:"));
     assert!(yaml.contains("  - id: official.basic"));
+    assert!(yaml.contains("    activation: enabled"));
     assert!(yaml.contains("mcp:"));
     assert!(yaml.contains("  discovery: official_only"));
 }
@@ -52,13 +56,65 @@ fn render_project_config_yaml_is_human_readable() {
 #[test]
 fn plugin_config_constructor_is_stable() {
     // Arrange
-    let plugin = PluginConfig::new("official.github", false);
+    let plugin = PluginConfig::new("official.github", PluginActivation::Disabled);
 
     // Act
-    let matches = plugin.id == "official.github" && !plugin.enabled;
+    let matches = plugin.id == "official.github" && !plugin.is_enabled();
 
     // Assert
     assert!(matches);
+}
+
+#[test]
+fn plugin_activation_as_str_is_stable() {
+    // Arrange
+    let enabled = PluginActivation::Enabled;
+    let disabled = PluginActivation::Disabled;
+
+    // Act
+    let rendered = [enabled.as_str(), disabled.as_str()];
+
+    // Assert
+    assert_eq!(rendered, ["enabled", "disabled"]);
+}
+
+#[test]
+fn find_plugin_config_returns_matching_entry() {
+    // Arrange
+    let config = default_project_config();
+
+    // Act
+    let plugin = find_plugin_config(&config, "official.basic");
+
+    // Assert
+    assert_eq!(
+        plugin.map(|entry| entry.activation),
+        Some(PluginActivation::Enabled)
+    );
+}
+
+#[test]
+fn find_plugin_config_returns_none_for_unknown_plugin() {
+    // Arrange
+    let config = default_project_config();
+
+    // Act
+    let plugin = find_plugin_config(&config, "official.unknown");
+
+    // Assert
+    assert!(plugin.is_none());
+}
+
+#[test]
+fn plugin_config_is_enabled_reflects_enabled_state() {
+    // Arrange
+    let plugin = PluginConfig::new("official.basic", PluginActivation::Enabled);
+
+    // Act
+    let enabled = plugin.is_enabled();
+
+    // Assert
+    assert!(enabled);
 }
 
 #[test]
@@ -80,5 +136,6 @@ fn render_project_config_yaml_handles_empty_plugin_sets() {
     // Assert
     assert!(yaml.contains("plugins:"));
     assert!(!yaml.contains("  - id:"));
+    assert!(!yaml.contains("    activation:"));
     assert!(yaml.contains("  discovery: official_only"));
 }

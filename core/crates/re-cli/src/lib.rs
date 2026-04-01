@@ -75,6 +75,20 @@ mod tests {
         assert!(output.contains("Plugin: official.github"));
         assert!(output.contains("Name: GitHub"));
         assert!(output.contains("Lifecycle: discover -> configure -> load"));
+        assert!(output.contains("Default activation: disabled"));
+    }
+
+    #[test]
+    fn execute_plugins_show_reports_enabled_default_activation() {
+        // Arrange
+        let command = args(&["ralph-engine", "plugins", "show", "official.basic"]);
+
+        // Act
+        let output = execute(command).expect("plugins show should succeed");
+
+        // Assert
+        assert!(output.contains("Plugin: official.basic"));
+        assert!(output.contains("Default activation: enabled"));
     }
 
     #[test]

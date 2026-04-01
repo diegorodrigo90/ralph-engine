@@ -6,7 +6,7 @@ O contrato padrão atual já expõe:
 
 - `schema_version`
 - `default_locale`
-- entradas padrão de plugins
+- entradas padrão de plugins com estado de ativação tipado
 - padrões de MCP
 
 A arquitetura-alvo mais ampla continua incluindo:
