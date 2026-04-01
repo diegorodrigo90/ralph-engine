@@ -154,6 +154,9 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
         run: ./scripts/verify-sonarcloud-access.sh
+      - name: Resolve SonarCloud metadata
+        shell: bash
+        run: ./scripts/export-sonarcloud-metadata.sh
       - name: Install Rust toolchain
         shell: bash
         run: |
@@ -173,6 +176,13 @@ jobs:
         run: ./scripts/validate.sh --mode ci --checks coverage
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9
+        with:
+          args: >-
+            -Dsonar.projectKey=${{ env.SONAR_PROJECT_KEY }}
+            -Dsonar.organization=${{ env.SONAR_ORGANIZATION }}
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io

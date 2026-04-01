@@ -31,3 +31,5 @@ Checklist:
 ```
 
 The CI workflow now runs a SonarCloud preflight before coverage and scan steps so this class of failure shows up earlier and with a clearer message.
+
+The workflow also resolves the project key and organization from `sonar-project.properties` before the scan and passes them explicitly to the scanner. This keeps the scan input visible in the job log and removes ambiguity about which SonarCloud project the workflow is targeting.
