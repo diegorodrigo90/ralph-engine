@@ -44,6 +44,8 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 22. CI caches SHALL be keyed and scoped by the inputs that actually affect correctness, including operating system, toolchain, dependency lockfiles, and job purpose. Broad blind caches SHALL be avoided.
 23. Cache strategy SHALL optimize by domain where it improves reuse without increasing drift, such as separate dependency caches for repository Node tooling, docs tooling, and Rust build artifacts.
 24. Workflows SHALL avoid duplicate heavy work across jobs. Expensive steps such as coverage generation, scanner installs, and release-only tooling SHALL run only in the jobs that need them.
+25. Cross-platform quality SHALL be proven through an OS matrix, while platform-independent security scanners MAY run once on a canonical runner when that avoids duplicated cost without reducing coverage.
+26. CI workflows SHALL cancel superseded in-progress runs for the same branch or pull request whenever the older run no longer provides unique value.
 
 ## Structure
 
@@ -81,14 +83,18 @@ CI cache design SHALL follow these rules:
 - Node dependency caches SHALL stay lockfile-specific.
 - Shared caches MAY span jobs only when the runner platform and toolchain remain compatible.
 - Cache misses SHALL degrade safely to fresh installs; they SHALL NOT change validation behavior.
+- Cross-platform correctness SHALL be checked in the quality matrix.
+- Platform-independent supply-chain and secret scanners MAY be centralized on the canonical Linux runner to avoid repeated installs and duplicate findings.
 
 ## Release and Git Flow
 
 - `main` SHALL stay releasable.
 - Feature work SHALL happen on short-lived branches and merge through PRs.
 - Conventional Commits SHALL be enforced by hooks and CI.
-- release-plz SHALL manage version bumps, changelog updates, and tags.
-- Merge to `main` SHALL update the release PR. Merging the release PR SHALL create the release tag.
+- release-plz SHALL manage version bumps and changelog updates through the release PR.
+- Merge to `main` SHALL update the release PR.
+- Automatic publication SHALL remain disabled until the Rust distribution pipeline is wired end to end for GitHub Releases, npm, and Homebrew.
+- Release tags SHALL be created only by the hardened release workflow once `Quality`, `Security`, and `SonarCloud` have passed for the target `main` commit.
 
 ## Documentation Sync
 
