@@ -25,7 +25,7 @@ Secrets used by this workflow:
 
 The `tag` input SHALL include the leading `v`, for example `v0.2.0-alpha.1`. The workflow strips that prefix before preparing npm package versions.
 Before it publishes anything, the workflow verifies that the selected SHA is the current `origin/main` head and that the canonical `CI` workflow has already completed successfully for that exact push.
-That same `CI` workflow is responsible for building the reusable cross-platform release artifacts for the approved SHA only after `Quality`, `Security`, and `SonarCloud` have all passed.
+That same `CI` workflow builds cross-platform release candidates in parallel with the quality gates and publishes reusable approved release artifacts for the SHA only after `Quality`, `Security`, and `SonarCloud` have all passed.
 
 ## Rules
 
@@ -35,7 +35,8 @@ That same `CI` workflow is responsible for building the reusable cross-platform 
 - Release tooling is pinned to reviewed versions.
 - The release workflow SHALL verify the target `main` SHA against the canonical `CI` workflow before artifacts are published.
 - The release workflow SHALL reuse prior green CI evidence for the target `main` SHA instead of rerunning the full validation contract inside the publish workflow.
-- The canonical `CI` workflow SHALL build the reusable cross-platform release artifacts for the target `main` SHA.
+- The canonical `CI` workflow SHALL build cross-platform release candidates for the target `main` SHA in parallel with the quality gates.
+- The canonical `CI` workflow SHALL publish reusable approved release artifacts for that SHA only after `Quality`, `Security`, and `SonarCloud` have all passed.
 - The release workflow SHALL download and publish that approved artifact set instead of rebuilding it.
 - Pages SHALL publish from release tags so the public site and docs stay aligned with published versions.
 - `cargo-dist` SHALL be the Rust artifact builder for release distribution.
