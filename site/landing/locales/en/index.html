@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ralph Engine | The runtime for agentic coding workflows</title>
+    <meta
+      name="description"
+      content="Ralph Engine is an open-source plugin-first runtime for agentic coding workflows, built with a Rust-first core, official plugins, MCP-aware integrations, and disciplined quality gates."
+    />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#5b6ad0" />
+    <link rel="canonical" href="https://ralphengine.com/" />
+    <link rel="alternate" hreflang="en" href="https://ralphengine.com/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://ralphengine.com/pt-br/" />
+    <link rel="alternate" hreflang="x-default" href="https://ralphengine.com/" />
+    <meta property="og:url" content="https://ralphengine.com/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="en_US" />
+    <meta
+      property="og:title"
+      content="Ralph Engine | The runtime for agentic coding workflows"
+    />
+    <meta
+      property="og:description"
+      content="A Rust-first runtime for agent loops, plugins, MCP-aware integrations, and quality gates that stay coherent from local development to CI."
+    />
+    <meta property="og:image" content="https://ralphengine.com/logo-icon.svg" />
+    <meta property="og:image:alt" content="Ralph Engine logo" />
+    <meta name="twitter:card" content="summary" />
+    <meta
+      name="twitter:title"
+      content="Ralph Engine | The runtime for agentic coding workflows"
+    />
+    <meta
+      name="twitter:description"
+      content="A Rust-first runtime for agent loops, plugins, MCP-aware integrations, and quality gates that stay coherent from local development to CI."
+    />
+    <meta name="twitter:image" content="https://ralphengine.com/logo-icon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/logo-icon.svg" />
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Ralph Engine",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Linux, macOS, Windows",
+        "url": "https://ralphengine.com/",
+        "description": "Open-source plugin-first runtime for agentic coding workflows.",
+        "softwareVersion": "0.2.0-alpha.1"
+      }
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#content">Skip to content</a>
+    <main class="shell">
+      <header class="topbar-wrap">
+        <nav class="topbar" aria-label="Primary">
+          <a class="brand" href="/" aria-label="Ralph Engine home">
+            <img src="/logo-icon.svg" alt="" width="28" height="28" decoding="async" />
+            <span>Ralph Engine</span>
+          </a>
+          <div class="topbar-group">
+            <div class="nav-links">
+              <a aria-current="page" href="/">Home</a>
+              <a href="/docs/">Docs</a>
+              <a href="/plugins/">Plugins</a>
+              <a href="/docs/development/roadmap">Roadmap</a>
+              <a href="https://github.com/diegorodrigo90/ralph-engine">GitHub</a>
+            </div>
+            <div class="locale-switcher" aria-label="Language switcher">
+              <a aria-current="page" href="/">EN</a>
+              <a href="/pt-br/">PT-BR</a>
+            </div>
+          </div>
+        </nav>
+      </header>
+
+      <div class="page">
+        <section class="hero section" id="content">
+          <div class="hero-copy">
+            <p class="eyebrow">Open-source plugin-first runtime</p>
+            <h1>The <span class="accent-word">runtime</span> for agentic coding workflows.</h1>
+            <p class="lede">
+              Ralph Engine gives teams a Rust-first foundation for agent loops, official plugins,
+              MCP-aware integrations, and quality gates that stay coherent from local development
+              to CI.
+            </p>
+            <div class="actions">
+              <a class="button primary" href="/docs/">Read the docs</a>
+              <a class="button secondary" href="/plugins/">Open plugins</a>
+            </div>
+            <div class="hero-meta" aria-label="Product highlights">
+              <span class="pill">Rust-first core</span>
+              <span class="pill">Official plugins</span>
+              <span class="pill">External MCP first-class</span>
+              <span class="pill">Strict quality gates</span>
+            </div>
+          </div>
+
+          <aside class="hero-panel" aria-label="Installation and current baseline">
+            <img
+              class="hero-logo"
+              src="/logo.svg"
+              alt="Ralph Engine"
+              width="420"
+              height="146"
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
+            />
+            <div>
+              <h2 class="panel-heading">Start from a source-first baseline.</h2>
+              <div class="terminal" aria-label="Install from source">
+                <p class="terminal-label">Install from source</p>
+                <pre><code>git clone https://github.com/diegorodrigo90/ralph-engine.git
+cd ralph-engine
+./scripts/bootstrap-dev.sh
+cargo run -p re-cli -- --version</code></pre>
+              </div>
+              <p class="terminal-note">
+                npm and Homebrew remain official channels and are being rebuilt on the new release pipeline.
+              </p>
+            </div>
+          </aside>
+        </section>
+
+        <section class="section" aria-labelledby="surfaces-title">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">One product, three public surfaces</p>
+              <h2 id="surfaces-title">Home, docs, and catalog should feel like one system.</h2>
+            </div>
+            <p>
+              The landing page explains the product quickly. The docs carry the technical depth.
+              The catalog exposes the plugin ecosystem honestly, without pretending it is already a crowded marketplace.
+            </p>
+          </div>
+          <div class="surface-grid">
+            <article class="surface-card">
+              <p class="eyebrow">Home</p>
+              <h3>Explain the product before trying to impress the reader.</h3>
+              <p>
+                The homepage should answer what Ralph Engine is, why it exists, and where to go next, without startup filler or generic AI spectacle.
+              </p>
+              <a class="surface-link" href="/">View home</a>
+            </article>
+            <article class="surface-card">
+              <p class="eyebrow">Docs</p>
+              <h3>Keep the docs as the primary path for technical trust.</h3>
+              <p>
+                Architecture, CLI, coding standards, release flow, and roadmap already live under the same contract the code follows.
+              </p>
+              <a class="surface-link" href="/docs/">Read docs</a>
+            </article>
+            <article class="surface-card">
+              <p class="eyebrow">Plugins</p>
+              <h3>Make ecosystem discovery credible before it is dense.</h3>
+              <p>
+                Stable URLs, trust framing, and machine-readable endpoints matter more than fake marketplace density at this stage.
+              </p>
+              <a class="surface-link" href="/plugins/">Open plugins</a>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="trust-title">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Why Ralph Engine</p>
+              <h2 id="trust-title">A runtime should tighten workflows, not add another fragile layer.</h2>
+            </div>
+            <p>
+              Ralph Engine is being built for teams that care about clarity, maintainability, and operational discipline. The point is not another thin wrapper around models. The point is a durable runtime.
+            </p>
+          </div>
+          <div class="trust-grid">
+            <article class="trust-card">
+              <h3>Plugin-first architecture</h3>
+              <p>
+                Official plugins evolve in Rust, third-party plugins stay language-agnostic, and capabilities remain the unit of extensibility.
+              </p>
+              <ul class="quality-list">
+                <li>Capabilities instead of ad hoc extension points</li>
+                <li>External MCP remains first-class</li>
+                <li>Templates stay plugin-owned</li>
+              </ul>
+            </article>
+            <article class="trust-card">
+              <h3>Quality and security as product features</h3>
+              <p>
+                SemVer, pinned Actions, supply-chain scanning, strict linting, coverage targets, and release automation are part of the runtime contract.
+              </p>
+              <ul class="quality-list">
+                <li>Rustdoc, clippy, tests, coverage and docs build</li>
+                <li>cargo-audit, cargo-deny, Trivy and gitleaks</li>
+                <li>Signed artifacts, SBOM and provenance in the release path</li>
+              </ul>
+            </article>
+            <article class="trust-card">
+              <h3>Context that stays coherent</h3>
+              <p>
+                Docs, catalog, repo metadata and machine-readable surfaces are intentionally aligned so humans and agents can find the right context fast.
+              </p>
+              <a class="surface-link" href="/llms.txt">Read llms.txt</a>
+            </article>
+            <article class="trust-card">
+              <h3>Open source by default</h3>
+              <p>
+                The public site is static-first, documentation-led, and honest about maturity. That helps adoption more than a polished illusion of completeness.
+              </p>
+              <a class="surface-link" href="https://github.com/diegorodrigo90/ralph-engine/releases">View releases</a>
+            </article>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="cta-panel">
+            <div>
+              <p class="eyebrow">Start with the strongest surface</p>
+              <h2>Read the docs, then come back to the catalog as the ecosystem grows.</h2>
+              <p>
+                The docs are already the deepest part of the public product. Use them to understand the architecture, coding standards, release flow, and the Rust-first reboot baseline.
+              </p>
+            </div>
+            <div class="actions">
+                <a class="button primary" href="/docs/">Open docs</a>
+              <a class="button secondary" href="/plugins/">Open plugins</a>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="site-footer">
+        <div class="page footer-inner">
+          <p>Released under the MIT License.</p>
+          <div class="footer-links">
+            <a href="/">Home</a>
+            <a href="/docs/">Docs</a>
+            <a href="/plugins/">Plugins</a>
+            <a href="https://github.com/diegorodrigo90/ralph-engine">GitHub</a>
+          </div>
+        </div>
+      </footer>
+    </main>
+    <!-- Cloudflare Web Analytics -->
+    <script
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "882eb5c78500434c86bc3c6bbde81b4a"}'
+    ></script>
+    <!-- End Cloudflare Web Analytics -->
+  </body>
+</html>

@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ralph Engine | O runtime para fluxos de desenvolvimento com agentes</title>
+    <meta
+      name="description"
+      content="Ralph Engine é um runtime open source, orientado a plugins, para fluxos de desenvolvimento com agentes, com base em Rust, plugins oficiais, integrações com MCP e verificações rígidas de qualidade."
+    />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#5b6ad0" />
+    <link rel="canonical" href="https://ralphengine.com/pt-br/" />
+    <link rel="alternate" hreflang="en" href="https://ralphengine.com/" />
+    <link rel="alternate" hreflang="pt-BR" href="https://ralphengine.com/pt-br/" />
+    <meta property="og:url" content="https://ralphengine.com/pt-br/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_BR" />
+    <meta property="og:title" content="Ralph Engine | O runtime para fluxos de desenvolvimento com agentes" />
+    <meta
+      property="og:description"
+      content="Uma base em Rust para loops de agente, plugins, integrações com MCP e verificações de qualidade coerentes do desenvolvimento local até a CI."
+    />
+    <meta property="og:image" content="https://ralphengine.com/logo-icon.svg" />
+    <meta property="og:image:alt" content="Logo do Ralph Engine" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Ralph Engine | O runtime para fluxos de desenvolvimento com agentes" />
+    <meta
+      name="twitter:description"
+      content="Uma base em Rust para loops de agente, plugins, integrações com MCP e verificações de qualidade coerentes do desenvolvimento local até a CI."
+    />
+    <meta name="twitter:image" content="https://ralphengine.com/logo-icon.svg" />
+    <link rel="icon" type="image/svg+xml" href="/logo-icon.svg" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#content">Pular para o conteúdo</a>
+    <main class="shell">
+      <header class="topbar-wrap">
+        <nav class="topbar" aria-label="Primária">
+          <a class="brand" href="/pt-br/" aria-label="Página inicial do Ralph Engine">
+            <img src="/logo-icon.svg" alt="" width="28" height="28" decoding="async" />
+            <span>Ralph Engine</span>
+          </a>
+          <div class="topbar-group">
+            <div class="nav-links">
+              <a aria-current="page" href="/pt-br/">Início</a>
+              <a href="/docs/pt-br/">Docs</a>
+              <a href="/pt-br/plugins/">Plugins</a>
+              <a href="/docs/pt-br/development/roadmap">Roadmap</a>
+              <a href="https://github.com/diegorodrigo90/ralph-engine">GitHub</a>
+            </div>
+            <div class="locale-switcher" aria-label="Seletor de idioma">
+              <a href="/">EN</a>
+              <a aria-current="page" href="/pt-br/">PT-BR</a>
+            </div>
+          </div>
+        </nav>
+      </header>
+
+      <div class="page">
+        <section class="hero section" id="content">
+          <div class="hero-copy">
+            <p class="eyebrow">Runtime open source orientado a plugins</p>
+            <h1>O <span class="accent-word">runtime</span> para fluxos de desenvolvimento com agentes.</h1>
+            <p class="lede">
+              Ralph Engine entrega uma base em Rust para loops de agente, plugins oficiais, integrações com MCP e verificações de qualidade que continuam coerentes do desenvolvimento local até a CI.
+            </p>
+            <div class="actions">
+              <a class="button primary" href="/docs/pt-br/">Ler a documentação</a>
+              <a class="button secondary" href="/pt-br/plugins/">Abrir plugins</a>
+            </div>
+            <div class="hero-meta" aria-label="Destaques do produto">
+              <span class="pill">Base em Rust</span>
+              <span class="pill">Plugins oficiais</span>
+              <span class="pill">MCP externo como parte nativa</span>
+              <span class="pill">Verificações rígidas de qualidade</span>
+            </div>
+          </div>
+
+          <aside class="hero-panel" aria-label="Instalação e baseline atual">
+            <img
+              class="hero-logo"
+              src="/logo.svg"
+              alt="Ralph Engine"
+              width="420"
+              height="146"
+              loading="eager"
+              fetchpriority="high"
+              decoding="async"
+            />
+            <div>
+              <h2 class="panel-heading">Comece pela base via código-fonte.</h2>
+              <div class="terminal" aria-label="Instalar via código-fonte">
+                <p class="terminal-label">Instalação via código-fonte</p>
+                <pre><code>git clone https://github.com/diegorodrigo90/ralph-engine.git
+cd ralph-engine
+./scripts/bootstrap-dev.sh
+cargo run -p re-cli -- --version</code></pre>
+              </div>
+              <p class="terminal-note">
+                npm e Homebrew continuam canais oficiais e estão sendo reconstruídos no novo pipeline de release.
+              </p>
+            </div>
+          </aside>
+        </section>
+
+        <section class="section" aria-labelledby="surfaces-title-pt">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Um produto, três superfícies públicas</p>
+              <h2 id="surfaces-title-pt">Início, docs e catálogo precisam parecer um sistema só.</h2>
+            </div>
+            <p>
+              A página inicial explica o produto rapidamente. As docs carregam a profundidade técnica. O catálogo apresenta o ecossistema de plugins com honestidade, sem fingir um marketplace lotado antes da hora.
+            </p>
+          </div>
+          <div class="surface-grid">
+            <article class="surface-card">
+              <p class="eyebrow">Início</p>
+              <h3>Explique o produto antes de tentar impressionar.</h3>
+              <p>
+                A página inicial deve responder o que é o Ralph Engine, por que ele existe e qual é o próximo passo, sem visual genérico de produto de IA.
+              </p>
+              <a class="surface-link" href="/pt-br/">Ver início</a>
+            </article>
+            <article class="surface-card">
+              <p class="eyebrow">Docs</p>
+              <h3>Mantenha as docs como o caminho principal para confiança técnica.</h3>
+              <p>
+                Arquitetura, CLI, padrões de código, fluxo de release e roadmap já vivem sob o mesmo contrato que o código segue.
+              </p>
+              <a class="surface-link" href="/docs/pt-br/">Ler docs</a>
+            </article>
+            <article class="surface-card">
+              <p class="eyebrow">Plugins</p>
+              <h3>Faça a descoberta do ecossistema parecer crível antes de parecer densa.</h3>
+              <p>
+                URLs estáveis, sinais claros de confiança e endpoints legíveis por máquina importam mais do que densidade artificial neste estágio.
+              </p>
+              <a class="surface-link" href="/pt-br/plugins/">Abrir plugins</a>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="trust-title-pt">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Por que Ralph Engine</p>
+              <h2 id="trust-title-pt">Um runtime deve apertar o workflow, não adicionar mais uma camada frágil.</h2>
+            </div>
+            <p>
+              Ralph Engine está sendo construído para times que valorizam clareza, manutenção e disciplina operacional. O objetivo não é mais um wrapper raso sobre modelos. O objetivo é um runtime durável.
+            </p>
+          </div>
+          <div class="trust-grid">
+            <article class="trust-card">
+              <h3>Arquitetura plugin-first</h3>
+              <p>
+                Plugins oficiais evoluem em Rust, plugins de terceiros continuam agnósticos de linguagem, e capabilities seguem como unidade de extensibilidade.
+              </p>
+              <ul class="quality-list">
+                <li>Capabilities em vez de pontos de extensão ad hoc</li>
+                <li>MCP externo continua como parte nativa da arquitetura</li>
+                <li>Templates continuam sob responsabilidade do plugin</li>
+              </ul>
+            </article>
+            <article class="trust-card">
+              <h3>Qualidade e segurança como features do produto</h3>
+              <p>
+                SemVer, Actions pinadas, varredura de supply chain, linting estrita, cobertura de testes e automação de release fazem parte do contrato do runtime.
+              </p>
+              <ul class="quality-list">
+                <li>Rustdoc, clippy, testes, coverage e docs build</li>
+                <li>cargo-audit, cargo-deny, Trivy e gitleaks</li>
+                <li>Artefatos assinados, SBOM e provenance no release</li>
+              </ul>
+            </article>
+            <article class="trust-card">
+              <h3>Contexto que continua coerente</h3>
+              <p>
+                Docs, catálogo, metadados do repositório e superfícies legíveis por máquina ficam alinhados de propósito para que pessoas e agentes encontrem o contexto certo rapidamente.
+              </p>
+              <a class="surface-link" href="/llms.txt">Ler llms.txt</a>
+            </article>
+            <article class="trust-card">
+              <h3>Open source por padrão</h3>
+              <p>
+                O site público é estático por padrão, guiado por documentação e honesto sobre maturidade. Isso ajuda mais a adoção do que uma ilusão polida de completude.
+              </p>
+              <a class="surface-link" href="https://github.com/diegorodrigo90/ralph-engine/releases">Ver releases</a>
+            </article>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="cta-panel">
+            <div>
+              <p class="eyebrow">Comece pela superfície mais forte</p>
+              <h2>Leia as docs primeiro e volte ao catálogo conforme o ecossistema cresce.</h2>
+              <p>
+                As docs já são a parte mais profunda do produto público. Use-as para entender arquitetura, padrões de código, fluxo de release e a base atual do reboot em Rust.
+              </p>
+            </div>
+            <div class="actions">
+              <a class="button primary" href="/docs/pt-br/">Abrir docs</a>
+              <a class="button secondary" href="/pt-br/plugins/">Abrir plugins</a>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="site-footer">
+        <div class="page footer-inner">
+          <p>Lançado sob a licença MIT.</p>
+          <div class="footer-links">
+            <a href="/pt-br/">Início</a>
+            <a href="/docs/pt-br/">Docs</a>
+            <a href="/pt-br/plugins/">Plugins</a>
+            <a href="https://github.com/diegorodrigo90/ralph-engine">GitHub</a>
+          </div>
+        </div>
+      </footer>
+    </main>
+    <!-- Cloudflare Web Analytics -->
+    <script
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "882eb5c78500434c86bc3c6bbde81b4a"}'
+    ></script>
+    <!-- End Cloudflare Web Analytics -->
+  </body>
+</html>

@@ -1,0 +1,10 @@
+# Referência da CLI
+
+A base atual em Rust expõe uma superfície mínima de CLI enquanto o runtime é reconstruído.
+
+## Comandos
+
+```bash
+ralph-engine
+ralph-engine --version
+```
