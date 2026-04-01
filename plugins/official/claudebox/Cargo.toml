@@ -9,6 +9,7 @@ homepage.workspace = true
 authors.workspace = true
 
 [dependencies]
+re-mcp = { path = "../../../core/crates/re-mcp", version = "0.2.0-alpha.1" }
 re-plugin = { path = "../../../core/crates/re-plugin", version = "0.2.0-alpha.1" }
 
 [lints]

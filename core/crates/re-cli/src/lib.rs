@@ -2,6 +2,7 @@
 
 use std::fmt;
 
+use re_mcp::{McpServerDescriptor, render_mcp_server_listing};
 use re_plugin::{PluginDescriptor, render_plugin_listing};
 
 /// CLI execution errors.
@@ -30,8 +31,16 @@ where
             re_core::banner()
         )),
         Some("--version") => Ok(env!("CARGO_PKG_VERSION").to_owned()),
+        Some("mcp") => execute_mcp_command(&collected[2..]),
         Some("plugins") => execute_plugins_command(&collected[2..]),
         Some(other) => Err(CliError(format!("unknown command: {other}"))),
+    }
+}
+
+fn execute_mcp_command(args: &[String]) -> Result<String, CliError> {
+    match args.first().map(String::as_str) {
+        None | Some("list") => Ok(render_mcp_server_listing(&official_mcp_servers())),
+        Some(other) => Err(CliError(format!("unknown mcp command: {other}"))),
     }
 }
 
@@ -52,6 +61,15 @@ fn official_plugins() -> [PluginDescriptor; 8] {
         re_plugin_github::descriptor(),
         re_plugin_ssh::descriptor(),
         re_plugin_tdd_strict::descriptor(),
+    ]
+}
+
+fn official_mcp_servers() -> [McpServerDescriptor; 4] {
+    [
+        re_plugin_claude::mcp_servers()[0],
+        re_plugin_claudebox::mcp_servers()[0],
+        re_plugin_codex::mcp_servers()[0],
+        re_plugin_github::mcp_servers()[0],
     ]
 }
 
@@ -101,6 +119,44 @@ mod tests {
         assert!(output.contains("Official plugins (8)"));
         assert!(output.contains("official.basic"));
         assert!(output.contains("official.github"));
+    }
+
+    #[test]
+    fn execute_mcp_lists_official_servers() {
+        // Arrange
+        let command = args(&["ralph-engine", "mcp", "list"]);
+
+        // Act
+        let output = execute(command).expect("mcp list should succeed");
+
+        // Assert
+        assert!(output.contains("Official MCP servers (4)"));
+        assert!(output.contains("official.codex.session"));
+        assert!(output.contains("official.github.repository"));
+    }
+
+    #[test]
+    fn execute_mcp_without_subcommand_lists_official_servers() {
+        // Arrange
+        let command = args(&["ralph-engine", "mcp"]);
+
+        // Act
+        let output = execute(command).expect("mcp command should succeed");
+
+        // Assert
+        assert!(output.contains("Official MCP servers (4)"));
+    }
+
+    #[test]
+    fn execute_unknown_mcp_subcommand_fails() {
+        // Arrange
+        let command = args(&["ralph-engine", "mcp", "doctor"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown mcp command should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown mcp command: doctor");
     }
 
     #[test]

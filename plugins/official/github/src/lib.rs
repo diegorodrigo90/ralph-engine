@@ -1,5 +1,6 @@
 //! Official GitHub integration plugin metadata.
 
+use re_mcp::{McpServerDescriptor, McpTransport};
 use re_plugin::PluginDescriptor;
 
 /// Stable plugin identifier.
@@ -14,6 +15,12 @@ const CAPABILITIES: &[&str] = &[
 ];
 const DESCRIPTOR: PluginDescriptor =
     PluginDescriptor::new(PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION, CAPABILITIES);
+const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
+    "official.github.repository",
+    PLUGIN_ID,
+    "GitHub Repository",
+    McpTransport::Stdio,
+)];
 
 /// Declared capabilities for the official plugin foundation.
 #[must_use]
@@ -27,9 +34,15 @@ pub const fn descriptor() -> PluginDescriptor {
     DESCRIPTOR
 }
 
+/// Returns the immutable MCP server contributions declared by the plugin.
+#[must_use]
+pub const fn mcp_servers() -> &'static [McpServerDescriptor] {
+    MCP_SERVERS
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, capabilities, descriptor};
+    use super::{PLUGIN_ID, capabilities, descriptor, mcp_servers};
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -65,5 +78,17 @@ mod tests {
 
         // Assert
         assert!(descriptor_matches);
+    }
+
+    #[test]
+    fn plugin_declares_mcp_server_contributions() {
+        // Arrange
+        let servers = mcp_servers();
+
+        // Act
+        let contributes_servers = !servers.is_empty() && servers[0].plugin_id == PLUGIN_ID;
+
+        // Assert
+        assert!(contributes_servers);
     }
 }

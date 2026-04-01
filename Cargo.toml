@@ -1,6 +1,7 @@
 [workspace]
 members = [
   "core/crates/re-core",
+  "core/crates/re-mcp",
   "core/crates/re-plugin",
   "core/crates/re-cli",
   "plugins/official/basic",

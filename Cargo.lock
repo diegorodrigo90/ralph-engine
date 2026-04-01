@@ -7,6 +7,7 @@ name = "re-cli"
 version = "0.2.0-alpha.1"
 dependencies = [
  "re-core",
+ "re-mcp",
  "re-plugin",
  "re-plugin-basic",
  "re-plugin-bmad",
@@ -20,6 +21,10 @@ dependencies = [
 
 [[package]]
 name = "re-core"
+version = "0.2.0-alpha.1"
+
+[[package]]
+name = "re-mcp"
 version = "0.2.0-alpha.1"
 
 [[package]]
@@ -44,6 +49,7 @@ dependencies = [
 name = "re-plugin-claude"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-mcp",
  "re-plugin",
 ]
 
@@ -51,6 +57,7 @@ dependencies = [
 name = "re-plugin-claudebox"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-mcp",
  "re-plugin",
 ]
 
@@ -58,6 +65,7 @@ dependencies = [
 name = "re-plugin-codex"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-mcp",
  "re-plugin",
 ]
 
@@ -65,6 +73,7 @@ dependencies = [
 name = "re-plugin-github"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-mcp",
  "re-plugin",
 ]
 
