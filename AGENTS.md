@@ -48,6 +48,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 26. CI workflows SHALL cancel superseded in-progress runs for the same branch or pull request whenever the older run no longer provides unique value.
 27. SonarCloud configuration SHALL fail fast with a clear preflight error when the configured token cannot browse or analyze the target project.
 28. SonarCloud scans SHALL resolve the project key and organization from `sonar-project.properties` and pass them explicitly to the scanner so CI logs and behavior stay unambiguous.
+29. Coverage used by SonarCloud SHALL be generated once in the canonical Linux quality job, uploaded as an artifact, and reused by the SonarCloud job instead of rerunning test coverage.
 
 ## Structure
 
