@@ -389,6 +389,27 @@ mod tests {
     }
 
     #[test]
+    fn execute_runtime_plan_returns_typed_action_plan() {
+        // Arrange
+        let command = args(&["ralph-engine", "runtime", "plan"]);
+
+        // Act
+        let output = execute(command).expect("runtime plan should succeed");
+
+        // Assert
+        assert!(output.contains("Runtime action plan (28)"));
+        assert!(output.contains(
+            "enable_plugin | target=official.github | reason=the plugin is registered but disabled"
+        ));
+        assert!(output.contains(
+            "enable_capability_provider | target=official.github | reason=the provider still disables capability forge_provider"
+        ));
+        assert!(output.contains(
+            "enable_mcp_server | target=official.github.repository | reason=the MCP contribution is registered but disabled"
+        ));
+    }
+
+    #[test]
     fn execute_runtime_without_subcommand_returns_resolved_topology() {
         // Arrange
         let command = args(&["ralph-engine", "runtime"]);

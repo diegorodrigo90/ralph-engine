@@ -20,6 +20,7 @@ ralph-engine runtime
 ralph-engine runtime show
 ralph-engine runtime status
 ralph-engine runtime issues
+ralph-engine runtime plan
 ralph-engine mcp
 ralph-engine mcp list
 ralph-engine mcp show <server-id>
@@ -36,3 +37,5 @@ O comando `runtime show` imprime a topologia resolvida do runtime, incluindo ati
 O comando `runtime status` imprime o resumo tipado de health do runtime, incluindo providers habilitados e desabilitados em plugins, capabilities e servidores MCP.
 
 O comando `runtime issues` imprime a lista tipada de issues pendentes do runtime e as ações recomendadas, em vez de depender de heurísticas locais em cada comando.
+
+O comando `runtime plan` imprime o plano tipado de remediação derivado da topologia resolvida, para que o próximo passo de enablement permaneça explícito e modular em vez de ser inferido ad hoc na CLI.
