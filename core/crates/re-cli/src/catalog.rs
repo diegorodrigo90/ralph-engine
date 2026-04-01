@@ -6,10 +6,14 @@ use re_config::{
 };
 use re_core::{
     RuntimeCapabilityRegistration, RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase,
-    RuntimePluginRegistration, RuntimePolicyRegistration, RuntimeTopology,
+    RuntimePluginRegistration, RuntimePolicyRegistration, RuntimeProviderKind,
+    RuntimeProviderRegistration, RuntimeTopology,
 };
 use re_mcp::McpServerDescriptor;
-use re_plugin::{POLICY, PluginDescriptor, PluginRuntimeHook};
+use re_plugin::{
+    CONTEXT_PROVIDER, DATA_SOURCE, FORGE_PROVIDER, POLICY, PluginCapability, PluginDescriptor,
+    PluginRuntimeHook, REMOTE_CONTROL,
+};
 
 /// Immutable owned snapshot of the official runtime catalog.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -18,6 +22,8 @@ pub struct OfficialRuntimeSnapshot {
     pub plugins: [RuntimePluginRegistration; 8],
     /// Resolved official capability registrations.
     pub capabilities: Vec<RuntimeCapabilityRegistration>,
+    /// Resolved official provider registrations.
+    pub providers: Vec<RuntimeProviderRegistration>,
     /// Resolved official policy registrations.
     pub policies: Vec<RuntimePolicyRegistration>,
     /// Resolved official runtime-hook registrations.
@@ -33,6 +39,7 @@ impl OfficialRuntimeSnapshot {
         official_runtime_topology(
             &self.plugins,
             &self.capabilities,
+            &self.providers,
             &self.policies,
             &self.hooks,
             &self.mcp_servers,
@@ -173,6 +180,54 @@ pub fn official_runtime_hooks() -> Vec<RuntimeHookRegistration> {
         .collect()
 }
 
+fn provider_kind_for_capability(capability: PluginCapability) -> Option<RuntimeProviderKind> {
+    match capability {
+        DATA_SOURCE => Some(RuntimeProviderKind::DataSource),
+        CONTEXT_PROVIDER => Some(RuntimeProviderKind::ContextProvider),
+        FORGE_PROVIDER => Some(RuntimeProviderKind::ForgeProvider),
+        REMOTE_CONTROL => Some(RuntimeProviderKind::RemoteControl),
+        _ => None,
+    }
+}
+
+fn registration_hook_for_provider(kind: RuntimeProviderKind) -> PluginRuntimeHook {
+    match kind {
+        RuntimeProviderKind::DataSource => PluginRuntimeHook::DataSourceRegistration,
+        RuntimeProviderKind::ContextProvider => PluginRuntimeHook::ContextProviderRegistration,
+        RuntimeProviderKind::ForgeProvider => PluginRuntimeHook::ForgeProviderRegistration,
+        RuntimeProviderKind::RemoteControl => PluginRuntimeHook::RemoteControlBootstrap,
+    }
+}
+
+/// Returns the resolved runtime provider registrations for the official catalog.
+#[must_use]
+pub fn official_runtime_providers() -> Vec<RuntimeProviderRegistration> {
+    official_runtime_plugins()
+        .into_iter()
+        .flat_map(|plugin| {
+            plugin
+                .descriptor
+                .capabilities
+                .iter()
+                .copied()
+                .filter_map(move |capability| {
+                    provider_kind_for_capability(capability).map(|kind| {
+                        RuntimeProviderRegistration::new(
+                            kind,
+                            plugin.descriptor.id,
+                            plugin.activation,
+                            plugin.descriptor.load_boundary,
+                            plugin
+                                .descriptor
+                                .runtime_hooks
+                                .contains(&registration_hook_for_provider(kind)),
+                        )
+                    })
+                })
+        })
+        .collect()
+}
+
 /// Returns the resolved runtime policy registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_policies() -> Vec<RuntimePolicyRegistration> {
@@ -199,6 +254,7 @@ pub fn official_runtime_policies() -> Vec<RuntimePolicyRegistration> {
 pub fn official_runtime_topology<'a>(
     plugins: &'a [RuntimePluginRegistration],
     capabilities: &'a [RuntimeCapabilityRegistration],
+    providers: &'a [RuntimeProviderRegistration],
     policies: &'a [RuntimePolicyRegistration],
     hooks: &'a [RuntimeHookRegistration],
     mcp_servers: &'a [RuntimeMcpRegistration],
@@ -208,6 +264,7 @@ pub fn official_runtime_topology<'a>(
         locale: default_project_config_layer().config.default_locale,
         plugins,
         capabilities,
+        providers,
         policies,
         hooks,
         mcp_servers,
@@ -219,6 +276,7 @@ pub fn official_runtime_topology<'a>(
 pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
     let plugins = official_runtime_plugins();
     let capabilities = official_runtime_capabilities();
+    let providers = official_runtime_providers();
     let policies = official_runtime_policies();
     let hooks = official_runtime_hooks();
     let mcp_servers = official_runtime_mcp_registrations();
@@ -226,6 +284,7 @@ pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
     OfficialRuntimeSnapshot {
         plugins,
         capabilities,
+        providers,
         policies,
         hooks,
         mcp_servers,

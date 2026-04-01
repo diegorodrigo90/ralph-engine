@@ -66,6 +66,8 @@ pub enum RuntimeIssueKind {
     PluginDisabled,
     /// A capability provider is registered but still disabled.
     CapabilityDisabled,
+    /// A provider contribution is registered but still disabled.
+    ProviderDisabled,
     /// A policy provider is registered but still disabled.
     PolicyDisabled,
     /// A runtime-hook provider is registered but still disabled.
@@ -81,6 +83,7 @@ impl RuntimeIssueKind {
         match self {
             Self::PluginDisabled => "plugin_disabled",
             Self::CapabilityDisabled => "capability_disabled",
+            Self::ProviderDisabled => "provider_disabled",
             Self::PolicyDisabled => "policy_disabled",
             Self::HookDisabled => "hook_disabled",
             Self::McpServerDisabled => "mcp_server_disabled",
@@ -95,6 +98,8 @@ pub enum RuntimeActionKind {
     EnablePlugin,
     /// Re-enable a disabled capability provider.
     EnableCapabilityProvider,
+    /// Re-enable a disabled provider contribution.
+    EnableProvider,
     /// Re-enable a disabled policy provider.
     EnablePolicyProvider,
     /// Re-enable a disabled runtime-hook provider.
@@ -110,6 +115,7 @@ impl RuntimeActionKind {
         match self {
             Self::EnablePlugin => "enable_plugin",
             Self::EnableCapabilityProvider => "enable_capability_provider",
+            Self::EnableProvider => "enable_provider",
             Self::EnablePolicyProvider => "enable_policy_provider",
             Self::EnableHookProvider => "enable_hook_provider",
             Self::EnableMcpServer => "enable_mcp_server",
@@ -207,6 +213,73 @@ impl RuntimeCapabilityRegistration {
     }
 }
 
+/// Typed runtime provider-kind identifier.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RuntimeProviderKind {
+    /// Data-source provider contribution.
+    DataSource,
+    /// Context-provider contribution.
+    ContextProvider,
+    /// Forge-provider contribution.
+    ForgeProvider,
+    /// Remote-control contribution.
+    RemoteControl,
+}
+
+impl RuntimeProviderKind {
+    /// Returns the stable runtime-provider identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::DataSource => "data_source",
+            Self::ContextProvider => "context_provider",
+            Self::ForgeProvider => "forge_provider",
+            Self::RemoteControl => "remote_control",
+        }
+    }
+}
+
+/// One typed provider registration in the resolved runtime topology.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimeProviderRegistration {
+    /// Stable provider kind.
+    pub kind: RuntimeProviderKind,
+    /// Plugin providing the contribution.
+    pub plugin_id: &'static str,
+    /// Effective activation state for the provider plugin.
+    pub activation: PluginActivation,
+    /// Declared load boundary for the provider plugin.
+    pub load_boundary: PluginLoadBoundary,
+    /// Whether the provider also declares the matching runtime hook.
+    pub registration_hook_registered: bool,
+}
+
+impl RuntimeProviderRegistration {
+    /// Creates a new immutable runtime provider registration.
+    #[must_use]
+    pub const fn new(
+        kind: RuntimeProviderKind,
+        plugin_id: &'static str,
+        activation: PluginActivation,
+        load_boundary: PluginLoadBoundary,
+        registration_hook_registered: bool,
+    ) -> Self {
+        Self {
+            kind,
+            plugin_id,
+            activation,
+            load_boundary,
+            registration_hook_registered,
+        }
+    }
+
+    /// Returns whether the provider is enabled in the resolved topology.
+    #[must_use]
+    pub const fn is_enabled(self) -> bool {
+        matches!(self.activation, PluginActivation::Enabled)
+    }
+}
+
 /// One typed policy registration in the resolved runtime topology.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RuntimePolicyRegistration {
@@ -296,6 +369,8 @@ pub struct RuntimeTopology<'a> {
     pub plugins: &'a [RuntimePluginRegistration],
     /// Resolved capability registrations.
     pub capabilities: &'a [RuntimeCapabilityRegistration],
+    /// Resolved provider registrations.
+    pub providers: &'a [RuntimeProviderRegistration],
     /// Resolved policy registrations.
     pub policies: &'a [RuntimePolicyRegistration],
     /// Resolved runtime-hook registrations.
@@ -319,6 +394,10 @@ pub struct RuntimeStatus {
     pub enabled_capabilities: usize,
     /// Number of disabled capability providers.
     pub disabled_capabilities: usize,
+    /// Number of enabled providers.
+    pub enabled_providers: usize,
+    /// Number of disabled providers.
+    pub disabled_providers: usize,
     /// Number of enabled policy providers.
     pub enabled_policies: usize,
     /// Number of disabled policy providers.
@@ -441,6 +520,19 @@ pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
         ));
     }
 
+    lines.push(format!("Providers ({})", topology.providers.len()));
+
+    for provider in topology.providers {
+        lines.push(format!(
+            "- {} | plugin={} | activation={} | boundary={} | registration_hook={}",
+            provider.kind.as_str(),
+            provider.plugin_id,
+            provider.activation.as_str(),
+            provider.load_boundary.as_str(),
+            provider.registration_hook_registered
+        ));
+    }
+
     lines.push(format!("Policies ({})", topology.policies.len()));
 
     for policy in topology.policies {
@@ -496,6 +588,12 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
         .filter(|capability| capability.is_enabled())
         .count();
     let disabled_capabilities = topology.capabilities.len() - enabled_capabilities;
+    let enabled_providers = topology
+        .providers
+        .iter()
+        .filter(|provider| provider.is_enabled())
+        .count();
+    let disabled_providers = topology.providers.len() - enabled_providers;
     let enabled_policies = topology
         .policies
         .iter()
@@ -516,6 +614,7 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
     let disabled_mcp_servers = topology.mcp_servers.len() - enabled_mcp_servers;
     let health = if disabled_plugins == 0
         && disabled_capabilities == 0
+        && disabled_providers == 0
         && disabled_policies == 0
         && disabled_hooks == 0
         && disabled_mcp_servers == 0
@@ -532,6 +631,8 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
         disabled_plugins,
         enabled_capabilities,
         disabled_capabilities,
+        enabled_providers,
+        disabled_providers,
         enabled_policies,
         disabled_policies,
         enabled_hooks,
@@ -554,6 +655,10 @@ pub fn render_runtime_status(status: &RuntimeStatus) -> String {
         format!(
             "Capabilities: enabled={}, disabled={}",
             status.enabled_capabilities, status.disabled_capabilities
+        ),
+        format!(
+            "Providers: enabled={}, disabled={}",
+            status.enabled_providers, status.disabled_providers
         ),
         format!(
             "Policies: enabled={}, disabled={}",
@@ -592,6 +697,16 @@ pub fn collect_runtime_issues(topology: &RuntimeTopology<'_>) -> Vec<RuntimeIssu
                 RuntimeIssueKind::CapabilityDisabled,
                 capability.capability.as_str(),
                 "enable the provider plugin that owns this capability",
+            ));
+        }
+    }
+
+    for provider in topology.providers {
+        if !provider.is_enabled() {
+            issues.push(RuntimeIssue::new(
+                RuntimeIssueKind::ProviderDisabled,
+                provider.kind.as_str(),
+                "enable the provider plugin that owns this contribution",
             ));
         }
     }
@@ -673,6 +788,19 @@ pub fn build_runtime_action_plan(topology: &RuntimeTopology<'_>) -> Vec<RuntimeA
                 format!(
                     "the provider still disables capability {}",
                     capability.capability.as_str()
+                ),
+            ));
+        }
+    }
+
+    for provider in topology.providers {
+        if !provider.is_enabled() {
+            actions.push(RuntimeAction::new(
+                RuntimeActionKind::EnableProvider,
+                provider.plugin_id,
+                format!(
+                    "the provider still disables contribution {}",
+                    provider.kind.as_str()
                 ),
             ));
         }
@@ -773,10 +901,11 @@ mod tests {
         PRODUCT_NAME, PRODUCT_TAGLINE, RuntimeAction, RuntimeActionKind,
         RuntimeCapabilityRegistration, RuntimeDoctorReport, RuntimeHealth, RuntimeHookRegistration,
         RuntimeIssue, RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase,
-        RuntimePluginRegistration, RuntimePolicyRegistration, RuntimeTopology, banner,
-        build_runtime_action_plan, build_runtime_doctor_report, collect_runtime_issues,
-        evaluate_runtime_status, render_runtime_action_plan, render_runtime_doctor_report,
-        render_runtime_issues, render_runtime_status, render_runtime_topology,
+        RuntimePluginRegistration, RuntimePolicyRegistration, RuntimeProviderKind,
+        RuntimeProviderRegistration, RuntimeTopology, banner, build_runtime_action_plan,
+        build_runtime_doctor_report, collect_runtime_issues, evaluate_runtime_status,
+        render_runtime_action_plan, render_runtime_doctor_report, render_runtime_issues,
+        render_runtime_status, render_runtime_topology,
     };
 
     const CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -827,6 +956,16 @@ mod tests {
     fn policy_registration() -> RuntimePolicyRegistration {
         RuntimePolicyRegistration::new(
             "official.basic",
+            "official.basic",
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )
+    }
+
+    fn provider_registration() -> RuntimeProviderRegistration {
+        RuntimeProviderRegistration::new(
+            RuntimeProviderKind::DataSource,
             "official.basic",
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
@@ -885,6 +1024,7 @@ mod tests {
         let values = [
             RuntimeIssueKind::PluginDisabled,
             RuntimeIssueKind::CapabilityDisabled,
+            RuntimeIssueKind::ProviderDisabled,
             RuntimeIssueKind::PolicyDisabled,
             RuntimeIssueKind::HookDisabled,
             RuntimeIssueKind::McpServerDisabled,
@@ -902,6 +1042,7 @@ mod tests {
             vec![
                 "plugin_disabled",
                 "capability_disabled",
+                "provider_disabled",
                 "policy_disabled",
                 "hook_disabled",
                 "mcp_server_disabled"
@@ -915,6 +1056,7 @@ mod tests {
         let values = [
             RuntimeActionKind::EnablePlugin,
             RuntimeActionKind::EnableCapabilityProvider,
+            RuntimeActionKind::EnableProvider,
             RuntimeActionKind::EnablePolicyProvider,
             RuntimeActionKind::EnableHookProvider,
             RuntimeActionKind::EnableMcpServer,
@@ -932,6 +1074,7 @@ mod tests {
             vec![
                 "enable_plugin",
                 "enable_capability_provider",
+                "enable_provider",
                 "enable_policy_provider",
                 "enable_hook_provider",
                 "enable_mcp_server",
@@ -1008,6 +1151,18 @@ mod tests {
     }
 
     #[test]
+    fn runtime_provider_registration_tracks_enabled_state() {
+        // Arrange
+        let registration = provider_registration();
+
+        // Act
+        let enabled = registration.is_enabled();
+
+        // Assert
+        assert!(enabled);
+    }
+
+    #[test]
     fn render_runtime_topology_is_human_readable() {
         // Arrange
         let plugins = [RuntimePluginRegistration::new(
@@ -1016,6 +1171,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let providers = [provider_registration()];
         let policies = [policy_registration()];
         let hooks = [hook_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
@@ -1024,6 +1180,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            providers: &providers,
             policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
@@ -1042,6 +1199,10 @@ mod tests {
         assert!(rendered.contains("Capabilities (1)"));
         assert!(rendered.contains(
             "- template | plugin=official.basic | activation=enabled | boundary=in_process"
+        ));
+        assert!(rendered.contains("Providers (1)"));
+        assert!(rendered.contains(
+            "- data_source | plugin=official.basic | activation=enabled | boundary=in_process | registration_hook=true"
         ));
         assert!(rendered.contains("Policies (1)"));
         assert!(rendered.contains(
@@ -1064,6 +1225,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let providers = [provider_registration()];
         let policies = [policy_registration()];
         let hooks = [hook_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
@@ -1072,6 +1234,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            providers: &providers,
             policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
@@ -1086,6 +1249,8 @@ mod tests {
         assert_eq!(status.disabled_plugins, 0);
         assert_eq!(status.enabled_capabilities, 1);
         assert_eq!(status.disabled_capabilities, 0);
+        assert_eq!(status.enabled_providers, 1);
+        assert_eq!(status.disabled_providers, 0);
         assert_eq!(status.enabled_policies, 1);
         assert_eq!(status.disabled_policies, 0);
         assert_eq!(status.enabled_hooks, 1);
@@ -1108,6 +1273,13 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let providers = [RuntimeProviderRegistration::new(
+            RuntimeProviderKind::DataSource,
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let policies = [RuntimePolicyRegistration::new(
             "official.basic",
             "official.basic",
@@ -1127,6 +1299,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            providers: &providers,
             policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
@@ -1142,6 +1315,7 @@ mod tests {
         assert!(rendered.contains("Runtime health: degraded"));
         assert!(rendered.contains("Plugins: enabled=0, disabled=1"));
         assert!(rendered.contains("Capabilities: enabled=0, disabled=1"));
+        assert!(rendered.contains("Providers: enabled=0, disabled=1"));
         assert!(rendered.contains("Policies: enabled=0, disabled=1"));
         assert!(rendered.contains("Runtime hooks: enabled=0, disabled=1"));
         assert!(rendered.contains("MCP servers: enabled=0, disabled=1"));
@@ -1161,6 +1335,13 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let providers = [RuntimeProviderRegistration::new(
+            RuntimeProviderKind::DataSource,
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let policies = [RuntimePolicyRegistration::new(
             "official.basic",
             "official.basic",
@@ -1175,6 +1356,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            providers: &providers,
             policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
@@ -1190,6 +1372,8 @@ mod tests {
         assert_eq!(status.disabled_plugins, 0);
         assert_eq!(status.enabled_capabilities, 0);
         assert_eq!(status.disabled_capabilities, 1);
+        assert_eq!(status.enabled_providers, 0);
+        assert_eq!(status.disabled_providers, 1);
         assert_eq!(status.enabled_policies, 0);
         assert_eq!(status.disabled_policies, 1);
         assert_eq!(status.enabled_hooks, 1);
@@ -1200,6 +1384,7 @@ mod tests {
         assert!(rendered.contains("Runtime health: degraded"));
         assert!(rendered.contains("Plugins: enabled=1, disabled=0"));
         assert!(rendered.contains("Capabilities: enabled=0, disabled=1"));
+        assert!(rendered.contains("Providers: enabled=0, disabled=1"));
         assert!(rendered.contains("Policies: enabled=0, disabled=1"));
         assert!(rendered.contains("Runtime hooks: enabled=1, disabled=0"));
         assert!(rendered.contains("MCP servers: enabled=0, disabled=1"));
@@ -1218,6 +1403,13 @@ mod tests {
             "official.basic",
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
+        )];
+        let providers = [RuntimeProviderRegistration::new(
+            RuntimeProviderKind::DataSource,
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
         )];
         let policies = [RuntimePolicyRegistration::new(
             "official.basic",
@@ -1238,6 +1430,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            providers: &providers,
             policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
@@ -1259,6 +1452,11 @@ mod tests {
                     RuntimeIssueKind::CapabilityDisabled,
                     "template",
                     "enable the provider plugin that owns this capability",
+                ),
+                RuntimeIssue::new(
+                    RuntimeIssueKind::ProviderDisabled,
+                    "data_source",
+                    "enable the provider plugin that owns this contribution",
                 ),
                 RuntimeIssue::new(
                     RuntimeIssueKind::PolicyDisabled,
@@ -1288,6 +1486,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let providers = [provider_registration()];
         let policies = [policy_registration()];
         let hooks = [hook_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
@@ -1296,6 +1495,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            providers: &providers,
             policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
@@ -1353,6 +1553,13 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let providers = [RuntimeProviderRegistration::new(
+            RuntimeProviderKind::DataSource,
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let policies = [RuntimePolicyRegistration::new(
             "official.basic",
             "official.basic",
@@ -1372,6 +1579,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            providers: &providers,
             policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
@@ -1393,6 +1601,11 @@ mod tests {
                     RuntimeActionKind::EnableCapabilityProvider,
                     "official.basic",
                     "the provider still disables capability template",
+                ),
+                RuntimeAction::new(
+                    RuntimeActionKind::EnableProvider,
+                    "official.basic",
+                    "the provider still disables contribution data_source",
                 ),
                 RuntimeAction::new(
                     RuntimeActionKind::EnablePolicyProvider,
@@ -1422,6 +1635,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let providers = [provider_registration()];
         let policies = [policy_registration()];
         let hooks = [hook_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
@@ -1430,6 +1644,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            providers: &providers,
             policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
@@ -1487,6 +1702,13 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let providers = [RuntimeProviderRegistration::new(
+            RuntimeProviderKind::DataSource,
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let policies = [RuntimePolicyRegistration::new(
             "official.basic",
             "official.basic",
@@ -1506,6 +1728,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            providers: &providers,
             policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
@@ -1536,6 +1759,8 @@ mod tests {
                 disabled_plugins: 1,
                 enabled_capabilities: 1,
                 disabled_capabilities: 1,
+                enabled_providers: 0,
+                disabled_providers: 1,
                 enabled_policies: 0,
                 disabled_policies: 1,
                 enabled_hooks: 1,
@@ -1573,6 +1798,7 @@ mod tests {
             locale: "en",
             plugins: &[],
             capabilities: &[],
+            providers: &[],
             policies: &[],
             hooks: &[],
             mcp_servers: &[],
@@ -1585,6 +1811,7 @@ mod tests {
         assert!(rendered.contains("Runtime phase: bootstrapped"));
         assert!(rendered.contains("Plugins (0)"));
         assert!(rendered.contains("Capabilities (0)"));
+        assert!(rendered.contains("Providers (0)"));
         assert!(rendered.contains("Policies (0)"));
         assert!(rendered.contains("Runtime hooks (0)"));
         assert!(rendered.contains("MCP servers (0)"));

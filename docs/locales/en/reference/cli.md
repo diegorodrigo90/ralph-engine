@@ -18,6 +18,9 @@ ralph-engine hooks show <hook-id>
 ralph-engine policies
 ralph-engine policies list
 ralph-engine policies show <policy-id>
+ralph-engine providers
+ralph-engine providers list
+ralph-engine providers show <provider-id>
 ralph-engine config
 ralph-engine config budgets
 ralph-engine config layers
@@ -50,12 +53,14 @@ The `hooks` command family prints the typed runtime-hook registry so hook provid
 
 The `policies` command family prints the typed runtime policy registry so policy providers stay explicit, inspectable, and separate from generic capability listings.
 
+The `providers` command family prints the typed runtime provider registry so data-source, context-provider, forge-provider, and remote-control contributions stay explicit instead of hiding only inside generic capability output.
+
 The `mcp show` command prints the typed MCP launch contract, including process model, launch policy, command boundaries, working-directory policy, environment policy, and availability.
 
-The `runtime show` command prints the resolved runtime topology, including effective plugin activation, capability registration, policy registration, runtime-hook registration, and MCP enablement.
+The `runtime show` command prints the resolved runtime topology, including effective plugin activation, capability registration, provider registration, policy registration, runtime-hook registration, and MCP enablement.
 
-The `runtime status` command prints the typed runtime health summary, including enabled and disabled providers across plugins, capabilities, policies, runtime hooks, and MCP servers.
+The `runtime status` command prints the typed runtime health summary, including enabled and disabled providers across plugins, capabilities, provider registrations, policies, runtime hooks, and MCP servers.
 
-The `runtime issues` command prints the typed list of unresolved runtime issues and recommended actions, including disabled policy and runtime-hook providers, instead of requiring command-local heuristics.
+The `runtime issues` command prints the typed list of unresolved runtime issues and recommended actions, including disabled provider, policy, and runtime-hook registrations, instead of requiring command-local heuristics.
 
-The `runtime plan` command prints the typed runtime remediation plan derived from the resolved topology, including policy-provider and hook-provider enablement, so the next enablement step stays explicit and modular instead of being inferred ad hoc in the CLI.
+The `runtime plan` command prints the typed runtime remediation plan derived from the resolved topology, including provider, policy-provider, and hook-provider enablement, so the next enablement step stays explicit and modular instead of being inferred ad hoc in the CLI.
