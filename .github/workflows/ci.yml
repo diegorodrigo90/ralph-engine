@@ -43,13 +43,10 @@ jobs:
         include:
           - os: ubuntu-latest
             checks: fmt,clippy,test,rustdoc,public
-            install_dev_tools: false
           - os: macos-latest
             checks: fmt,clippy,test,rustdoc,public
-            install_dev_tools: false
           - os: windows-latest
             checks: fmt,clippy,test,rustdoc,public
-            install_dev_tools: false
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
@@ -78,12 +75,30 @@ jobs:
         run: npm ci
       - name: Install docs Node tools
         run: npm --prefix docs ci
+      - name: Install pinned coverage tools
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: ./scripts/install-dev-tools.sh --tools cargo-llvm-cov
       - name: Run validation contract
         shell: bash
         env:
           GIT_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
           GIT_HEAD_SHA: ${{ github.sha }}
         run: ./scripts/validate.sh --mode ci --checks "${{ matrix.checks }}"
+      - name: Generate coverage artifact
+        if: matrix.os == 'ubuntu-latest'
+        shell: bash
+        run: |
+          mkdir -p coverage
+          cargo llvm-cov --workspace --all-features --lcov --output-path coverage/lcov.info
+      - name: Upload coverage artifact
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: rust-coverage-lcov
+          path: coverage/lcov.info
+          if-no-files-found: error
+          retention-days: 3
 
   security:
     name: Security (ubuntu-latest)
@@ -157,23 +172,11 @@ jobs:
       - name: Resolve SonarCloud metadata
         shell: bash
         run: ./scripts/export-sonarcloud-metadata.sh
-      - name: Install Rust toolchain
-        shell: bash
-        run: |
-          rustup toolchain install 1.91.1 --profile minimal --component rustfmt --component clippy
-          rustup default 1.91.1
-      - name: Restore Rust cache
-        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
+      - name: Download coverage artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
-          shared-key: sonar-ubuntu-latest
-      - name: Install docs Node tools
-        run: npm --prefix docs ci
-      - name: Install pinned developer tools
-        shell: bash
-        run: ./scripts/install-dev-tools.sh --tools cargo-llvm-cov
-      - name: Generate coverage
-        shell: bash
-        run: ./scripts/validate.sh --mode ci --checks coverage
+          name: rust-coverage-lcov
+          path: coverage
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@a31c9398be7ace6bbfaf30c0bd5d415f843d45e9
         with:
