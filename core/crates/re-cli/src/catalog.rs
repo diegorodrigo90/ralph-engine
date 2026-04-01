@@ -1,5 +1,10 @@
-//! Immutable built-in catalog for official plugins and MCP contributions.
+//! Immutable built-in catalog for official plugins, MCP contributions, and runtime topology.
 
+use re_config::{
+    ConfigScope, PluginActivation, ResolvedPluginConfig, default_project_config_layer,
+    resolve_plugin_config,
+};
+use re_core::{RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration, RuntimeTopology};
 use re_mcp::McpServerDescriptor;
 use re_plugin::PluginDescriptor;
 
@@ -43,4 +48,63 @@ pub fn find_official_mcp_server(server_id: &str) -> Option<McpServerDescriptor> 
     official_mcp_servers()
         .into_iter()
         .find(|server| server.id == server_id)
+}
+
+fn resolved_plugin_entry(plugin: PluginDescriptor) -> ResolvedPluginConfig {
+    let layers = [default_project_config_layer()];
+
+    resolve_plugin_config(&layers, plugin.id).unwrap_or(ResolvedPluginConfig::new(
+        plugin.id,
+        PluginActivation::Disabled,
+        ConfigScope::BuiltInDefaults,
+    ))
+}
+
+fn resolved_plugin_entry_by_id(plugin_id: &'static str) -> ResolvedPluginConfig {
+    find_official_plugin(plugin_id)
+        .map(resolved_plugin_entry)
+        .unwrap_or(ResolvedPluginConfig::new(
+            plugin_id,
+            PluginActivation::Disabled,
+            ConfigScope::BuiltInDefaults,
+        ))
+}
+
+/// Returns the resolved runtime plugin registrations for the official catalog.
+#[must_use]
+pub fn official_runtime_plugins() -> [RuntimePluginRegistration; 8] {
+    let plugins = official_plugins();
+
+    plugins.map(|plugin| {
+        let resolved = resolved_plugin_entry(plugin);
+
+        RuntimePluginRegistration::new(plugin, resolved.activation, resolved.resolved_from)
+    })
+}
+
+/// Returns the resolved runtime MCP registrations for the official catalog.
+#[must_use]
+pub fn official_runtime_mcp_registrations() -> [RuntimeMcpRegistration; 4] {
+    let servers = official_mcp_servers();
+
+    servers.map(|server| {
+        let resolved = resolved_plugin_entry_by_id(server.plugin_id);
+        let enabled = matches!(resolved.activation, PluginActivation::Enabled);
+
+        RuntimeMcpRegistration::new(server, enabled)
+    })
+}
+
+/// Returns the resolved runtime topology for the official catalog.
+#[must_use]
+pub fn official_runtime_topology<'a>(
+    plugins: &'a [RuntimePluginRegistration],
+    mcp_servers: &'a [RuntimeMcpRegistration],
+) -> RuntimeTopology<'a> {
+    RuntimeTopology {
+        phase: RuntimePhase::Ready,
+        locale: default_project_config_layer().config.default_locale,
+        plugins,
+        mcp_servers,
+    }
 }

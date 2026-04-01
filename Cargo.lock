@@ -27,6 +27,11 @@ version = "0.2.0-alpha.1"
 [[package]]
 name = "re-core"
 version = "0.2.0-alpha.1"
+dependencies = [
+ "re-config",
+ "re-mcp",
+ "re-plugin",
+]
 
 [[package]]
 name = "re-mcp"

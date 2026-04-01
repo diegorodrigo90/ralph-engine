@@ -4,7 +4,7 @@ Updated: 2026-04-01
 
 - Flesh out `re-cli` beyond the bootstrap surface.
 - Expand the `re-mcp` contract beyond immutable server metadata into transport configuration, process launching, and policy boundaries.
-- Expand the runtime contracts beyond typed metadata, activation scopes, lifecycle, load boundaries, and runtime hooks into explicit runtime registration and state orchestration.
+- Expand the runtime contracts beyond typed metadata, activation scopes, lifecycle, load boundaries, runtime hooks, and topology registration into richer runtime state orchestration.
 - Add cross-platform release artifact packaging.
 - Add explicit validation for `dist-workspace.toml` and generated release artifacts.
 - Restore rich docs examples once the runtime contracts are back.

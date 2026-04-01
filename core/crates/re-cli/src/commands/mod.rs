@@ -3,6 +3,7 @@
 mod config;
 mod mcp;
 mod plugins;
+mod runtime;
 
 use crate::CliError;
 
@@ -23,6 +24,10 @@ const COMMANDS: &[CommandDescriptor] = &[
     CommandDescriptor {
         name: "plugins",
         handler: plugins::execute,
+    },
+    CommandDescriptor {
+        name: "runtime",
+        handler: runtime::execute,
     },
 ];
 

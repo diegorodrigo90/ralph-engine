@@ -276,6 +276,47 @@ mod tests {
     }
 
     #[test]
+    fn execute_runtime_show_returns_resolved_topology() {
+        // Arrange
+        let command = args(&["ralph-engine", "runtime", "show"]);
+
+        // Act
+        let output = execute(command).expect("runtime show should succeed");
+
+        // Assert
+        assert!(output.contains("Runtime phase: ready"));
+        assert!(output.contains("Locale: en"));
+        assert!(output.contains("Plugins (8)"));
+        assert!(output.contains("official.basic | activation=enabled | scope=built_in_defaults"));
+        assert!(output.contains("official.github | activation=disabled | scope=built_in_defaults"));
+        assert!(output.contains("MCP servers (4)"));
+    }
+
+    #[test]
+    fn execute_runtime_without_subcommand_returns_resolved_topology() {
+        // Arrange
+        let command = args(&["ralph-engine", "runtime"]);
+
+        // Act
+        let output = execute(command).expect("runtime command should succeed");
+
+        // Assert
+        assert!(output.contains("Runtime phase: ready"));
+    }
+
+    #[test]
+    fn execute_unknown_runtime_subcommand_fails() {
+        // Arrange
+        let command = args(&["ralph-engine", "runtime", "doctor"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown runtime command should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown runtime command: doctor");
+    }
+
+    #[test]
     fn execute_unknown_mcp_subcommand_fails() {
         // Arrange
         let command = args(&["ralph-engine", "mcp", "doctor"]);
