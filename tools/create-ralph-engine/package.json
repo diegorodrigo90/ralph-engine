@@ -1,0 +1,12 @@
+{
+  "name": "create-ralph-engine",
+  "private": true,
+  "version": "0.0.0-development",
+  "description": "Scaffolder for Ralph Engine plugins and developer setups",
+  "scripts": {
+    "test": "node --test"
+  },
+  "bin": {
+    "create-ralph-engine": "./bin/create-ralph-engine.js"
+  }
+}

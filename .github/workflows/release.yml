@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: '20.19.0'
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install 1.91.1 --profile minimal --component rustfmt --component clippy
+          rustup default 1.91.1
+      - name: Install pinned cargo tools
+        shell: bash
+        run: |
+          cargo install cargo-llvm-cov --version 0.8.5 --locked
+          cargo install cargo-audit --version 0.22.1 --locked
+          cargo install cargo-deny --version 0.19.0 --locked
+          cargo install cargo-dist --version 0.31.0 --locked
+      - name: Validate release tag
+        shell: bash
+        run: ./scripts/release-check.sh
+      - name: Run release contract
+        shell: bash
+        run: ./scripts/validate.sh --mode release
+      - name: Build release artifacts
+        shell: bash
+        run: cargo dist build --tag ${{ github.ref_name }}

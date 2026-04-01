@@ -1,0 +1,7 @@
+id: official.tdd-strict
+name: tdd-strict
+publisher: ralph-engine
+version: 0.2.0-alpha.1
+capabilities:
+  - template
+  - policy

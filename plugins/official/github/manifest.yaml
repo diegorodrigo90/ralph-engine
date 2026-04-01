@@ -1,0 +1,9 @@
+id: official.github
+name: github
+publisher: ralph-engine
+version: 0.2.0-alpha.1
+capabilities:
+  - data_source
+  - context_provider
+  - forge_provider
+  - mcp_contribution

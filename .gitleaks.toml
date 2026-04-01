@@ -1,0 +1,9 @@
+title = "ralph-engine gitleaks config"
+
+[allowlist]
+  description = "Allowed generated lockfiles and low-risk metadata"
+  paths = [
+    "Cargo\\.lock",
+    "package-lock\\.json",
+    "docs/package-lock\\.json"
+  ]

@@ -1,0 +1,25 @@
+{
+  "name": "ralph-engine",
+  "version": "0.2.0-alpha.1",
+  "description": "Open-source plugin-first runtime for agentic coding workflows.",
+  "private": true,
+  "keywords": [
+    "agentic",
+    "cli",
+    "developer-tools",
+    "mcp",
+    "plugin-first",
+    "rust"
+  ],
+  "homepage": "https://github.com/diegorodrigo90/ralph-engine",
+  "bugs": "https://github.com/diegorodrigo90/ralph-engine/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/diegorodrigo90/ralph-engine.git"
+  },
+  "license": "MIT",
+  "author": "Diego Rodrigo <diegorodrigo90@gmail.com>",
+  "engines": {
+    "node": ">=20.19.0 <21"
+  }
+}

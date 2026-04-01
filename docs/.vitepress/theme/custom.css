@@ -1,0 +1,18 @@
+/* Logo sizing in nav — VitePress defaults are too small for SVG with text */
+.VPNavBarTitle .logo {
+	height: 40px !important;
+	width: auto !important;
+}
+
+/* Brand colors */
+:root {
+	--vp-c-brand-1: #5b6ad0;
+	--vp-c-brand-2: #4f5bc4;
+	--vp-c-brand-3: #434db8;
+}
+
+.dark {
+	--vp-c-brand-1: #818cf8;
+	--vp-c-brand-2: #9ba4fa;
+	--vp-c-brand-3: #b4bafc;
+}

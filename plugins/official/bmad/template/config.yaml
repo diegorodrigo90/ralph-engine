@@ -1,0 +1,28 @@
+# ralph-engine BMAD template
+
+agent:
+  type: "claude"
+  cooldown_seconds: 10
+  max_work_items_per_session: 1
+
+workflow:
+  instructions: |
+    Follow the BMAD workflow conventions configured for this project.
+    Use the available commands, prompt fragments, and required checks supplied by the BMAD plugin.
+
+execution:
+  max_post_agent_retries: 0
+  max_retry_output_chars: 1200
+
+tracker:
+  type: "file"
+  status_file: "sprint-status.yaml"
+
+circuit_breaker:
+  max_failures: 3
+  cooldown_minutes: 5
+
+research:
+  enabled: false
+  strategy: "always"
+  tools: []

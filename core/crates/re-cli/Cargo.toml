@@ -1,0 +1,19 @@
+[package]
+name = "re-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "ralph-engine"
+path = "src/main.rs"
+
+[dependencies]
+re-core = { path = "../re-core", version = "0.2.0-alpha.1" }
+
+[lints]
+workspace = true

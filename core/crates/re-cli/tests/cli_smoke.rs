@@ -1,0 +1,34 @@
+//! End-to-end smoke tests for the Ralph Engine CLI binary.
+
+#![allow(clippy::expect_used)]
+
+use std::process::Command;
+
+#[test]
+fn binary_without_args_succeeds() {
+    // Arrange
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+
+    // Act
+    let output = command.output().expect("binary should run");
+
+    // Assert
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Rust foundation bootstrapped."));
+}
+
+#[test]
+fn binary_with_unknown_command_fails() {
+    // Arrange
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.arg("doctor");
+
+    // Act
+    let output = command.output().expect("binary should run");
+
+    // Assert
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
+    assert!(stderr.contains("unknown command: doctor"));
+}

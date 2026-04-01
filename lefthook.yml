@@ -1,0 +1,17 @@
+pre-commit:
+  parallel: true
+  commands:
+    fmt:
+      run: ./scripts/validate.sh --mode local --checks fmt
+    clippy:
+      run: ./scripts/validate.sh --mode local --checks clippy
+    test:
+      run: ./scripts/validate.sh --mode local --checks test
+commit-msg:
+  commands:
+    commitlint:
+      run: npx --no -- commitlint --edit {1}
+pre-push:
+  commands:
+    validate:
+      run: ./scripts/validate.sh --mode local
