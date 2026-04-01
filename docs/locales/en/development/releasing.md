@@ -17,6 +17,7 @@
 - The release contract SHALL run through `./scripts/validate.sh --mode release` before artifacts are published.
 - `cargo-dist` SHALL be the Rust artifact builder for release distribution.
 - `Quality`, `Security`, and `SonarCloud` SHALL all pass before a release tag is created.
+- `SONAR_TOKEN` SHALL resolve to a SonarCloud token that can browse and analyze the target project.
 - Checksums, SBOMs, and artifact attestations are part of the target release contract.
 - npm and Homebrew remain official channels, but they are not wired yet.
 - Automatic publication SHALL NOT happen from `main` until GitHub Releases, npm, and Homebrew are connected to the Rust pipeline.

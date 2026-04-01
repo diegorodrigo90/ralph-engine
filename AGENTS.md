@@ -46,6 +46,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 24. Workflows SHALL avoid duplicate heavy work across jobs. Expensive steps such as coverage generation, scanner installs, and release-only tooling SHALL run only in the jobs that need them.
 25. Cross-platform quality SHALL be proven through an OS matrix, while platform-independent security scanners MAY run once on a canonical runner when that avoids duplicated cost without reducing coverage.
 26. CI workflows SHALL cancel superseded in-progress runs for the same branch or pull request whenever the older run no longer provides unique value.
+27. SonarCloud configuration SHALL fail fast with a clear preflight error when the configured token cannot browse or analyze the target project.
 
 ## Structure
 
@@ -85,6 +86,7 @@ CI cache design SHALL follow these rules:
 - Cache misses SHALL degrade safely to fresh installs; they SHALL NOT change validation behavior.
 - Cross-platform correctness SHALL be checked in the quality matrix.
 - Platform-independent supply-chain and secret scanners MAY be centralized on the canonical Linux runner to avoid repeated installs and duplicate findings.
+- SonarCloud tokens SHALL be dedicated to repository analysis and keep Browse plus Execute Analysis access to the target project.
 
 ## Release and Git Flow
 

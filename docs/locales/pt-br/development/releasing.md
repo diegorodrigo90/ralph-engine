@@ -17,6 +17,7 @@
 - O contrato de release SHALL rodar via `./scripts/validate.sh --mode release` antes da publicação.
 - `cargo-dist` DEVE ser o builder de artefatos Rust para a distribuição de release.
 - `Quality`, `Security` e `SonarCloud` DEVEM passar antes da criação de uma tag de release.
+- `SONAR_TOKEN` DEVE apontar para um token do SonarCloud com permissão para navegar e analisar o projeto alvo.
 - Checksums, SBOMs e atestações de artefato fazem parte do contrato-alvo de release.
 - npm e Homebrew continuam canais oficiais, mas ainda não estão integrados.
 - A publicação automática NÃO DEVE sair da `main` enquanto GitHub Releases, npm e Homebrew não estiverem conectados ao pipeline em Rust.
