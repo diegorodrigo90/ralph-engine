@@ -14,7 +14,9 @@ ralph-engine hooks
 ralph-engine hooks list
 ralph-engine hooks show <hook-id>
 ralph-engine config
+ralph-engine config layers
 ralph-engine config show-defaults
+ralph-engine config show-layers
 ralph-engine config show-plugin <plugin-id>
 ralph-engine plugins
 ralph-engine plugins list

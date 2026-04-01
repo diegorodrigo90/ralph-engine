@@ -162,6 +162,9 @@ const DEFAULT_PROJECT_CONFIG: ProjectConfig = ProjectConfig {
 const DEFAULT_PROJECT_CONFIG_LAYER: ProjectConfigLayer =
     ProjectConfigLayer::new(ConfigScope::BuiltInDefaults, DEFAULT_PROJECT_CONFIG);
 
+/// Canonical typed configuration layers in resolution order.
+pub const CANONICAL_CONFIG_LAYERS: &[ProjectConfigLayer] = &[DEFAULT_PROJECT_CONFIG_LAYER];
+
 /// Returns the default project configuration contract.
 #[must_use]
 pub const fn default_project_config() -> ProjectConfig {
@@ -172,6 +175,12 @@ pub const fn default_project_config() -> ProjectConfig {
 #[must_use]
 pub const fn default_project_config_layer() -> ProjectConfigLayer {
     DEFAULT_PROJECT_CONFIG_LAYER
+}
+
+/// Returns the canonical typed configuration layers in resolution order.
+#[must_use]
+pub const fn canonical_config_layers() -> &'static [ProjectConfigLayer] {
+    CANONICAL_CONFIG_LAYERS
 }
 
 /// Returns one immutable plugin config entry by identifier.
@@ -233,4 +242,26 @@ pub fn render_resolved_plugin_config_yaml(config: &ResolvedPluginConfig) -> Stri
         format!("resolved_from: {}", config.resolved_from.as_str()),
     ]
     .join("\n")
+}
+
+/// Renders typed configuration layers in resolution order as YAML.
+#[must_use]
+pub fn render_config_layers_yaml(layers: &[ProjectConfigLayer]) -> String {
+    let mut lines = vec!["layers:".to_owned()];
+
+    for layer in layers {
+        lines.push(format!("  - scope: {}", layer.scope.as_str()));
+        lines.push(format!(
+            "    schema_version: {}",
+            layer.config.schema_version
+        ));
+        lines.push(format!(
+            "    default_locale: {}",
+            layer.config.default_locale
+        ));
+        lines.push(format!("    plugin_count: {}", layer.config.plugins.len()));
+        lines.push(format!("    mcp_enabled: {}", layer.config.mcp.enabled));
+    }
+
+    lines.join("\n")
 }
