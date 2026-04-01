@@ -106,7 +106,19 @@ detect_base_sha() {
   echo ""
 }
 
+collect_working_tree_files() {
+  {
+    git diff --name-only HEAD
+    git ls-files --others --exclude-standard
+  } | awk 'NF { print }' | sort -u
+}
+
 collect_changed_files() {
+  if [[ -z "$BASE_SHA" && "$MODE" != "ci" && "$MODE" != "release" ]]; then
+    collect_working_tree_files
+    return 0
+  fi
+
   local effective_base
   effective_base="$(detect_base_sha)"
 
