@@ -72,12 +72,12 @@ install_binary_from_github_tarball() {
 
   local tmp_dir
   tmp_dir="$(mktemp -d)"
-  trap 'rm -rf "$tmp_dir"' RETURN
 
   curl -fsSL -o "$tmp_dir/archive.tar.gz" "https://github.com/${owner_repo}/releases/download/${version}/${asset_name}"
   tar -xzf "$tmp_dir/archive.tar.gz" -C "$tmp_dir"
   install -m 0755 "$tmp_dir/${binary_name}" "$TOOLS_BIN_DIR/${binary_name}"
   store_cached_binary "$binary_name" "$version"
+  rm -rf "$tmp_dir"
 }
 
 install_binary_from_github_zip() {
@@ -88,12 +88,12 @@ install_binary_from_github_zip() {
 
   local tmp_dir
   tmp_dir="$(mktemp -d)"
-  trap 'rm -rf "$tmp_dir"' RETURN
 
   curl -fsSL -o "$tmp_dir/archive.zip" "https://github.com/${owner_repo}/releases/download/${version}/${asset_name}"
   unzip -q "$tmp_dir/archive.zip" -d "$tmp_dir"
   install -m 0755 "$tmp_dir/${binary_name}" "$TOOLS_BIN_DIR/${binary_name}"
   store_cached_binary "$binary_name" "$version"
+  rm -rf "$tmp_dir"
 }
 
 ensure_cargo_installed_tool() {
