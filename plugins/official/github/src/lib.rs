@@ -1,6 +1,6 @@
 //! Official GitHub integration plugin metadata.
 
-use re_mcp::{McpServerDescriptor, McpTransport};
+use re_mcp::{McpAvailability, McpProcessModel, McpServerDescriptor, McpTransport};
 use re_plugin::{
     CONTEXT_PROVIDER, DATA_SOURCE, FORGE_PROVIDER, MCP_CONTRIBUTION, PluginDescriptor,
     PluginLifecycleStage,
@@ -33,6 +33,8 @@ const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
     PLUGIN_ID,
     "GitHub Repository",
     McpTransport::Stdio,
+    McpProcessModel::ExternalBinary,
+    McpAvailability::ExplicitOptIn,
 )];
 
 /// Declared capabilities for the official plugin foundation.

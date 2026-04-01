@@ -1,6 +1,6 @@
 //! Official Codex runtime plugin metadata.
 
-use re_mcp::{McpServerDescriptor, McpTransport};
+use re_mcp::{McpAvailability, McpProcessModel, McpServerDescriptor, McpTransport};
 use re_plugin::{AGENT_RUNTIME, MCP_CONTRIBUTION, PluginDescriptor, PluginLifecycleStage};
 
 /// Stable plugin identifier.
@@ -22,6 +22,8 @@ const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
     PLUGIN_ID,
     "Codex Session",
     McpTransport::Stdio,
+    McpProcessModel::PluginManaged,
+    McpAvailability::OnDemand,
 )];
 
 /// Declared capabilities for the official plugin foundation.
