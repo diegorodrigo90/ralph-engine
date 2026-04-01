@@ -7,6 +7,9 @@ A base atual em Rust expõe uma superfície mínima de CLI enquanto o runtime é
 ```bash
 ralph-engine
 ralph-engine --version
+ralph-engine agents
+ralph-engine agents list
+ralph-engine agents show <plugin-id>
 ralph-engine capabilities
 ralph-engine capabilities list
 ralph-engine capabilities show <capability-id>
@@ -46,6 +49,8 @@ ralph-engine mcp show <server-id>
 
 O comando `plugins show` imprime o contrato imutável do plugin, incluindo lifecycle, fronteira de carregamento, runtime hooks e o estado de ativação resolvido.
 
+A família `agents` imprime o registro tipado de agent runtimes para que integrações oficiais de agente permaneçam explícitas, em vez de ficarem escondidas só em listagens genéricas de capability.
+
 A família `capabilities` imprime o registro tipado de capabilities do runtime para que os providers permaneçam explícitos e modulares.
 
 A família `checks` imprime o registro tipado de checks do runtime para que contribuições de validação de prepare e doctor permaneçam explícitas, em vez de ficarem escondidas só como capabilities genéricas.
@@ -62,10 +67,10 @@ A família `providers` imprime o registro tipado de providers do runtime para qu
 
 O comando `mcp show` imprime o contrato tipado de lançamento do MCP, incluindo modelo de processo, policy de lançamento, fronteiras de comando, policy de diretório de trabalho, policy de ambiente e disponibilidade.
 
-O comando `runtime show` imprime a topologia resolvida do runtime, incluindo ativação efetiva de plugin, registro de capability, registro de check, registro de provider, registro de policy, registro de hook e enablement de MCP.
+O comando `runtime show` imprime a topologia resolvida do runtime, incluindo ativação efetiva de plugin, registro de capability, registro de agent runtime, registro de check, registro de provider, registro de policy, registro de hook e enablement de MCP.
 
-O comando `runtime status` imprime o resumo tipado de health do runtime, incluindo providers habilitados e desabilitados em plugins, capabilities, checks tipados, providers tipados, policies, runtime hooks e servidores MCP.
+O comando `runtime status` imprime o resumo tipado de health do runtime, incluindo providers habilitados e desabilitados em plugins, capabilities, agent runtimes tipados, checks tipados, providers tipados, policies, runtime hooks e servidores MCP.
 
-O comando `runtime issues` imprime a lista tipada de issues pendentes do runtime e as ações recomendadas, incluindo checks tipados, providers tipados, providers de policy e providers de runtime hook desabilitados, em vez de depender de heurísticas locais em cada comando.
+O comando `runtime issues` imprime a lista tipada de issues pendentes do runtime e as ações recomendadas, incluindo agent runtimes tipados, checks tipados, providers tipados, providers de policy e providers de runtime hook desabilitados, em vez de depender de heurísticas locais em cada comando.
 
-O comando `runtime plan` imprime o plano tipado de remediação derivado da topologia resolvida, incluindo enablement de checks tipados, de providers tipados, de policy e de hook, para que o próximo passo de enablement permaneça explícito e modular em vez de ser inferido ad hoc na CLI.
+O comando `runtime plan` imprime o plano tipado de remediação derivado da topologia resolvida, incluindo enablement de agent runtimes tipados, de checks tipados, de providers tipados, de policy e de hook, para que o próximo passo de enablement permaneça explícito e modular em vez de ser inferido ad hoc na CLI.

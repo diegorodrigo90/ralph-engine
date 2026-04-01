@@ -50,6 +50,60 @@ mod tests {
     }
 
     #[test]
+    fn execute_agents_lists_runtime_agents() {
+        // Arrange
+        let command = args(&["ralph-engine", "agents", "list"]);
+
+        // Act
+        let output = execute(command).expect("agents list should succeed");
+
+        // Assert
+        assert!(output.contains("Agent runtimes (3)"));
+        assert!(output.contains("- official.claude | activation=disabled"));
+        assert!(output.contains("- official.codex | activation=disabled"));
+    }
+
+    #[test]
+    fn execute_agents_show_returns_provider_detail() {
+        // Arrange
+        let command = args(&["ralph-engine", "agents", "show", "official.codex"]);
+
+        // Act
+        let output = execute(command).expect("agents show should succeed");
+
+        // Assert
+        assert!(output.contains("Agent runtime: official.codex"));
+        assert!(output.contains("Providers (1)"));
+        assert!(output.contains(
+            "- official.codex | activation=disabled | boundary=in_process | bootstrap_hook=true"
+        ));
+    }
+
+    #[test]
+    fn execute_agents_show_requires_plugin_id() {
+        // Arrange
+        let command = args(&["ralph-engine", "agents", "show"]);
+
+        // Act
+        let error = execute(command).expect_err("missing plugin id should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "agents show requires a plugin id");
+    }
+
+    #[test]
+    fn execute_agents_show_rejects_unknown_plugin() {
+        // Arrange
+        let command = args(&["ralph-engine", "agents", "show", "official.unknown"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown agent runtime should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown agent runtime: official.unknown");
+    }
+
+    #[test]
     fn execute_capabilities_lists_runtime_capabilities() {
         // Arrange
         let command = args(&["ralph-engine", "capabilities", "list"]);
@@ -536,8 +590,8 @@ mod tests {
         // Assert
         assert!(output.contains("Runtime doctor"));
         assert!(output.contains("Runtime health: degraded"));
-        assert!(output.contains("Runtime issues (52)"));
-        assert!(output.contains("Runtime action plan (52)"));
+        assert!(output.contains("Runtime issues (55)"));
+        assert!(output.contains("Runtime action plan (55)"));
     }
 
     #[test]
@@ -550,7 +604,7 @@ mod tests {
 
         // Assert
         assert!(output.contains("Runtime doctor"));
-        assert!(output.contains("Runtime issues (52)"));
+        assert!(output.contains("Runtime issues (55)"));
     }
 
     #[test]
@@ -661,6 +715,9 @@ mod tests {
         assert!(output.contains("official.github | activation=disabled | scope=built_in_defaults"));
         assert!(output.contains("Capabilities (18)"));
         assert!(output.contains("template | plugin=official.basic | activation=enabled"));
+        assert!(output.contains("Agent runtimes (3)"));
+        assert!(output.contains("official.claude | activation=disabled"));
+        assert!(output.contains("official.codex | activation=disabled"));
         assert!(output.contains("Checks (2)"));
         assert!(output.contains("prepare | plugin=official.bmad | activation=disabled"));
         assert!(output.contains("doctor | plugin=official.bmad | activation=disabled"));
@@ -690,6 +747,7 @@ mod tests {
         assert!(output.contains("Runtime health: degraded"));
         assert!(output.contains("Plugins: enabled=1, disabled=7"));
         assert!(output.contains("Capabilities: enabled=1, disabled=17"));
+        assert!(output.contains("Agent runtimes: enabled=0, disabled=3"));
         assert!(output.contains("Checks: enabled=0, disabled=2"));
         assert!(output.contains("Providers: enabled=0, disabled=4"));
         assert!(output.contains("Policies: enabled=0, disabled=1"));
@@ -706,9 +764,12 @@ mod tests {
         let output = execute(command).expect("runtime issues should succeed");
 
         // Assert
-        assert!(output.contains("Runtime issues (52)"));
+        assert!(output.contains("Runtime issues (55)"));
         assert!(output.contains(
             "plugin_disabled | subject=official.github | action=enable the plugin in typed project configuration"
+        ));
+        assert!(output.contains(
+            "agent_runtime_disabled | subject=official.codex | action=enable the provider plugin that owns this agent runtime"
         ));
         assert!(output.contains(
             "check_disabled | subject=prepare | action=enable the provider plugin that owns this runtime check"
@@ -736,9 +797,12 @@ mod tests {
         let output = execute(command).expect("runtime plan should succeed");
 
         // Assert
-        assert!(output.contains("Runtime action plan (52)"));
+        assert!(output.contains("Runtime action plan (55)"));
         assert!(output.contains(
             "enable_plugin | target=official.github | reason=the plugin is registered but disabled"
+        ));
+        assert!(output.contains(
+            "enable_agent_runtime_provider | target=official.codex | reason=the provider still disables the agent runtime"
         ));
         assert!(output.contains(
             "enable_check_provider | target=official.bmad | reason=the provider still disables runtime check prepare"
@@ -794,6 +858,18 @@ mod tests {
 
         // Assert
         assert!(output.contains("Capabilities (11)"));
+    }
+
+    #[test]
+    fn execute_agents_without_subcommand_lists_runtime_agents() {
+        // Arrange
+        let command = args(&["ralph-engine", "agents"]);
+
+        // Act
+        let output = execute(command).expect("agents command should succeed");
+
+        // Assert
+        assert!(output.contains("Agent runtimes (3)"));
     }
 
     #[test]
@@ -854,6 +930,18 @@ mod tests {
 
         // Assert
         assert_eq!(error.to_string(), "unknown capabilities command: doctor");
+    }
+
+    #[test]
+    fn execute_unknown_agents_subcommand_fails() {
+        // Arrange
+        let command = args(&["ralph-engine", "agents", "runtime"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown agents command should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown agents command: runtime");
     }
 
     #[test]
