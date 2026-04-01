@@ -7,14 +7,14 @@ use re_config::{
 use re_core::{
     RuntimeAgentRegistration, RuntimeCapabilityRegistration, RuntimeCheckKind,
     RuntimeCheckRegistration, RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase,
-    RuntimePluginRegistration, RuntimePolicyRegistration, RuntimeProviderKind,
-    RuntimeProviderRegistration, RuntimeTemplateRegistration, RuntimeTopology,
+    RuntimePluginRegistration, RuntimePolicyRegistration, RuntimePromptRegistration,
+    RuntimeProviderKind, RuntimeProviderRegistration, RuntimeTemplateRegistration, RuntimeTopology,
 };
 use re_mcp::McpServerDescriptor;
 use re_plugin::{
     AGENT_RUNTIME, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, POLICY,
-    PREPARE_CHECKS, PluginCapability, PluginDescriptor, PluginRuntimeHook, REMOTE_CONTROL,
-    TEMPLATE,
+    PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCapability, PluginDescriptor, PluginRuntimeHook,
+    REMOTE_CONTROL, TEMPLATE,
 };
 
 /// Immutable owned snapshot of the official runtime catalog.
@@ -26,6 +26,8 @@ pub struct OfficialRuntimeSnapshot {
     pub capabilities: Vec<RuntimeCapabilityRegistration>,
     /// Resolved official template registrations.
     pub templates: Vec<RuntimeTemplateRegistration>,
+    /// Resolved official prompt registrations.
+    pub prompts: Vec<RuntimePromptRegistration>,
     /// Resolved official agent runtime registrations.
     pub agents: Vec<RuntimeAgentRegistration>,
     /// Resolved official runtime check registrations.
@@ -50,6 +52,7 @@ impl OfficialRuntimeSnapshot {
             plugins: &self.plugins,
             capabilities: &self.capabilities,
             templates: &self.templates,
+            prompts: &self.prompts,
             agents: &self.agents,
             checks: &self.checks,
             providers: &self.providers,
@@ -185,6 +188,26 @@ pub fn official_runtime_templates() -> Vec<RuntimeTemplateRegistration> {
                     .descriptor
                     .runtime_hooks
                     .contains(&PluginRuntimeHook::Scaffold),
+            )
+        })
+        .collect()
+}
+
+/// Returns the resolved prompt registrations for the official catalog.
+#[must_use]
+pub fn official_runtime_prompts() -> Vec<RuntimePromptRegistration> {
+    official_runtime_plugins()
+        .into_iter()
+        .filter(|plugin| plugin.descriptor.capabilities.contains(&PROMPT_FRAGMENTS))
+        .map(|plugin| {
+            RuntimePromptRegistration::new(
+                plugin.descriptor.id,
+                plugin.activation,
+                plugin.descriptor.load_boundary,
+                plugin
+                    .descriptor
+                    .runtime_hooks
+                    .contains(&PluginRuntimeHook::PromptAssembly),
             )
         })
         .collect()
@@ -352,6 +375,7 @@ pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
     let plugins = official_runtime_plugins();
     let capabilities = official_runtime_capabilities();
     let templates = official_runtime_templates();
+    let prompts = official_runtime_prompts();
     let agents = official_runtime_agents();
     let checks = official_runtime_checks();
     let providers = official_runtime_providers();
@@ -363,6 +387,7 @@ pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
         plugins,
         capabilities,
         templates,
+        prompts,
         agents,
         checks,
         providers,

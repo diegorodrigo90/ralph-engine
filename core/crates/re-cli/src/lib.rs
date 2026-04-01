@@ -161,6 +161,62 @@ mod tests {
     }
 
     #[test]
+    fn execute_prompts_list_runtime_prompts() {
+        // Arrange
+        let command = args(&["ralph-engine", "prompts", "list"]);
+
+        // Act
+        let output = execute(command).expect("prompts list should succeed");
+
+        // Assert
+        assert!(output.contains("Prompts (1)"));
+        assert!(output.contains("- official.bmad | activation=disabled"));
+    }
+
+    #[test]
+    fn execute_prompts_show_returns_provider_detail() {
+        // Arrange
+        let command = args(&["ralph-engine", "prompts", "show", "official.bmad"]);
+
+        // Act
+        let output = execute(command).expect("prompts show should succeed");
+
+        // Assert
+        assert!(output.contains("Prompt provider: official.bmad"));
+        assert!(output.contains("Providers (1)"));
+        assert!(output.contains(
+            "- official.bmad | activation=disabled | boundary=in_process | prompt_hook=true"
+        ));
+    }
+
+    #[test]
+    fn execute_prompts_show_requires_plugin_id() {
+        // Arrange
+        let command = args(&["ralph-engine", "prompts", "show"]);
+
+        // Act
+        let error = execute(command).expect_err("missing prompt plugin id should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "prompts show requires a plugin id");
+    }
+
+    #[test]
+    fn execute_prompts_show_rejects_unknown_plugin() {
+        // Arrange
+        let command = args(&["ralph-engine", "prompts", "show", "official.unknown"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown prompt provider should fail");
+
+        // Assert
+        assert_eq!(
+            error.to_string(),
+            "unknown prompt provider: official.unknown"
+        );
+    }
+
+    #[test]
     fn execute_capabilities_lists_runtime_capabilities() {
         // Arrange
         let command = args(&["ralph-engine", "capabilities", "list"]);
@@ -647,8 +703,8 @@ mod tests {
         // Assert
         assert!(output.contains("Runtime doctor"));
         assert!(output.contains("Runtime health: degraded"));
-        assert!(output.contains("Runtime issues (57)"));
-        assert!(output.contains("Runtime action plan (57)"));
+        assert!(output.contains("Runtime issues (58)"));
+        assert!(output.contains("Runtime action plan (58)"));
     }
 
     #[test]
@@ -661,7 +717,7 @@ mod tests {
 
         // Assert
         assert!(output.contains("Runtime doctor"));
-        assert!(output.contains("Runtime issues (57)"));
+        assert!(output.contains("Runtime issues (58)"));
     }
 
     #[test]
@@ -775,6 +831,8 @@ mod tests {
         assert!(output.contains("Templates (3)"));
         assert!(output.contains("official.basic | activation=enabled"));
         assert!(output.contains("official.tdd-strict | activation=disabled"));
+        assert!(output.contains("Prompts (1)"));
+        assert!(output.contains("official.bmad | activation=disabled"));
         assert!(output.contains("Agent runtimes (3)"));
         assert!(output.contains("official.claude | activation=disabled"));
         assert!(output.contains("official.codex | activation=disabled"));
@@ -808,6 +866,7 @@ mod tests {
         assert!(output.contains("Plugins: enabled=1, disabled=7"));
         assert!(output.contains("Capabilities: enabled=1, disabled=17"));
         assert!(output.contains("Templates: enabled=1, disabled=2"));
+        assert!(output.contains("Prompts: enabled=0, disabled=1"));
         assert!(output.contains("Agent runtimes: enabled=0, disabled=3"));
         assert!(output.contains("Checks: enabled=0, disabled=2"));
         assert!(output.contains("Providers: enabled=0, disabled=4"));
@@ -825,12 +884,15 @@ mod tests {
         let output = execute(command).expect("runtime issues should succeed");
 
         // Assert
-        assert!(output.contains("Runtime issues (57)"));
+        assert!(output.contains("Runtime issues (58)"));
         assert!(output.contains(
             "plugin_disabled | subject=official.github | action=enable the plugin in typed project configuration"
         ));
         assert!(output.contains(
             "template_disabled | subject=official.bmad | action=enable the provider plugin that owns this template surface"
+        ));
+        assert!(output.contains(
+            "prompt_provider_disabled | subject=official.bmad | action=enable the provider plugin that owns this prompt surface"
         ));
         assert!(output.contains(
             "agent_runtime_disabled | subject=official.codex | action=enable the provider plugin that owns this agent runtime"
@@ -861,12 +923,15 @@ mod tests {
         let output = execute(command).expect("runtime plan should succeed");
 
         // Assert
-        assert!(output.contains("Runtime action plan (57)"));
+        assert!(output.contains("Runtime action plan (58)"));
         assert!(output.contains(
             "enable_plugin | target=official.github | reason=the plugin is registered but disabled"
         ));
         assert!(output.contains(
             "enable_template_provider | target=official.bmad | reason=the provider still disables the template surface"
+        ));
+        assert!(output.contains(
+            "enable_prompt_provider | target=official.bmad | reason=the provider still disables the prompt surface"
         ));
         assert!(output.contains(
             "enable_agent_runtime_provider | target=official.codex | reason=the provider still disables the agent runtime"
@@ -952,6 +1017,18 @@ mod tests {
     }
 
     #[test]
+    fn execute_prompts_without_subcommand_lists_runtime_prompts() {
+        // Arrange
+        let command = args(&["ralph-engine", "prompts"]);
+
+        // Act
+        let output = execute(command).expect("prompts command should succeed");
+
+        // Assert
+        assert!(output.contains("Prompts (1)"));
+    }
+
+    #[test]
     fn execute_checks_without_subcommand_lists_runtime_checks() {
         // Arrange
         let command = args(&["ralph-engine", "checks"]);
@@ -1033,6 +1110,18 @@ mod tests {
 
         // Assert
         assert_eq!(error.to_string(), "unknown templates command: runtime");
+    }
+
+    #[test]
+    fn execute_unknown_prompts_subcommand_fails() {
+        // Arrange
+        let command = args(&["ralph-engine", "prompts", "runtime"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown prompts command should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown prompts command: runtime");
     }
 
     #[test]

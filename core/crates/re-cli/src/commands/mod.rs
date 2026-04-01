@@ -9,6 +9,7 @@ mod hooks;
 mod mcp;
 mod plugins;
 mod policies;
+mod prompts;
 mod providers;
 mod runtime;
 mod templates;
@@ -52,6 +53,10 @@ const COMMANDS: &[CommandDescriptor] = &[
     CommandDescriptor {
         name: "policies",
         handler: policies::execute,
+    },
+    CommandDescriptor {
+        name: "prompts",
+        handler: prompts::execute,
     },
     CommandDescriptor {
         name: "providers",
