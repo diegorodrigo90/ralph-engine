@@ -10,6 +10,8 @@ ralph-engine --version
 ralph-engine capabilities
 ralph-engine capabilities list
 ralph-engine capabilities show <capability-id>
+ralph-engine doctor
+ralph-engine doctor runtime
 ralph-engine hooks
 ralph-engine hooks list
 ralph-engine hooks show <hook-id>
@@ -34,6 +36,8 @@ ralph-engine mcp show <server-id>
 The `plugins show` command prints the immutable plugin contract, including lifecycle, load boundary, runtime hooks, and resolved activation state.
 
 The `capabilities` command family prints the typed runtime capability registry so capability providers remain explicit and modular.
+
+The `doctor` command family prints the typed runtime diagnostic report by composing runtime status, unresolved issues, and remediation actions from one shared runtime snapshot instead of spreading diagnosis across ad hoc command logic.
 
 The `hooks` command family prints the typed runtime-hook registry so hook providers remain explicit and modular.
 

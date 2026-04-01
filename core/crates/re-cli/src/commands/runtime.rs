@@ -20,47 +20,31 @@ pub fn execute(args: &[String]) -> Result<String, CliError> {
 }
 
 fn show_runtime() -> String {
-    let plugins = catalog::official_runtime_plugins();
-    let capabilities = catalog::official_runtime_capabilities();
-    let hooks = catalog::official_runtime_hooks();
-    let mcp_servers = catalog::official_runtime_mcp_registrations();
-    let topology =
-        catalog::official_runtime_topology(&plugins, &capabilities, &hooks, &mcp_servers);
+    let snapshot = catalog::official_runtime_snapshot();
+    let topology = snapshot.topology();
 
     render_runtime_topology(&topology)
 }
 
 fn show_runtime_status() -> String {
-    let plugins = catalog::official_runtime_plugins();
-    let capabilities = catalog::official_runtime_capabilities();
-    let hooks = catalog::official_runtime_hooks();
-    let mcp_servers = catalog::official_runtime_mcp_registrations();
-    let topology =
-        catalog::official_runtime_topology(&plugins, &capabilities, &hooks, &mcp_servers);
+    let snapshot = catalog::official_runtime_snapshot();
+    let topology = snapshot.topology();
     let status = evaluate_runtime_status(&topology);
 
     render_runtime_status(&status)
 }
 
 fn show_runtime_issues() -> String {
-    let plugins = catalog::official_runtime_plugins();
-    let capabilities = catalog::official_runtime_capabilities();
-    let hooks = catalog::official_runtime_hooks();
-    let mcp_servers = catalog::official_runtime_mcp_registrations();
-    let topology =
-        catalog::official_runtime_topology(&plugins, &capabilities, &hooks, &mcp_servers);
+    let snapshot = catalog::official_runtime_snapshot();
+    let topology = snapshot.topology();
     let issues = collect_runtime_issues(&topology);
 
     render_runtime_issues(&issues)
 }
 
 fn show_runtime_action_plan() -> String {
-    let plugins = catalog::official_runtime_plugins();
-    let capabilities = catalog::official_runtime_capabilities();
-    let hooks = catalog::official_runtime_hooks();
-    let mcp_servers = catalog::official_runtime_mcp_registrations();
-    let topology =
-        catalog::official_runtime_topology(&plugins, &capabilities, &hooks, &mcp_servers);
+    let snapshot = catalog::official_runtime_snapshot();
+    let topology = snapshot.topology();
     let actions = build_runtime_action_plan(&topology);
 
     render_runtime_action_plan(&actions)

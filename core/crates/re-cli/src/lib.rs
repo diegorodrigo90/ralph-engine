@@ -338,6 +338,46 @@ mod tests {
     }
 
     #[test]
+    fn execute_doctor_returns_typed_runtime_report() {
+        // Arrange
+        let command = args(&["ralph-engine", "doctor"]);
+
+        // Act
+        let output = execute(command).expect("doctor should succeed");
+
+        // Assert
+        assert!(output.contains("Runtime doctor"));
+        assert!(output.contains("Runtime health: degraded"));
+        assert!(output.contains("Runtime issues (45)"));
+        assert!(output.contains("Runtime action plan (45)"));
+    }
+
+    #[test]
+    fn execute_doctor_runtime_returns_typed_runtime_report() {
+        // Arrange
+        let command = args(&["ralph-engine", "doctor", "runtime"]);
+
+        // Act
+        let output = execute(command).expect("doctor runtime should succeed");
+
+        // Assert
+        assert!(output.contains("Runtime doctor"));
+        assert!(output.contains("Runtime issues (45)"));
+    }
+
+    #[test]
+    fn execute_unknown_doctor_subcommand_fails() {
+        // Arrange
+        let command = args(&["ralph-engine", "doctor", "plugins"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown doctor command should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown doctor command: plugins");
+    }
+
+    #[test]
     fn execute_unknown_config_subcommand_fails() {
         // Arrange
         let command = args(&["ralph-engine", "config", "doctor"]);
@@ -611,12 +651,12 @@ mod tests {
     #[test]
     fn execute_unknown_command_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "doctor"]);
+        let command = args(&["ralph-engine", "unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown command should fail");
 
         // Assert
-        assert_eq!(error.to_string(), "unknown command: doctor");
+        assert_eq!(error.to_string(), "unknown command: unknown");
     }
 }

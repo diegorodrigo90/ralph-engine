@@ -330,6 +330,33 @@ impl RuntimeAction {
     }
 }
 
+/// Immutable runtime doctor report derived from one resolved topology.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RuntimeDoctorReport {
+    /// Snapshot of current runtime status.
+    pub status: RuntimeStatus,
+    /// Unresolved runtime issues.
+    pub issues: Vec<RuntimeIssue>,
+    /// Recommended remediation actions.
+    pub actions: Vec<RuntimeAction>,
+}
+
+impl RuntimeDoctorReport {
+    /// Creates a new immutable runtime doctor report.
+    #[must_use]
+    pub fn new(
+        status: RuntimeStatus,
+        issues: Vec<RuntimeIssue>,
+        actions: Vec<RuntimeAction>,
+    ) -> Self {
+        Self {
+            status,
+            issues,
+            actions,
+        }
+    }
+}
+
 /// Renders a human-readable runtime topology summary.
 #[must_use]
 pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
@@ -609,6 +636,31 @@ pub fn render_runtime_action_plan(actions: &[RuntimeAction]) -> String {
     lines.join("\n")
 }
 
+/// Builds a typed runtime doctor report from the resolved topology.
+#[must_use]
+pub fn build_runtime_doctor_report(topology: &RuntimeTopology<'_>) -> RuntimeDoctorReport {
+    let status = evaluate_runtime_status(topology);
+    let issues = collect_runtime_issues(topology);
+    let actions = build_runtime_action_plan(topology);
+
+    RuntimeDoctorReport::new(status, issues, actions)
+}
+
+/// Renders a human-readable runtime doctor report.
+#[must_use]
+pub fn render_runtime_doctor_report(report: &RuntimeDoctorReport) -> String {
+    [
+        "Runtime doctor".to_owned(),
+        String::new(),
+        render_runtime_status(&report.status),
+        String::new(),
+        render_runtime_issues(&report.issues),
+        String::new(),
+        render_runtime_action_plan(&report.actions),
+    ]
+    .join("\n")
+}
+
 #[cfg(test)]
 mod tests {
     use re_config::{ConfigScope, PluginActivation};
@@ -620,10 +672,11 @@ mod tests {
 
     use super::{
         PRODUCT_NAME, PRODUCT_TAGLINE, RuntimeAction, RuntimeActionKind,
-        RuntimeCapabilityRegistration, RuntimeHealth, RuntimeHookRegistration, RuntimeIssue,
-        RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
-        RuntimeTopology, banner, build_runtime_action_plan, collect_runtime_issues,
-        evaluate_runtime_status, render_runtime_action_plan, render_runtime_issues,
+        RuntimeCapabilityRegistration, RuntimeDoctorReport, RuntimeHealth, RuntimeHookRegistration,
+        RuntimeIssue, RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase,
+        RuntimePluginRegistration, RuntimeTopology, banner, build_runtime_action_plan,
+        build_runtime_doctor_report, collect_runtime_issues, evaluate_runtime_status,
+        render_runtime_action_plan, render_runtime_doctor_report, render_runtime_issues,
         render_runtime_status, render_runtime_topology,
     };
 
@@ -1233,6 +1286,88 @@ mod tests {
         assert!(rendered.contains(
             "- enable_plugin | target=official.github | reason=the plugin is registered but disabled"
         ));
+    }
+
+    #[test]
+    fn build_runtime_doctor_report_collects_status_issues_and_actions() {
+        // Arrange
+        let plugins = [RuntimePluginRegistration::new(
+            plugin_descriptor(),
+            PluginActivation::Disabled,
+            ConfigScope::BuiltInDefaults,
+        )];
+        let capabilities = [RuntimeCapabilityRegistration::new(
+            PluginCapability::new("template"),
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+        )];
+        let hooks = [RuntimeHookRegistration::new(
+            PluginRuntimeHook::Scaffold,
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+        )];
+        let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), false)];
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &plugins,
+            capabilities: &capabilities,
+            hooks: &hooks,
+            mcp_servers: &mcp_servers,
+        };
+
+        // Act
+        let report = build_runtime_doctor_report(&topology);
+
+        // Assert
+        assert_eq!(
+            report,
+            RuntimeDoctorReport::new(
+                evaluate_runtime_status(&topology),
+                collect_runtime_issues(&topology),
+                build_runtime_action_plan(&topology),
+            )
+        );
+    }
+
+    #[test]
+    fn render_runtime_doctor_report_is_human_readable() {
+        // Arrange
+        let report = RuntimeDoctorReport::new(
+            super::RuntimeStatus {
+                phase: RuntimePhase::Ready,
+                health: RuntimeHealth::Degraded,
+                enabled_plugins: 1,
+                disabled_plugins: 1,
+                enabled_capabilities: 1,
+                disabled_capabilities: 1,
+                enabled_hooks: 1,
+                disabled_hooks: 1,
+                enabled_mcp_servers: 0,
+                disabled_mcp_servers: 1,
+            },
+            vec![RuntimeIssue::new(
+                RuntimeIssueKind::PluginDisabled,
+                "official.github",
+                "enable the plugin in typed project configuration",
+            )],
+            vec![RuntimeAction::new(
+                RuntimeActionKind::EnablePlugin,
+                "official.github",
+                "the plugin is registered but disabled",
+            )],
+        );
+
+        // Act
+        let rendered = render_runtime_doctor_report(&report);
+
+        // Assert
+        assert!(rendered.contains("Runtime doctor"));
+        assert!(rendered.contains("Runtime health: degraded"));
+        assert!(rendered.contains("Runtime issues (1)"));
+        assert!(rendered.contains("Runtime action plan (1)"));
     }
 
     #[test]
