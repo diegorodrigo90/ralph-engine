@@ -77,3 +77,41 @@ test("rejects reserved publisher", () => {
 
   assert.equal(result.status, 1);
 });
+
+test("rejects unsupported future kind", () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-ralph-engine-plugin-"));
+  const result = spawnSync(process.execPath, [
+    binPath,
+    "plugin",
+    "danger",
+    "--publisher",
+    "acme",
+    "--kind",
+    "tracker_provider",
+  ], {
+    cwd: tempDir,
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Unsupported kind "tracker_provider"/);
+});
+
+test("rejects unsupported future capability", () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-ralph-engine-plugin-"));
+  const result = spawnSync(process.execPath, [
+    binPath,
+    "plugin",
+    "danger",
+    "--publisher",
+    "acme",
+    "--capability",
+    "dashboard_events",
+  ], {
+    cwd: tempDir,
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Unsupported capability "dashboard_events"/);
+});
