@@ -1,6 +1,15 @@
 # Padrões de código
 
-O Ralph Engine usa uma base em Rust com verificações rígidas de qualidade.
+O Ralph Engine usa uma base em Rust com verificações rígidas de qualidade, mas o repositório também precisa continuar acolhedor para quem ainda está entrando em Rust ou em open source.
+
+Estas regras existem para manter o código:
+
+- claro de ler
+- fácil de testar
+- fácil de revisar
+- consistente em todo o repositório
+
+Se você vem de TypeScript, Go, Java ou outra linguagem, leia esta página como um guia de tradução para entender como esperamos que o código Rust do Ralph Engine se comporte na prática.
 
 ## Regras centrais
 
@@ -19,8 +28,22 @@ O Ralph Engine usa uma base em Rust com verificações rígidas de qualidade.
 - Prefira funções pequenas com uma responsabilidade.
 - Prefira tipos fortes a contratos baseados em string.
 - Prefira retornos antecipados a aninhamento profundo.
-- Aplique DDD, SOLID e object calisthenics quando melhorarem a manutenibilidade em Rust idiomático.
+- Aplique DDD, SOLID e object calisthenics só quando isso realmente melhorar a manutenibilidade em Rust idiomático.
 - Separe bem domínio, aplicação e infraestrutura.
+
+## Como interpretar esses princípios em Rust
+
+- DDD aqui significa fronteiras claras de domínio, não burocracia.
+- SOLID aqui significa responsabilidades pequenas e contratos explícitos, muitas vezes por meio de traits enxutas e tipos fortes.
+- Object calisthenics aqui significa disciplina de legibilidade, não tentar fazer Rust parecer OOP clássica.
+
+Na prática, prefira:
+
+- structs com responsabilidades claras
+- enums para estados e resultados explícitos
+- traits pequenas em vez de interfaces largas
+- funções auxiliares com um único papel
+- parsing, validação e I/O separados das regras centrais
 
 ## Regras de teste
 
@@ -41,6 +64,8 @@ fn example() {
 ```
 
 AAA é uma regra do repositório e também uma expectativa de revisão.
+
+O objetivo é simples: alguém precisa bater o olho num teste e entender rapidamente o preparo, a ação e a verificação final, sem precisar adivinhar a intenção.
 
 ## Comandos
 

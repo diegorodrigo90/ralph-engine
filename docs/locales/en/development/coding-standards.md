@@ -1,6 +1,15 @@
 # Coding Standards
 
-Ralph Engine uses a strict Rust-first quality baseline.
+Ralph Engine uses a strict Rust-first quality baseline, but the repository should still feel approachable to contributors who are newer to Rust or open source work.
+
+These standards exist to keep code:
+
+- clear to read
+- easy to test
+- easy to review
+- consistent across the repository
+
+If you come from TypeScript, Go, Java, or another language, read these notes as a translation guide for how Ralph Engine expects Rust code to feel in practice.
 
 ## Core rules
 
@@ -19,8 +28,22 @@ Ralph Engine uses a strict Rust-first quality baseline.
 - Prefer small functions with one responsibility.
 - Prefer strong types over stringly-typed contracts.
 - Prefer early returns over deep nesting.
-- Apply DDD, SOLID, and object calisthenics where they improve maintainability in idiomatic Rust.
+- Apply DDD, SOLID, and object calisthenics only where they improve maintainability in idiomatic Rust.
 - Keep domain, application, and infrastructure concerns separated.
+
+## How to interpret these principles in Rust
+
+- DDD means clear domain boundaries, not ceremony.
+- SOLID means small responsibilities and explicit contracts, often through focused traits and strong types.
+- Object calisthenics means disciplined readability, not forcing Rust into classic OOP shapes.
+
+In practice, prefer:
+
+- structs with clear responsibilities
+- enums for explicit states and outcomes
+- small traits instead of wide interfaces
+- helper functions with one job
+- parsing, validation, and I/O separated from core business rules
 
 ## Test rules
 
@@ -41,6 +64,8 @@ fn example() {
 ```
 
 AAA is a repository rule and review expectation. Where native linting is not available, Ralph Engine uses repository conventions, examples, and code review to keep tests readable and consistent.
+
+The goal is simple: a contributor should be able to scan a test and understand setup, action, and assertion without guessing.
 
 ## Commands
 
