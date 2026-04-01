@@ -1,6 +1,6 @@
 //! Official TDD strict policy plugin metadata.
 
-use re_plugin::{POLICY, PluginDescriptor, PluginLifecycleStage, TEMPLATE};
+use re_plugin::{POLICY, PluginDescriptor, PluginLifecycleStage, PluginLoadBoundary, TEMPLATE};
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.tdd-strict";
@@ -19,6 +19,7 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,
+    PluginLoadBoundary::InProcess,
 );
 
 /// Declared capabilities for the official plugin foundation.
