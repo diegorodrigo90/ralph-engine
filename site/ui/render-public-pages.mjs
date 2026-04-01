@@ -11,13 +11,15 @@ const outputDir = process.argv[2]
   : path.join(rootDir, ".site-pages");
 
 const cloudflareAnalytics = `
-    <!-- Cloudflare Web Analytics -->
-    <script
-      defer
-      src="https://static.cloudflareinsights.com/beacon.min.js"
-      data-cf-beacon='{"token": "882eb5c78500434c86bc3c6bbde81b4a"}'
-    ></script>
-    <!-- End Cloudflare Web Analytics -->`;
+    <script>
+      if (window.location.hostname === "ralphengine.com") {
+        const script = document.createElement("script");
+        script.defer = true;
+        script.src = "https://static.cloudflareinsights.com/beacon.min.js";
+        script.setAttribute("data-cf-beacon", '{"token": "882eb5c78500434c86bc3c6bbde81b4a"}');
+        document.head.appendChild(script);
+      }
+    </script>`;
 
 const pages = [
   {

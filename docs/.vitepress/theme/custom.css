@@ -29,6 +29,10 @@
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
 }
 
+.VPNavBar .container {
+  max-width: 1180px;
+}
+
 .VPNavBarMenuLink,
 .VPLocalNav .menu-text,
 .VPNavScreenMenuLink {
@@ -37,18 +41,20 @@
 
 .VPNavBarMenuLink {
   border: 1px solid transparent;
-  border-radius: 999px;
-  padding: 8px 12px;
+  border-radius: 16px;
+  padding: 8px 14px;
   transition:
     color 160ms ease,
     background-color 160ms ease,
-    border-color 160ms ease;
+    border-color 160ms ease,
+    transform 160ms ease;
 }
 
 .VPNavBarMenuLink:hover,
 .VPNavBarMenuLink.active {
-  border-color: rgba(15, 23, 42, 0.08);
+  border-color: rgba(80, 99, 214, 0.14);
   background: rgba(80, 99, 214, 0.08);
+  transform: translateY(-1px);
 }
 
 .VPNavBarExtra .VPSwitch,
@@ -65,6 +71,10 @@
 .VPLocalNav {
   border-bottom: 1px solid rgba(15, 23, 42, 0.08);
   background: rgba(255, 255, 255, 0.92);
+}
+
+.VPNavBarTitle .title {
+  font-weight: 700;
 }
 
 /* Docs chrome polish */
@@ -108,10 +118,17 @@
   border-top: 1px solid rgba(15, 23, 42, 0.08);
 }
 
+.VPContent.is-home {
+  background:
+    radial-gradient(circle at top left, rgba(80, 99, 214, 0.08), transparent 30%),
+    linear-gradient(180deg, rgba(247, 246, 242, 0.32), rgba(247, 246, 242, 0));
+}
+
 @media (max-width: 960px) {
   .VPNavBarMenuLink {
     padding: 0;
     border: 0;
     background: transparent;
+    transform: none;
   }
 }
