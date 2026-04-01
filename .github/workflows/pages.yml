@@ -1,15 +1,14 @@
 name: Pages
 
 on:
-  push:
-    tags:
-      - 'v*'
+  release:
+    types: [published]
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 concurrency:
-  group: pages-${{ github.ref }}
+  group: pages-${{ github.event.release.tag_name || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -26,6 +25,7 @@ jobs:
           egress-policy: audit
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
+          ref: ${{ github.event.release.tag_name }}
           persist-credentials: false
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:

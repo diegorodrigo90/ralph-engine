@@ -38,7 +38,7 @@ That same `CI` workflow builds cross-platform release candidates in parallel wit
 - The canonical `CI` workflow SHALL build cross-platform release candidates for the target `main` SHA in parallel with the quality gates.
 - The canonical `CI` workflow SHALL publish reusable approved release artifacts for that SHA only after `Quality`, `Security`, and `SonarCloud` have all passed.
 - The release workflow SHALL download and publish that approved artifact set instead of rebuilding it.
-- Pages SHALL publish from release tags so the public site and docs stay aligned with published versions.
+- Pages SHALL publish from published releases and build from the release tag so the public site and docs stay aligned with published versions.
 - `cargo-dist` SHALL be the Rust artifact builder for release distribution.
 - `Quality`, `Security`, and `SonarCloud` SHALL all pass before a release tag is created.
 - `SONAR_TOKEN` SHALL resolve to a SonarCloud token that can browse and analyze the target project.
