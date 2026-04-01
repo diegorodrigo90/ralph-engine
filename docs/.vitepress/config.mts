@@ -1,4 +1,27 @@
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitepress";
+
+const currentDir = dirname(fileURLToPath(import.meta.url));
+function findRepoRoot(startDir: string) {
+  let candidate = startDir;
+
+  for (let depth = 0; depth < 6; depth += 1) {
+    if (existsSync(resolve(candidate, "Cargo.toml"))) {
+      return candidate;
+    }
+    candidate = resolve(candidate, "..");
+  }
+
+  throw new Error("Could not resolve Ralph Engine repository root from VitePress config.");
+}
+
+const repoRoot = findRepoRoot(currentDir);
+const cargoToml = readFileSync(resolve(repoRoot, "Cargo.toml"), "utf-8");
+const releaseVersion = cargoToml.match(/^version = "([^"]+)"/m)?.[1] ?? "0.0.0";
+const releaseTag = `v${releaseVersion}`;
+const releaseUrl = `https://github.com/diegorodrigo90/ralph-engine/releases/tag/${releaseTag}`;
 
 function buildSidebar(prefix: string, labels: {
   gettingStarted: string;
@@ -99,6 +122,7 @@ export default defineConfig({
           { text: "Docs", link: "/" },
           { text: "Plugins", link: "https://ralphengine.com/plugins/" },
           { text: "Roadmap", link: "/development/roadmap" },
+          { text: `Latest ${releaseTag}`, link: releaseUrl },
           { text: "GitHub", link: "https://github.com/diegorodrigo90/ralph-engine" },
         ],
         sidebar: buildSidebar("", {
@@ -140,6 +164,7 @@ export default defineConfig({
           { text: "Docs", link: "/pt-br/" },
           { text: "Plugins", link: "https://ralphengine.com/pt-br/plugins/" },
           { text: "Roadmap", link: "/pt-br/development/roadmap" },
+          { text: `Última ${releaseTag}`, link: releaseUrl },
           { text: "GitHub", link: "https://github.com/diegorodrigo90/ralph-engine" },
         ],
         sidebar: buildSidebar("/pt-br", {
@@ -197,7 +222,7 @@ export default defineConfig({
     },
 
     footer: {
-      message: "Released under the MIT License.",
+      message: `Released under the MIT License. Docs track ${releaseTag}.`,
       copyright: "© 2026 Diego Rodrigo",
     },
   },
