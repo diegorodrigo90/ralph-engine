@@ -31,6 +31,7 @@ cargo test --workspace --all-targets --all-features
 - Public Rust APIs are documented with `rustdoc`
 - Rust tests prefer Arrange, Act, Assert
 - The repository enforces `fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, docs build, and public-surface assembly from the same validation contract
+- SonarCloud is configured as the final coverage gate for analyzed code, and the release path is blocked unless that gate stays at `100%`
 - `./scripts/validate-ci-local.sh` provides a supported local smoke run for the GitHub Actions CI workflow when `act` is installed
 
 ## Release model
@@ -42,7 +43,7 @@ cargo test --workspace --all-targets --all-features
 - merging the release PR prepares the versioned release state
 - the canonical `CI` workflow on `main` builds cross-platform release candidates in parallel and only publishes reusable approved release artifacts for the SHA after `Quality`, `Security`, and `SonarCloud` have passed
 - the manual hardened release workflow verifies green CI for the current `main` SHA and promotes those same artifacts instead of rebuilding them
-- the public Pages deployment publishes from version tags so docs and site stay aligned with published releases
+- the public Pages deployment publishes from published releases and builds from the release tag so docs and site stay aligned with published releases
 
 ## Status
 
