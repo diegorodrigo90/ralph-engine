@@ -6,10 +6,10 @@ import test from "node:test";
 import { spawnSync } from "node:child_process";
 
 const rootDir = path.resolve(import.meta.dirname, "..");
-const binPath = path.join(rootDir, "bin", "create-ralph-engine.js");
+const binPath = path.join(rootDir, "bin", "create-ralph-engine-plugin.js");
 
 test("creates a non-interactive plugin scaffold", () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-ralph-engine-"));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-ralph-engine-plugin-"));
   const targetDir = path.join(tempDir, "jira-suite");
 
   const result = spawnSync(process.execPath, [
@@ -40,7 +40,7 @@ test("creates a non-interactive plugin scaffold", () => {
 });
 
 test("creates template assets when template capability is present", () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-ralph-engine-"));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-ralph-engine-plugin-"));
   const targetDir = path.join(tempDir, "bmad-pack");
 
   const result = spawnSync(process.execPath, [
@@ -63,7 +63,7 @@ test("creates template assets when template capability is present", () => {
 });
 
 test("rejects reserved publisher", () => {
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-ralph-engine-"));
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-ralph-engine-plugin-"));
   const result = spawnSync(process.execPath, [
     binPath,
     "plugin",

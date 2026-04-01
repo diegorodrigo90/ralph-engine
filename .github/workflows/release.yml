@@ -13,7 +13,7 @@ on:
         default: true
         type: boolean
       publish_npm:
-        description: Publish the npm channels (`ralph-engine` and `create-ralph-engine`)
+        description: Publish the npm channels (`ralph-engine` and `create-ralph-engine-plugin`)
         required: true
         default: false
         type: boolean
@@ -233,7 +233,7 @@ jobs:
             npm publish --provenance --access public
           )
           (
-            cd .release/npm/create-ralph-engine
+            cd .release/npm/create-ralph-engine-plugin
             npm publish --provenance --access public
           )
       - name: Render Homebrew formula from release assets

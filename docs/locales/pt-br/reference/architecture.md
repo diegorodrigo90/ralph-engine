@@ -11,7 +11,7 @@ Ralph Engine é um runtime open source, orientado a plugins, para fluxos de dese
 - `docs/` — docs em VitePress
 - `site/` — superfícies públicas da web, UI compartilhada e metadados de plugins
 - `packaging/` — superfícies de npm e Homebrew
-- `tools/create-ralph-engine/` — scaffolding para desenvolvedores
+- `tools/create-ralph-engine/` — scaffolding de plugin para `npx create-ralph-engine-plugin`
 - `scripts/` — bootstrap, validação e automação de release
 
 ## Workspace Rust

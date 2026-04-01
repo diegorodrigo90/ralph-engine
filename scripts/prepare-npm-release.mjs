@@ -18,7 +18,7 @@ const PACKAGE_SPECS = [
   },
   {
     sourceDir: path.join(ROOT_DIR, "tools", "create-ralph-engine"),
-    outDirName: "create-ralph-engine",
+    outDirName: "create-ralph-engine-plugin",
     mutator: (pkg, version) => ({
       ...pkg,
       version,

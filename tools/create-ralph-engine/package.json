@@ -1,8 +1,8 @@
 {
-  "name": "create-ralph-engine",
+  "name": "create-ralph-engine-plugin",
   "private": true,
   "version": "0.0.0-development",
-  "description": "Scaffolder for Ralph Engine plugins and developer setups",
+  "description": "Plugin scaffolder for Ralph Engine",
   "license": "MIT",
   "author": "Diego Rodrigo <diegorodrigo90@gmail.com>",
   "homepage": "https://ralphengine.com",
@@ -32,6 +32,6 @@
     "test": "node --test"
   },
   "bin": {
-    "create-ralph-engine": "./bin/create-ralph-engine.js"
+    "create-ralph-engine-plugin": "./bin/create-ralph-engine-plugin.js"
   }
 }
