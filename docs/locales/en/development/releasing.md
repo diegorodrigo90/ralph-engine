@@ -26,6 +26,7 @@ Secrets used by this workflow:
 The `tag` input SHALL include the leading `v`, for example `v0.2.0-alpha.1`. The workflow strips that prefix before preparing npm package versions.
 Before it publishes anything, the workflow verifies that the selected SHA is the current `origin/main` head and that the canonical `CI` workflow has already completed successfully for that exact push.
 That same `CI` workflow builds cross-platform release candidates in parallel with the quality gates and publishes reusable approved release artifacts for the SHA only after `Quality`, `Security`, and `SonarCloud` have all passed.
+The SonarCloud quality gate is also the hard release stop for coverage: if it falls below the configured `100%` target for analyzed code, the SHA is not approved for artifact publication or release promotion.
 
 ## Rules
 
@@ -41,6 +42,7 @@ That same `CI` workflow builds cross-platform release candidates in parallel wit
 - Pages SHALL publish from published releases and build from the release tag so the public site and docs stay aligned with published versions.
 - `cargo-dist` SHALL be the Rust artifact builder for release distribution.
 - `Quality`, `Security`, and `SonarCloud` SHALL all pass before a release tag is created.
+- The SonarCloud quality gate SHALL enforce 100% coverage for analyzed code before reusable release artifacts are approved.
 - `SONAR_TOKEN` SHALL resolve to a SonarCloud token that can browse and analyze the target project.
 - Checksums, SBOMs, and artifact attestations are part of the target release contract.
 - npm SHALL install from reviewed `cargo-dist` release assets and verify the published `.sha256` checksum before extraction.
