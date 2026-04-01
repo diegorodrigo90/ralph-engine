@@ -39,6 +39,26 @@ impl RuntimePhase {
     }
 }
 
+/// Typed runtime health identifier.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RuntimeHealth {
+    /// The runtime is fully operable for its resolved topology.
+    Healthy,
+    /// The runtime still depends on explicit activation or operator action.
+    Degraded,
+}
+
+impl RuntimeHealth {
+    /// Returns the stable runtime-health identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Healthy => "healthy",
+            Self::Degraded => "degraded",
+        }
+    }
+}
+
 /// One typed plugin registration in the resolved runtime topology.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RuntimePluginRegistration {
@@ -144,6 +164,27 @@ pub struct RuntimeTopology<'a> {
     pub mcp_servers: &'a [RuntimeMcpRegistration],
 }
 
+/// Immutable summary of resolved runtime state.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimeStatus {
+    /// Current runtime phase.
+    pub phase: RuntimePhase,
+    /// Derived runtime health.
+    pub health: RuntimeHealth,
+    /// Number of enabled plugins.
+    pub enabled_plugins: usize,
+    /// Number of disabled plugins.
+    pub disabled_plugins: usize,
+    /// Number of enabled capability providers.
+    pub enabled_capabilities: usize,
+    /// Number of disabled capability providers.
+    pub disabled_capabilities: usize,
+    /// Number of enabled MCP servers.
+    pub enabled_mcp_servers: usize,
+    /// Number of disabled MCP servers.
+    pub disabled_mcp_servers: usize,
+}
+
 /// Renders a human-readable runtime topology summary.
 #[must_use]
 pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
@@ -190,6 +231,67 @@ pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
     lines.join("\n")
 }
 
+/// Evaluates the current runtime status from the resolved topology.
+#[must_use]
+pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus {
+    let enabled_plugins = topology
+        .plugins
+        .iter()
+        .filter(|plugin| plugin.is_enabled())
+        .count();
+    let disabled_plugins = topology.plugins.len() - enabled_plugins;
+    let enabled_capabilities = topology
+        .capabilities
+        .iter()
+        .filter(|capability| capability.is_enabled())
+        .count();
+    let disabled_capabilities = topology.capabilities.len() - enabled_capabilities;
+    let enabled_mcp_servers = topology
+        .mcp_servers
+        .iter()
+        .filter(|server| server.enabled)
+        .count();
+    let disabled_mcp_servers = topology.mcp_servers.len() - enabled_mcp_servers;
+    let health = if disabled_plugins == 0 && disabled_mcp_servers == 0 {
+        RuntimeHealth::Healthy
+    } else {
+        RuntimeHealth::Degraded
+    };
+
+    RuntimeStatus {
+        phase: topology.phase,
+        health,
+        enabled_plugins,
+        disabled_plugins,
+        enabled_capabilities,
+        disabled_capabilities,
+        enabled_mcp_servers,
+        disabled_mcp_servers,
+    }
+}
+
+/// Renders a human-readable runtime status summary.
+#[must_use]
+pub fn render_runtime_status(status: &RuntimeStatus) -> String {
+    [
+        format!("Runtime phase: {}", status.phase.as_str()),
+        format!("Runtime health: {}", status.health.as_str()),
+        format!(
+            "Plugins: enabled={}, disabled={}",
+            status.enabled_plugins, status.disabled_plugins
+        ),
+        format!(
+            "Capabilities: enabled={}, disabled={}",
+            status.enabled_capabilities, status.disabled_capabilities
+        ),
+        format!(
+            "MCP servers: enabled={}, disabled={}",
+            status.enabled_mcp_servers, status.disabled_mcp_servers
+        ),
+    ]
+    .join("\n")
+}
+
 #[cfg(test)]
 mod tests {
     use re_config::{ConfigScope, PluginActivation};
@@ -200,8 +302,9 @@ mod tests {
     };
 
     use super::{
-        PRODUCT_NAME, PRODUCT_TAGLINE, RuntimeCapabilityRegistration, RuntimeMcpRegistration,
-        RuntimePhase, RuntimePluginRegistration, RuntimeTopology, banner, render_runtime_topology,
+        PRODUCT_NAME, PRODUCT_TAGLINE, RuntimeCapabilityRegistration, RuntimeHealth,
+        RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration, RuntimeTopology, banner,
+        evaluate_runtime_status, render_runtime_status, render_runtime_topology,
     };
 
     const CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -268,6 +371,21 @@ mod tests {
 
         // Assert
         assert_eq!(rendered, vec!["bootstrapped", "ready"]);
+    }
+
+    #[test]
+    fn runtime_health_as_str_is_stable() {
+        // Arrange
+        let values = [RuntimeHealth::Healthy, RuntimeHealth::Degraded];
+
+        // Act
+        let rendered = values
+            .into_iter()
+            .map(RuntimeHealth::as_str)
+            .collect::<Vec<_>>();
+
+        // Assert
+        assert_eq!(rendered, vec!["healthy", "degraded"]);
     }
 
     #[test]
@@ -348,6 +466,73 @@ mod tests {
         ));
         assert!(rendered.contains("MCP servers (1)"));
         assert!(rendered.contains("- official.codex.session | enabled=true | process=plugin_managed | availability=on_demand"));
+    }
+
+    #[test]
+    fn evaluate_runtime_status_reports_healthy_runtime() {
+        // Arrange
+        let plugins = [RuntimePluginRegistration::new(
+            plugin_descriptor(),
+            PluginActivation::Enabled,
+            ConfigScope::BuiltInDefaults,
+        )];
+        let capabilities = [capability_registration()];
+        let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &plugins,
+            capabilities: &capabilities,
+            mcp_servers: &mcp_servers,
+        };
+
+        // Act
+        let status = evaluate_runtime_status(&topology);
+
+        // Assert
+        assert_eq!(status.health, RuntimeHealth::Healthy);
+        assert_eq!(status.enabled_plugins, 1);
+        assert_eq!(status.disabled_plugins, 0);
+        assert_eq!(status.enabled_capabilities, 1);
+        assert_eq!(status.disabled_capabilities, 0);
+        assert_eq!(status.enabled_mcp_servers, 1);
+        assert_eq!(status.disabled_mcp_servers, 0);
+    }
+
+    #[test]
+    fn render_runtime_status_reports_degraded_runtime() {
+        // Arrange
+        let plugins = [RuntimePluginRegistration::new(
+            plugin_descriptor(),
+            PluginActivation::Disabled,
+            ConfigScope::BuiltInDefaults,
+        )];
+        let capabilities = [RuntimeCapabilityRegistration::new(
+            PluginCapability::new("template"),
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+        )];
+        let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), false)];
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Bootstrapped,
+            locale: "en",
+            plugins: &plugins,
+            capabilities: &capabilities,
+            mcp_servers: &mcp_servers,
+        };
+
+        // Act
+        let status = evaluate_runtime_status(&topology);
+        let rendered = render_runtime_status(&status);
+
+        // Assert
+        assert_eq!(status.health, RuntimeHealth::Degraded);
+        assert!(rendered.contains("Runtime phase: bootstrapped"));
+        assert!(rendered.contains("Runtime health: degraded"));
+        assert!(rendered.contains("Plugins: enabled=0, disabled=1"));
+        assert!(rendered.contains("Capabilities: enabled=0, disabled=1"));
+        assert!(rendered.contains("MCP servers: enabled=0, disabled=1"));
     }
 
     #[test]

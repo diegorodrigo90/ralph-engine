@@ -355,6 +355,22 @@ mod tests {
     }
 
     #[test]
+    fn execute_runtime_status_returns_runtime_health_summary() {
+        // Arrange
+        let command = args(&["ralph-engine", "runtime", "status"]);
+
+        // Act
+        let output = execute(command).expect("runtime status should succeed");
+
+        // Assert
+        assert!(output.contains("Runtime phase: ready"));
+        assert!(output.contains("Runtime health: degraded"));
+        assert!(output.contains("Plugins: enabled=1, disabled=7"));
+        assert!(output.contains("Capabilities: enabled=1, disabled=17"));
+        assert!(output.contains("MCP servers: enabled=0, disabled=4"));
+    }
+
+    #[test]
     fn execute_runtime_without_subcommand_returns_resolved_topology() {
         // Arrange
         let command = args(&["ralph-engine", "runtime"]);

@@ -18,6 +18,7 @@ ralph-engine plugins list
 ralph-engine plugins show <plugin-id>
 ralph-engine runtime
 ralph-engine runtime show
+ralph-engine runtime status
 ralph-engine mcp
 ralph-engine mcp list
 ralph-engine mcp show <server-id>
@@ -30,3 +31,5 @@ A família `capabilities` imprime o registro tipado de capabilities do runtime p
 O comando `mcp show` imprime o contrato tipado de lançamento do MCP, incluindo modelo de processo, policy de lançamento, fronteiras de comando, policy de diretório de trabalho, policy de ambiente e disponibilidade.
 
 O comando `runtime show` imprime a topologia resolvida do runtime, incluindo ativação efetiva de plugin, registro de capability e enablement de MCP.
+
+O comando `runtime status` imprime o resumo tipado de health do runtime, incluindo providers habilitados e desabilitados em plugins, capabilities e servidores MCP.
