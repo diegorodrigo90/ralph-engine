@@ -41,6 +41,9 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 19. Selective validation MAY skip checks only when the changed files fit an explicit, reviewed safe scope. If the change set crosses domains, touches tooling, or falls outside a known-safe scope, validation SHALL fall back to the full contract.
 20. CI, hooks, and local validation SHALL use the same selective-validation rules. The optimization SHALL be conservative: skip only for clearly public-surface-only or clearly Rust-only change sets; uncertainty SHALL resolve to full validation.
 21. Local GitHub Actions simulation MAY be used to catch workflow failures before push, but it SHALL complement `scripts/validate.sh`, not replace it.
+22. CI caches SHALL be keyed and scoped by the inputs that actually affect correctness, including operating system, toolchain, dependency lockfiles, and job purpose. Broad blind caches SHALL be avoided.
+23. Cache strategy SHALL optimize by domain where it improves reuse without increasing drift, such as separate dependency caches for repository Node tooling, docs tooling, and Rust build artifacts.
+24. Workflows SHALL avoid duplicate heavy work across jobs. Expensive steps such as coverage generation, scanner installs, and release-only tooling SHALL run only in the jobs that need them.
 
 ## Structure
 
@@ -71,6 +74,13 @@ For public-surface-only change sets, the `public` validation step SHALL cover bo
 
 - `npm --prefix docs run build`
 - `./scripts/assemble-public-surfaces.sh .site-dist`
+
+CI cache design SHALL follow these rules:
+
+- Rust build caches SHALL stay runner-specific.
+- Node dependency caches SHALL stay lockfile-specific.
+- Shared caches MAY span jobs only when the runner platform and toolchain remain compatible.
+- Cache misses SHALL degrade safely to fresh installs; they SHALL NOT change validation behavior.
 
 ## Release and Git Flow
 

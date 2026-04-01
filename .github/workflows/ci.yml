@@ -35,7 +35,7 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            checks: fmt,clippy,test,coverage,rustdoc,deny,audit,gitleaks,trivy,public
+            checks: fmt,clippy,test,rustdoc,deny,audit,gitleaks,trivy,public
             install_dev_tools: true
           - os: macos-latest
             checks: fmt,clippy,test,rustdoc,public
@@ -54,11 +54,19 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '20.19.0'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            docs/package-lock.json
       - name: Install Rust toolchain
         shell: bash
         run: |
           rustup toolchain install 1.91.1 --profile minimal --component rustfmt --component clippy
           rustup default 1.91.1
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@bc2d2e71bd35c5549942babaa51a89c586b981d1
+        with:
+          shared-key: quality-${{ matrix.os }}
       - name: Install repository Node tools
         run: npm ci
       - name: Install docs Node tools
@@ -66,11 +74,11 @@ jobs:
       - name: Install pinned developer tools (Unix)
         if: matrix.install_dev_tools && runner.os != 'Windows'
         shell: bash
-        run: ./scripts/install-dev-tools.sh
+        run: ./scripts/install-dev-tools.sh --tools cargo-audit,cargo-deny,gitleaks,trivy
       - name: Install pinned developer tools (Windows)
         if: matrix.install_dev_tools && runner.os == 'Windows'
         shell: pwsh
-        run: ./scripts/install-dev-tools.ps1
+        run: ./scripts/install-dev-tools.ps1 --tools cargo-audit,cargo-deny,gitleaks,trivy
       - name: Run validation contract
         shell: bash
         env:
@@ -93,16 +101,24 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '20.19.0'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            docs/package-lock.json
       - name: Install Rust toolchain
         shell: bash
         run: |
           rustup toolchain install 1.91.1 --profile minimal --component rustfmt --component clippy
           rustup default 1.91.1
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@bc2d2e71bd35c5549942babaa51a89c586b981d1
+        with:
+          shared-key: sonar-ubuntu-latest
       - name: Install docs Node tools
         run: npm --prefix docs ci
       - name: Install pinned developer tools
         shell: bash
-        run: ./scripts/install-dev-tools.sh
+        run: ./scripts/install-dev-tools.sh --tools cargo-llvm-cov
       - name: Generate coverage
         shell: bash
         run: ./scripts/validate.sh --mode ci --checks coverage

@@ -7,6 +7,8 @@ Ralph Engine uses a strict Rust-first quality baseline.
 - Public Rust APIs use `rustdoc` comments with `///` or `//!`.
 - Public undocumented items fail the repository lint contract.
 - `cargo fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, docs build, and public-surface assembly are mandatory.
+- CI caches should be keyed by runner, toolchain, and lockfile inputs instead of using one blind global cache.
+- Expensive checks should run once in the right job instead of being duplicated across the workflow graph.
 - `unsafe` is forbidden by default.
 - `unwrap`, `expect`, `panic!`, `todo!`, and `unimplemented!` are forbidden in production code.
 

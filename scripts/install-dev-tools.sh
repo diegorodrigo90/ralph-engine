@@ -6,6 +6,26 @@ if ! command -v cargo >/dev/null 2>&1; then
   exit 1
 fi
 
+TOOLS="cargo-llvm-cov,cargo-audit,cargo-deny,cargo-dist,gitleaks,trivy"
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --tools)
+      TOOLS="$2"
+      shift 2
+      ;;
+    *)
+      echo "unknown argument: $1" >&2
+      exit 1
+      ;;
+  esac
+done
+
+has_tool() {
+  local needle="$1"
+  [[ ",${TOOLS}," == *",${needle},"* ]]
+}
+
 install_binary_from_github_tarball() {
   local owner_repo="$1"
   local version="$2"
@@ -62,10 +82,26 @@ case "$platform/$arch" in
     ;;
 esac
 
-cargo install cargo-llvm-cov --version 0.8.5 --locked
-cargo install cargo-audit --version 0.22.1 --locked
-cargo install cargo-deny --version 0.19.0 --locked
-cargo install cargo-dist --version 0.31.0 --locked
+if has_tool cargo-llvm-cov; then
+  cargo install cargo-llvm-cov --version 0.8.5 --locked
+fi
 
-install_binary_from_github_tarball 'gitleaks/gitleaks' 'v8.30.1' "$gitleaks_asset" 'gitleaks'
-install_binary_from_github_tarball 'aquasecurity/trivy' 'v0.69.3' "$trivy_asset" 'trivy'
+if has_tool cargo-audit; then
+  cargo install cargo-audit --version 0.22.1 --locked
+fi
+
+if has_tool cargo-deny; then
+  cargo install cargo-deny --version 0.19.0 --locked
+fi
+
+if has_tool cargo-dist; then
+  cargo install cargo-dist --version 0.31.0 --locked
+fi
+
+if has_tool gitleaks; then
+  install_binary_from_github_tarball 'gitleaks/gitleaks' 'v8.30.1' "$gitleaks_asset" 'gitleaks'
+fi
+
+if has_tool trivy; then
+  install_binary_from_github_tarball 'aquasecurity/trivy' 'v0.69.3' "$trivy_asset" 'trivy'
+fi
