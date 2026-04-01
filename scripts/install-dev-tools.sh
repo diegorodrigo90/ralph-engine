@@ -147,32 +147,35 @@ ensure_downloaded_binary() {
   fi
 }
 
-platform="$(uname -s)"
-arch="$(uname -m)"
 ensure_bin_dir
 
-case "$platform/$arch" in
-  Linux/x86_64)
-    gitleaks_asset='gitleaks_8.30.1_linux_x64.tar.gz'
-    trivy_asset='trivy_0.69.3_Linux-64bit.tar.gz'
-    ;;
-  Linux/aarch64|Linux/arm64)
-    gitleaks_asset='gitleaks_8.30.1_linux_arm64.tar.gz'
-    trivy_asset='trivy_0.69.3_Linux-ARM64.tar.gz'
-    ;;
-  Darwin/x86_64)
-    gitleaks_asset='gitleaks_8.30.1_darwin_x64.tar.gz'
-    trivy_asset='trivy_0.69.3_macOS-64bit.tar.gz'
-    ;;
-  Darwin/arm64)
-    gitleaks_asset='gitleaks_8.30.1_darwin_arm64.tar.gz'
-    trivy_asset='trivy_0.69.3_macOS-ARM64.tar.gz'
-    ;;
-  *)
-    echo "unsupported platform for gitleaks/trivy install: ${platform}/${arch}" >&2
-    exit 1
-    ;;
-esac
+if has_tool gitleaks || has_tool trivy; then
+  platform="$(uname -s)"
+  arch="$(uname -m)"
+
+  case "$platform/$arch" in
+    Linux/x86_64)
+      gitleaks_asset='gitleaks_8.30.1_linux_x64.tar.gz'
+      trivy_asset='trivy_0.69.3_Linux-64bit.tar.gz'
+      ;;
+    Linux/aarch64|Linux/arm64)
+      gitleaks_asset='gitleaks_8.30.1_linux_arm64.tar.gz'
+      trivy_asset='trivy_0.69.3_Linux-ARM64.tar.gz'
+      ;;
+    Darwin/x86_64)
+      gitleaks_asset='gitleaks_8.30.1_darwin_x64.tar.gz'
+      trivy_asset='trivy_0.69.3_macOS-64bit.tar.gz'
+      ;;
+    Darwin/arm64)
+      gitleaks_asset='gitleaks_8.30.1_darwin_arm64.tar.gz'
+      trivy_asset='trivy_0.69.3_macOS-ARM64.tar.gz'
+      ;;
+    *)
+      echo "unsupported platform for gitleaks/trivy install: ${platform}/${arch}" >&2
+      exit 1
+      ;;
+  esac
+fi
 
 if has_tool cargo-llvm-cov; then
   ensure_cargo_installed_tool cargo-llvm-cov 0.8.5 "cargo llvm-cov --version" cargo-llvm-cov
