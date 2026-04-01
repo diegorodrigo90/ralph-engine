@@ -49,6 +49,38 @@ pub const REMOTE_CONTROL: PluginCapability = PluginCapability::new("remote_contr
 /// Policy enforcement capability.
 pub const POLICY: PluginCapability = PluginCapability::new("policy");
 
+/// Typed plugin lifecycle stage identifier.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PluginLifecycleStage {
+    /// The runtime can discover the plugin and list it in catalogs.
+    Discover,
+    /// The runtime can configure the plugin through typed configuration.
+    Configure,
+    /// The runtime can validate the plugin before activation.
+    Validate,
+    /// The runtime can load the plugin into the active runtime.
+    Load,
+}
+
+impl PluginLifecycleStage {
+    /// Returns the stable lifecycle stage identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Discover => "discover",
+            Self::Configure => "configure",
+            Self::Validate => "validate",
+            Self::Load => "load",
+        }
+    }
+}
+
+impl fmt::Display for PluginLifecycleStage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// Immutable metadata for a Ralph Engine plugin.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PluginDescriptor {
@@ -60,6 +92,8 @@ pub struct PluginDescriptor {
     pub version: &'static str,
     /// Declared plugin capabilities.
     pub capabilities: &'static [PluginCapability],
+    /// Declared lifecycle stages supported by the plugin.
+    pub lifecycle: &'static [PluginLifecycleStage],
 }
 
 impl PluginDescriptor {
@@ -70,12 +104,14 @@ impl PluginDescriptor {
         name: &'static str,
         version: &'static str,
         capabilities: &'static [PluginCapability],
+        lifecycle: &'static [PluginLifecycleStage],
     ) -> Self {
         Self {
             id,
             name,
             version,
             capabilities,
+            lifecycle,
         }
     }
 
@@ -89,6 +125,12 @@ impl PluginDescriptor {
     #[must_use]
     pub fn has_capabilities(&self) -> bool {
         !self.capabilities.is_empty()
+    }
+
+    /// Returns whether the plugin declares at least one lifecycle stage.
+    #[must_use]
+    pub fn has_lifecycle(&self) -> bool {
+        !self.lifecycle.is_empty()
     }
 }
 
@@ -113,4 +155,26 @@ pub fn render_plugin_listing(plugins: &[PluginDescriptor]) -> String {
     }
 
     lines.join("\n")
+}
+
+/// Renders a human-readable plugin detail block.
+#[must_use]
+pub fn render_plugin_detail(plugin: &PluginDescriptor) -> String {
+    let capabilities = plugin
+        .capabilities
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(", ");
+    let lifecycle = plugin
+        .lifecycle
+        .iter()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>()
+        .join(" -> ");
+
+    format!(
+        "Plugin: {}\nName: {}\nVersion: v{}\nCapabilities: {}\nLifecycle: {}",
+        plugin.id, plugin.name, plugin.version, capabilities, lifecycle
+    )
 }

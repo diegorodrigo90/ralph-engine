@@ -50,6 +50,22 @@ fn binary_plugins_list_succeeds() {
 }
 
 #[test]
+fn binary_plugins_show_succeeds() {
+    // Arrange
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["plugins", "show", "official.github"]);
+
+    // Act
+    let output = command.output().expect("binary should run");
+
+    // Assert
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Plugin: official.github"));
+    assert!(stdout.contains("Lifecycle: discover -> configure -> load"));
+}
+
+#[test]
 fn binary_mcp_list_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
