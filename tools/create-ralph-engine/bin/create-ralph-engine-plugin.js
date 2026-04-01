@@ -11,36 +11,26 @@ const DEFAULT_PLUGIN_API_VERSION = "1.0.0";
 const RESERVED_PUBLISHERS = new Set(["official"]);
 const SUPPORTED_KINDS = new Set([
   "agent_runtime",
-  "tracker_provider",
   "forge_provider",
   "context_provider",
   "data_source",
-  "retrieval_provider",
   "template",
   "remote_control",
   "mcp_contribution",
-  "mcp_backend",
   "policy",
-  "finalizer",
 ]);
 const SUPPORTED_CAPABILITIES = new Set([
   "agent_runtime",
   "data_source",
   "context_provider",
-  "tracker_provider",
-  "retrieval_provider",
   "forge_provider",
   "doctor_checks",
   "prepare_checks",
   "prompt_fragments",
-  "dashboard_events",
-  "tui_panels",
   "template",
   "remote_control",
   "mcp_contribution",
-  "mcp_backend",
   "policy",
-  "finalizer",
 ]);
 
 async function main() {
@@ -329,24 +319,16 @@ function defaultCapabilitiesForKind(kind) {
       return ["agent_runtime"];
     case "remote_control":
       return ["remote_control"];
-    case "mcp_backend":
-      return ["mcp_backend"];
     case "mcp_contribution":
       return ["mcp_contribution"];
-    case "tracker_provider":
-      return ["tracker_provider"];
     case "forge_provider":
       return ["forge_provider"];
     case "context_provider":
       return ["context_provider"];
     case "data_source":
       return ["data_source"];
-    case "retrieval_provider":
-      return ["retrieval_provider"];
     case "policy":
       return ["policy"];
-    case "finalizer":
-      return ["finalizer"];
     default:
       return [];
   }

@@ -79,6 +79,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 - `site/` SHALL own the public web surfaces, including `landing/`, `plugins/`, and `ui/`.
 - `packaging/` SHALL own npm and Homebrew packaging.
 - `tools/create-ralph-engine/` SHALL own plugin scaffolding for `npx create-ralph-engine-plugin`. Runtime catalog surfaces SHALL NOT turn scaffolding into a generic runtime responsibility.
+- The plugin scaffolder SHALL only accept kinds and capabilities that already exist in the typed runtime and plugin contracts. Future surfaces SHALL stay rejected until the core defines them explicitly.
 - `scripts/` SHALL own shared bootstrap, install, validation, and release scripts.
 
 ## Commands
