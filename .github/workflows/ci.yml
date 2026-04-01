@@ -82,10 +82,23 @@ jobs:
         run: npm ci
       - name: Install docs Node dependencies
         run: npm --prefix docs ci
+      - name: Restore pinned coverage tool cache
+        if: matrix.os == 'ubuntu-latest'
+        id: restore_coverage_tool_cache
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7
+        with:
+          path: ~/.cache/ralph-engine-tools
+          key: coverage-tools-${{ runner.os }}-${{ hashFiles('scripts/install-dev-tools.sh') }}
       - name: Install pinned coverage tooling
         if: matrix.os == 'ubuntu-latest'
         shell: bash
         run: ./scripts/install-dev-tools.sh --tools cargo-llvm-cov
+      - name: Save pinned coverage tool cache
+        if: matrix.os == 'ubuntu-latest' && steps.restore_coverage_tool_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7
+        with:
+          path: ~/.cache/ralph-engine-tools
+          key: ${{ steps.restore_coverage_tool_cache.outputs.cache-primary-key }}
       - name: Run quality validation contract
         shell: bash
         env:
@@ -143,9 +156,21 @@ jobs:
         run: npm ci
       - name: Install docs Node dependencies
         run: npm --prefix docs ci
+      - name: Restore pinned security tool cache
+        id: restore_security_tool_cache
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7
+        with:
+          path: ~/.cache/ralph-engine-tools
+          key: security-tools-${{ runner.os }}-${{ hashFiles('scripts/install-dev-tools.sh') }}
       - name: Install pinned security tooling
         shell: bash
         run: ./scripts/install-dev-tools.sh --tools cargo-audit,cargo-deny,gitleaks,trivy
+      - name: Save pinned security tool cache
+        if: steps.restore_security_tool_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7
+        with:
+          path: ~/.cache/ralph-engine-tools
+          key: ${{ steps.restore_security_tool_cache.outputs.cache-primary-key }}
       - name: Run security validation contract
         shell: bash
         env:
@@ -237,9 +262,21 @@ jobs:
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
         with:
           shared-key: release-artifacts-${{ matrix.os }}
+      - name: Restore pinned cargo-dist tool cache
+        id: restore_release_tool_cache
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7
+        with:
+          path: ~/.cache/ralph-engine-tools
+          key: release-tools-${{ runner.os }}-${{ hashFiles('scripts/install-dev-tools.sh') }}
       - name: Install pinned cargo-dist
         shell: bash
         run: ./scripts/install-dev-tools.sh --tools cargo-dist
+      - name: Save pinned cargo-dist tool cache
+        if: steps.restore_release_tool_cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7
+        with:
+          path: ~/.cache/ralph-engine-tools
+          key: ${{ steps.restore_release_tool_cache.outputs.cache-primary-key }}
       - name: Resolve workspace release version
         id: release_version
         shell: bash
