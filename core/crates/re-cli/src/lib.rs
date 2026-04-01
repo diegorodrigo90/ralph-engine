@@ -106,6 +106,60 @@ mod tests {
     }
 
     #[test]
+    fn execute_checks_lists_runtime_checks() {
+        // Arrange
+        let command = args(&["ralph-engine", "checks", "list"]);
+
+        // Act
+        let output = execute(command).expect("checks list should succeed");
+
+        // Assert
+        assert!(output.contains("Checks (2)"));
+        assert!(output.contains("- prepare | providers=1 | enabled=0"));
+        assert!(output.contains("- doctor | providers=1 | enabled=0"));
+    }
+
+    #[test]
+    fn execute_checks_show_returns_provider_detail() {
+        // Arrange
+        let command = args(&["ralph-engine", "checks", "show", "prepare"]);
+
+        // Act
+        let output = execute(command).expect("checks show should succeed");
+
+        // Assert
+        assert!(output.contains("Check: prepare"));
+        assert!(output.contains("Providers (1)"));
+        assert!(output.contains(
+            "- official.bmad | activation=disabled | boundary=in_process | runtime_hook=true"
+        ));
+    }
+
+    #[test]
+    fn execute_checks_show_requires_check_id() {
+        // Arrange
+        let command = args(&["ralph-engine", "checks", "show"]);
+
+        // Act
+        let error = execute(command).expect_err("missing check id should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "checks show requires a check id");
+    }
+
+    #[test]
+    fn execute_checks_show_rejects_unknown_check() {
+        // Arrange
+        let command = args(&["ralph-engine", "checks", "show", "unknown"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown check should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown check: unknown");
+    }
+
+    #[test]
     fn execute_hooks_lists_runtime_hooks() {
         // Arrange
         let command = args(&["ralph-engine", "hooks", "list"]);
@@ -482,8 +536,8 @@ mod tests {
         // Assert
         assert!(output.contains("Runtime doctor"));
         assert!(output.contains("Runtime health: degraded"));
-        assert!(output.contains("Runtime issues (50)"));
-        assert!(output.contains("Runtime action plan (50)"));
+        assert!(output.contains("Runtime issues (52)"));
+        assert!(output.contains("Runtime action plan (52)"));
     }
 
     #[test]
@@ -496,7 +550,7 @@ mod tests {
 
         // Assert
         assert!(output.contains("Runtime doctor"));
-        assert!(output.contains("Runtime issues (50)"));
+        assert!(output.contains("Runtime issues (52)"));
     }
 
     #[test]
@@ -607,6 +661,9 @@ mod tests {
         assert!(output.contains("official.github | activation=disabled | scope=built_in_defaults"));
         assert!(output.contains("Capabilities (18)"));
         assert!(output.contains("template | plugin=official.basic | activation=enabled"));
+        assert!(output.contains("Checks (2)"));
+        assert!(output.contains("prepare | plugin=official.bmad | activation=disabled"));
+        assert!(output.contains("doctor | plugin=official.bmad | activation=disabled"));
         assert!(output.contains("Providers (4)"));
         assert!(output.contains("data_source | plugin=official.github | activation=disabled"));
         assert!(output.contains("remote_control | plugin=official.ssh | activation=disabled"));
@@ -633,6 +690,7 @@ mod tests {
         assert!(output.contains("Runtime health: degraded"));
         assert!(output.contains("Plugins: enabled=1, disabled=7"));
         assert!(output.contains("Capabilities: enabled=1, disabled=17"));
+        assert!(output.contains("Checks: enabled=0, disabled=2"));
         assert!(output.contains("Providers: enabled=0, disabled=4"));
         assert!(output.contains("Policies: enabled=0, disabled=1"));
         assert!(output.contains("Runtime hooks: enabled=1, disabled=17"));
@@ -648,9 +706,12 @@ mod tests {
         let output = execute(command).expect("runtime issues should succeed");
 
         // Assert
-        assert!(output.contains("Runtime issues (50)"));
+        assert!(output.contains("Runtime issues (52)"));
         assert!(output.contains(
             "plugin_disabled | subject=official.github | action=enable the plugin in typed project configuration"
+        ));
+        assert!(output.contains(
+            "check_disabled | subject=prepare | action=enable the provider plugin that owns this runtime check"
         ));
         assert!(output.contains(
             "provider_disabled | subject=data_source | action=enable the provider plugin that owns this contribution"
@@ -675,9 +736,12 @@ mod tests {
         let output = execute(command).expect("runtime plan should succeed");
 
         // Assert
-        assert!(output.contains("Runtime action plan (50)"));
+        assert!(output.contains("Runtime action plan (52)"));
         assert!(output.contains(
             "enable_plugin | target=official.github | reason=the plugin is registered but disabled"
+        ));
+        assert!(output.contains(
+            "enable_check_provider | target=official.bmad | reason=the provider still disables runtime check prepare"
         ));
         assert!(output.contains(
             "enable_provider | target=official.github | reason=the provider still disables contribution data_source"
@@ -733,6 +797,18 @@ mod tests {
     }
 
     #[test]
+    fn execute_checks_without_subcommand_lists_runtime_checks() {
+        // Arrange
+        let command = args(&["ralph-engine", "checks"]);
+
+        // Act
+        let output = execute(command).expect("checks command should succeed");
+
+        // Assert
+        assert!(output.contains("Checks (2)"));
+    }
+
+    #[test]
     fn execute_hooks_without_subcommand_lists_runtime_hooks() {
         // Arrange
         let command = args(&["ralph-engine", "hooks"]);
@@ -778,6 +854,18 @@ mod tests {
 
         // Assert
         assert_eq!(error.to_string(), "unknown capabilities command: doctor");
+    }
+
+    #[test]
+    fn execute_unknown_checks_subcommand_fails() {
+        // Arrange
+        let command = args(&["ralph-engine", "checks", "runtime"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown checks command should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown checks command: runtime");
     }
 
     #[test]
