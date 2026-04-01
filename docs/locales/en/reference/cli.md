@@ -7,6 +7,9 @@ The current Rust foundation exposes a minimal CLI surface while the runtime is r
 ```bash
 ralph-engine
 ralph-engine --version
+ralph-engine agents
+ralph-engine agents list
+ralph-engine agents show <plugin-id>
 ralph-engine capabilities
 ralph-engine capabilities list
 ralph-engine capabilities show <capability-id>
@@ -46,6 +49,8 @@ ralph-engine mcp show <server-id>
 
 The `plugins show` command prints the immutable plugin contract, including lifecycle, load boundary, runtime hooks, and resolved activation state.
 
+The `agents` command family prints the typed agent runtime registry so official agent integrations stay explicit instead of hiding only inside generic capability listings.
+
 The `capabilities` command family prints the typed runtime capability registry so capability providers remain explicit and modular.
 
 The `checks` command family prints the typed runtime check registry so prepare-time and doctor-time validation contributions stay explicit instead of hiding only as generic capabilities.
@@ -62,10 +67,10 @@ The `providers` command family prints the typed runtime provider registry so dat
 
 The `mcp show` command prints the typed MCP launch contract, including process model, launch policy, command boundaries, working-directory policy, environment policy, and availability.
 
-The `runtime show` command prints the resolved runtime topology, including effective plugin activation, capability registration, check registration, provider registration, policy registration, runtime-hook registration, and MCP enablement.
+The `runtime show` command prints the resolved runtime topology, including effective plugin activation, capability registration, agent registration, check registration, provider registration, policy registration, runtime-hook registration, and MCP enablement.
 
-The `runtime status` command prints the typed runtime health summary, including enabled and disabled providers across plugins, capabilities, check registrations, provider registrations, policies, runtime hooks, and MCP servers.
+The `runtime status` command prints the typed runtime health summary, including enabled and disabled providers across plugins, capabilities, agent registrations, check registrations, provider registrations, policies, runtime hooks, and MCP servers.
 
-The `runtime issues` command prints the typed list of unresolved runtime issues and recommended actions, including disabled check, provider, policy, and runtime-hook registrations, instead of requiring command-local heuristics.
+The `runtime issues` command prints the typed list of unresolved runtime issues and recommended actions, including disabled agent, check, provider, policy, and runtime-hook registrations, instead of requiring command-local heuristics.
 
-The `runtime plan` command prints the typed runtime remediation plan derived from the resolved topology, including check-provider, provider, policy-provider, and hook-provider enablement, so the next enablement step stays explicit and modular instead of being inferred ad hoc in the CLI.
+The `runtime plan` command prints the typed runtime remediation plan derived from the resolved topology, including agent-provider, check-provider, provider, policy-provider, and hook-provider enablement, so the next enablement step stays explicit and modular instead of being inferred ad hoc in the CLI.

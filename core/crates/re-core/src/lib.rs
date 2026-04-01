@@ -66,6 +66,8 @@ pub enum RuntimeIssueKind {
     PluginDisabled,
     /// A capability provider is registered but still disabled.
     CapabilityDisabled,
+    /// An agent runtime provider is registered but still disabled.
+    AgentRuntimeDisabled,
     /// A runtime check is registered but still disabled.
     CheckDisabled,
     /// A provider contribution is registered but still disabled.
@@ -85,6 +87,7 @@ impl RuntimeIssueKind {
         match self {
             Self::PluginDisabled => "plugin_disabled",
             Self::CapabilityDisabled => "capability_disabled",
+            Self::AgentRuntimeDisabled => "agent_runtime_disabled",
             Self::CheckDisabled => "check_disabled",
             Self::ProviderDisabled => "provider_disabled",
             Self::PolicyDisabled => "policy_disabled",
@@ -101,6 +104,8 @@ pub enum RuntimeActionKind {
     EnablePlugin,
     /// Re-enable a disabled capability provider.
     EnableCapabilityProvider,
+    /// Re-enable a disabled agent runtime provider.
+    EnableAgentRuntimeProvider,
     /// Re-enable a disabled runtime check provider.
     EnableCheckProvider,
     /// Re-enable a disabled provider contribution.
@@ -120,6 +125,7 @@ impl RuntimeActionKind {
         match self {
             Self::EnablePlugin => "enable_plugin",
             Self::EnableCapabilityProvider => "enable_capability_provider",
+            Self::EnableAgentRuntimeProvider => "enable_agent_runtime_provider",
             Self::EnableCheckProvider => "enable_check_provider",
             Self::EnableProvider => "enable_provider",
             Self::EnablePolicyProvider => "enable_policy_provider",
@@ -213,6 +219,43 @@ impl RuntimeCapabilityRegistration {
     }
 
     /// Returns whether the capability provider is enabled in the resolved topology.
+    #[must_use]
+    pub const fn is_enabled(self) -> bool {
+        matches!(self.activation, PluginActivation::Enabled)
+    }
+}
+
+/// One typed agent-runtime registration in the resolved runtime topology.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimeAgentRegistration {
+    /// Plugin providing the agent runtime.
+    pub plugin_id: &'static str,
+    /// Effective activation state for the provider plugin.
+    pub activation: PluginActivation,
+    /// Declared load boundary for the provider plugin.
+    pub load_boundary: PluginLoadBoundary,
+    /// Whether the provider also declares the matching runtime hook.
+    pub bootstrap_hook_registered: bool,
+}
+
+impl RuntimeAgentRegistration {
+    /// Creates a new immutable runtime agent registration.
+    #[must_use]
+    pub const fn new(
+        plugin_id: &'static str,
+        activation: PluginActivation,
+        load_boundary: PluginLoadBoundary,
+        bootstrap_hook_registered: bool,
+    ) -> Self {
+        Self {
+            plugin_id,
+            activation,
+            load_boundary,
+            bootstrap_hook_registered,
+        }
+    }
+
+    /// Returns whether the agent runtime provider is enabled in the resolved topology.
     #[must_use]
     pub const fn is_enabled(self) -> bool {
         matches!(self.activation, PluginActivation::Enabled)
@@ -436,6 +479,8 @@ pub struct RuntimeTopology<'a> {
     pub plugins: &'a [RuntimePluginRegistration],
     /// Resolved capability registrations.
     pub capabilities: &'a [RuntimeCapabilityRegistration],
+    /// Resolved agent-runtime registrations.
+    pub agents: &'a [RuntimeAgentRegistration],
     /// Resolved runtime check registrations.
     pub checks: &'a [RuntimeCheckRegistration],
     /// Resolved provider registrations.
@@ -463,6 +508,10 @@ pub struct RuntimeStatus {
     pub enabled_capabilities: usize,
     /// Number of disabled capability providers.
     pub disabled_capabilities: usize,
+    /// Number of enabled agent runtimes.
+    pub enabled_agents: usize,
+    /// Number of disabled agent runtimes.
+    pub disabled_agents: usize,
     /// Number of enabled runtime checks.
     pub enabled_checks: usize,
     /// Number of disabled runtime checks.
@@ -593,6 +642,18 @@ pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
         ));
     }
 
+    lines.push(format!("Agent runtimes ({})", topology.agents.len()));
+
+    for agent in topology.agents {
+        lines.push(format!(
+            "- {} | activation={} | boundary={} | bootstrap_hook={}",
+            agent.plugin_id,
+            agent.activation.as_str(),
+            agent.load_boundary.as_str(),
+            agent.bootstrap_hook_registered
+        ));
+    }
+
     lines.push(format!("Checks ({})", topology.checks.len()));
 
     for check in topology.checks {
@@ -674,6 +735,12 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
         .filter(|capability| capability.is_enabled())
         .count();
     let disabled_capabilities = topology.capabilities.len() - enabled_capabilities;
+    let enabled_agents = topology
+        .agents
+        .iter()
+        .filter(|agent| agent.is_enabled())
+        .count();
+    let disabled_agents = topology.agents.len() - enabled_agents;
     let enabled_checks = topology
         .checks
         .iter()
@@ -706,6 +773,7 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
     let disabled_mcp_servers = topology.mcp_servers.len() - enabled_mcp_servers;
     let health = if disabled_plugins == 0
         && disabled_capabilities == 0
+        && disabled_agents == 0
         && disabled_checks == 0
         && disabled_providers == 0
         && disabled_policies == 0
@@ -724,6 +792,8 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
         disabled_plugins,
         enabled_capabilities,
         disabled_capabilities,
+        enabled_agents,
+        disabled_agents,
         enabled_checks,
         disabled_checks,
         enabled_providers,
@@ -750,6 +820,10 @@ pub fn render_runtime_status(status: &RuntimeStatus) -> String {
         format!(
             "Capabilities: enabled={}, disabled={}",
             status.enabled_capabilities, status.disabled_capabilities
+        ),
+        format!(
+            "Agent runtimes: enabled={}, disabled={}",
+            status.enabled_agents, status.disabled_agents
         ),
         format!(
             "Checks: enabled={}, disabled={}",
@@ -796,6 +870,16 @@ pub fn collect_runtime_issues(topology: &RuntimeTopology<'_>) -> Vec<RuntimeIssu
                 RuntimeIssueKind::CapabilityDisabled,
                 capability.capability.as_str(),
                 "enable the provider plugin that owns this capability",
+            ));
+        }
+    }
+
+    for agent in topology.agents {
+        if !agent.is_enabled() {
+            issues.push(RuntimeIssue::new(
+                RuntimeIssueKind::AgentRuntimeDisabled,
+                agent.plugin_id,
+                "enable the provider plugin that owns this agent runtime",
             ));
         }
     }
@@ -898,6 +982,16 @@ pub fn build_runtime_action_plan(topology: &RuntimeTopology<'_>) -> Vec<RuntimeA
                     "the provider still disables capability {}",
                     capability.capability.as_str()
                 ),
+            ));
+        }
+    }
+
+    for agent in topology.agents {
+        if !agent.is_enabled() {
+            actions.push(RuntimeAction::new(
+                RuntimeActionKind::EnableAgentRuntimeProvider,
+                agent.plugin_id,
+                "the provider still disables the agent runtime",
             ));
         }
     }
@@ -1020,7 +1114,7 @@ mod tests {
     };
 
     use super::{
-        PRODUCT_NAME, PRODUCT_TAGLINE, RuntimeAction, RuntimeActionKind,
+        PRODUCT_NAME, PRODUCT_TAGLINE, RuntimeAction, RuntimeActionKind, RuntimeAgentRegistration,
         RuntimeCapabilityRegistration, RuntimeCheckKind, RuntimeCheckRegistration,
         RuntimeDoctorReport, RuntimeHealth, RuntimeHookRegistration, RuntimeIssue,
         RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
@@ -1064,6 +1158,15 @@ mod tests {
             "official.basic",
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
+        )
+    }
+
+    fn agent_registration() -> RuntimeAgentRegistration {
+        RuntimeAgentRegistration::new(
+            "official.codex",
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
+            true,
         )
     }
 
@@ -1157,6 +1260,7 @@ mod tests {
         let values = [
             RuntimeIssueKind::PluginDisabled,
             RuntimeIssueKind::CapabilityDisabled,
+            RuntimeIssueKind::AgentRuntimeDisabled,
             RuntimeIssueKind::CheckDisabled,
             RuntimeIssueKind::ProviderDisabled,
             RuntimeIssueKind::PolicyDisabled,
@@ -1176,6 +1280,7 @@ mod tests {
             vec![
                 "plugin_disabled",
                 "capability_disabled",
+                "agent_runtime_disabled",
                 "check_disabled",
                 "provider_disabled",
                 "policy_disabled",
@@ -1191,6 +1296,7 @@ mod tests {
         let values = [
             RuntimeActionKind::EnablePlugin,
             RuntimeActionKind::EnableCapabilityProvider,
+            RuntimeActionKind::EnableAgentRuntimeProvider,
             RuntimeActionKind::EnableCheckProvider,
             RuntimeActionKind::EnableProvider,
             RuntimeActionKind::EnablePolicyProvider,
@@ -1210,6 +1316,7 @@ mod tests {
             vec![
                 "enable_plugin",
                 "enable_capability_provider",
+                "enable_agent_runtime_provider",
                 "enable_check_provider",
                 "enable_provider",
                 "enable_policy_provider",
@@ -1320,6 +1427,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let agents = [agent_registration()];
         let checks = [check_registration()];
         let providers = [provider_registration()];
         let policies = [policy_registration()];
@@ -1330,6 +1438,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            agents: &agents,
             checks: &checks,
             providers: &providers,
             policies: &policies,
@@ -1350,6 +1459,10 @@ mod tests {
         assert!(rendered.contains("Capabilities (1)"));
         assert!(rendered.contains(
             "- template | plugin=official.basic | activation=enabled | boundary=in_process"
+        ));
+        assert!(rendered.contains("Agent runtimes (1)"));
+        assert!(rendered.contains(
+            "- official.codex | activation=enabled | boundary=in_process | bootstrap_hook=true"
         ));
         assert!(rendered.contains("Checks (1)"));
         assert!(rendered.contains(
@@ -1380,6 +1493,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let agents = [agent_registration()];
         let checks = [check_registration()];
         let providers = [provider_registration()];
         let policies = [policy_registration()];
@@ -1390,6 +1504,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            agents: &agents,
             checks: &checks,
             providers: &providers,
             policies: &policies,
@@ -1406,6 +1521,8 @@ mod tests {
         assert_eq!(status.disabled_plugins, 0);
         assert_eq!(status.enabled_capabilities, 1);
         assert_eq!(status.disabled_capabilities, 0);
+        assert_eq!(status.enabled_agents, 1);
+        assert_eq!(status.disabled_agents, 0);
         assert_eq!(status.enabled_checks, 1);
         assert_eq!(status.disabled_checks, 0);
         assert_eq!(status.enabled_providers, 1);
@@ -1439,6 +1556,12 @@ mod tests {
             PluginLoadBoundary::InProcess,
             true,
         )];
+        let agents = [RuntimeAgentRegistration::new(
+            "official.codex",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let providers = [RuntimeProviderRegistration::new(
             RuntimeProviderKind::DataSource,
             "official.basic",
@@ -1465,6 +1588,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            agents: &agents,
             checks: &checks,
             providers: &providers,
             policies: &policies,
@@ -1482,6 +1606,7 @@ mod tests {
         assert!(rendered.contains("Runtime health: degraded"));
         assert!(rendered.contains("Plugins: enabled=0, disabled=1"));
         assert!(rendered.contains("Capabilities: enabled=0, disabled=1"));
+        assert!(rendered.contains("Agent runtimes: enabled=0, disabled=1"));
         assert!(rendered.contains("Checks: enabled=0, disabled=1"));
         assert!(rendered.contains("Providers: enabled=0, disabled=1"));
         assert!(rendered.contains("Policies: enabled=0, disabled=1"));
@@ -1510,6 +1635,12 @@ mod tests {
             PluginLoadBoundary::InProcess,
             true,
         )];
+        let agents = [RuntimeAgentRegistration::new(
+            "official.codex",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let providers = [RuntimeProviderRegistration::new(
             RuntimeProviderKind::DataSource,
             "official.basic",
@@ -1531,6 +1662,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            agents: &agents,
             checks: &checks,
             providers: &providers,
             policies: &policies,
@@ -1548,6 +1680,8 @@ mod tests {
         assert_eq!(status.disabled_plugins, 0);
         assert_eq!(status.enabled_capabilities, 0);
         assert_eq!(status.disabled_capabilities, 1);
+        assert_eq!(status.enabled_agents, 0);
+        assert_eq!(status.disabled_agents, 1);
         assert_eq!(status.enabled_checks, 0);
         assert_eq!(status.disabled_checks, 1);
         assert_eq!(status.enabled_providers, 0);
@@ -1562,6 +1696,7 @@ mod tests {
         assert!(rendered.contains("Runtime health: degraded"));
         assert!(rendered.contains("Plugins: enabled=1, disabled=0"));
         assert!(rendered.contains("Capabilities: enabled=0, disabled=1"));
+        assert!(rendered.contains("Agent runtimes: enabled=0, disabled=1"));
         assert!(rendered.contains("Checks: enabled=0, disabled=1"));
         assert!(rendered.contains("Providers: enabled=0, disabled=1"));
         assert!(rendered.contains("Policies: enabled=0, disabled=1"));
@@ -1586,6 +1721,12 @@ mod tests {
         let checks = [RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
             "official.bmad",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
+        let agents = [RuntimeAgentRegistration::new(
+            "official.codex",
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
@@ -1616,6 +1757,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            agents: &agents,
             checks: &checks,
             providers: &providers,
             policies: &policies,
@@ -1639,6 +1781,11 @@ mod tests {
                     RuntimeIssueKind::CapabilityDisabled,
                     "template",
                     "enable the provider plugin that owns this capability",
+                ),
+                RuntimeIssue::new(
+                    RuntimeIssueKind::AgentRuntimeDisabled,
+                    "official.codex",
+                    "enable the provider plugin that owns this agent runtime",
                 ),
                 RuntimeIssue::new(
                     RuntimeIssueKind::CheckDisabled,
@@ -1678,6 +1825,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let agents = [agent_registration()];
         let checks = [check_registration()];
         let providers = [provider_registration()];
         let policies = [policy_registration()];
@@ -1688,6 +1836,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            agents: &agents,
             checks: &checks,
             providers: &providers,
             policies: &policies,
@@ -1754,6 +1903,12 @@ mod tests {
             PluginLoadBoundary::InProcess,
             true,
         )];
+        let agents = [RuntimeAgentRegistration::new(
+            "official.codex",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let providers = [RuntimeProviderRegistration::new(
             RuntimeProviderKind::DataSource,
             "official.basic",
@@ -1780,6 +1935,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            agents: &agents,
             checks: &checks,
             providers: &providers,
             policies: &policies,
@@ -1803,6 +1959,11 @@ mod tests {
                     RuntimeActionKind::EnableCapabilityProvider,
                     "official.basic",
                     "the provider still disables capability template",
+                ),
+                RuntimeAction::new(
+                    RuntimeActionKind::EnableAgentRuntimeProvider,
+                    "official.codex",
+                    "the provider still disables the agent runtime",
                 ),
                 RuntimeAction::new(
                     RuntimeActionKind::EnableCheckProvider,
@@ -1842,6 +2003,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let agents = [agent_registration()];
         let checks = [check_registration()];
         let providers = [provider_registration()];
         let policies = [policy_registration()];
@@ -1852,6 +2014,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            agents: &agents,
             checks: &checks,
             providers: &providers,
             policies: &policies,
@@ -1918,6 +2081,12 @@ mod tests {
             PluginLoadBoundary::InProcess,
             true,
         )];
+        let agents = [RuntimeAgentRegistration::new(
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let providers = [RuntimeProviderRegistration::new(
             RuntimeProviderKind::DataSource,
             "official.basic",
@@ -1944,6 +2113,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            agents: &agents,
             checks: &checks,
             providers: &providers,
             policies: &policies,
@@ -1976,6 +2146,8 @@ mod tests {
                 disabled_plugins: 1,
                 enabled_capabilities: 1,
                 disabled_capabilities: 1,
+                enabled_agents: 0,
+                disabled_agents: 1,
                 enabled_checks: 0,
                 disabled_checks: 1,
                 enabled_providers: 0,
@@ -2017,6 +2189,7 @@ mod tests {
             locale: "en",
             plugins: &[],
             capabilities: &[],
+            agents: &[],
             checks: &[],
             providers: &[],
             policies: &[],
