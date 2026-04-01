@@ -39,8 +39,8 @@ O comando `mcp show` imprime o contrato tipado de lançamento do MCP, incluindo 
 
 O comando `runtime show` imprime a topologia resolvida do runtime, incluindo ativação efetiva de plugin, registro de capability, registro de hook e enablement de MCP.
 
-O comando `runtime status` imprime o resumo tipado de health do runtime, incluindo providers habilitados e desabilitados em plugins, capabilities e servidores MCP.
+O comando `runtime status` imprime o resumo tipado de health do runtime, incluindo providers habilitados e desabilitados em plugins, capabilities, runtime hooks e servidores MCP.
 
-O comando `runtime issues` imprime a lista tipada de issues pendentes do runtime e as ações recomendadas, em vez de depender de heurísticas locais em cada comando.
+O comando `runtime issues` imprime a lista tipada de issues pendentes do runtime e as ações recomendadas, incluindo providers de runtime hook desabilitados, em vez de depender de heurísticas locais em cada comando.
 
-O comando `runtime plan` imprime o plano tipado de remediação derivado da topologia resolvida, para que o próximo passo de enablement permaneça explícito e modular em vez de ser inferido ad hoc na CLI.
+O comando `runtime plan` imprime o plano tipado de remediação derivado da topologia resolvida, incluindo enablement de providers de hook, para que o próximo passo de enablement permaneça explícito e modular em vez de ser inferido ad hoc na CLI.

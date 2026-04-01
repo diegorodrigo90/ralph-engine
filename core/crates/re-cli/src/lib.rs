@@ -422,6 +422,7 @@ mod tests {
         assert!(output.contains("Runtime health: degraded"));
         assert!(output.contains("Plugins: enabled=1, disabled=7"));
         assert!(output.contains("Capabilities: enabled=1, disabled=17"));
+        assert!(output.contains("Runtime hooks: enabled=1, disabled=17"));
         assert!(output.contains("MCP servers: enabled=0, disabled=4"));
     }
 
@@ -434,9 +435,12 @@ mod tests {
         let output = execute(command).expect("runtime issues should succeed");
 
         // Assert
-        assert!(output.contains("Runtime issues (28)"));
+        assert!(output.contains("Runtime issues (45)"));
         assert!(output.contains(
             "plugin_disabled | subject=official.github | action=enable the plugin in typed project configuration"
+        ));
+        assert!(output.contains(
+            "hook_disabled | subject=mcp_registration | action=enable the provider plugin that owns this runtime hook"
         ));
         assert!(output.contains(
             "mcp_server_disabled | subject=official.github.repository | action=enable the owning plugin or opt in to the MCP server"
@@ -452,12 +456,15 @@ mod tests {
         let output = execute(command).expect("runtime plan should succeed");
 
         // Assert
-        assert!(output.contains("Runtime action plan (28)"));
+        assert!(output.contains("Runtime action plan (45)"));
         assert!(output.contains(
             "enable_plugin | target=official.github | reason=the plugin is registered but disabled"
         ));
         assert!(output.contains(
             "enable_capability_provider | target=official.github | reason=the provider still disables capability forge_provider"
+        ));
+        assert!(output.contains(
+            "enable_hook_provider | target=official.github | reason=the provider still disables runtime hook forge_provider_registration"
         ));
         assert!(output.contains(
             "enable_mcp_server | target=official.github.repository | reason=the MCP contribution is registered but disabled"
