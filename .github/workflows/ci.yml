@@ -213,11 +213,10 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
 
-  build-release-artifacts:
-    name: Build reusable release artifacts (${{ matrix.os }})
+  build-release-candidates:
+    name: Build release candidates (${{ matrix.os }})
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ${{ matrix.os }}
-    needs: [sonar]
     timeout-minutes: 25
     permissions:
       contents: read
@@ -226,11 +225,11 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            artifact_name: release-dist-ubuntu
+            artifact_name: release-candidate-dist-ubuntu
           - os: macos-latest
-            artifact_name: release-dist-macos
+            artifact_name: release-candidate-dist-macos
           - os: windows-latest
-            artifact_name: release-dist-windows
+            artifact_name: release-candidate-dist-windows
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
@@ -274,10 +273,60 @@ jobs:
       - name: Build cargo-dist artifacts for reusable release
         shell: bash
         run: dist build --tag "v${{ steps.release_version.outputs.version }}"
-      - name: Upload reusable release artifacts
+      - name: Upload release candidate artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: ${{ matrix.artifact_name }}
           path: target/distrib/*
+          if-no-files-found: error
+          retention-days: 14
+
+  approve-release-artifacts:
+    name: Approve reusable release artifacts
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: [sonar, build-release-candidates]
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        with:
+          egress-policy: audit
+      - name: Download Linux release candidate artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: release-candidate-dist-ubuntu
+          path: .release/candidates/ubuntu
+      - name: Download macOS release candidate artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: release-candidate-dist-macos
+          path: .release/candidates/macos
+      - name: Download Windows release candidate artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: release-candidate-dist-windows
+          path: .release/candidates/windows
+      - name: Publish approved Linux release artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: release-dist-ubuntu
+          path: .release/candidates/ubuntu/*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish approved macOS release artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: release-dist-macos
+          path: .release/candidates/macos/*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish approved Windows release artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: release-dist-windows
+          path: .release/candidates/windows/*
           if-no-files-found: error
           retention-days: 14

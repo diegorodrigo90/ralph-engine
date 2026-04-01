@@ -25,7 +25,7 @@ Secrets usados por esse workflow:
 
 O campo `tag` DEVE incluir o prefixo `v`, por exemplo `v0.2.0-alpha.1`. O workflow remove esse prefixo antes de preparar as versões dos pacotes npm.
 Antes de publicar qualquer coisa, o workflow valida que o SHA selecionado é o HEAD atual de `origin/main` e que o workflow canônico de `CI` já terminou com sucesso exatamente para esse push.
-Esse mesmo workflow de `CI` é responsável por gerar os artifacts reutilizáveis de release para o SHA aprovado só depois de `Quality`, `Security` e `SonarCloud` terem passado.
+Esse mesmo workflow de `CI` gera candidates cross-platform de release em paralelo com os gates de qualidade e só publica os artifacts reutilizáveis aprovados para o SHA depois de `Quality`, `Security` e `SonarCloud` terem passado.
 
 ## Regras
 
@@ -35,7 +35,8 @@ Esse mesmo workflow de `CI` é responsável por gerar os artifacts reutilizávei
 - As ferramentas de release são pinadas em versões revisadas.
 - O workflow de release DEVE validar o SHA alvo da `main` contra o workflow canônico de `CI` antes de publicar artefatos.
 - O workflow de release DEVE reaproveitar a evidência de `CI` verde desse mesmo SHA da `main`, em vez de rerodar o contrato completo de validação dentro do fluxo de publish.
-- O workflow canônico de `CI` DEVE gerar os artifacts reutilizáveis de release para o SHA alvo da `main`.
+- O workflow canônico de `CI` DEVE gerar candidates cross-platform de release para o SHA alvo da `main` em paralelo com os gates de qualidade.
+- O workflow canônico de `CI` DEVE publicar os artifacts reutilizáveis aprovados para esse SHA só depois de `Quality`, `Security` e `SonarCloud` terem passado.
 - O workflow de release DEVE baixar e publicar esse mesmo conjunto aprovado de artifacts, em vez de rebuildá-lo.
 - O Pages DEVE publicar a partir de tags de release para manter site e docs alinhados com versões publicadas.
 - `cargo-dist` DEVE ser o builder de artefatos Rust para a distribuição de release.
