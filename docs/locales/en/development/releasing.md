@@ -23,6 +23,8 @@ Secrets used by this workflow:
 - `NPM_TOKEN` when `publish_npm=true`
 - `HOMEBREW_TAP_TOKEN` when `publish_homebrew=true`
 
+The `tag` input SHALL include the leading `v`, for example `v0.2.0-alpha.1`. The workflow strips that prefix before preparing npm package versions.
+
 ## Rules
 
 - SemVer is mandatory.

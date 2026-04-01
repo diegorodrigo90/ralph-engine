@@ -184,7 +184,10 @@ jobs:
       - name: Prepare npm packages
         if: inputs.publish_npm
         shell: bash
-        run: node ./scripts/prepare-npm-release.mjs --version "${{ inputs.tag }}" --out-dir .release/npm
+        run: |
+          VERSION="${{ inputs.tag }}"
+          VERSION="${VERSION#v}"
+          node ./scripts/prepare-npm-release.mjs --version "$VERSION" --out-dir .release/npm
       - name: Publish npm channels
         if: inputs.publish_npm
         env:
