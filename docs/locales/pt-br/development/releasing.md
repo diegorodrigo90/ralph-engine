@@ -5,8 +5,8 @@
 1. Faça merge de mudanças revisadas com Conventional Commits em `main`.
 2. `release-plz release-pr` abre ou atualiza a PR de release.
 3. Faça merge da PR de release.
-4. `release-plz release` cria a tag SemVer e o GitHub Release a partir da `main`.
-5. Os workflows por tag executam o contrato de release e geram os artefatos.
+4. A publicação de release fica desativada até o pipeline de distribuição em Rust estar fechado e validado ponta a ponta.
+5. O workflow endurecido de publicação vai criar a tag SemVer só depois de os gates obrigatórios passarem para o commit alvo da `main`.
 
 ## Regras
 
@@ -15,5 +15,7 @@
 - Actions são pinadas por SHA.
 - As ferramentas de release são pinadas em versões revisadas.
 - O contrato de release SHALL rodar via `./scripts/validate.sh --mode release` antes da publicação.
+- `Quality`, `Security` e `SonarCloud` DEVEM passar antes da criação de uma tag de release.
 - Checksums, SBOMs e atestações de artefato fazem parte do contrato-alvo de release.
-- npm e Homebrew continuam canais oficiais e publicarão a partir do pipeline em Rust, não de empacotamento local ad hoc.
+- npm e Homebrew continuam canais oficiais, mas ainda não estão integrados.
+- A publicação automática NÃO DEVE sair da `main` enquanto GitHub Releases, npm e Homebrew não estiverem conectados ao pipeline em Rust.

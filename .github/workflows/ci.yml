@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -67,7 +71,7 @@ jobs:
           rustup toolchain install 1.91.1 --profile minimal --component rustfmt --component clippy
           rustup default 1.91.1
       - name: Restore Rust cache
-        uses: Swatinem/rust-cache@bc2d2e71bd35c5549942babaa51a89c586b981d1
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
         with:
           shared-key: quality-${{ matrix.os }}
       - name: Install repository Node tools
@@ -84,6 +88,9 @@ jobs:
   security:
     name: Security (ubuntu-latest)
     runs-on: ubuntu-latest
+    # Security scanners here are platform-independent for this repository shape.
+    # Running them once on the canonical Linux runner keeps the gate strict while
+    # avoiding duplicated installs and duplicate findings across the OS matrix.
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
@@ -105,7 +112,7 @@ jobs:
           rustup toolchain install 1.91.1 --profile minimal
           rustup default 1.91.1
       - name: Restore Rust cache
-        uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
         with:
           shared-key: security-ubuntu-latest
       - name: Install repository Node tools
@@ -147,7 +154,7 @@ jobs:
           rustup toolchain install 1.91.1 --profile minimal --component rustfmt --component clippy
           rustup default 1.91.1
       - name: Restore Rust cache
-        uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
         with:
           shared-key: sonar-ubuntu-latest
       - name: Install docs Node tools

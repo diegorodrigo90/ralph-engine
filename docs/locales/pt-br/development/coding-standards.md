@@ -9,6 +9,7 @@ O Ralph Engine usa uma base em Rust com verificações rígidas de qualidade.
 - `cargo fmt`, `clippy`, testes, cobertura, `rustdoc`, `cargo deny`, `cargo audit`, build das docs e montagem das superfícies públicas são obrigatórios.
 - Os caches da CI devem ser indexados por runner, toolchain e lockfiles relevantes, em vez de usar um cache global cego.
 - Etapas caras devem rodar uma vez no job certo, não ficar duplicadas ao longo do workflow.
+- O comportamento cross-platform do produto deve ser provado na matriz de quality, enquanto scanners de segurança independentes de plataforma podem ficar centralizados no runner Linux canônico.
 - `unsafe` é proibido por padrão.
 - `unwrap`, `expect`, `panic!`, `todo!` e `unimplemented!` são proibidos em código de produção.
 

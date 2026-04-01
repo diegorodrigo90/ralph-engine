@@ -9,6 +9,7 @@ Ralph Engine uses a strict Rust-first quality baseline.
 - `cargo fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, docs build, and public-surface assembly are mandatory.
 - CI caches should be keyed by runner, toolchain, and lockfile inputs instead of using one blind global cache.
 - Expensive checks should run once in the right job instead of being duplicated across the workflow graph.
+- Cross-platform product behavior should be proven in the quality matrix, while platform-independent security scanners may stay centralized on the canonical Linux runner.
 - `unsafe` is forbidden by default.
 - `unwrap`, `expect`, `panic!`, `todo!`, and `unimplemented!` are forbidden in production code.
 
