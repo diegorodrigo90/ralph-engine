@@ -2,9 +2,9 @@
 
 Ralph Engine is an open-source plugin-first runtime for agentic coding workflows.
 
-This repository has been rebooted onto a Rust-first foundation. The core runtime and official plugins now evolve in Rust, while docs, site, catalog, and developer scaffolding keep the stacks that fit them best.
+This repository has been rebooted onto a Rust-first foundation. The core runtime and official plugins now evolve in Rust, while docs, site, and developer scaffolding keep the stacks that fit them best.
 
-Public product surfaces are being prepared for bilingual operation in English and pt-BR, including the CLI, docs, site, and catalog.
+Public product surfaces are being prepared for bilingual operation in English and pt-BR, including the CLI, docs, and site.
 Those public surfaces also follow a shared UX contract: consistent navigation, stable public paths, and A-grade accessibility, performance, and SEO targets.
 
 ## Repository shape
@@ -12,8 +12,7 @@ Those public surfaces also follow a shared UX contract: consistent navigation, s
 - `core/` — Rust crates for the runtime and CLI
 - `plugins/official/` — Rust-first official plugins
 - `docs/` — VitePress documentation
-- `site/` — public site assets
-- `catalog/` — catalog metadata
+- `site/` — public web surfaces, shared UI, and plugin metadata
 - `packaging/` — npm and Homebrew packaging surfaces
 - `tools/create-ralph-engine/` — developer scaffolder
 - `scripts/` — shared bootstrap, validation, and release scripts

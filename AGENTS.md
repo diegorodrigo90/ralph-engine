@@ -42,7 +42,8 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 
 - `core/` SHALL own the Rust runtime crates.
 - `plugins/official/` SHALL own Rust-first official plugins.
-- `docs/`, `site/`, and `catalog/` SHALL remain distinct top-level owned surfaces.
+- `docs/` SHALL remain a distinct top-level owned surface.
+- `site/` SHALL own the public web surfaces, including `landing/`, `plugins/`, and `ui/`.
 - `packaging/` SHALL own npm and Homebrew packaging.
 - `tools/create-ralph-engine/` SHALL own developer scaffolding.
 - `scripts/` SHALL own shared bootstrap, install, validation, and release scripts.
