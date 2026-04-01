@@ -31,3 +31,5 @@ Checklist:
 ```
 
 O workflow da CI agora roda um preflight do SonarCloud antes da cobertura e do scan para que esse tipo de falha apareça antes e com mensagem mais clara.
+
+O workflow também resolve a chave do projeto e a organização a partir de `sonar-project.properties` antes do scan e repassa esses valores explicitamente ao scanner. Assim o log mostra com clareza qual projeto o job está tentando analisar e reduz ambiguidade de configuração.
