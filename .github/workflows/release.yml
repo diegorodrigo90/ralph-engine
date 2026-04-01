@@ -54,13 +54,6 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
-        with:
-          node-version: '20.19.0'
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            docs/package-lock.json
       - name: Validate SemVer release tag input
         shell: bash
         run: ./scripts/release-check.sh "${{ inputs.tag }}"

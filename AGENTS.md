@@ -53,6 +53,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 31. GitHub Actions checkouts SHALL disable persisted credentials unless a later step in that same job explicitly needs to push or publish.
 32. The canonical `CI` workflow on `main` SHALL build reusable cross-platform release artifacts for the exact approved SHA only after `Quality`, `Security`, and `SonarCloud` have all passed. The publish workflow SHALL promote those artifacts instead of rebuilding them.
 33. Reviewed pinned tool binaries that are installed by repository scripts MAY be cached in CI only when the cache key stays scoped by operating system, installer definition, and job purpose. Tool caches SHALL NOT be shared blindly across unrelated jobs or platforms.
+34. Workflows SHALL avoid no-op cache restores and unnecessary setup steps. If a job does not install or consume a dependency set, it SHALL NOT restore that cache just for symmetry.
 
 ## Structure
 
