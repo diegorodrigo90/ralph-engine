@@ -72,6 +72,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 - `core/crates/re-mcp/` SHALL own typed MCP contribution contracts, including launch policy, process model, command boundaries, working-directory policy, environment policy, and availability policy.
 - `core/crates/re-plugin/` SHALL own typed plugin metadata, lifecycle, runtime-hook, loading-boundary, and capability contracts.
 - `core/crates/re-cli/` SHALL own the modular CLI surface and command registry.
+- `re-core` and `re-cli` SHALL expose typed runtime capability registration so new capabilities can be added through shared contracts instead of command-local branching.
 - `plugins/official/` SHALL own Rust-first official plugins.
 - `docs/` SHALL remain a distinct top-level owned surface.
 - `site/` SHALL own the public web surfaces, including `landing/`, `plugins/`, and `ui/`.
