@@ -30,13 +30,7 @@ jobs:
       - name: Assemble Pages artifact
         shell: bash
         run: |
-          rm -rf .site-dist
-          mkdir -p .site-dist/docs .site-dist/catalog
-          cp -R site/landing/. .site-dist/
-          cp -R docs/public/. .site-dist/
-          cp -R docs/.vitepress/dist/. .site-dist/docs/
-          cp -R catalog/. .site-dist/catalog/
-          cp llms.txt .site-dist/llms.txt
+          ./scripts/assemble-public-surfaces.sh .site-dist
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b
         with:

@@ -1,5 +1,78 @@
 import { defineConfig } from "vitepress";
 
+const sharedLinks = [
+  {
+    text: "GitHub",
+    link: "https://github.com/diegorodrigo90/ralph-engine",
+  },
+  {
+    text: "Releases",
+    link: "https://github.com/diegorodrigo90/ralph-engine/releases",
+  },
+  {
+    text: "llms.txt",
+    link: "https://ralphengine.com/llms.txt",
+  },
+] as const;
+
+function buildSidebar(prefix: string, labels: {
+  gettingStarted: string;
+  guides: string;
+  reference: string;
+  development: string;
+  installation: string;
+  quickStart: string;
+  configuration: string;
+  hooks: string;
+  extending: string;
+  troubleshooting: string;
+  cliCommands: string;
+  configReference: string;
+  architecture: string;
+  building: string;
+  codingStandards: string;
+  releasing: string;
+  roadmap: string;
+  backlog: string;
+}) {
+  return [
+    {
+      text: labels.gettingStarted,
+      items: [
+        { text: labels.installation, link: `${prefix}/getting-started/installation` },
+        { text: labels.quickStart, link: `${prefix}/getting-started/quickstart` },
+      ],
+    },
+    {
+      text: labels.guides,
+      items: [
+        { text: labels.configuration, link: `${prefix}/guides/configuration` },
+        { text: labels.hooks, link: `${prefix}/guides/hooks` },
+        { text: labels.extending, link: `${prefix}/guides/plugins` },
+        { text: labels.troubleshooting, link: `${prefix}/guides/troubleshooting` },
+      ],
+    },
+    {
+      text: labels.reference,
+      items: [
+        { text: labels.cliCommands, link: `${prefix}/reference/cli` },
+        { text: labels.configReference, link: `${prefix}/reference/config` },
+        { text: labels.architecture, link: `${prefix}/reference/architecture` },
+      ],
+    },
+    {
+      text: labels.development,
+      items: [
+        { text: labels.building, link: `${prefix}/development/building` },
+        { text: labels.codingStandards, link: `${prefix}/development/coding-standards` },
+        { text: labels.releasing, link: `${prefix}/development/releasing` },
+        { text: labels.roadmap, link: `${prefix}/development/roadmap` },
+        { text: labels.backlog, link: `${prefix}/development/backlog` },
+      ],
+    },
+  ];
+}
+
 export default defineConfig({
   lang: "en-US",
   title: "Ralph Engine",
@@ -26,6 +99,94 @@ export default defineConfig({
     ],
   ],
 
+  locales: {
+    root: {
+      label: "English",
+      lang: "en-US",
+      title: "Ralph Engine",
+      description: "Open-source plugin-first runtime for agentic coding workflows",
+      themeConfig: {
+        nav: [
+          { text: "Guide", link: "/getting-started/installation" },
+          { text: "Reference", link: "/reference/cli" },
+          { text: "Plugins", link: "https://ralphengine.com/plugins/" },
+          {
+            text: "Links",
+            items: sharedLinks,
+          },
+        ],
+        sidebar: buildSidebar("", {
+          gettingStarted: "Getting Started",
+          guides: "Guides",
+          reference: "Reference",
+          development: "Development",
+          installation: "Installation",
+          quickStart: "Quick Start",
+          configuration: "Configuration",
+          hooks: "Hooks",
+          extending: "Extending",
+          troubleshooting: "Troubleshooting",
+          cliCommands: "CLI Commands",
+          configReference: "Config Reference",
+          architecture: "Architecture",
+          building: "Building",
+          codingStandards: "Coding Standards",
+          releasing: "Releasing",
+          roadmap: "Roadmap",
+          backlog: "Backlog",
+        }),
+        editLink: {
+          pattern:
+            "https://github.com/diegorodrigo90/ralph-engine/edit/main/docs/locales/en/:path",
+          text: "Edit this page on GitHub",
+        },
+      },
+    },
+    "pt-br": {
+      label: "Português (Brasil)",
+      lang: "pt-BR",
+      link: "/pt-br/",
+      title: "Ralph Engine",
+      description: "Runtime open source, orientado a plugins, para fluxos de desenvolvimento com agentes",
+      themeConfig: {
+        nav: [
+          { text: "Guia", link: "/pt-br/getting-started/installation" },
+          { text: "Referência", link: "/pt-br/reference/cli" },
+          { text: "Plugins", link: "https://ralphengine.com/pt-br/plugins/" },
+          {
+            text: "Links",
+            items: sharedLinks,
+          },
+        ],
+        sidebar: buildSidebar("/pt-br", {
+          gettingStarted: "Primeiros passos",
+          guides: "Guias",
+          reference: "Referência",
+          development: "Desenvolvimento",
+          installation: "Instalação",
+          quickStart: "Início rápido",
+          configuration: "Configuração",
+          hooks: "Hooks",
+          extending: "Plugins",
+          troubleshooting: "Solução de problemas",
+          cliCommands: "Comandos CLI",
+          configReference: "Referência de configuração",
+          architecture: "Arquitetura",
+          building: "Compilação",
+          codingStandards: "Padrões de código",
+          releasing: "Releases",
+          roadmap: "Roadmap",
+          backlog: "Backlog",
+        }),
+        editLink: {
+          pattern:
+            "https://github.com/diegorodrigo90/ralph-engine/edit/main/docs/locales/pt-br/:path",
+          text: "Editar esta página no GitHub",
+        },
+      },
+    },
+  },
+
   themeConfig: {
     logo: {
       light: "/logo.svg",
@@ -34,65 +195,6 @@ export default defineConfig({
     },
 
     siteTitle: false,
-
-    nav: [
-      { text: "Guide", link: "/getting-started/installation" },
-      { text: "Reference", link: "/reference/cli" },
-      {
-        text: "Links",
-        items: [
-          {
-            text: "GitHub",
-            link: "https://github.com/diegorodrigo90/ralph-engine",
-          },
-          {
-            text: "Releases",
-            link: "https://github.com/diegorodrigo90/ralph-engine/releases",
-          },
-          {
-            text: "llms.txt",
-            link: "https://ralphengine.com/llms.txt",
-          },
-        ],
-      },
-    ],
-
-    sidebar: [
-      {
-        text: "Getting Started",
-        items: [
-          { text: "Installation", link: "/getting-started/installation" },
-          { text: "Quick Start", link: "/getting-started/quickstart" },
-        ],
-      },
-      {
-        text: "Guides",
-        items: [
-          { text: "Configuration", link: "/guides/configuration" },
-          { text: "Hooks", link: "/guides/hooks" },
-          { text: "Extending", link: "/guides/plugins" },
-          { text: "Troubleshooting", link: "/guides/troubleshooting" },
-        ],
-      },
-      {
-        text: "Reference",
-        items: [
-          { text: "CLI Commands", link: "/reference/cli" },
-          { text: "Config Reference", link: "/reference/config" },
-          { text: "Architecture", link: "/reference/architecture" },
-        ],
-      },
-      {
-        text: "Development",
-        items: [
-          { text: "Building", link: "/development/building" },
-          { text: "Coding Standards", link: "/development/coding-standards" },
-          { text: "Releasing", link: "/development/releasing" },
-          { text: "Roadmap", link: "/development/roadmap" },
-          { text: "Backlog", link: "/development/backlog" },
-        ],
-      },
-    ],
 
     socialLinks: [
       {
@@ -103,12 +205,6 @@ export default defineConfig({
 
     search: {
       provider: "local",
-    },
-
-    editLink: {
-      pattern:
-        "https://github.com/diegorodrigo90/ralph-engine/edit/main/docs/:path",
-      text: "Edit this page on GitHub",
     },
 
     footer: {
