@@ -12,3 +12,4 @@ Updated: 2026-04-01
 - Define shared information architecture, menus, and navigation contracts across `/`, `/docs`, and `/plugins`.
 - Refactor `site/ui` into a real shared presentation layer for `site/landing` and `site/plugins`.
 - Align the public header contract so the logo always returns to `/` and navigation stays coherent across site, docs, and plugins.
+- Track the `vitepress`/`vite`/`esbuild` moderate advisory on the docs toolchain and upgrade to the next reviewed stable line when a non-breaking fix becomes available.

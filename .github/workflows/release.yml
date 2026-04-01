@@ -39,6 +39,11 @@ jobs:
           shared-key: release-ubuntu-latest
       - name: Install docs Node tools
         run: npm --prefix docs ci
+      - name: Restore pinned tools cache
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.cache/ralph-engine-tools
+          key: ${{ runner.os }}-pinned-tools-${{ hashFiles('scripts/install-dev-tools.sh') }}
       - name: Install pinned developer tools
         shell: bash
         run: ./scripts/install-dev-tools.sh --tools cargo-llvm-cov,cargo-audit,cargo-deny,cargo-dist,gitleaks,trivy
