@@ -52,6 +52,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 30. The hardened release workflow SHALL verify that the target SHA is the current `origin/main` head and that the canonical `CI` workflow has already completed successfully for that exact push before any tag or publication step begins.
 31. GitHub Actions checkouts SHALL disable persisted credentials unless a later step in that same job explicitly needs to push or publish.
 32. The canonical `CI` workflow on `main` SHALL build reusable cross-platform release artifacts for the exact approved SHA only after `Quality`, `Security`, and `SonarCloud` have all passed. The publish workflow SHALL promote those artifacts instead of rebuilding them.
+33. Reviewed pinned tool binaries that are installed by repository scripts MAY be cached in CI only when the cache key stays scoped by operating system, installer definition, and job purpose. Tool caches SHALL NOT be shared blindly across unrelated jobs or platforms.
 
 ## Structure
 
@@ -88,6 +89,7 @@ CI cache design SHALL follow these rules:
 - Rust build caches SHALL stay runner-specific.
 - Node dependency caches SHALL stay lockfile-specific.
 - Shared caches MAY span jobs only when the runner platform and toolchain remain compatible.
+- Reviewed pinned tool caches SHALL stay purpose-specific, such as separate caches for coverage tooling, security tooling, and release-only tooling.
 - Cache misses SHALL degrade safely to fresh installs; they SHALL NOT change validation behavior.
 - Cross-platform correctness SHALL be checked in the quality matrix.
 - Platform-independent supply-chain and secret scanners MAY be centralized on the canonical Linux runner to avoid repeated installs and duplicate findings.
