@@ -44,4 +44,4 @@ cargo test --workspace --all-targets --all-features
 
 ## Status
 
-This is the Rust-first reboot baseline. The release pipeline, npm channel, and Homebrew channel are being re-wired on top of this new foundation instead of carrying the old Go-era implementation forward.
+This is the Rust-first reboot baseline. The release pipeline is being hardened on top of the new Rust foundation. npm now targets reviewed `cargo-dist` artifacts, and the Homebrew channel has a tracked formula template, but automatic publication remains disabled until GitHub Releases, npm, and Homebrew are connected end to end with provenance.
