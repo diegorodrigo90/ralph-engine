@@ -16,6 +16,49 @@ pub struct ProjectConfig {
     pub mcp: McpConfig,
 }
 
+/// Typed configuration scope identifier.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ConfigScope {
+    /// Built-in repository defaults.
+    BuiltInDefaults,
+    /// Workspace-level configuration.
+    Workspace,
+    /// Project-level configuration.
+    Project,
+    /// User-level overrides.
+    User,
+}
+
+impl ConfigScope {
+    /// Returns the stable configuration-scope identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::BuiltInDefaults => "built_in_defaults",
+            Self::Workspace => "workspace",
+            Self::Project => "project",
+            Self::User => "user",
+        }
+    }
+}
+
+/// One typed configuration layer in resolution order.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ProjectConfigLayer {
+    /// Scope represented by the layer.
+    pub scope: ConfigScope,
+    /// Immutable configuration payload for the scope.
+    pub config: ProjectConfig,
+}
+
+impl ProjectConfigLayer {
+    /// Creates a new immutable configuration layer.
+    #[must_use]
+    pub const fn new(scope: ConfigScope, config: ProjectConfig) -> Self {
+        Self { scope, config }
+    }
+}
+
 /// Typed plugin configuration entry.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PluginConfig {
@@ -23,6 +66,33 @@ pub struct PluginConfig {
     pub id: &'static str,
     /// Default activation state for the plugin.
     pub activation: PluginActivation,
+}
+
+/// Resolved plugin configuration entry with source scope metadata.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ResolvedPluginConfig {
+    /// Stable plugin identifier.
+    pub id: &'static str,
+    /// Effective activation state after typed resolution.
+    pub activation: PluginActivation,
+    /// Scope that supplied the effective configuration.
+    pub resolved_from: ConfigScope,
+}
+
+impl ResolvedPluginConfig {
+    /// Creates a new immutable resolved plugin config entry.
+    #[must_use]
+    pub const fn new(
+        id: &'static str,
+        activation: PluginActivation,
+        resolved_from: ConfigScope,
+    ) -> Self {
+        Self {
+            id,
+            activation,
+            resolved_from,
+        }
+    }
 }
 
 impl PluginConfig {
@@ -89,11 +159,19 @@ const DEFAULT_PROJECT_CONFIG: ProjectConfig = ProjectConfig {
     plugins: DEFAULT_PLUGINS,
     mcp: DEFAULT_MCP,
 };
+const DEFAULT_PROJECT_CONFIG_LAYER: ProjectConfigLayer =
+    ProjectConfigLayer::new(ConfigScope::BuiltInDefaults, DEFAULT_PROJECT_CONFIG);
 
 /// Returns the default project configuration contract.
 #[must_use]
 pub const fn default_project_config() -> ProjectConfig {
     DEFAULT_PROJECT_CONFIG
+}
+
+/// Returns the default project configuration as a typed resolution layer.
+#[must_use]
+pub const fn default_project_config_layer() -> ProjectConfigLayer {
+    DEFAULT_PROJECT_CONFIG_LAYER
 }
 
 /// Returns one immutable plugin config entry by identifier.
@@ -104,6 +182,20 @@ pub fn find_plugin_config(config: &ProjectConfig, plugin_id: &str) -> Option<Plu
         .iter()
         .find(|plugin| plugin.id == plugin_id)
         .copied()
+}
+
+/// Resolves one plugin config entry from ordered layers.
+///
+/// Layers SHALL be passed from lowest precedence to highest precedence.
+#[must_use]
+pub fn resolve_plugin_config(
+    layers: &[ProjectConfigLayer],
+    plugin_id: &str,
+) -> Option<ResolvedPluginConfig> {
+    layers.iter().rev().find_map(|layer| {
+        find_plugin_config(&layer.config, plugin_id)
+            .map(|entry| ResolvedPluginConfig::new(entry.id, entry.activation, layer.scope))
+    })
 }
 
 /// Renders the project configuration contract as YAML.
@@ -130,4 +222,15 @@ pub fn render_project_config_yaml(config: &ProjectConfig) -> String {
     ));
 
     lines.join("\n")
+}
+
+/// Renders one resolved plugin configuration block as YAML.
+#[must_use]
+pub fn render_resolved_plugin_config_yaml(config: &ResolvedPluginConfig) -> String {
+    [
+        format!("id: {}", config.id),
+        format!("activation: {}", config.activation.as_str()),
+        format!("resolved_from: {}", config.resolved_from.as_str()),
+    ]
+    .join("\n")
 }

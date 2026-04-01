@@ -1,6 +1,9 @@
 //! Plugin command handlers.
 
-use re_config::default_project_config;
+use re_config::{
+    ConfigScope, PluginActivation, ResolvedPluginConfig, default_project_config_layer,
+    resolve_plugin_config,
+};
 use re_plugin::{render_plugin_detail, render_plugin_listing};
 
 use crate::{CliError, catalog};
@@ -18,12 +21,21 @@ fn show_plugin(plugin_id: Option<&str>) -> Result<String, CliError> {
     let plugin_id = plugin_id.ok_or_else(|| CliError::new("plugins show requires a plugin id"))?;
     let plugin = catalog::find_official_plugin(plugin_id)
         .ok_or_else(|| CliError::new(format!("unknown plugin: {plugin_id}")))?;
-    let defaults = default_project_config();
-    let default_activation = re_config::find_plugin_config(&defaults, plugin.id)
-        .map(|entry| entry.activation.as_str())
-        .unwrap_or("disabled");
+    let layers = [default_project_config_layer()];
+    let resolved = resolve_plugin_config(&layers, plugin.id).unwrap_or(ResolvedPluginConfig::new(
+        plugin.id,
+        PluginActivation::Disabled,
+        ConfigScope::BuiltInDefaults,
+    ));
     let mut detail = render_plugin_detail(&plugin);
-    detail.push_str(&format!("\nDefault activation: {default_activation}"));
+    detail.push_str(&format!(
+        "\nResolved activation: {}",
+        resolved.activation.as_str()
+    ));
+    detail.push_str(&format!(
+        "\nResolved from: {}",
+        resolved.resolved_from.as_str()
+    ));
 
     Ok(detail)
 }
