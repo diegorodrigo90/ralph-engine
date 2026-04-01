@@ -1,0 +1,9 @@
+id: official.bmad
+name: bmad
+publisher: ralph-engine
+version: 0.2.0-alpha.1
+capabilities:
+  - template
+  - prompt_fragments
+  - prepare_checks
+  - doctor_checks

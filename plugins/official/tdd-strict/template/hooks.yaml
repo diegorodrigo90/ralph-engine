@@ -1,0 +1,22 @@
+# ralph-engine hooks — TDD Strict template
+
+session_start:
+  steps: []
+
+work_item_start:
+  steps: []
+
+after_agent:
+  steps:
+    - name: "Tests"
+      run: ""
+      required: true
+    - name: "Build"
+      run: ""
+      required: true
+
+work_item_finish:
+  steps: []
+
+session_end:
+  steps: []

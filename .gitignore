@@ -1,0 +1,14 @@
+/target
+/node_modules
+/docs/.vitepress/dist
+/coverage
+/dist
+*.log
+.DS_Store
+*.tmp
+*.swp
+.vscode/
+.idea/
+
+/docs/node_modules
+/docs/.vitepress/cache

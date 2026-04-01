@@ -1,0 +1,40 @@
+[workspace]
+members = [
+  "core/crates/re-core",
+  "core/crates/re-cli",
+  "plugins/official/basic",
+  "plugins/official/bmad",
+  "plugins/official/tdd-strict",
+  "plugins/official/claude",
+  "plugins/official/claudebox",
+  "plugins/official/codex",
+  "plugins/official/github",
+  "plugins/official/ssh"
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.2.0-alpha.1"
+edition = "2024"
+rust-version = "1.91"
+license = "MIT"
+repository = "https://github.com/diegorodrigo90/ralph-engine"
+homepage = "https://ralphengine.com"
+authors = ["Diego Rodrigo <diegorodrigo90@gmail.com>"]
+
+[workspace.lints.rust]
+missing_docs = "deny"
+unsafe_code = "forbid"
+unused_lifetimes = "deny"
+unused_attributes = "deny"
+
+[workspace.lints.rustdoc]
+bare_urls = "deny"
+broken_intra_doc_links = "deny"
+
+[workspace.lints.clippy]
+panic = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+todo = "deny"
+unimplemented = "deny"

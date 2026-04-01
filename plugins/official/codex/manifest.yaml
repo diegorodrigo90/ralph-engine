@@ -1,0 +1,7 @@
+id: official.codex
+name: codex
+publisher: ralph-engine
+version: 0.2.0-alpha.1
+capabilities:
+  - agent_runtime
+  - mcp_contribution

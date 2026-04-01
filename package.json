@@ -1,0 +1,19 @@
+{
+  "name": "ralph-engine-repo",
+  "private": true,
+  "description": "Repository tooling for Ralph Engine",
+  "engines": {
+    "node": ">=20.19.0 <21"
+  },
+  "scripts": {
+    "commitlint": "commitlint --edit",
+    "commitlint:range": "commitlint --from origin/main --to HEAD --verbose",
+    "docs:build": "npm --prefix docs run build",
+    "hooks:install": "lefthook install"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "20.5.0",
+    "@commitlint/config-conventional": "20.5.0",
+    "lefthook": "2.1.4"
+  }
+}

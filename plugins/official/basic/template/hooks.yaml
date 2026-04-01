@@ -1,0 +1,22 @@
+# ralph-engine hooks — basic template
+
+session_start:
+  steps: []
+
+work_item_start:
+  steps: []
+
+after_agent:
+  steps:
+    - name: "Tests"
+      run: ""
+      required: true
+    - name: "Build"
+      run: ""
+      required: false
+
+work_item_finish:
+  steps: []
+
+session_end:
+  steps: []

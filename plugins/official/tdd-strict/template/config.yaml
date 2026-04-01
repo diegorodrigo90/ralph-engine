@@ -1,0 +1,28 @@
+# ralph-engine TDD Strict template
+
+agent:
+  type: "claude"
+  cooldown_seconds: 15
+  max_work_items_per_session: 1
+
+workflow:
+  instructions: |
+    Follow strict TDD.
+    Start with a failing test, make the smallest implementation that passes, then refactor safely.
+
+execution:
+  max_post_agent_retries: 0
+  max_retry_output_chars: 1200
+
+tracker:
+  type: "file"
+  status_file: "sprint-status.yaml"
+
+circuit_breaker:
+  max_failures: 2
+  cooldown_minutes: 5
+
+research:
+  enabled: false
+  strategy: "always"
+  tools: []

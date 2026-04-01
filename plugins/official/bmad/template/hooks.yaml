@@ -1,0 +1,19 @@
+# ralph-engine hooks — BMAD template
+
+session_start:
+  steps: []
+
+work_item_start:
+  steps: []
+
+after_agent:
+  steps:
+    - name: "Required checks"
+      run: ""
+      required: true
+
+work_item_finish:
+  steps: []
+
+session_end:
+  steps: []
