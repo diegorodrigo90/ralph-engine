@@ -42,6 +42,9 @@ ralph-engine runtime show
 ralph-engine runtime status
 ralph-engine runtime issues
 ralph-engine runtime plan
+ralph-engine prompts
+ralph-engine prompts list
+ralph-engine prompts show <plugin-id>
 ralph-engine templates
 ralph-engine templates list
 ralph-engine templates show <plugin-id>
@@ -58,6 +61,8 @@ The `capabilities` command family prints the typed runtime capability registry s
 
 The `templates` command family prints the typed runtime template registry so template providers stay explicit and separate from generic capability listings while scaffolding ownership remains tooling-owned.
 
+The `prompts` command family prints the typed runtime prompt registry so prompt providers stay explicit and separate from generic capability listings while prompt assembly remains a modular runtime surface instead of implicit command-local behavior.
+
 The `checks` command family prints the typed runtime check registry so prepare-time and doctor-time validation contributions stay explicit instead of hiding only as generic capabilities.
 
 The `doctor` command family prints the typed runtime diagnostic report by composing runtime status, unresolved issues, and remediation actions from one shared runtime snapshot instead of spreading diagnosis across ad hoc command logic.
@@ -72,10 +77,10 @@ The `providers` command family prints the typed runtime provider registry so dat
 
 The `mcp show` command prints the typed MCP launch contract, including process model, launch policy, command boundaries, working-directory policy, environment policy, and availability.
 
-The `runtime show` command prints the resolved runtime topology, including effective plugin activation, capability registration, template registration, agent registration, check registration, provider registration, policy registration, runtime-hook registration, and MCP enablement.
+The `runtime show` command prints the resolved runtime topology, including effective plugin activation, capability registration, template registration, prompt registration, agent registration, check registration, provider registration, policy registration, runtime-hook registration, and MCP enablement.
 
-The `runtime status` command prints the typed runtime health summary, including enabled and disabled providers across plugins, capabilities, templates, agent registrations, check registrations, provider registrations, policies, runtime hooks, and MCP servers.
+The `runtime status` command prints the typed runtime health summary, including enabled and disabled providers across plugins, capabilities, templates, prompts, agent registrations, check registrations, provider registrations, policies, runtime hooks, and MCP servers.
 
-The `runtime issues` command prints the typed list of unresolved runtime issues and recommended actions, including disabled template, agent, check, provider, policy, and runtime-hook registrations, instead of requiring command-local heuristics.
+The `runtime issues` command prints the typed list of unresolved runtime issues and recommended actions, including disabled template, prompt, agent, check, provider, policy, and runtime-hook registrations, instead of requiring command-local heuristics.
 
-The `runtime plan` command prints the typed runtime remediation plan derived from the resolved topology, including template-provider, agent-provider, check-provider, provider, policy-provider, and hook-provider enablement, so the next enablement step stays explicit and modular instead of being inferred ad hoc in the CLI.
+The `runtime plan` command prints the typed runtime remediation plan derived from the resolved topology, including template-provider, prompt-provider, agent-provider, check-provider, provider, policy-provider, and hook-provider enablement, so the next enablement step stays explicit and modular instead of being inferred ad hoc in the CLI.
