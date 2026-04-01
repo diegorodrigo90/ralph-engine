@@ -3,6 +3,31 @@
   "private": true,
   "version": "0.0.0-development",
   "description": "Scaffolder for Ralph Engine plugins and developer setups",
+  "license": "MIT",
+  "author": "Diego Rodrigo <diegorodrigo90@gmail.com>",
+  "homepage": "https://ralphengine.com",
+  "bugs": "https://github.com/diegorodrigo90/ralph-engine/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/diegorodrigo90/ralph-engine.git",
+    "directory": "tools/create-ralph-engine"
+  },
+  "engines": {
+    "node": ">=20.19.0 <21"
+  },
+  "files": [
+    "README.md",
+    "bin/",
+    "test/"
+  ],
+  "keywords": [
+    "cli",
+    "developer-tools",
+    "npx",
+    "plugin-first",
+    "scaffold",
+    "rust"
+  ],
   "scripts": {
     "test": "node --test"
   },

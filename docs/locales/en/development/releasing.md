@@ -8,6 +8,21 @@
 4. Release publication stays disabled until the Rust distribution pipeline is wired and validated end to end.
 5. The hardened publish workflow will create the SemVer tag only after the required gates are green for the target `main` commit.
 
+## Manual publish workflow
+
+The `Release` workflow is manual and expects:
+
+- `tag`
+- `publish_github_release`
+- `publish_npm`
+- `publish_homebrew`
+- `homebrew_tap_repository` when the tap should not be inferred elsewhere
+
+Secrets used by this workflow:
+
+- `NPM_TOKEN` when `publish_npm=true`
+- `HOMEBREW_TAP_TOKEN` when `publish_homebrew=true`
+
 ## Rules
 
 - SemVer is mandatory.
