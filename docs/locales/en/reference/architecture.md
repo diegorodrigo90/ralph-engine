@@ -11,7 +11,7 @@ Ralph Engine is an open-source plugin-first runtime for agentic coding workflows
 - `docs/` — VitePress docs
 - `site/` — public web surfaces, shared UI, and plugin metadata
 - `packaging/` — npm and Homebrew packaging surfaces
-- `tools/create-ralph-engine/` — developer scaffolding
+- `tools/create-ralph-engine/` — plugin scaffolding for `npx create-ralph-engine-plugin`
 - `scripts/` — bootstrap, validation, and release automation
 
 ## Rust workspace
