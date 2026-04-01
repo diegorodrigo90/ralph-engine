@@ -30,7 +30,7 @@ cargo test --workspace --all-targets --all-features
 
 - Public Rust APIs are documented with `rustdoc`
 - Rust tests prefer Arrange, Act, Assert
-- The repository enforces `fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, and docs build from the same validation contract
+- The repository enforces `fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, docs build, and public-surface assembly from the same validation contract
 - `./scripts/validate-ci-local.sh` provides a supported local smoke run for the GitHub Actions CI workflow when `act` is installed
 
 ## Release model

@@ -34,13 +34,13 @@ done
 default_checks_for_mode() {
   case "$1" in
     hook)
-      echo "fmt,clippy,test,rustdoc,deny,audit,gitleaks,trivy,docs"
+      echo "fmt,clippy,test,rustdoc,deny,audit,gitleaks,trivy,public"
       ;;
     ci | local)
-      echo "fmt,clippy,test,coverage,rustdoc,deny,audit,gitleaks,trivy,docs"
+      echo "fmt,clippy,test,coverage,rustdoc,deny,audit,gitleaks,trivy,public"
       ;;
     release)
-      echo "fmt,clippy,test,coverage,rustdoc,deny,audit,gitleaks,trivy,docs,release"
+      echo "fmt,clippy,test,coverage,rustdoc,deny,audit,gitleaks,trivy,public,release"
       ;;
     *)
       echo "unknown validation mode: $1" >&2
@@ -145,7 +145,7 @@ file_is_rust_only_safe() {
     [[ "$changed_file" == rust-toolchain.toml ]]
 }
 
-file_is_docs_only_safe() {
+file_is_public_surface_safe() {
   local changed_file="$1"
 
   [[ "$changed_file" == docs/* ]] ||
@@ -183,8 +183,8 @@ validation_scope() {
     return 0
   fi
 
-  if all_changes_match file_is_docs_only_safe; then
-    echo "docs-only"
+  if all_changes_match file_is_public_surface_safe; then
+    echo "public-only"
     return 0
   fi
 
@@ -211,8 +211,8 @@ should_run_check() {
     deny | audit | trivy)
       [[ "$SCOPE" == "rust-only" || "$SCOPE" == "full" ]]
       ;;
-    docs)
-      [[ "$SCOPE" == "docs-only" || "$SCOPE" == "full" ]]
+    public)
+      [[ "$SCOPE" == "public-only" || "$SCOPE" == "full" ]]
       ;;
     release)
       [[ "$SCOPE" == "rust-only" || "$SCOPE" == "full" ]]
@@ -246,44 +246,44 @@ print_changed_files_context
 if should_run_check fmt; then
   run_check fmt cargo fmt --all --check
 elif contains_requested_check fmt; then
-  skip_check fmt "docs-only change set"
+  skip_check fmt "public-only change set"
 fi
 
 if should_run_check clippy; then
   run_check clippy cargo clippy --workspace --all-targets --all-features -- -D warnings
 elif contains_requested_check clippy; then
-  skip_check clippy "docs-only change set"
+  skip_check clippy "public-only change set"
 fi
 
 if should_run_check test; then
   run_check test cargo test --workspace --all-targets --all-features
 elif contains_requested_check test; then
-  skip_check test "docs-only change set"
+  skip_check test "public-only change set"
 fi
 
 if should_run_check coverage; then
   mkdir -p coverage
   run_check coverage cargo llvm-cov --workspace --all-features --lcov --output-path coverage/lcov.info
 elif contains_requested_check coverage; then
-  skip_check coverage "docs-only change set"
+  skip_check coverage "public-only change set"
 fi
 
 if should_run_check rustdoc; then
   run_check rustdoc env RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
 elif contains_requested_check rustdoc; then
-  skip_check rustdoc "docs-only change set"
+  skip_check rustdoc "public-only change set"
 fi
 
 if should_run_check deny; then
   run_check deny cargo deny check
 elif contains_requested_check deny; then
-  skip_check deny "docs-only change set"
+  skip_check deny "public-only change set"
 fi
 
 if should_run_check audit; then
   run_check audit cargo audit
 elif contains_requested_check audit; then
-  skip_check audit "docs-only change set"
+  skip_check audit "public-only change set"
 fi
 
 if should_run_check gitleaks; then
@@ -293,19 +293,19 @@ fi
 if should_run_check trivy; then
   run_check trivy trivy fs --no-progress --scanners vuln,misconfig --severity HIGH,CRITICAL --exit-code 1 --skip-dirs docs/node_modules --skip-dirs target .
 elif contains_requested_check trivy; then
-  skip_check trivy "docs-only change set"
+  skip_check trivy "public-only change set"
 fi
 
-if should_run_check docs; then
-  run_check docs npm --prefix docs run build
-elif contains_requested_check docs; then
-  skip_check docs "rust-only change set"
+if should_run_check public; then
+  run_check public bash -lc "npm --prefix docs run build && ./scripts/assemble-public-surfaces.sh .site-dist"
+elif contains_requested_check public; then
+  skip_check public "rust-only change set"
 fi
 
 if should_run_check release; then
   run_check release cargo build --workspace --release
 elif contains_requested_check release; then
-  skip_check release "docs-only change set"
+  skip_check release "public-only change set"
 fi
 
 echo

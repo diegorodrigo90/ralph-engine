@@ -6,7 +6,7 @@ O Ralph Engine usa uma base em Rust com verificações rígidas de qualidade.
 
 - APIs públicas em Rust usam comentários `rustdoc` com `///` ou `//!`.
 - Itens públicos sem documentação falham no contrato de lint do repositório.
-- `cargo fmt`, `clippy`, testes, cobertura, `rustdoc`, `cargo deny`, `cargo audit` e build das docs são obrigatórios.
+- `cargo fmt`, `clippy`, testes, cobertura, `rustdoc`, `cargo deny`, `cargo audit`, build das docs e montagem das superfícies públicas são obrigatórios.
 - `unsafe` é proibido por padrão.
 - `unwrap`, `expect`, `panic!`, `todo!` e `unimplemented!` são proibidos em código de produção.
 
