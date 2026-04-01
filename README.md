@@ -30,7 +30,7 @@ cargo test --workspace --all-targets --all-features
 
 - Public Rust APIs are documented with `rustdoc`
 - Rust tests prefer Arrange, Act, Assert
-- Plugin and MCP extensibility stays typed: capabilities, lifecycle stages, runtime hooks, configuration, and future contributions are expected to evolve through shared contracts rather than string-coupled runtime branches
+- Plugin and MCP extensibility stays typed: capabilities, lifecycle stages, runtime hooks, configuration scopes, and future contributions are expected to evolve through shared contracts rather than string-coupled runtime branches
 - The repository enforces `fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, docs build, and public-surface assembly from the same validation contract
 - SonarCloud is configured as the final coverage gate for analyzed code, and the release path is blocked unless that gate stays at `100%`
 - `./scripts/validate-ci-local.sh` provides a supported local smoke run for the GitHub Actions CI workflow when `act` is installed

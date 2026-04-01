@@ -7,6 +7,7 @@ The current default contract now exposes:
 - `schema_version`
 - `default_locale`
 - default plugin entries with typed activation state
+- typed configuration scopes and resolved plugin activation provenance
 - MCP defaults
 
 The broader target architecture still includes:
@@ -21,6 +22,9 @@ The current CLI can render the default typed contract with:
 
 ```bash
 ralph-engine config show-defaults
+ralph-engine config show-plugin <plugin-id>
 ```
+
+The `config show-plugin` command now renders the effective plugin activation together with the scope that supplied it.
 
 Those contracts will continue to expand on top of the new Rust core under TDD.

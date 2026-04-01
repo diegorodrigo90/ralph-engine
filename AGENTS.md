@@ -42,25 +42,26 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 20. Plugin and MCP capabilities SHALL remain extensible by contract. Adding a new capability or contribution SHALL be possible through local module changes and typed descriptors rather than string parsing spread across the runtime.
 21. Plugin lifecycle SHALL remain typed and explicit. Discovery, configuration, validation, loading, and future lifecycle stages SHALL evolve through shared contracts instead of ad hoc booleans or scattered command-specific checks.
 22. Plugin runtime hooks SHALL remain typed and explicit. Prepare, doctor, prompt, agent, MCP, policy, and future hook surfaces SHALL evolve through shared contracts instead of capability-specific strings or ad hoc dispatch.
-23. Pre-1.0 cleanup MAY break compatibility when it improves the final architecture. Compatibility debt SHALL not block necessary refactors.
-24. Selective validation MAY skip checks only when the changed files fit an explicit, reviewed safe scope. If the change set crosses domains, touches tooling, or falls outside a known-safe scope, validation SHALL fall back to the full contract.
-25. CI, hooks, and local validation SHALL use the same selective-validation rules. The optimization SHALL be conservative: skip only for clearly public-surface-only or clearly Rust-only change sets; uncertainty SHALL resolve to full validation.
-26. Local GitHub Actions simulation MAY be used to catch workflow failures before push, but it SHALL complement `scripts/validate.sh`, not replace it.
-27. CI caches SHALL be keyed and scoped by the inputs that actually affect correctness, including operating system, toolchain, dependency lockfiles, and job purpose. Broad blind caches SHALL be avoided.
-28. Cache strategy SHALL optimize by domain where it improves reuse without increasing drift, such as separate dependency caches for repository Node tooling, docs tooling, and Rust build artifacts.
-29. Workflows SHALL avoid duplicate heavy work across jobs. Expensive steps such as coverage generation, scanner installs, and release-only tooling SHALL run only in the jobs that need them.
-30. Cross-platform quality SHALL be proven through an OS matrix, while platform-independent security scanners MAY run once on a canonical runner when that avoids duplicated cost without reducing coverage.
-31. CI workflows SHALL cancel superseded in-progress runs for the same branch or pull request whenever the older run no longer provides unique value.
-32. SonarCloud configuration SHALL fail fast with a clear preflight error when the configured token cannot browse or analyze the target project.
-33. SonarCloud scans SHALL resolve the project key and organization from `sonar-project.properties` and pass them explicitly to the scanner so CI logs and behavior stay unambiguous.
-34. Coverage used by SonarCloud SHALL be generated once in the canonical Linux quality job, uploaded as an artifact, and reused by the SonarCloud job instead of rerunning test coverage.
-35. The hardened release workflow SHALL verify that the target SHA is the current `origin/main` head and that the canonical `CI` workflow has already completed successfully for that exact push before any tag or publication step begins.
-36. GitHub Actions checkouts SHALL disable persisted credentials unless a later step in that same job explicitly needs to push or publish.
-37. The canonical `CI` workflow on `main` SHALL build cross-platform release candidate artifacts in parallel with the code-quality gates for the same SHA, and SHALL publish reusable approved release artifacts only after `Quality`, `Security`, and `SonarCloud` have all passed. The publish workflow SHALL promote those approved artifacts instead of rebuilding them.
-38. Reviewed pinned tool binaries that are installed by repository scripts MAY be cached in CI only when the cache key stays scoped by operating system, installer definition, and job purpose. Tool caches SHALL NOT be shared blindly across unrelated jobs or platforms.
-39. Workflows SHALL avoid no-op cache restores and unnecessary setup steps. If a job does not install or consume a dependency set, it SHALL NOT restore that cache just for symmetry.
-40. Matrix fail-fast behavior SHALL match the purpose of the matrix. Quality matrices SHOULD keep `fail-fast: false` to surface cross-platform regressions in one run, while release-artifact matrices SHOULD keep `fail-fast: true` because one failed platform already invalidates the publishable set.
-41. Pages publication SHALL happen from published releases and SHALL build from the release tag so the public site, docs, and plugins surface reflect published versions rather than unreleased `main` state.
+23. Configuration resolution SHALL remain typed and layered. Built-in defaults, workspace settings, project settings, user overrides, and future scopes SHALL evolve through shared contracts instead of implicit precedence rules spread across commands.
+24. Pre-1.0 cleanup MAY break compatibility when it improves the final architecture. Compatibility debt SHALL not block necessary refactors.
+25. Selective validation MAY skip checks only when the changed files fit an explicit, reviewed safe scope. If the change set crosses domains, touches tooling, or falls outside a known-safe scope, validation SHALL fall back to the full contract.
+26. CI, hooks, and local validation SHALL use the same selective-validation rules. The optimization SHALL be conservative: skip only for clearly public-surface-only or clearly Rust-only change sets; uncertainty SHALL resolve to full validation.
+27. Local GitHub Actions simulation MAY be used to catch workflow failures before push, but it SHALL complement `scripts/validate.sh`, not replace it.
+28. CI caches SHALL be keyed and scoped by the inputs that actually affect correctness, including operating system, toolchain, dependency lockfiles, and job purpose. Broad blind caches SHALL be avoided.
+29. Cache strategy SHALL optimize by domain where it improves reuse without increasing drift, such as separate dependency caches for repository Node tooling, docs tooling, and Rust build artifacts.
+30. Workflows SHALL avoid duplicate heavy work across jobs. Expensive steps such as coverage generation, scanner installs, and release-only tooling SHALL run only in the jobs that need them.
+31. Cross-platform quality SHALL be proven through an OS matrix, while platform-independent security scanners MAY run once on a canonical runner when that avoids duplicated cost without reducing coverage.
+32. CI workflows SHALL cancel superseded in-progress runs for the same branch or pull request whenever the older run no longer provides unique value.
+33. SonarCloud configuration SHALL fail fast with a clear preflight error when the configured token cannot browse or analyze the target project.
+34. SonarCloud scans SHALL resolve the project key and organization from `sonar-project.properties` and pass them explicitly to the scanner so CI logs and behavior stay unambiguous.
+35. Coverage used by SonarCloud SHALL be generated once in the canonical Linux quality job, uploaded as an artifact, and reused by the SonarCloud job instead of rerunning test coverage.
+36. The hardened release workflow SHALL verify that the target SHA is the current `origin/main` head and that the canonical `CI` workflow has already completed successfully for that exact push before any tag or publication step begins.
+37. GitHub Actions checkouts SHALL disable persisted credentials unless a later step in that same job explicitly needs to push or publish.
+38. The canonical `CI` workflow on `main` SHALL build cross-platform release candidate artifacts in parallel with the code-quality gates for the same SHA, and SHALL publish reusable approved release artifacts only after `Quality`, `Security`, and `SonarCloud` have all passed. The publish workflow SHALL promote those approved artifacts instead of rebuilding them.
+39. Reviewed pinned tool binaries that are installed by repository scripts MAY be cached in CI only when the cache key stays scoped by operating system, installer definition, and job purpose. Tool caches SHALL NOT be shared blindly across unrelated jobs or platforms.
+40. Workflows SHALL avoid no-op cache restores and unnecessary setup steps. If a job does not install or consume a dependency set, it SHALL NOT restore that cache just for symmetry.
+41. Matrix fail-fast behavior SHALL match the purpose of the matrix. Quality matrices SHOULD keep `fail-fast: false` to surface cross-platform regressions in one run, while release-artifact matrices SHOULD keep `fail-fast: true` because one failed platform already invalidates the publishable set.
+42. Pages publication SHALL happen from published releases and SHALL build from the release tag so the public site, docs, and plugins surface reflect published versions rather than unreleased `main` state.
 
 ## Structure
 

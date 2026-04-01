@@ -1,8 +1,10 @@
 //! Integration tests for the shared Ralph Engine config contract.
 
 use re_config::{
-    DEFAULT_LOCALE, McpConfig, McpDiscovery, PluginActivation, PluginConfig, ProjectConfig,
-    default_project_config, find_plugin_config, render_project_config_yaml,
+    ConfigScope, DEFAULT_LOCALE, McpConfig, McpDiscovery, PluginActivation, PluginConfig,
+    ProjectConfig, ProjectConfigLayer, ResolvedPluginConfig, default_project_config,
+    default_project_config_layer, find_plugin_config, render_project_config_yaml,
+    render_resolved_plugin_config_yaml, resolve_plugin_config,
 };
 
 #[test]
@@ -79,6 +81,29 @@ fn plugin_activation_as_str_is_stable() {
 }
 
 #[test]
+fn config_scope_as_str_is_stable() {
+    // Arrange
+    let scopes = [
+        ConfigScope::BuiltInDefaults,
+        ConfigScope::Workspace,
+        ConfigScope::Project,
+        ConfigScope::User,
+    ];
+
+    // Act
+    let rendered = scopes
+        .into_iter()
+        .map(ConfigScope::as_str)
+        .collect::<Vec<_>>();
+
+    // Assert
+    assert_eq!(
+        rendered,
+        vec!["built_in_defaults", "workspace", "project", "user"]
+    );
+}
+
+#[test]
 fn find_plugin_config_returns_matching_entry() {
     // Arrange
     let config = default_project_config();
@@ -103,6 +128,82 @@ fn find_plugin_config_returns_none_for_unknown_plugin() {
 
     // Assert
     assert!(plugin.is_none());
+}
+
+#[test]
+fn default_project_config_layer_uses_built_in_scope() {
+    // Arrange
+    let layer = default_project_config_layer();
+
+    // Act
+    let is_default_scope = layer.scope == ConfigScope::BuiltInDefaults;
+
+    // Assert
+    assert!(is_default_scope);
+}
+
+#[test]
+fn resolve_plugin_config_returns_effective_entry_from_highest_precedence_layer() {
+    // Arrange
+    const DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
+        "official.github",
+        PluginActivation::Disabled,
+    )];
+    const PROJECT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
+        "official.github",
+        PluginActivation::Enabled,
+    )];
+    let layers = [
+        ProjectConfigLayer::new(
+            ConfigScope::BuiltInDefaults,
+            ProjectConfig {
+                schema_version: 1,
+                default_locale: DEFAULT_LOCALE,
+                plugins: DEFAULT_PLUGINS,
+                mcp: McpConfig {
+                    enabled: true,
+                    discovery: McpDiscovery::OfficialOnly,
+                },
+            },
+        ),
+        ProjectConfigLayer::new(
+            ConfigScope::Project,
+            ProjectConfig {
+                schema_version: 1,
+                default_locale: DEFAULT_LOCALE,
+                plugins: PROJECT_PLUGINS,
+                mcp: McpConfig {
+                    enabled: true,
+                    discovery: McpDiscovery::OfficialOnly,
+                },
+            },
+        ),
+    ];
+
+    // Act
+    let resolved = resolve_plugin_config(&layers, "official.github");
+
+    // Assert
+    assert_eq!(
+        resolved,
+        Some(ResolvedPluginConfig::new(
+            "official.github",
+            PluginActivation::Enabled,
+            ConfigScope::Project,
+        ))
+    );
+}
+
+#[test]
+fn resolve_plugin_config_returns_none_for_unknown_plugin() {
+    // Arrange
+    let layers = [default_project_config_layer()];
+
+    // Act
+    let resolved = resolve_plugin_config(&layers, "official.unknown");
+
+    // Assert
+    assert!(resolved.is_none());
 }
 
 #[test]
@@ -138,4 +239,22 @@ fn render_project_config_yaml_handles_empty_plugin_sets() {
     assert!(!yaml.contains("  - id:"));
     assert!(!yaml.contains("    activation:"));
     assert!(yaml.contains("  discovery: official_only"));
+}
+
+#[test]
+fn render_resolved_plugin_config_yaml_is_human_readable() {
+    // Arrange
+    let resolved = ResolvedPluginConfig::new(
+        "official.basic",
+        PluginActivation::Enabled,
+        ConfigScope::BuiltInDefaults,
+    );
+
+    // Act
+    let yaml = render_resolved_plugin_config_yaml(&resolved);
+
+    // Assert
+    assert!(yaml.contains("id: official.basic"));
+    assert!(yaml.contains("activation: enabled"));
+    assert!(yaml.contains("resolved_from: built_in_defaults"));
 }

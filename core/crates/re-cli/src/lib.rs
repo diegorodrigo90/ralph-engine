@@ -79,7 +79,8 @@ mod tests {
         assert!(output.contains(
             "Runtime hooks: mcp_registration, data_source_registration, context_provider_registration, forge_provider_registration"
         ));
-        assert!(output.contains("Default activation: disabled"));
+        assert!(output.contains("Resolved activation: disabled"));
+        assert!(output.contains("Resolved from: built_in_defaults"));
     }
 
     #[test]
@@ -92,7 +93,8 @@ mod tests {
 
         // Assert
         assert!(output.contains("Plugin: official.basic"));
-        assert!(output.contains("Default activation: enabled"));
+        assert!(output.contains("Resolved activation: enabled"));
+        assert!(output.contains("Resolved from: built_in_defaults"));
     }
 
     #[test]
@@ -131,6 +133,58 @@ mod tests {
         assert!(output.contains("schema_version: 1"));
         assert!(output.contains("default_locale: en"));
         assert!(output.contains("official.basic"));
+    }
+
+    #[test]
+    fn execute_config_show_plugin_returns_resolved_yaml() {
+        // Arrange
+        let command = args(&["ralph-engine", "config", "show-plugin", "official.basic"]);
+
+        // Act
+        let output = execute(command).expect("config show-plugin should succeed");
+
+        // Assert
+        assert!(output.contains("id: official.basic"));
+        assert!(output.contains("activation: enabled"));
+        assert!(output.contains("resolved_from: built_in_defaults"));
+    }
+
+    #[test]
+    fn execute_config_show_plugin_returns_disabled_built_in_default_for_known_plugin() {
+        // Arrange
+        let command = args(&["ralph-engine", "config", "show-plugin", "official.github"]);
+
+        // Act
+        let output = execute(command).expect("config show-plugin should succeed");
+
+        // Assert
+        assert!(output.contains("id: official.github"));
+        assert!(output.contains("activation: disabled"));
+        assert!(output.contains("resolved_from: built_in_defaults"));
+    }
+
+    #[test]
+    fn execute_config_show_plugin_requires_plugin_id() {
+        // Arrange
+        let command = args(&["ralph-engine", "config", "show-plugin"]);
+
+        // Act
+        let error = execute(command).expect_err("missing plugin id should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "config show-plugin requires a plugin id");
+    }
+
+    #[test]
+    fn execute_config_show_plugin_rejects_unknown_plugin() {
+        // Arrange
+        let command = args(&["ralph-engine", "config", "show-plugin", "official.unknown"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown plugin id should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown plugin config: official.unknown");
     }
 
     #[test]
