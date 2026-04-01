@@ -39,8 +39,8 @@ The `mcp show` command prints the typed MCP launch contract, including process m
 
 The `runtime show` command prints the resolved runtime topology, including effective plugin activation, capability registration, runtime-hook registration, and MCP enablement.
 
-The `runtime status` command prints the typed runtime health summary, including enabled and disabled providers across plugins, capabilities, and MCP servers.
+The `runtime status` command prints the typed runtime health summary, including enabled and disabled providers across plugins, capabilities, runtime hooks, and MCP servers.
 
-The `runtime issues` command prints the typed list of unresolved runtime issues and recommended actions, instead of requiring command-local heuristics.
+The `runtime issues` command prints the typed list of unresolved runtime issues and recommended actions, including disabled runtime-hook providers, instead of requiring command-local heuristics.
 
-The `runtime plan` command prints the typed runtime remediation plan derived from the resolved topology, so the next enablement step stays explicit and modular instead of being inferred ad hoc in the CLI.
+The `runtime plan` command prints the typed runtime remediation plan derived from the resolved topology, including hook-provider enablement, so the next enablement step stays explicit and modular instead of being inferred ad hoc in the CLI.

@@ -66,6 +66,8 @@ pub enum RuntimeIssueKind {
     PluginDisabled,
     /// A capability provider is registered but still disabled.
     CapabilityDisabled,
+    /// A runtime-hook provider is registered but still disabled.
+    HookDisabled,
     /// An MCP server is registered but still disabled.
     McpServerDisabled,
 }
@@ -77,6 +79,7 @@ impl RuntimeIssueKind {
         match self {
             Self::PluginDisabled => "plugin_disabled",
             Self::CapabilityDisabled => "capability_disabled",
+            Self::HookDisabled => "hook_disabled",
             Self::McpServerDisabled => "mcp_server_disabled",
         }
     }
@@ -89,6 +92,8 @@ pub enum RuntimeActionKind {
     EnablePlugin,
     /// Re-enable a disabled capability provider.
     EnableCapabilityProvider,
+    /// Re-enable a disabled runtime-hook provider.
+    EnableHookProvider,
     /// Opt in to a disabled MCP contribution.
     EnableMcpServer,
 }
@@ -100,6 +105,7 @@ impl RuntimeActionKind {
         match self {
             Self::EnablePlugin => "enable_plugin",
             Self::EnableCapabilityProvider => "enable_capability_provider",
+            Self::EnableHookProvider => "enable_hook_provider",
             Self::EnableMcpServer => "enable_mcp_server",
         }
     }
@@ -264,6 +270,10 @@ pub struct RuntimeStatus {
     pub enabled_capabilities: usize,
     /// Number of disabled capability providers.
     pub disabled_capabilities: usize,
+    /// Number of enabled runtime-hook providers.
+    pub enabled_hooks: usize,
+    /// Number of disabled runtime-hook providers.
+    pub disabled_hooks: usize,
     /// Number of enabled MCP servers.
     pub enabled_mcp_servers: usize,
     /// Number of disabled MCP servers.
@@ -393,13 +403,23 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
         .filter(|capability| capability.is_enabled())
         .count();
     let disabled_capabilities = topology.capabilities.len() - enabled_capabilities;
+    let enabled_hooks = topology
+        .hooks
+        .iter()
+        .filter(|hook| hook.is_enabled())
+        .count();
+    let disabled_hooks = topology.hooks.len() - enabled_hooks;
     let enabled_mcp_servers = topology
         .mcp_servers
         .iter()
         .filter(|server| server.enabled)
         .count();
     let disabled_mcp_servers = topology.mcp_servers.len() - enabled_mcp_servers;
-    let health = if disabled_plugins == 0 && disabled_mcp_servers == 0 {
+    let health = if disabled_plugins == 0
+        && disabled_capabilities == 0
+        && disabled_hooks == 0
+        && disabled_mcp_servers == 0
+    {
         RuntimeHealth::Healthy
     } else {
         RuntimeHealth::Degraded
@@ -412,6 +432,8 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
         disabled_plugins,
         enabled_capabilities,
         disabled_capabilities,
+        enabled_hooks,
+        disabled_hooks,
         enabled_mcp_servers,
         disabled_mcp_servers,
     }
@@ -430,6 +452,10 @@ pub fn render_runtime_status(status: &RuntimeStatus) -> String {
         format!(
             "Capabilities: enabled={}, disabled={}",
             status.enabled_capabilities, status.disabled_capabilities
+        ),
+        format!(
+            "Runtime hooks: enabled={}, disabled={}",
+            status.enabled_hooks, status.disabled_hooks
         ),
         format!(
             "MCP servers: enabled={}, disabled={}",
@@ -460,6 +486,16 @@ pub fn collect_runtime_issues(topology: &RuntimeTopology<'_>) -> Vec<RuntimeIssu
                 RuntimeIssueKind::CapabilityDisabled,
                 capability.capability.as_str(),
                 "enable the provider plugin that owns this capability",
+            ));
+        }
+    }
+
+    for hook in topology.hooks {
+        if !hook.is_enabled() {
+            issues.push(RuntimeIssue::new(
+                RuntimeIssueKind::HookDisabled,
+                hook.hook.as_str(),
+                "enable the provider plugin that owns this runtime hook",
             ));
         }
     }
@@ -521,6 +557,19 @@ pub fn build_runtime_action_plan(topology: &RuntimeTopology<'_>) -> Vec<RuntimeA
                 format!(
                     "the provider still disables capability {}",
                     capability.capability.as_str()
+                ),
+            ));
+        }
+    }
+
+    for hook in topology.hooks {
+        if !hook.is_enabled() {
+            actions.push(RuntimeAction::new(
+                RuntimeActionKind::EnableHookProvider,
+                hook.plugin_id,
+                format!(
+                    "the provider still disables runtime hook {}",
+                    hook.hook.as_str()
                 ),
             ));
         }
@@ -674,6 +723,7 @@ mod tests {
         let values = [
             RuntimeIssueKind::PluginDisabled,
             RuntimeIssueKind::CapabilityDisabled,
+            RuntimeIssueKind::HookDisabled,
             RuntimeIssueKind::McpServerDisabled,
         ];
 
@@ -689,6 +739,7 @@ mod tests {
             vec![
                 "plugin_disabled",
                 "capability_disabled",
+                "hook_disabled",
                 "mcp_server_disabled"
             ]
         );
@@ -700,6 +751,7 @@ mod tests {
         let values = [
             RuntimeActionKind::EnablePlugin,
             RuntimeActionKind::EnableCapabilityProvider,
+            RuntimeActionKind::EnableHookProvider,
             RuntimeActionKind::EnableMcpServer,
         ];
 
@@ -715,6 +767,7 @@ mod tests {
             vec![
                 "enable_plugin",
                 "enable_capability_provider",
+                "enable_hook_provider",
                 "enable_mcp_server",
             ]
         );
@@ -847,6 +900,8 @@ mod tests {
         assert_eq!(status.disabled_plugins, 0);
         assert_eq!(status.enabled_capabilities, 1);
         assert_eq!(status.disabled_capabilities, 0);
+        assert_eq!(status.enabled_hooks, 1);
+        assert_eq!(status.disabled_hooks, 0);
         assert_eq!(status.enabled_mcp_servers, 1);
         assert_eq!(status.disabled_mcp_servers, 0);
     }
@@ -891,6 +946,7 @@ mod tests {
         assert!(rendered.contains("Runtime health: degraded"));
         assert!(rendered.contains("Plugins: enabled=0, disabled=1"));
         assert!(rendered.contains("Capabilities: enabled=0, disabled=1"));
+        assert!(rendered.contains("Runtime hooks: enabled=0, disabled=1"));
         assert!(rendered.contains("MCP servers: enabled=0, disabled=1"));
     }
 
@@ -929,12 +985,15 @@ mod tests {
         assert_eq!(status.disabled_plugins, 0);
         assert_eq!(status.enabled_capabilities, 0);
         assert_eq!(status.disabled_capabilities, 1);
+        assert_eq!(status.enabled_hooks, 1);
+        assert_eq!(status.disabled_hooks, 0);
         assert_eq!(status.enabled_mcp_servers, 0);
         assert_eq!(status.disabled_mcp_servers, 1);
         assert!(rendered.contains("Runtime phase: ready"));
         assert!(rendered.contains("Runtime health: degraded"));
         assert!(rendered.contains("Plugins: enabled=1, disabled=0"));
         assert!(rendered.contains("Capabilities: enabled=0, disabled=1"));
+        assert!(rendered.contains("Runtime hooks: enabled=1, disabled=0"));
         assert!(rendered.contains("MCP servers: enabled=0, disabled=1"));
     }
 
@@ -984,6 +1043,11 @@ mod tests {
                     RuntimeIssueKind::CapabilityDisabled,
                     "template",
                     "enable the provider plugin that owns this capability",
+                ),
+                RuntimeIssue::new(
+                    RuntimeIssueKind::HookDisabled,
+                    "scaffold",
+                    "enable the provider plugin that owns this runtime hook",
                 ),
                 RuntimeIssue::new(
                     RuntimeIssueKind::McpServerDisabled,
@@ -1098,6 +1162,11 @@ mod tests {
                     RuntimeActionKind::EnableCapabilityProvider,
                     "official.basic",
                     "the provider still disables capability template",
+                ),
+                RuntimeAction::new(
+                    RuntimeActionKind::EnableHookProvider,
+                    "official.basic",
+                    "the provider still disables runtime hook scaffold",
                 ),
                 RuntimeAction::new(
                     RuntimeActionKind::EnableMcpServer,
