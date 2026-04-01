@@ -200,3 +200,60 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: https://sonarcloud.io
+
+  build-release-artifacts:
+    name: Build reusable release artifacts (${{ matrix.os }})
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ${{ matrix.os }}
+    needs: [quality]
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: release-dist-ubuntu
+          - os: macos-latest
+            artifact_name: release-dist-macos
+          - os: windows-latest
+            artifact_name: release-dist-windows
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install 1.91.1 --profile minimal
+          rustup default 1.91.1
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
+        with:
+          shared-key: release-artifacts-${{ matrix.os }}
+      - name: Install pinned cargo-dist
+        shell: bash
+        run: ./scripts/install-dev-tools.sh --tools cargo-dist
+      - name: Resolve workspace release version
+        id: release_version
+        shell: bash
+        run: |
+          VERSION="$(./scripts/export-release-version.sh)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION"
+      - name: Build cargo-dist artifacts for reusable release
+        shell: bash
+        run: dist build --tag "v${{ steps.release_version.outputs.version }}"
+      - name: Upload reusable release artifacts
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: target/distrib/*
+          if-no-files-found: error
+          retention-days: 14

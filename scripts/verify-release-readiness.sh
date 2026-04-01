@@ -83,4 +83,7 @@ if status != "completed" or conclusion != "success":
     sys.exit(1)
 
 print(f"verified CI run {run_id} for {target_sha}")
+if github_output := __import__("os").environ.get("GITHUB_OUTPUT"):
+    with open(github_output, "a", encoding="utf-8") as fh:
+        fh.write(f"ci_run_id={run_id}\n")
 PY
