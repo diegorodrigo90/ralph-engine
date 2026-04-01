@@ -1,21 +1,10 @@
 //! CLI command execution for Ralph Engine.
 
-use std::fmt;
+mod catalog;
+mod commands;
+mod error;
 
-use re_mcp::{McpServerDescriptor, render_mcp_server_listing};
-use re_plugin::{PluginDescriptor, render_plugin_listing};
-
-/// CLI execution errors.
-#[derive(Debug, Eq, PartialEq)]
-pub struct CliError(String);
-
-impl fmt::Display for CliError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.0)
-    }
-}
-
-impl std::error::Error for CliError {}
+pub use error::CliError;
 
 /// Executes the current CLI foundation command set.
 pub fn execute<I>(args: I) -> Result<String, CliError>
@@ -23,54 +12,7 @@ where
     I: IntoIterator<Item = String>,
 {
     let collected: Vec<String> = args.into_iter().collect();
-    let command = collected.get(1).map(String::as_str);
-
-    match command {
-        None => Ok(format!(
-            "{}\n\nRust foundation bootstrapped.",
-            re_core::banner()
-        )),
-        Some("--version") => Ok(env!("CARGO_PKG_VERSION").to_owned()),
-        Some("mcp") => execute_mcp_command(&collected[2..]),
-        Some("plugins") => execute_plugins_command(&collected[2..]),
-        Some(other) => Err(CliError(format!("unknown command: {other}"))),
-    }
-}
-
-fn execute_mcp_command(args: &[String]) -> Result<String, CliError> {
-    match args.first().map(String::as_str) {
-        None | Some("list") => Ok(render_mcp_server_listing(&official_mcp_servers())),
-        Some(other) => Err(CliError(format!("unknown mcp command: {other}"))),
-    }
-}
-
-fn execute_plugins_command(args: &[String]) -> Result<String, CliError> {
-    match args.first().map(String::as_str) {
-        None | Some("list") => Ok(render_plugin_listing(&official_plugins())),
-        Some(other) => Err(CliError(format!("unknown plugins command: {other}"))),
-    }
-}
-
-fn official_plugins() -> [PluginDescriptor; 8] {
-    [
-        re_plugin_basic::descriptor(),
-        re_plugin_bmad::descriptor(),
-        re_plugin_claude::descriptor(),
-        re_plugin_claudebox::descriptor(),
-        re_plugin_codex::descriptor(),
-        re_plugin_github::descriptor(),
-        re_plugin_ssh::descriptor(),
-        re_plugin_tdd_strict::descriptor(),
-    ]
-}
-
-fn official_mcp_servers() -> [McpServerDescriptor; 4] {
-    [
-        re_plugin_claude::mcp_servers()[0],
-        re_plugin_claudebox::mcp_servers()[0],
-        re_plugin_codex::mcp_servers()[0],
-        re_plugin_github::mcp_servers()[0],
-    ]
+    commands::execute(&collected)
 }
 
 #[cfg(test)]

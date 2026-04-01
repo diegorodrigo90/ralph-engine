@@ -1,0 +1,30 @@
+//! Immutable built-in catalog for official plugins and MCP contributions.
+
+use re_mcp::McpServerDescriptor;
+use re_plugin::PluginDescriptor;
+
+/// Returns the immutable catalog of official plugins.
+#[must_use]
+pub fn official_plugins() -> [PluginDescriptor; 8] {
+    [
+        re_plugin_basic::descriptor(),
+        re_plugin_bmad::descriptor(),
+        re_plugin_claude::descriptor(),
+        re_plugin_claudebox::descriptor(),
+        re_plugin_codex::descriptor(),
+        re_plugin_github::descriptor(),
+        re_plugin_ssh::descriptor(),
+        re_plugin_tdd_strict::descriptor(),
+    ]
+}
+
+/// Returns the immutable catalog of official MCP server contributions.
+#[must_use]
+pub fn official_mcp_servers() -> [McpServerDescriptor; 4] {
+    [
+        re_plugin_claude::mcp_servers()[0],
+        re_plugin_claudebox::mcp_servers()[0],
+        re_plugin_codex::mcp_servers()[0],
+        re_plugin_github::mcp_servers()[0],
+    ]
+}

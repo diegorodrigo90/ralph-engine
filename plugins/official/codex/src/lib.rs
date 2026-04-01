@@ -1,13 +1,13 @@
 //! Official Codex runtime plugin metadata.
 
 use re_mcp::{McpServerDescriptor, McpTransport};
-use re_plugin::PluginDescriptor;
+use re_plugin::{AGENT_RUNTIME, MCP_CONTRIBUTION, PluginDescriptor};
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.codex";
 const PLUGIN_NAME: &str = "Codex";
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
-const CAPABILITIES: &[&str] = &["agent_runtime", "mcp_contribution"];
+const CAPABILITIES: &[re_plugin::PluginCapability] = &[AGENT_RUNTIME, MCP_CONTRIBUTION];
 const DESCRIPTOR: PluginDescriptor =
     PluginDescriptor::new(PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION, CAPABILITIES);
 const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
@@ -19,7 +19,7 @@ const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
 
 /// Declared capabilities for the official plugin foundation.
 #[must_use]
-pub fn capabilities() -> &'static [&'static str] {
+pub fn capabilities() -> &'static [re_plugin::PluginCapability] {
     DESCRIPTOR.capabilities
 }
 
