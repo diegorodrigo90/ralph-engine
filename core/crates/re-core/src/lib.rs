@@ -59,6 +59,29 @@ impl RuntimeHealth {
     }
 }
 
+/// Typed runtime issue identifier.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RuntimeIssueKind {
+    /// A plugin is registered but still disabled.
+    PluginDisabled,
+    /// A capability provider is registered but still disabled.
+    CapabilityDisabled,
+    /// An MCP server is registered but still disabled.
+    McpServerDisabled,
+}
+
+impl RuntimeIssueKind {
+    /// Returns the stable runtime-issue identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::PluginDisabled => "plugin_disabled",
+            Self::CapabilityDisabled => "capability_disabled",
+            Self::McpServerDisabled => "mcp_server_disabled",
+        }
+    }
+}
+
 /// One typed plugin registration in the resolved runtime topology.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RuntimePluginRegistration {
@@ -185,6 +208,33 @@ pub struct RuntimeStatus {
     pub disabled_mcp_servers: usize,
 }
 
+/// One typed runtime issue produced from the resolved topology.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimeIssue {
+    /// Stable issue kind.
+    pub kind: RuntimeIssueKind,
+    /// Stable subject identifier affected by the issue.
+    pub subject: &'static str,
+    /// Operator action needed to resolve the issue.
+    pub recommended_action: &'static str,
+}
+
+impl RuntimeIssue {
+    /// Creates a new immutable runtime issue.
+    #[must_use]
+    pub const fn new(
+        kind: RuntimeIssueKind,
+        subject: &'static str,
+        recommended_action: &'static str,
+    ) -> Self {
+        Self {
+            kind,
+            subject,
+            recommended_action,
+        }
+    }
+}
+
 /// Renders a human-readable runtime topology summary.
 #[must_use]
 pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
@@ -292,6 +342,65 @@ pub fn render_runtime_status(status: &RuntimeStatus) -> String {
     .join("\n")
 }
 
+/// Collects typed runtime issues from the resolved topology.
+#[must_use]
+pub fn collect_runtime_issues(topology: &RuntimeTopology<'_>) -> Vec<RuntimeIssue> {
+    let mut issues = Vec::new();
+
+    for plugin in topology.plugins {
+        if !plugin.is_enabled() {
+            issues.push(RuntimeIssue::new(
+                RuntimeIssueKind::PluginDisabled,
+                plugin.descriptor.id,
+                "enable the plugin in typed project configuration",
+            ));
+        }
+    }
+
+    for capability in topology.capabilities {
+        if !capability.is_enabled() {
+            issues.push(RuntimeIssue::new(
+                RuntimeIssueKind::CapabilityDisabled,
+                capability.capability.as_str(),
+                "enable the provider plugin that owns this capability",
+            ));
+        }
+    }
+
+    for server in topology.mcp_servers {
+        if !server.enabled {
+            issues.push(RuntimeIssue::new(
+                RuntimeIssueKind::McpServerDisabled,
+                server.descriptor.id,
+                "enable the owning plugin or opt in to the MCP server",
+            ));
+        }
+    }
+
+    issues
+}
+
+/// Renders a human-readable runtime issue summary.
+#[must_use]
+pub fn render_runtime_issues(issues: &[RuntimeIssue]) -> String {
+    if issues.is_empty() {
+        return "Runtime issues (0)".to_owned();
+    }
+
+    let mut lines = vec![format!("Runtime issues ({})", issues.len())];
+
+    for issue in issues {
+        lines.push(format!(
+            "- {} | subject={} | action={}",
+            issue.kind.as_str(),
+            issue.subject,
+            issue.recommended_action
+        ));
+    }
+
+    lines.join("\n")
+}
+
 #[cfg(test)]
 mod tests {
     use re_config::{ConfigScope, PluginActivation};
@@ -302,9 +411,10 @@ mod tests {
     };
 
     use super::{
-        PRODUCT_NAME, PRODUCT_TAGLINE, RuntimeCapabilityRegistration, RuntimeHealth,
-        RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration, RuntimeTopology, banner,
-        evaluate_runtime_status, render_runtime_status, render_runtime_topology,
+        PRODUCT_NAME, PRODUCT_TAGLINE, RuntimeCapabilityRegistration, RuntimeHealth, RuntimeIssue,
+        RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
+        RuntimeTopology, banner, collect_runtime_issues, evaluate_runtime_status,
+        render_runtime_issues, render_runtime_status, render_runtime_topology,
     };
 
     const CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -386,6 +496,32 @@ mod tests {
 
         // Assert
         assert_eq!(rendered, vec!["healthy", "degraded"]);
+    }
+
+    #[test]
+    fn runtime_issue_kind_as_str_is_stable() {
+        // Arrange
+        let values = [
+            RuntimeIssueKind::PluginDisabled,
+            RuntimeIssueKind::CapabilityDisabled,
+            RuntimeIssueKind::McpServerDisabled,
+        ];
+
+        // Act
+        let rendered = values
+            .into_iter()
+            .map(RuntimeIssueKind::as_str)
+            .collect::<Vec<_>>();
+
+        // Assert
+        assert_eq!(
+            rendered,
+            vec![
+                "plugin_disabled",
+                "capability_disabled",
+                "mcp_server_disabled"
+            ]
+        );
     }
 
     #[test]
@@ -533,6 +669,111 @@ mod tests {
         assert!(rendered.contains("Plugins: enabled=0, disabled=1"));
         assert!(rendered.contains("Capabilities: enabled=0, disabled=1"));
         assert!(rendered.contains("MCP servers: enabled=0, disabled=1"));
+    }
+
+    #[test]
+    fn collect_runtime_issues_reports_disabled_runtime_parts() {
+        // Arrange
+        let plugins = [RuntimePluginRegistration::new(
+            plugin_descriptor(),
+            PluginActivation::Disabled,
+            ConfigScope::BuiltInDefaults,
+        )];
+        let capabilities = [RuntimeCapabilityRegistration::new(
+            PluginCapability::new("template"),
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+        )];
+        let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), false)];
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Bootstrapped,
+            locale: "en",
+            plugins: &plugins,
+            capabilities: &capabilities,
+            mcp_servers: &mcp_servers,
+        };
+
+        // Act
+        let issues = collect_runtime_issues(&topology);
+
+        // Assert
+        assert_eq!(
+            issues,
+            vec![
+                RuntimeIssue::new(
+                    RuntimeIssueKind::PluginDisabled,
+                    "official.basic",
+                    "enable the plugin in typed project configuration",
+                ),
+                RuntimeIssue::new(
+                    RuntimeIssueKind::CapabilityDisabled,
+                    "template",
+                    "enable the provider plugin that owns this capability",
+                ),
+                RuntimeIssue::new(
+                    RuntimeIssueKind::McpServerDisabled,
+                    "official.codex.session",
+                    "enable the owning plugin or opt in to the MCP server",
+                ),
+            ]
+        );
+    }
+
+    #[test]
+    fn collect_runtime_issues_skips_enabled_runtime_parts() {
+        // Arrange
+        let plugins = [RuntimePluginRegistration::new(
+            plugin_descriptor(),
+            PluginActivation::Enabled,
+            ConfigScope::BuiltInDefaults,
+        )];
+        let capabilities = [capability_registration()];
+        let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &plugins,
+            capabilities: &capabilities,
+            mcp_servers: &mcp_servers,
+        };
+
+        // Act
+        let issues = collect_runtime_issues(&topology);
+
+        // Assert
+        assert!(issues.is_empty());
+    }
+
+    #[test]
+    fn render_runtime_issues_handles_empty_sets() {
+        // Arrange
+        let issues = [];
+
+        // Act
+        let rendered = render_runtime_issues(&issues);
+
+        // Assert
+        assert_eq!(rendered, "Runtime issues (0)");
+    }
+
+    #[test]
+    fn render_runtime_issues_is_human_readable() {
+        // Arrange
+        let issues = [RuntimeIssue::new(
+            RuntimeIssueKind::PluginDisabled,
+            "official.github",
+            "enable the plugin in typed project configuration",
+        )];
+
+        // Act
+        let rendered = render_runtime_issues(&issues);
+
+        // Assert
+        assert!(rendered.contains("Runtime issues (1)"));
+        assert!(rendered.contains(
+            "- plugin_disabled | subject=official.github | action=enable the plugin in typed project configuration"
+        ));
     }
 
     #[test]

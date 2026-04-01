@@ -19,6 +19,7 @@ ralph-engine plugins show <plugin-id>
 ralph-engine runtime
 ralph-engine runtime show
 ralph-engine runtime status
+ralph-engine runtime issues
 ralph-engine mcp
 ralph-engine mcp list
 ralph-engine mcp show <server-id>
@@ -33,3 +34,5 @@ O comando `mcp show` imprime o contrato tipado de lançamento do MCP, incluindo 
 O comando `runtime show` imprime a topologia resolvida do runtime, incluindo ativação efetiva de plugin, registro de capability e enablement de MCP.
 
 O comando `runtime status` imprime o resumo tipado de health do runtime, incluindo providers habilitados e desabilitados em plugins, capabilities e servidores MCP.
+
+O comando `runtime issues` imprime a lista tipada de issues pendentes do runtime e as ações recomendadas, em vez de depender de heurísticas locais em cada comando.

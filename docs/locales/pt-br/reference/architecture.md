@@ -35,5 +35,5 @@ Ralph Engine é um runtime open source, orientado a plugins, para fluxos de dese
 - o lifecycle de plugin evolui por estágios tipados compartilhados, para que descoberta, configuração, validação e carregamento continuem explícitos e extensíveis
 - runtime hooks de plugin evoluem por descritores tipados compartilhados, para que prepare, doctor, prompt, agent, MCP e policy permaneçam modulares sem dispatch ad hoc
 - a resolução de configuração evolui por escopos tipados em camadas, para que defaults e futuros overrides permaneçam explícitos em vez de inferidos dentro dos comandos
-- a topologia e o health do runtime evoluem por registros tipados e contratos de status, para que ativação de plugin, registro de capability e enablement de MCP permaneçam explícitos em vez de reconstruídos ad hoc por comando
+- a topologia, o health e o reporting de issues do runtime evoluem por registros tipados e contratos de status, para que ativação de plugin, registro de capability e enablement de MCP permaneçam explícitos em vez de reconstruídos ad hoc por comando
 - fronteiras de carregamento de plugin permanecem tipadas, para que integração in-process, subprocess e remota evoluam sem branch ad hoc espalhada no runtime
