@@ -25,15 +25,18 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 4. Tests SHALL be written before implementation. TDD is mandatory.
 5. Core and official plugin code SHALL target 100% meaningful coverage.
 6. `cargo fmt`, `clippy`, tests, coverage, deny, audit, rustdoc, docs build, CR, and quality gates SHALL be treated as mandatory, not optional.
-7. Repository code, docs, tests, and commit messages SHALL be in English.
-8. Public Rust APIs SHALL use `rustdoc` comments. Public undocumented items SHALL fail the quality contract.
-9. Rust tests SHALL follow the Arrange, Act, Assert structure when practical. AAA clarity SHALL be enforced through examples, CR, and repository rules.
-10. Library code SHALL NOT use `unwrap`, `expect`, `panic!`, `todo!`, or `unimplemented!` outside tests.
-11. Unsafe Rust SHALL be forbidden unless explicitly documented, isolated, and justified.
-12. Modules, functions, traits, and structs SHALL stay small, explicit, and single-purpose.
-13. DDD, SOLID, object calisthenics, early returns, strong typing, and clear names SHALL be applied where they improve maintainability in idiomatic Rust.
-14. The repository SHALL optimize for low token cost and high signal: prompt/context control, MCP governance, and plugin contracts are core responsibilities.
-15. Pre-1.0 cleanup MAY break compatibility when it improves the final architecture. Compatibility debt SHALL not block necessary refactors.
+7. Repository code, tests, and commit messages SHALL be in English.
+8. Public-facing surfaces SHALL be designed for bilingual operation in English and pt-BR, including the CLI, docs, site, and catalog.
+9. Site, docs, and catalog SHALL share a coherent UX system: clear menus, stable public paths, predictable navigation, and consistent brand language across the three surfaces.
+10. Public surfaces SHALL target A-grade accessibility, performance, and SEO baselines through semantic HTML, strong contrast, low-friction navigation, lightweight assets, and metadata discipline.
+11. Public Rust APIs SHALL use `rustdoc` comments. Public undocumented items SHALL fail the quality contract.
+12. Rust tests SHALL follow the Arrange, Act, Assert structure when practical. AAA clarity SHALL be enforced through examples, CR, and repository rules.
+13. Library code SHALL NOT use `unwrap`, `expect`, `panic!`, `todo!`, or `unimplemented!` outside tests.
+14. Unsafe Rust SHALL be forbidden unless explicitly documented, isolated, and justified.
+15. Modules, functions, traits, and structs SHALL stay small, explicit, and single-purpose.
+16. DDD, SOLID, object calisthenics, early returns, strong typing, and clear names SHALL be applied where they improve maintainability in idiomatic Rust.
+17. The repository SHALL optimize for low token cost and high signal: prompt/context control, MCP governance, and plugin contracts are core responsibilities.
+18. Pre-1.0 cleanup MAY break compatibility when it improves the final architecture. Compatibility debt SHALL not block necessary refactors.
 
 ## Structure
 
