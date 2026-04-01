@@ -13,6 +13,7 @@ name = "ralph-engine"
 path = "src/main.rs"
 
 [dependencies]
+re-config = { path = "../re-config", version = "0.2.0-alpha.1" }
 re-core = { path = "../re-core", version = "0.2.0-alpha.1" }
 re-mcp = { path = "../re-mcp", version = "0.2.0-alpha.1" }
 re-plugin = { path = "../re-plugin", version = "0.2.0-alpha.1" }

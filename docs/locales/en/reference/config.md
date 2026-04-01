@@ -1,8 +1,15 @@
 # Config Reference
 
-The Rust-first reboot has not yet reintroduced the full runtime configuration surface.
+The Rust-first reboot has reintroduced the first typed configuration slice on the new core.
 
-The target architecture still includes:
+The current default contract now exposes:
+
+- `schema_version`
+- `default_locale`
+- default plugin entries
+- MCP defaults
+
+The broader target architecture still includes:
 
 - project config
 - plugin defaults
@@ -10,4 +17,10 @@ The target architecture still includes:
 - MCP configuration
 - prompt and context budgets
 
-Those contracts will return on top of the new Rust core under TDD.
+The current CLI can render the default typed contract with:
+
+```bash
+ralph-engine config show-defaults
+```
+
+Those contracts will continue to expand on top of the new Rust core under TDD.
