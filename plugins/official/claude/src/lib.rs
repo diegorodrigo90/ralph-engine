@@ -1,17 +1,30 @@
 //! Official Claude runtime plugin metadata.
 
+use re_plugin::PluginDescriptor;
+
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.claude";
+const PLUGIN_NAME: &str = "Claude";
+const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
+const CAPABILITIES: &[&str] = &["agent_runtime", "mcp_contribution"];
+const DESCRIPTOR: PluginDescriptor =
+    PluginDescriptor::new(PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION, CAPABILITIES);
 
 /// Declared capabilities for the official plugin foundation.
 #[must_use]
 pub fn capabilities() -> &'static [&'static str] {
-    &["agent_runtime", "mcp_contribution"]
+    DESCRIPTOR.capabilities
+}
+
+/// Returns the immutable plugin descriptor.
+#[must_use]
+pub const fn descriptor() -> PluginDescriptor {
+    DESCRIPTOR
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, capabilities};
+    use super::{PLUGIN_ID, capabilities, descriptor};
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -35,5 +48,17 @@ mod tests {
 
         // Assert
         assert!(has_capabilities);
+    }
+
+    #[test]
+    fn plugin_descriptor_is_consistent() {
+        // Arrange
+        let plugin = descriptor();
+
+        // Act
+        let descriptor_matches = plugin.id == PLUGIN_ID && plugin.name == "Claude";
+
+        // Assert
+        assert!(descriptor_matches);
     }
 }

@@ -1,22 +1,35 @@
 //! Official BMAD workflow plugin metadata.
 
+use re_plugin::PluginDescriptor;
+
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.bmad";
+const PLUGIN_NAME: &str = "BMAD";
+const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
+const CAPABILITIES: &[&str] = &[
+    "template",
+    "prompt_fragments",
+    "prepare_checks",
+    "doctor_checks",
+];
+const DESCRIPTOR: PluginDescriptor =
+    PluginDescriptor::new(PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION, CAPABILITIES);
 
 /// Declared capabilities for the official plugin foundation.
 #[must_use]
 pub fn capabilities() -> &'static [&'static str] {
-    &[
-        "template",
-        "prompt_fragments",
-        "prepare_checks",
-        "doctor_checks",
-    ]
+    DESCRIPTOR.capabilities
+}
+
+/// Returns the immutable plugin descriptor.
+#[must_use]
+pub const fn descriptor() -> PluginDescriptor {
+    DESCRIPTOR
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, capabilities};
+    use super::{PLUGIN_ID, capabilities, descriptor};
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -40,5 +53,17 @@ mod tests {
 
         // Assert
         assert!(has_capabilities);
+    }
+
+    #[test]
+    fn plugin_descriptor_is_consistent() {
+        // Arrange
+        let plugin = descriptor();
+
+        // Act
+        let descriptor_matches = plugin.id == PLUGIN_ID && plugin.name == "BMAD";
+
+        // Assert
+        assert!(descriptor_matches);
     }
 }

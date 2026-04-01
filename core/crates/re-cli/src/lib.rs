@@ -2,6 +2,8 @@
 
 use std::fmt;
 
+use re_plugin::{PluginDescriptor, render_plugin_listing};
+
 /// CLI execution errors.
 #[derive(Debug, Eq, PartialEq)]
 pub struct CliError(String);
@@ -28,8 +30,29 @@ where
             re_core::banner()
         )),
         Some("--version") => Ok(env!("CARGO_PKG_VERSION").to_owned()),
+        Some("plugins") => execute_plugins_command(&collected[2..]),
         Some(other) => Err(CliError(format!("unknown command: {other}"))),
     }
+}
+
+fn execute_plugins_command(args: &[String]) -> Result<String, CliError> {
+    match args.first().map(String::as_str) {
+        None | Some("list") => Ok(render_plugin_listing(&official_plugins())),
+        Some(other) => Err(CliError(format!("unknown plugins command: {other}"))),
+    }
+}
+
+fn official_plugins() -> [PluginDescriptor; 8] {
+    [
+        re_plugin_basic::descriptor(),
+        re_plugin_bmad::descriptor(),
+        re_plugin_claude::descriptor(),
+        re_plugin_claudebox::descriptor(),
+        re_plugin_codex::descriptor(),
+        re_plugin_github::descriptor(),
+        re_plugin_ssh::descriptor(),
+        re_plugin_tdd_strict::descriptor(),
+    ]
 }
 
 #[cfg(test)]
@@ -64,6 +87,44 @@ mod tests {
 
         // Assert
         assert_eq!(output, env!("CARGO_PKG_VERSION"));
+    }
+
+    #[test]
+    fn execute_plugins_lists_official_plugins() {
+        // Arrange
+        let command = args(&["ralph-engine", "plugins", "list"]);
+
+        // Act
+        let output = execute(command).expect("plugins list should succeed");
+
+        // Assert
+        assert!(output.contains("Official plugins (8)"));
+        assert!(output.contains("official.basic"));
+        assert!(output.contains("official.github"));
+    }
+
+    #[test]
+    fn execute_plugins_without_subcommand_lists_official_plugins() {
+        // Arrange
+        let command = args(&["ralph-engine", "plugins"]);
+
+        // Act
+        let output = execute(command).expect("plugins command should succeed");
+
+        // Assert
+        assert!(output.contains("Official plugins (8)"));
+    }
+
+    #[test]
+    fn execute_unknown_plugins_subcommand_fails() {
+        // Arrange
+        let command = args(&["ralph-engine", "plugins", "doctor"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown plugins command should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown plugins command: doctor");
     }
 
     #[test]
