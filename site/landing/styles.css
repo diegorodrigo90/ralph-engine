@@ -204,6 +204,10 @@ pre {
   box-shadow: var(--shadow-soft);
 }
 
+.hero-copy > * + * {
+  margin-top: 0;
+}
+
 .hero-copy {
   display: flex;
   flex-direction: column;
@@ -286,6 +290,14 @@ pre {
   gap: 10px;
 }
 
+.hero-note {
+  margin-top: 18px;
+  max-width: 54ch;
+  color: var(--muted);
+  font-size: 0.96rem;
+  line-height: 1.7;
+}
+
 .pill {
   padding: 7px 12px;
   border: 1px solid var(--line);
@@ -300,7 +312,11 @@ pre {
 .surface-card,
 .trust-card,
 .catalog-card,
-.cta-panel {
+.cta-panel,
+.editorial-panel,
+.manifesto-card,
+.timeline-card,
+.catalog-callout {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: rgba(255, 253, 248, 0.88);
@@ -380,6 +396,30 @@ pre {
   line-height: 1.72;
 }
 
+.editorial-grid,
+.manifesto-grid,
+.timeline-grid,
+.catalog-layout {
+  display: grid;
+  gap: 18px;
+}
+
+.editorial-grid {
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+}
+
+.manifesto-grid {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+}
+
+.timeline-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.catalog-layout {
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+}
+
 .surface-grid,
 .trust-grid,
 .catalog-grid {
@@ -399,7 +439,11 @@ pre {
 .surface-card,
 .trust-card,
 .catalog-card,
-.cta-panel {
+.cta-panel,
+.editorial-panel,
+.manifesto-card,
+.timeline-card,
+.catalog-callout {
   padding: 26px;
 }
 
@@ -417,7 +461,11 @@ pre {
 .trust-card p,
 .catalog-card p,
 .cta-panel p,
-.hero-panel p {
+.hero-panel p,
+.editorial-panel p,
+.manifesto-card p,
+.timeline-card p,
+.catalog-callout p {
   color: var(--muted);
   line-height: 1.72;
 }
@@ -445,6 +493,88 @@ pre {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.editorial-panel h3,
+.manifesto-card h3,
+.timeline-card h3,
+.catalog-callout h3 {
+  margin-bottom: 10px;
+  font-size: 1.35rem;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+}
+
+.editorial-quote {
+  padding: 22px 24px;
+  border-left: 4px solid var(--accent);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: linear-gradient(180deg, rgba(80, 99, 214, 0.08), rgba(80, 99, 214, 0.02));
+}
+
+.editorial-quote p {
+  margin-bottom: 0;
+  color: var(--text);
+  font-family:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Georgia,
+    serif;
+  font-size: 1.2rem;
+  line-height: 1.5;
+}
+
+.editorial-quote strong {
+  color: var(--accent-strong);
+}
+
+.manifesto-list {
+  margin: 18px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.manifesto-list li {
+  padding: 14px 0;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  line-height: 1.72;
+}
+
+.manifesto-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.manifesto-list strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+
+.timeline-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-bottom: 14px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.catalog-callout {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.catalog-callout .terminal {
+  margin-top: 8px;
 }
 
 .cta-panel {
@@ -485,6 +615,10 @@ pre {
 @media (max-width: 980px) {
   .hero,
   .section-header,
+  .editorial-grid,
+  .manifesto-grid,
+  .timeline-grid,
+  .catalog-layout,
   .surface-grid,
   .trust-grid,
   .catalog-grid,

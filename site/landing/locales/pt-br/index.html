@@ -76,6 +76,9 @@
               <span class="pill">MCP externo como parte nativa</span>
               <span class="pill">Verificações rígidas de qualidade</span>
             </div>
+            <p class="hero-note">
+              Feito para times que preferem um contrato de runtime durável em vez de mais uma camada brilhante em volta de prompts.
+            </p>
           </div>
 
           <aside class="hero-panel" aria-label="Instalação e baseline atual">
@@ -105,14 +108,42 @@ cargo run -p re-cli -- --version</code></pre>
           </aside>
         </section>
 
+        <section class="section" aria-labelledby="editorial-title-pt">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Por que isso existe</p>
+              <h2 id="editorial-title-pt">Ralph Engine está sendo construído para reduzir fragilidade de workflow, não para adicionar mais uma camada dela.</h2>
+            </div>
+            <p>
+              A maior parte dos produtos de IA otimiza a demo primeiro. Ralph Engine está indo na direção oposta: contrato de runtime, fronteiras de plugin, disciplina de release e superfícies públicas que continuam legíveis para pessoas e agentes.
+            </p>
+          </div>
+          <div class="editorial-grid">
+            <article class="editorial-panel">
+              <h3>O produto precisa continuar legível quando a pressão aumenta.</h3>
+              <p>
+                Isso significa CLI limpa, capacidades explícitas, superfícies legíveis por máquina e documentação pública que acompanha o código em vez de ficar para trás.
+              </p>
+              <p>
+                A meta não é abraçar toda moda nova de modelo. A meta é dar aos times uma base estável para rodar fluxos com agentes sem abrir mão de clareza, portabilidade e qualidade de release.
+              </p>
+            </article>
+            <aside class="editorial-quote" aria-label="Posicionamento editorial">
+              <p>
+                <strong>Open source, plugin-first, runtime-first.</strong> Essa ordem importa porque adoção depende mais de confiança e coerência do que de espetáculo.
+              </p>
+            </aside>
+          </div>
+        </section>
+
         <section class="section" aria-labelledby="surfaces-title-pt">
           <div class="section-header">
             <div>
               <p class="eyebrow">Um produto, três superfícies públicas</p>
-              <h2 id="surfaces-title-pt">Início, docs e catálogo precisam parecer um sistema só.</h2>
+              <h2 id="surfaces-title-pt">Início, docs e plugins precisam parecer um sistema só.</h2>
             </div>
             <p>
-              A página inicial explica o produto rapidamente. As docs carregam a profundidade técnica. O catálogo apresenta o ecossistema de plugins com honestidade, sem fingir um marketplace lotado antes da hora.
+              A página inicial explica o produto rapidamente. As docs carregam a profundidade técnica. A superfície de plugins apresenta o ecossistema com honestidade, sem fingir uma vitrine lotada antes da hora.
             </p>
           </div>
           <div class="surface-grid">
@@ -143,52 +174,78 @@ cargo run -p re-cli -- --version</code></pre>
           </div>
         </section>
 
-        <section class="section" aria-labelledby="trust-title-pt">
+        <section class="section" aria-labelledby="manifesto-title-pt">
           <div class="section-header">
             <div>
-              <p class="eyebrow">Por que Ralph Engine</p>
-              <h2 id="trust-title-pt">Um runtime deve apertar o workflow, não adicionar mais uma camada frágil.</h2>
+              <p class="eyebrow">Manifesto do runtime</p>
+              <h2 id="manifesto-title-pt">O caminho sério precisa parecer o caminho padrão.</h2>
             </div>
             <p>
-              Ralph Engine está sendo construído para times que valorizam clareza, manutenção e disciplina operacional. O objetivo não é mais um wrapper raso sobre modelos. O objetivo é um runtime durável.
+              O ponto não é um shell esperto em volta de chamadas de modelo. O ponto é um runtime que mantém código, plugins, docs, metadados públicos e automação de release sob um contrato explícito.
             </p>
           </div>
-          <div class="trust-grid">
-            <article class="trust-card">
-              <h3>Arquitetura plugin-first</h3>
-              <p>
-                Plugins oficiais evoluem em Rust, plugins de terceiros continuam agnósticos de linguagem, e capabilities seguem como unidade de extensibilidade.
-              </p>
-              <ul class="quality-list">
-                <li>Capabilities em vez de pontos de extensão ad hoc</li>
-                <li>MCP externo continua como parte nativa da arquitetura</li>
-                <li>Templates continuam sob responsabilidade do plugin</li>
+          <div class="manifesto-grid">
+            <article class="manifesto-card">
+              <h3>O que fica estável enquanto a implementação evolui</h3>
+              <ul class="manifesto-list">
+                <li>
+                  <strong>Arquitetura plugin-first.</strong>
+                  Plugins oficiais evoluem em Rust, contratos de terceiros seguem agnósticos de linguagem e as capacidades continuam explícitas.
+                </li>
+                <li>
+                  <strong>Qualidade e segurança são partes do produto.</strong>
+                  SemVer, Actions pinadas, varredura de supply chain, coverage, docs build e automação de release fazem parte do contrato do runtime.
+                </li>
+                <li>
+                  <strong>O contexto precisa continuar coerente.</strong>
+                  Docs, metadados de plugins, superfícies do repositório e endpoints legíveis por máquina são alinhados de propósito para que pessoas e agentes encontrem o caminho certo com rapidez.
+                </li>
               </ul>
             </article>
-            <article class="trust-card">
-              <h3>Qualidade e segurança como features do produto</h3>
+            <article class="manifesto-card">
+              <h3>Como a adoção deve parecer</h3>
               <p>
-                SemVer, Actions pinadas, varredura de supply chain, linting estrita, cobertura de testes e automação de release fazem parte do contrato do runtime.
+                O produto público precisa parecer calmo, sério e durável. Isso pede entrega estática por padrão, sinais honestos de maturidade e nada de densidade artificial de ecossistema.
               </p>
-              <ul class="quality-list">
-                <li>Rustdoc, clippy, testes, coverage e docs build</li>
-                <li>cargo-audit, cargo-deny, Trivy e gitleaks</li>
-                <li>Artefatos assinados, SBOM e provenance no release</li>
-              </ul>
-            </article>
-            <article class="trust-card">
-              <h3>Contexto que continua coerente</h3>
               <p>
-                Docs, catálogo, metadados do repositório e superfícies legíveis por máquina ficam alinhados de propósito para que pessoas e agentes encontrem o contexto certo rapidamente.
+                Comece pelas docs. Vá para a superfície de plugins quando precisar avaliar extensibilidade. Mantenha GitHub e os endpoints legíveis por máquina por perto quando quiser confirmar os detalhes.
               </p>
               <a class="surface-link" href="/llms.txt">Ler llms.txt</a>
             </article>
-            <article class="trust-card">
-              <h3>Open source por padrão</h3>
+          </div>
+        </section>
+
+        <section class="section" aria-labelledby="flow-title-pt">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">Fluxo sugerido</p>
+              <h2 id="flow-title-pt">O caminho público precisa ser óbvio na primeira visita.</h2>
+            </div>
+            <p>
+              A página inicial orienta. As docs provam que o produto é sério. A superfície de plugins ajuda a julgar extensibilidade sem chute.
+            </p>
+          </div>
+          <div class="timeline-grid">
+            <article class="timeline-card">
+              <span class="timeline-step">1</span>
+              <h3>Entenda o runtime</h3>
               <p>
-                O site público é estático por padrão, guiado por documentação e honesto sobre maturidade. Isso ajuda mais a adoção do que uma ilusão polida de completude.
+                Use a home para entender a forma do produto, o reboot em Rust e o papel de plugins e integrações com MCP.
               </p>
-              <a class="surface-link" href="https://github.com/diegorodrigo90/ralph-engine/releases">Ver releases</a>
+            </article>
+            <article class="timeline-card">
+              <span class="timeline-step">2</span>
+              <h3>Leia o contrato técnico</h3>
+              <p>
+                Vá para as docs para arquitetura, CLI, padrões de código, fluxo de release e a barra explícita de qualidade do repositório.
+              </p>
+            </article>
+            <article class="timeline-card">
+              <span class="timeline-step">3</span>
+              <h3>Inspecione a superfície de extensão</h3>
+              <p>
+                Use a página de plugins e os metadados legíveis por máquina para avaliar confiança, estrutura e direção futura do ecossistema.
+              </p>
             </article>
           </div>
         </section>
@@ -197,7 +254,7 @@ cargo run -p re-cli -- --version</code></pre>
           <div class="cta-panel">
             <div>
               <p class="eyebrow">Comece pela superfície mais forte</p>
-              <h2>Leia as docs primeiro e volte ao catálogo conforme o ecossistema cresce.</h2>
+              <h2>Leia as docs primeiro e volte à página de plugins conforme o ecossistema cresce.</h2>
               <p>
                 As docs já são a parte mais profunda do produto público. Use-as para entender arquitetura, padrões de código, fluxo de release e a base atual do reboot em Rust.
               </p>
