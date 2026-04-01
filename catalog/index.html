@@ -2,40 +2,104 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ralph Engine Catalog</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ralph Engine Catalog | Public plugin discovery surface</title>
     <meta
       name="description"
-      content="Ralph Engine catalog placeholder. Official plugin metadata and verified publishers will land here."
+      content="Ralph Engine catalog placeholder. Official plugin metadata, verified publishers, and machine-readable indexes will land here."
     />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#5b6ad0" />
     <link rel="canonical" href="https://ralphengine.com/catalog/" />
+    <meta property="og:url" content="https://ralphengine.com/catalog/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Ralph Engine Catalog | Public plugin discovery surface" />
+    <meta
+      property="og:description"
+      content="Official plugin metadata, verified publishers, and machine-readable indexes will land here."
+    />
+    <meta property="og:image" content="https://ralphengine.com/logo-icon.svg" />
+    <meta property="og:image:alt" content="Ralph Engine logo" />
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="Ralph Engine Catalog | Public plugin discovery surface" />
+    <meta
+      name="twitter:description"
+      content="Official plugin metadata, verified publishers, and machine-readable indexes will land here."
+    />
+    <meta name="twitter:image" content="https://ralphengine.com/logo-icon.svg" />
     <link rel="icon" type="image/svg+xml" href="/logo-icon.svg" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <a class="skip-link" href="#content">Skip to content</a>
     <main class="page">
-      <header class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Catalog</p>
-          <h1>Catalog publishing is wired and waiting for content.</h1>
-          <p class="lede">
-            The public catalog path is now reserved. Official plugin metadata, verified publishers,
-            and discovery APIs will be published here without changing the site structure again.
-          </p>
-          <div class="actions">
-            <a class="button primary" href="/docs/guides/plugins">Read the plugin guide</a>
-            <a class="button secondary" href="/">Back to the site</a>
+      <header class="site-header">
+        <nav class="topbar" aria-label="Primary">
+          <a class="brand" href="/" aria-label="Ralph Engine home">
+            <picture>
+              <img src="/logo-icon.svg" alt="" width="28" height="28" decoding="async" />
+            </picture>
+            <span>Ralph Engine</span>
+          </a>
+          <div class="topbar-links">
+            <a href="/">Home</a>
+            <a href="/docs/">Docs</a>
+            <a href="https://github.com/diegorodrigo90/ralph-engine">GitHub</a>
           </div>
-        </div>
+        </nav>
       </header>
 
-      <section class="notes">
-        <h2>Current payload</h2>
-        <p>
-          The catalog is intentionally empty at this stage of the Rust-first reboot.
-          Use <code>/catalog/index.json</code> for the machine-readable placeholder.
-        </p>
-      </section>
+      <div id="content">
+        <section class="hero hero-catalog">
+          <div class="hero-copy">
+            <p class="eyebrow">Catalog</p>
+            <h1>Catalog routes are live before the first publisher ships.</h1>
+            <p class="lede">
+              Ralph Engine will use this surface for official plugin metadata, verified publishers,
+              discovery APIs, and machine-readable indexes. The path is public now so the structure
+              does not need to change later.
+            </p>
+            <div class="actions">
+              <a class="button primary" href="/docs/guides/plugins">Read the plugin guide</a>
+              <a class="button secondary" href="/catalog/index.json">Open index.json</a>
+            </div>
+          </div>
+          <div class="catalog-panel">
+            <p class="feature-kicker">Current machine endpoint</p>
+            <h2><code>/catalog/index.json</code></h2>
+            <p>
+              Empty by design in this phase. The placeholder keeps human and machine surfaces
+              stable while the Rust-first runtime and plugin contracts continue to evolve.
+            </p>
+          </div>
+        </section>
+
+        <section class="grid" aria-label="Catalog pillars">
+          <article class="card">
+            <h2>Publishers</h2>
+            <p>Verified publisher metadata will land here once the trust and signing model is ready.</p>
+          </article>
+          <article class="card">
+            <h2>Plugins</h2>
+            <p>Official and third-party plugin discovery can grow on top of this path without changing URLs.</p>
+          </article>
+          <article class="card">
+            <h2>APIs</h2>
+            <p>The JSON placeholder is already versioned so automation can start against a stable endpoint contract.</p>
+          </article>
+        </section>
+      </div>
+
+      <footer class="site-footer">
+        <p>Catalog path reserved for the public plugin ecosystem.</p>
+      </footer>
     </main>
+    <!-- Cloudflare Web Analytics -->
+    <script
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "882eb5c78500434c86bc3c6bbde81b4a"}'
+    ></script>
+    <!-- End Cloudflare Web Analytics -->
   </body>
 </html>

@@ -2,71 +2,181 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ralph Engine</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Ralph Engine | Open-source plugin-first runtime for agentic coding workflows</title>
     <meta
       name="description"
-      content="Autonomous AI execution engine with configurable runtimes, work-item providers, templates, plugins, and extension points."
+      content="Ralph Engine is an open-source plugin-first runtime for agentic coding workflows, with a Rust-first core, official plugins, MCP-aware integrations, and hard quality gates."
     />
+    <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#5b6ad0" />
     <link rel="canonical" href="https://ralphengine.com/" />
     <meta property="og:url" content="https://ralphengine.com/" />
     <meta property="og:type" content="website" />
-    <meta property="og:title" content="Ralph Engine" />
+    <meta
+      property="og:title"
+      content="Ralph Engine | Open-source plugin-first runtime for agentic coding workflows"
+    />
     <meta
       property="og:description"
-      content="Autonomous AI execution engine with configurable runtimes, work-item providers, templates, plugins, and extension points."
+      content="Rust-first runtime, official plugins, MCP-aware integrations, quality gates, and operational checks for agentic coding workflows."
     />
+    <meta property="og:image" content="https://ralphengine.com/logo-icon.svg" />
+    <meta property="og:image:alt" content="Ralph Engine logo" />
+    <meta name="twitter:card" content="summary" />
+    <meta
+      name="twitter:title"
+      content="Ralph Engine | Open-source plugin-first runtime for agentic coding workflows"
+    />
+    <meta
+      name="twitter:description"
+      content="Rust-first runtime, official plugins, MCP-aware integrations, quality gates, and operational checks for agentic coding workflows."
+    />
+    <meta name="twitter:image" content="https://ralphengine.com/logo-icon.svg" />
     <link rel="icon" type="image/svg+xml" href="/logo-icon.svg" />
     <link rel="stylesheet" href="/styles.css" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "name": "Ralph Engine",
+        "applicationCategory": "DeveloperApplication",
+        "operatingSystem": "Linux, macOS, Windows",
+        "url": "https://ralphengine.com/",
+        "description": "Open-source plugin-first runtime for agentic coding workflows.",
+        "softwareVersion": "0.2.0-alpha.1"
+      }
+    </script>
   </head>
   <body>
+    <a class="skip-link" href="#content">Skip to content</a>
     <main class="page">
-      <header class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Ralph Engine</p>
-          <h1>Autonomous AI execution engine for real development workflows.</h1>
-          <p class="lede">
-            Run configurable agent loops with generic runtime triggers, work-item providers,
-            supply-chain-aware releases, and extension points for runtimes,
-            templates, plugins, and context providers.
-          </p>
-          <div class="actions">
-            <a class="button primary" href="/docs/">Read the docs</a>
-            <a class="button secondary" href="https://github.com/diegorodrigo90/ralph-engine">GitHub</a>
+      <header class="site-header">
+        <nav class="topbar" aria-label="Primary">
+          <a class="brand" href="/" aria-label="Ralph Engine home">
+            <picture>
+              <img src="/logo-icon.svg" alt="" width="28" height="28" decoding="async" />
+            </picture>
+            <span>Ralph Engine</span>
+          </a>
+          <div class="topbar-links">
+            <a href="/docs/">Docs</a>
+            <a href="/catalog/">Catalog</a>
+            <a href="https://github.com/diegorodrigo90/ralph-engine">GitHub</a>
           </div>
-        </div>
-        <div class="hero-mark">
-          <img src="/logo.svg" alt="Ralph Engine" />
-        </div>
+        </nav>
       </header>
 
-      <section class="grid">
-        <article class="card">
-          <h2>Docs</h2>
-          <p>Installation, configuration, architecture, CLI reference, and contributor guides live under <code>/docs</code>.</p>
-          <a href="/docs/">Open docs</a>
-        </article>
+      <div class="hero-shell" aria-hidden="true">
+        <div class="hero-glow hero-glow-left"></div>
+        <div class="hero-glow hero-glow-right"></div>
+      </div>
 
-        <article class="card">
-          <h2>Releases</h2>
-          <p>Signed release assets, SBOM support, npm provenance, and Homebrew publishing flow through GitHub Releases.</p>
-          <a href="https://github.com/diegorodrigo90/ralph-engine/releases">View releases</a>
-        </article>
+      <div id="content">
+        <section class="hero hero-home">
+          <div class="hero-copy">
+            <p class="eyebrow">Open-source plugin-first runtime</p>
+            <h1>Agentic coding needs a runtime, not another thin wrapper.</h1>
+            <p class="lede">
+              Ralph Engine gives teams a Rust-first runtime for agent loops, plugin capabilities,
+              MCP-aware integrations, quality gates, and operational checks that stay coherent
+              across local development and CI.
+            </p>
+            <ul class="hero-points">
+              <li>Plugin-first architecture with official Rust plugins</li>
+              <li>Prepare, doctor, status, and release contracts built in</li>
+              <li>npm, Homebrew, docs, site, and catalog aligned from the start</li>
+            </ul>
+            <div class="actions">
+              <a class="button primary" href="/docs/">Read the docs</a>
+              <a class="button secondary" href="/catalog/">Open catalog</a>
+            </div>
+          </div>
+          <div class="hero-mark">
+            <div class="hero-mark-panel">
+              <picture>
+                <img
+                  src="/logo.svg"
+                  alt="Ralph Engine"
+                  width="420"
+                  height="146"
+                  loading="eager"
+                  fetchpriority="high"
+                  decoding="async"
+                />
+              </picture>
+              <p class="hero-mark-copy">
+                Rust-first runtime foundation, public docs under <code>/docs</code>,
+                and a stable public catalog path under <code>/catalog</code>.
+              </p>
+            </div>
+          </div>
+        </section>
 
-        <article class="card">
-          <h2>AI Index</h2>
-          <p><code>llms.txt</code> stays at the site root so AI tools and agents can discover the project contract and docs quickly.</p>
-          <a href="/llms.txt">Open llms.txt</a>
-        </article>
-      </section>
+        <section class="highlight-grid" aria-label="Core surfaces">
+          <article class="feature feature-primary">
+            <p class="feature-kicker">Docs</p>
+            <h2>Reference-grade documentation is already the deepest product surface.</h2>
+            <p>
+              Installation, architecture, configuration, coding standards, release flow,
+              and roadmap already live under the same contract the code follows.
+            </p>
+            <a href="/docs/">Open docs</a>
+          </article>
 
-      <section class="notes">
-        <h2>What comes next</h2>
-        <p>
-          The site root is intentionally simple for now. Documentation is the primary product surface today.
-          Plugin catalog, verified publishers, and richer discovery can be added later without rebuilding the site architecture.
-        </p>
-      </section>
+          <article class="feature">
+            <p class="feature-kicker">Catalog</p>
+            <h2>The public information architecture is stable before marketplace content arrives.</h2>
+            <p>
+              The catalog endpoint is already reserved so plugin metadata and verified publishers
+              can ship later without forcing a public URL redesign.
+            </p>
+            <a href="/catalog/">Open catalog</a>
+          </article>
+        </section>
+
+        <section class="grid" aria-label="Product capabilities">
+          <article class="card">
+            <h2>Runtime</h2>
+            <p>Rust-first core and official plugins with hard quality gates, stable contracts, and a release path built for open source.</p>
+            <a href="/docs/reference/architecture">See architecture</a>
+          </article>
+
+          <article class="card">
+            <h2>Releases</h2>
+            <p>SemVer, Conventional Commits, pinned Actions, supply-chain checks, and GitHub-driven release automation stay part of the product contract.</p>
+            <a href="https://github.com/diegorodrigo90/ralph-engine/releases">View releases</a>
+          </article>
+
+          <article class="card">
+            <h2>AI Context</h2>
+            <p><code>llms.txt</code>, docs, catalog, and public repo metadata are intentionally aligned so agents can discover the right surfaces quickly.</p>
+            <a href="/llms.txt">Open llms.txt</a>
+          </article>
+        </section>
+
+        <section class="notes split" aria-label="Project state">
+          <div>
+            <p class="feature-kicker">Right now</p>
+            <h2>The reboot baseline is already public and coherent.</h2>
+          </div>
+          <p>
+            Docs are the deepest surface today, while the landing page and catalog establish the durable public structure:
+            root for product positioning, <code>/docs</code> for reference, and <code>/catalog</code> for plugin discovery.
+          </p>
+        </section>
+      </div>
+
+      <footer class="site-footer">
+        <p>Released under the MIT License.</p>
+      </footer>
     </main>
+    <!-- Cloudflare Web Analytics -->
+    <script
+      defer
+      src="https://static.cloudflareinsights.com/beacon.min.js"
+      data-cf-beacon='{"token": "882eb5c78500434c86bc3c6bbde81b4a"}'
+    ></script>
+    <!-- End Cloudflare Web Analytics -->
   </body>
 </html>
