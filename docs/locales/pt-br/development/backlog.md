@@ -12,3 +12,4 @@ Atualizado: 2026-04-01
 - Definir a arquitetura de informação, menus e contratos de navegação compartilhados entre `/`, `/docs` e `/plugins`.
 - Refatorar `site/ui` para virar uma camada real de apresentação compartilhada entre `site/landing` e `site/plugins`.
 - Alinhar o contrato do header público para que o logo sempre volte para `/` e a navegação continue coerente entre site, docs e plugins.
+- Acompanhar o advisory moderado de `vitepress`/`vite`/`esbuild` na toolchain das docs e subir para a próxima linha estável revisada assim que existir correção sem quebra desnecessária.
