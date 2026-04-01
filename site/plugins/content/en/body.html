@@ -1,127 +1,195 @@
       <div class="page">
-        <section class="hero section" id="content">
-          <div class="hero-copy">
-            <p class="eyebrow">Plugins</p>
-            <h1>Plugin discovery without <span class="accent-word">marketplace theater</span>.</h1>
-            <p class="lede">
-              The Ralph Engine plugin surface is being built as durable infrastructure for discovery: official plugins, trust framing, stable metadata paths, and machine-readable indexes first. Density comes later.
-            </p>
-            <div class="actions">
-              <a class="button primary" href="/docs/guides/plugins">Read the plugin guide</a>
-              <a class="button secondary" href="/plugins/index.json">Open index.json</a>
+        <section class="section" id="content">
+          <div class="hero-shell">
+            <div class="hero-main">
+              <div class="hero-copy">
+                <p class="eyebrow">Plugins surface</p>
+                <h1>Plugin discovery without <span class="accent-word">marketplace theater</span>.</h1>
+                <p class="lede">
+                  The Ralph Engine plugins surface exists to make extension trust easier to judge:
+                  official plugins, machine-readable paths, stable metadata, and honest maturity
+                  signals first. Density comes later.
+                </p>
+                <div class="hero-actions">
+                  <a class="button primary subtle-lift" href="/docs/guides/plugins">Read the plugin guide</a>
+                  <a class="button secondary subtle-lift" href="/plugins/index.json">Open index.json</a>
+                </div>
+                <div class="hero-meta" aria-label="Plugin surface highlights">
+                  <span class="pill">Official plugins first</span>
+                  <span class="pill">Trust-aware metadata</span>
+                  <span class="pill">Stable public paths</span>
+                </div>
+              </div>
+              <div class="stat-grid" aria-label="Current plugin surface status">
+                <div class="stat">
+                  <strong>Official</strong>
+                  <span>Reference plugins establish the quality bar for the ecosystem.</span>
+                </div>
+                <div class="stat">
+                  <strong>Machine-readable</strong>
+                  <span>Public metadata paths stay stable before the visual marketplace grows denser.</span>
+                </div>
+                <div class="stat">
+                  <strong>Docs-led</strong>
+                  <span>The guide remains the main source of truth while contracts settle.</span>
+                </div>
+              </div>
             </div>
-            <div class="hero-meta" aria-label="Plugin surface highlights">
-              <span class="pill">Official plugins first</span>
-              <span class="pill">Trust-aware metadata</span>
-              <span class="pill">Stable public paths</span>
-            </div>
-          </div>
 
-          <aside class="hero-panel" aria-label="Current machine endpoint">
-            <p class="plugins-kicker">Machine endpoint</p>
-            <h2 class="panel-heading"><code>/plugins/index.json</code></h2>
-            <p>
-              Empty by design in this phase. The point is to keep the public contract stable while the Rust-first runtime and plugin trust model continue to harden.
-            </p>
-            <div class="terminal">
-              <p class="terminal-label">Current payload</p>
-              <pre><code>{
+            <aside class="hero-side" aria-label="Current plugin contract">
+              <div class="hero-visual">
+                <div class="detail-card">
+                  <p class="eyebrow">Machine endpoint</p>
+                  <h3><code>/plugins/index.json</code></h3>
+                  <p>
+                    The public contract is intentionally stable even while the catalog remains
+                    sparse. That keeps humans, scripts, and future tools on the same path.
+                  </p>
+                </div>
+                <div class="terminal">
+                  <p class="terminal-label">Current payload</p>
+                  <pre><code>{
   "version": 1,
   "items": []
 }</code></pre>
-            </div>
-          </aside>
-        </section>
-
-        <section class="section" aria-labelledby="plugins-editorial-title">
-          <div class="section-header">
-            <div>
-              <p class="eyebrow">What this surface is for</p>
-              <h2 id="plugins-editorial-title">The goal is not to fake a marketplace. The goal is to make extension trust easier to judge.</h2>
-            </div>
-            <p>
-              A good plugin surface should help a technical reader answer practical questions fast: who owns this, how mature is it, what capability does it expose, and how do I verify it without guesswork.
-            </p>
-          </div>
-          <div class="plugins-layout">
-            <article class="editorial-panel">
-              <h3>Discovery should stay useful before it becomes crowded.</h3>
-              <p>
-                That is why the public path starts with stable URLs, explicit trust framing, and machine-readable metadata. Visual density can come later, after the runtime and plugin contracts settle.
-              </p>
-              <p>
-                Until then, the docs remain the deeper source of truth and the plugin surface stays focused on comparison, trust, and public contract clarity.
-              </p>
-            </article>
-            <aside class="plugins-callout">
-              <div>
-                <p class="plugins-kicker">Current state</p>
-                <h3>Official plugins first, broader ecosystem later.</h3>
-                <p>
-                  The surface starts narrow on purpose so every future entry can carry clearer publisher, compatibility, and security signals.
-                </p>
-              </div>
-              <div class="terminal">
-                <p class="terminal-label">Public contract</p>
-                <pre><code>/plugins/
-/plugins/index.json
-/docs/guides/plugins</code></pre>
+                </div>
               </div>
             </aside>
           </div>
         </section>
 
-        <section class="section" aria-labelledby="plugins-pillars-title">
-          <div class="section-header">
-            <div>
-              <p class="eyebrow">Plugin surface pillars</p>
-              <h2 id="plugins-pillars-title">The surface is designed for trust, comparison, and durable automation.</h2>
+        <section class="section">
+          <div class="section-shell">
+            <div class="section-intro">
+              <p class="eyebrow">Why this surface exists</p>
+              <h2>Discovery should help technical readers answer practical trust questions fast.</h2>
+              <p>
+                A good plugins surface should clarify who owns the extension, what capability it
+                exposes, what trust level it carries, and how to validate it without guesswork.
+              </p>
             </div>
-            <p>
-              A good plugins surface should help people understand what a plugin does, who published it, what it depends on, and whether it is safe to adopt.
-            </p>
+            <div class="signal-grid">
+              <article class="signal-card">
+                <h3>Publisher identity</h3>
+                <p>
+                  Official, verified, and community signals need to be explicit so the runtime
+                  never hides risk behind marketplace gloss.
+                </p>
+                <div class="signal-list">
+                  <span>Official</span>
+                  <span>Verified publisher</span>
+                  <span>Community</span>
+                </div>
+              </article>
+              <article class="signal-card">
+                <h3>Compatibility and shape</h3>
+                <p>
+                  Plugin discovery should explain capability family, expected runtime surface, and
+                  how the extension fits the public contract.
+                </p>
+                <div class="signal-list">
+                  <span>Agent runtimes</span>
+                  <span>Workflow templates</span>
+                  <span>MCP and remote control</span>
+                </div>
+              </article>
+            </div>
           </div>
-          <div class="plugins-grid">
-            <article class="plugins-card">
-              <p class="plugins-kicker">Official plugins</p>
-              <h3>Rust-first reference implementations stay visible.</h3>
+        </section>
+
+        <section class="section">
+          <div class="section-shell">
+            <div class="section-intro">
+              <p class="eyebrow">Current official direction</p>
+              <h2>Official plugins establish the baseline before the ecosystem gets denser.</h2>
               <p>
-                Official plugins establish the quality baseline for capabilities, packaging, trust notes, and public documentation.
+                The surface starts narrow on purpose so each future entry can carry clearer
+                publisher, compatibility, and security signals.
               </p>
-              <ul class="plugins-list">
-                <li>Agent runtimes</li>
-                <li>Workflow templates</li>
-                <li>Remote control and MCP adapters</li>
-              </ul>
-            </article>
-            <article class="plugins-card">
-              <p class="plugins-kicker">Trust model</p>
-              <h3>Publisher identity and risk framing will be explicit.</h3>
+            </div>
+            <div class="plugin-grid">
+              <article class="plugin-card">
+                <h3>Agent runtimes</h3>
+                <p>
+                  Codex, Claude, and Claudebox provide the first reference shape for runtime-facing
+                  plugins and session contracts.
+                </p>
+                <div class="plugin-badges">
+                  <span>official/codex</span>
+                  <span>official/claude</span>
+                  <span>official/claudebox</span>
+                </div>
+              </article>
+              <article class="plugin-card">
+                <h3>Workflow baselines</h3>
+                <p>
+                  Basic, BMAD, and TDD strict give concrete starting points for disciplined project
+                  setup without hiding the underlying contracts.
+                </p>
+                <div class="plugin-badges">
+                  <span>official/basic</span>
+                  <span>official/bmad</span>
+                  <span>official/tdd-strict</span>
+                </div>
+              </article>
+              <article class="plugin-card">
+                <h3>Platform bridges</h3>
+                <p>
+                  GitHub and SSH represent the first trust-sensitive integrations that need clear
+                  policy, diagnostics, and public expectations.
+                </p>
+                <div class="plugin-badges">
+                  <span>official/github</span>
+                  <span>official/ssh</span>
+                </div>
+              </article>
+              <article class="plugin-card">
+                <h3>Machine-readable contract</h3>
+                <p>
+                  Scripts and agents can start from stable public endpoints before the visual layer
+                  becomes denser.
+                </p>
+                <a class="mini-link" href="/plugins/index.json">Open index.json</a>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-shell">
+            <div class="section-intro">
+              <p class="eyebrow">The role of docs</p>
+              <h2>The plugins surface should complement the docs, not compete with them.</h2>
               <p>
-                Trust signals should clarify source, review status, and compatibility without hiding behind marketplace gloss.
+                Until the runtime and trust contracts are fully rebuilt, the plugin guide remains
+                the main source of truth. This page stays focused on orientation, stability, and
+                public contract clarity.
               </p>
-              <ul class="plugins-list">
-                <li>Official</li>
-                <li>Verified publisher</li>
-                <li>Community</li>
-              </ul>
-            </article>
-            <article class="plugins-card">
-              <p class="plugins-kicker">Stable metadata</p>
-              <h3>Machine-readable paths are part of the product contract.</h3>
-              <p>
-                Scripts and agents can start from stable endpoints before the visual marketplace grows denser.
-              </p>
-              <a class="surface-link" href="/plugins/index.json">Open index.json</a>
-            </article>
-            <article class="plugins-card">
-              <p class="plugins-kicker">Docs-led discovery</p>
-              <h3>The plugin guide remains the primary source of truth today.</h3>
-              <p>
-                The plugins surface should complement the docs, not compete with them, until the runtime and trust contracts are fully rebuilt.
-              </p>
-              <a class="surface-link" href="/docs/guides/plugins">Open plugin guide</a>
-            </article>
+            </div>
+            <div class="section-grid-two">
+              <article class="detail-card">
+                <h3>Read the guide when you need depth</h3>
+                <p>
+                  The docs explain plugin structure, quality expectations, and future capability
+                  direction in more detail than the public catalog should try to carry.
+                </p>
+                <a class="mini-link" href="/docs/guides/plugins">Open plugin guide</a>
+              </article>
+              <article class="empty-state">
+                <p class="eyebrow">Current state</p>
+                <h3>Empty by design, not by accident.</h3>
+                <p>
+                  The ecosystem index is intentionally sparse at this stage. The point is to keep
+                  the public contract stable while trust, packaging, and release paths harden.
+                </p>
+                <div class="code-block">
+                  <p class="code-label">Public paths</p>
+                  <pre><code>/plugins/
+/plugins/index.json
+/docs/guides/plugins</code></pre>
+                </div>
+              </article>
+            </div>
           </div>
         </section>
       </div>

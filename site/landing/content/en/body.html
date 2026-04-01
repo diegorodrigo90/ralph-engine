@@ -1,210 +1,234 @@
       <div class="page">
-        <section class="hero section" id="content">
-          <div class="hero-copy">
-            <p class="eyebrow">Open-source plugin-first runtime</p>
-            <h1>The <span class="accent-word">runtime</span> for agentic coding workflows.</h1>
-            <p class="lede">
-              Ralph Engine gives teams a Rust-first foundation for agent loops, official plugins,
-              MCP-aware integrations, and quality gates that stay coherent from local development
-              to CI.
-            </p>
-            <div class="actions">
-              <a class="button primary" href="/docs/">Read the docs</a>
-              <a class="button secondary" href="/plugins/">Open plugins</a>
+        <section class="section" id="content">
+          <div class="hero-shell">
+            <div class="hero-main">
+              <div class="hero-copy">
+                <p class="eyebrow">Open-source plugin-first runtime</p>
+                <h1>The <span class="accent-word">runtime</span> for agentic coding workflows.</h1>
+                <p class="lede">
+                  Ralph Engine gives teams a Rust-first foundation for agent loops, plugin
+                  contracts, MCP-aware integrations, and quality gates that stay coherent from
+                  local development to CI.
+                </p>
+                <div class="hero-actions">
+                  <a class="button primary subtle-lift" href="/docs/">Read the docs</a>
+                  <a class="button secondary subtle-lift" href="/plugins/">Explore plugins</a>
+                </div>
+                <div class="hero-meta" aria-label="Product highlights">
+                  <span class="pill">Rust-first core</span>
+                  <span class="pill">Official plugins</span>
+                  <span class="pill">MCP-aware integrations</span>
+                  <span class="pill">Strict quality gates</span>
+                </div>
+                <p class="hero-note">
+                  Built for teams that want a durable runtime contract instead of another glossy
+                  shell around agent prompts.
+                </p>
+              </div>
+              <div class="stat-grid" aria-label="Current product focus">
+                <div class="stat">
+                  <strong>1 core</strong>
+                  <span>Rust-first runtime shaping the public contract from day zero.</span>
+                </div>
+                <div class="stat">
+                  <strong>3 surfaces</strong>
+                  <span>Home, docs, and plugins act as one public system.</span>
+                </div>
+                <div class="stat">
+                  <strong>0 theater</strong>
+                  <span>No fake marketplace density, no AI-product spectacle, no loose release flow.</span>
+                </div>
+              </div>
             </div>
-            <div class="hero-meta" aria-label="Product highlights">
-              <span class="pill">Rust-first core</span>
-              <span class="pill">Official plugins</span>
-              <span class="pill">External MCP first-class</span>
-              <span class="pill">Strict quality gates</span>
-            </div>
-            <p class="hero-note">
-              Built for teams that want a durable runtime contract instead of another glossy shell around agent prompts.
-            </p>
-          </div>
 
-          <aside class="hero-panel" aria-label="Installation and current baseline">
-            <img
-              class="hero-logo"
-              src="/logo.svg"
-              alt="Ralph Engine"
-              width="420"
-              height="146"
-              loading="eager"
-              fetchpriority="high"
-              decoding="async"
-            />
-            <div>
-              <h2 class="panel-heading">Start from a source-first baseline.</h2>
-              <div class="terminal" aria-label="Install from source">
-                <p class="terminal-label">Install from source</p>
-                <pre><code>git clone https://github.com/diegorodrigo90/ralph-engine.git
+            <aside class="hero-side" aria-label="Primary setup path">
+              <div class="hero-visual">
+                <div class="wordmark-frame">
+                  <picture>
+                    <source media="(prefers-color-scheme: dark)" srcset="/logo-dark.svg" />
+                    <img
+                      src="/logo.svg"
+                      alt="Ralph Engine"
+                      width="720"
+                      height="250"
+                      loading="eager"
+                      fetchpriority="high"
+                      decoding="async"
+                    />
+                  </picture>
+                </div>
+                <div class="terminal" aria-label="Install from source">
+                  <p class="terminal-label">Install from source</p>
+                  <pre><code>git clone https://github.com/diegorodrigo90/ralph-engine.git
 cd ralph-engine
 ./scripts/bootstrap-dev.sh
 cargo run -p re-cli -- --version</code></pre>
+                </div>
+                <div class="signal-list" aria-label="Release status">
+                  <span>Release PR flow active</span>
+                  <span>npm and Homebrew are being rewired</span>
+                  <span>Docs already reflect the new contract</span>
+                </div>
               </div>
-              <p class="terminal-note">
-                npm and Homebrew remain official channels and are being rebuilt on the new release pipeline.
-              </p>
-            </div>
-          </aside>
-        </section>
-
-        <section class="section" aria-labelledby="editorial-title">
-          <div class="section-header">
-            <div>
-              <p class="eyebrow">Why it exists</p>
-              <h2 id="editorial-title">Ralph Engine is being built to reduce workflow fragility, not to add another layer of it.</h2>
-            </div>
-            <p>
-              Most AI coding products optimize the demo first. Ralph Engine is taking the opposite route: runtime contracts, plugin boundaries, release discipline, and public surfaces that stay readable for humans and agents.
-            </p>
-          </div>
-          <div class="editorial-grid">
-            <article class="editorial-panel">
-              <h3>The product should stay legible under pressure.</h3>
-              <p>
-                That means clean CLI contracts, explicit plugin capabilities, machine-readable surfaces, and public docs that match the code instead of drifting behind it.
-              </p>
-              <p>
-                The goal is not to wrap every model trend. The goal is to give teams a stable place to run agentic workflows without surrendering clarity, portability, or release quality.
-              </p>
-            </article>
-            <aside class="editorial-quote" aria-label="Editorial positioning">
-              <p>
-                <strong>Open source, plugin-first, runtime-first.</strong> That order matters because adoption depends more on trust and coherence than on polished theater.
-              </p>
             </aside>
           </div>
         </section>
 
-        <section class="section" aria-labelledby="surfaces-title">
-          <div class="section-header">
-            <div>
-              <p class="eyebrow">One product, three public surfaces</p>
-              <h2 id="surfaces-title">Home, docs, and plugins should read like one system.</h2>
+        <section class="section">
+          <div class="section-shell">
+            <div class="section-intro">
+              <p class="eyebrow">Why it exists</p>
+              <h2>Ralph Engine is being built to reduce workflow fragility, not to add another layer of it.</h2>
+              <p>
+                Most AI coding products optimize the demo first. Ralph Engine takes the opposite
+                route: runtime contracts, explicit plugin boundaries, public metadata, release
+                discipline, and docs that stay aligned with the code.
+              </p>
             </div>
-            <p>
-              The landing page explains the product quickly. The docs carry the technical depth.
-              The plugins surface exposes the ecosystem honestly, without pretending it is already a crowded marketplace.
-            </p>
-          </div>
-          <div class="surface-grid">
-            <article class="surface-card">
-              <p class="eyebrow">Home</p>
-              <h3>Explain the product before trying to impress the reader.</h3>
-              <p>
-                The homepage should answer what Ralph Engine is, why it exists, and where to go next, without startup filler or generic AI spectacle.
-              </p>
-              <a class="surface-link" href="/">View home</a>
-            </article>
-            <article class="surface-card">
-              <p class="eyebrow">Docs</p>
-              <h3>Keep the docs as the primary path for technical trust.</h3>
-              <p>
-                Architecture, CLI, coding standards, release flow, and roadmap already live under the same contract the code follows.
-              </p>
-              <a class="surface-link" href="/docs/">Read docs</a>
-            </article>
-            <article class="surface-card">
-              <p class="eyebrow">Plugins</p>
-              <h3>Make ecosystem discovery credible before it is dense.</h3>
-              <p>
-                Stable URLs, trust framing, and machine-readable endpoints matter more than fake marketplace density at this stage.
-              </p>
-              <a class="surface-link" href="/plugins/">Open plugins</a>
-            </article>
-          </div>
-        </section>
-
-        <section class="section" aria-labelledby="manifesto-title">
-          <div class="section-header">
-            <div>
-              <p class="eyebrow">Runtime manifesto</p>
-              <h2 id="manifesto-title">The system should make the serious path feel like the default path.</h2>
+            <div class="section-grid-two">
+              <article class="detail-card">
+                <h3>Legibility under pressure</h3>
+                <p>
+                  The serious path should feel like the default path. That means clean CLI
+                  contracts, explicit plugin capabilities, honest plugin discovery, and release
+                  gates that remain visible from local work to CI.
+                </p>
+              </article>
+              <article class="detail-card">
+                <h3>Adoption through trust</h3>
+                <p>
+                  The product needs to look calm, durable, and open. Public surfaces should
+                  explain the product quickly, stay accessible on mobile, and give both humans and
+                  agents a coherent way to navigate the system.
+                </p>
+              </article>
             </div>
-            <p>
-              The point is not a clever shell script around model calls. The point is a runtime that keeps code, plugins, docs, public metadata, and release automation under one explicit contract.
-            </p>
-          </div>
-          <div class="manifesto-grid">
-            <article class="manifesto-card">
-              <h3>What stays fixed while the implementation evolves</h3>
-              <ul class="manifesto-list">
-                <li>
-                  <strong>Plugin-first architecture.</strong>
-                  Official plugins evolve in Rust, third-party contracts remain language-agnostic, and capabilities stay explicit.
-                </li>
-                <li>
-                  <strong>Quality and security are product features.</strong>
-                  SemVer, pinned Actions, supply-chain scanning, coverage, docs build, and release automation are part of the runtime contract.
-                </li>
-                <li>
-                  <strong>Context should stay coherent.</strong>
-                  Docs, plugin metadata, repo surfaces, and machine endpoints are aligned on purpose so humans and agents can find the right path quickly.
-                </li>
-              </ul>
-            </article>
-            <article class="manifesto-card">
-              <h3>What adoption should feel like</h3>
-              <p>
-                The public product needs to look calm, serious, and durable. That means static-first delivery, honest maturity signals, and no fake sense of ecosystem density.
-              </p>
-              <p>
-                Start with docs. Move into plugins when you need extension points. Keep GitHub and machine-readable surfaces close when you need to verify the details.
-              </p>
-              <a class="surface-link" href="/llms.txt">Read llms.txt</a>
-            </article>
-          </div>
-        </section>
-
-        <section class="section" aria-labelledby="flow-title">
-          <div class="section-header">
-            <div>
-              <p class="eyebrow">Suggested flow</p>
-              <h2 id="flow-title">The public path should be obvious on the first visit.</h2>
-            </div>
-            <p>
-              The homepage should orient. The docs should prove the product is serious. The plugins surface should help people judge extensibility without guessing.
-            </p>
-          </div>
-          <div class="timeline-grid">
-            <article class="timeline-card">
-              <span class="timeline-step">1</span>
-              <h3>Understand the runtime</h3>
-              <p>
-                Use the homepage to understand the product shape, the Rust-first reboot, and the role of plugins and MCP-aware integrations.
-              </p>
-            </article>
-            <article class="timeline-card">
-              <span class="timeline-step">2</span>
-              <h3>Read the technical contract</h3>
-              <p>
-                Jump into docs for architecture, CLI, coding standards, release flow, and the explicit quality bar behind the repo.
-              </p>
-            </article>
-            <article class="timeline-card">
-              <span class="timeline-step">3</span>
-              <h3>Inspect the extension surface</h3>
-              <p>
-                Use the plugins surface and machine-readable metadata to evaluate trust, structure, and future ecosystem direction.
-              </p>
-            </article>
           </div>
         </section>
 
         <section class="section">
-          <div class="cta-panel">
-            <div>
-              <p class="eyebrow">Start with the strongest surface</p>
-              <h2>Read the docs, then come back to the plugins surface as the ecosystem grows.</h2>
+          <div class="section-shell">
+            <div class="section-intro">
+              <p class="eyebrow">The product shape</p>
+              <h2>One runtime, one public contract, three stable entry points.</h2>
               <p>
-                The docs are already the deepest part of the public product. Use them to understand the architecture, coding standards, release flow, and the Rust-first reboot baseline.
+                The homepage orients. The docs carry the technical depth. The plugins surface
+                explains extension and trust without pretending the ecosystem is already crowded.
               </p>
             </div>
-            <div class="actions">
-              <a class="button primary" href="/docs/">Open docs</a>
-              <a class="button secondary" href="/plugins/">Open plugins</a>
+            <div class="path-grid">
+              <article class="path-card">
+                <h3>Home</h3>
+                <p>
+                  Explain the product before trying to impress the reader. The homepage should
+                  answer what Ralph Engine is, why it exists, and where to go next.
+                </p>
+                <a class="mini-link" href="/">View home</a>
+              </article>
+              <article class="path-card">
+                <h3>Docs</h3>
+                <p>
+                  Keep docs as the main trust surface. Architecture, CLI, coding standards, and
+                  release flow already live under the same quality bar as the code.
+                </p>
+                <a class="mini-link" href="/docs/">Open docs</a>
+              </article>
+              <article class="path-card">
+                <h3>Plugins</h3>
+                <p>
+                  Discovery should be credible before it is dense. Stable paths, trust framing,
+                  and machine-readable metadata matter more than fake marketplace theater.
+                </p>
+                <a class="mini-link" href="/plugins/">Open plugins</a>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-shell">
+            <div class="section-intro">
+              <p class="eyebrow">What the runtime is optimizing for</p>
+              <h2>Plugin contracts, context discipline, and release quality are part of the product.</h2>
+              <p>
+                The goal is not to wrap every model trend. The goal is to give teams a stable
+                place to run agentic workflows without giving up clarity, portability, or serious
+                release discipline.
+              </p>
+            </div>
+            <div class="feature-grid">
+              <article class="feature-card">
+                <h3>Rust-first core</h3>
+                <p>
+                  The runtime and official plugins are being rebuilt in Rust to keep the public
+                  contract strong, testable, and explicit.
+                </p>
+              </article>
+              <article class="feature-card">
+                <h3>Plugin-first ecosystem</h3>
+                <p>
+                  Official plugins provide the quality baseline while third-party plugin contracts
+                  remain language-agnostic.
+                </p>
+              </article>
+              <article class="feature-card">
+                <h3>MCP-aware from the core</h3>
+                <p>
+                  External MCPs, aggregated surfaces, and context discipline belong to the runtime,
+                  not to a pile of ad hoc prompt conventions.
+                </p>
+              </article>
+              <article class="feature-card">
+                <h3>Strict quality gates</h3>
+                <p>
+                  Coverage, rustdoc, scanners, docs build, CI hardening, and release flow are
+                  treated as product features instead of cleanup tasks.
+                </p>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div class="section-shell">
+            <div class="section-intro">
+              <p class="eyebrow">Suggested path</p>
+              <h2>The public path should be obvious on the first visit.</h2>
+              <p>
+                Ralph Engine should feel direct, calm, and serious. The next step is always clear:
+                understand the runtime, read the technical contract, then inspect the extension
+                surface.
+              </p>
+            </div>
+            <div class="sequence-grid">
+              <article class="sequence-card">
+                <span class="step-badge">1</span>
+                <h3>Understand the runtime</h3>
+                <p>
+                  Start on the homepage to get the product shape, the Rust-first reboot, and the
+                  role of plugins and MCP-aware integrations.
+                </p>
+              </article>
+              <article class="sequence-card">
+                <span class="step-badge">2</span>
+                <h3>Read the technical contract</h3>
+                <p>
+                  Jump into docs for architecture, CLI, coding standards, quality gates, and the
+                  release flow that governs the repository.
+                </p>
+              </article>
+              <article class="sequence-card">
+                <span class="step-badge">3</span>
+                <h3>Inspect the extension surface</h3>
+                <p>
+                  Use the plugins surface and machine-readable metadata to evaluate trust,
+                  structure, and long-term extensibility.
+                </p>
+              </article>
+            </div>
+            <div class="section-actions">
+              <a class="button primary subtle-lift" href="/docs/">Start with the docs</a>
+              <a class="button secondary subtle-lift" href="/plugins/">Then inspect plugins</a>
             </div>
           </div>
         </section>
