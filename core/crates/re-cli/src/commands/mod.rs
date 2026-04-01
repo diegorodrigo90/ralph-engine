@@ -1,6 +1,7 @@
 //! Modular CLI command routing.
 
 mod capabilities;
+mod checks;
 mod config;
 mod doctor;
 mod hooks;
@@ -21,6 +22,10 @@ const COMMANDS: &[CommandDescriptor] = &[
     CommandDescriptor {
         name: "capabilities",
         handler: capabilities::execute,
+    },
+    CommandDescriptor {
+        name: "checks",
+        handler: checks::execute,
     },
     CommandDescriptor {
         name: "config",

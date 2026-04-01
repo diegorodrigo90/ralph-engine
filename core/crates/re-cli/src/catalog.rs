@@ -5,14 +5,14 @@ use re_config::{
     default_project_config_layer, resolve_plugin_config,
 };
 use re_core::{
-    RuntimeCapabilityRegistration, RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase,
-    RuntimePluginRegistration, RuntimePolicyRegistration, RuntimeProviderKind,
-    RuntimeProviderRegistration, RuntimeTopology,
+    RuntimeCapabilityRegistration, RuntimeCheckKind, RuntimeCheckRegistration,
+    RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
+    RuntimePolicyRegistration, RuntimeProviderKind, RuntimeProviderRegistration, RuntimeTopology,
 };
 use re_mcp::McpServerDescriptor;
 use re_plugin::{
-    CONTEXT_PROVIDER, DATA_SOURCE, FORGE_PROVIDER, POLICY, PluginCapability, PluginDescriptor,
-    PluginRuntimeHook, REMOTE_CONTROL,
+    CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, POLICY, PREPARE_CHECKS,
+    PluginCapability, PluginDescriptor, PluginRuntimeHook, REMOTE_CONTROL,
 };
 
 /// Immutable owned snapshot of the official runtime catalog.
@@ -22,6 +22,8 @@ pub struct OfficialRuntimeSnapshot {
     pub plugins: [RuntimePluginRegistration; 8],
     /// Resolved official capability registrations.
     pub capabilities: Vec<RuntimeCapabilityRegistration>,
+    /// Resolved official runtime check registrations.
+    pub checks: Vec<RuntimeCheckRegistration>,
     /// Resolved official provider registrations.
     pub providers: Vec<RuntimeProviderRegistration>,
     /// Resolved official policy registrations.
@@ -39,6 +41,7 @@ impl OfficialRuntimeSnapshot {
         official_runtime_topology(
             &self.plugins,
             &self.capabilities,
+            &self.checks,
             &self.providers,
             &self.policies,
             &self.hooks,
@@ -180,6 +183,50 @@ pub fn official_runtime_hooks() -> Vec<RuntimeHookRegistration> {
         .collect()
 }
 
+fn check_kind_for_capability(capability: PluginCapability) -> Option<RuntimeCheckKind> {
+    match capability {
+        PREPARE_CHECKS => Some(RuntimeCheckKind::Prepare),
+        DOCTOR_CHECKS => Some(RuntimeCheckKind::Doctor),
+        _ => None,
+    }
+}
+
+fn runtime_hook_for_check(kind: RuntimeCheckKind) -> PluginRuntimeHook {
+    match kind {
+        RuntimeCheckKind::Prepare => PluginRuntimeHook::Prepare,
+        RuntimeCheckKind::Doctor => PluginRuntimeHook::Doctor,
+    }
+}
+
+/// Returns the resolved runtime check registrations for the official catalog.
+#[must_use]
+pub fn official_runtime_checks() -> Vec<RuntimeCheckRegistration> {
+    official_runtime_plugins()
+        .into_iter()
+        .flat_map(|plugin| {
+            plugin
+                .descriptor
+                .capabilities
+                .iter()
+                .copied()
+                .filter_map(move |capability| {
+                    check_kind_for_capability(capability).map(|kind| {
+                        RuntimeCheckRegistration::new(
+                            kind,
+                            plugin.descriptor.id,
+                            plugin.activation,
+                            plugin.descriptor.load_boundary,
+                            plugin
+                                .descriptor
+                                .runtime_hooks
+                                .contains(&runtime_hook_for_check(kind)),
+                        )
+                    })
+                })
+        })
+        .collect()
+}
+
 fn provider_kind_for_capability(capability: PluginCapability) -> Option<RuntimeProviderKind> {
     match capability {
         DATA_SOURCE => Some(RuntimeProviderKind::DataSource),
@@ -254,6 +301,7 @@ pub fn official_runtime_policies() -> Vec<RuntimePolicyRegistration> {
 pub fn official_runtime_topology<'a>(
     plugins: &'a [RuntimePluginRegistration],
     capabilities: &'a [RuntimeCapabilityRegistration],
+    checks: &'a [RuntimeCheckRegistration],
     providers: &'a [RuntimeProviderRegistration],
     policies: &'a [RuntimePolicyRegistration],
     hooks: &'a [RuntimeHookRegistration],
@@ -264,6 +312,7 @@ pub fn official_runtime_topology<'a>(
         locale: default_project_config_layer().config.default_locale,
         plugins,
         capabilities,
+        checks,
         providers,
         policies,
         hooks,
@@ -276,6 +325,7 @@ pub fn official_runtime_topology<'a>(
 pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
     let plugins = official_runtime_plugins();
     let capabilities = official_runtime_capabilities();
+    let checks = official_runtime_checks();
     let providers = official_runtime_providers();
     let policies = official_runtime_policies();
     let hooks = official_runtime_hooks();
@@ -284,6 +334,7 @@ pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
     OfficialRuntimeSnapshot {
         plugins,
         capabilities,
+        checks,
         providers,
         policies,
         hooks,
