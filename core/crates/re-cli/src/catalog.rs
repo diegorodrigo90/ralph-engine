@@ -6,10 +6,10 @@ use re_config::{
 };
 use re_core::{
     RuntimeCapabilityRegistration, RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase,
-    RuntimePluginRegistration, RuntimeTopology,
+    RuntimePluginRegistration, RuntimePolicyRegistration, RuntimeTopology,
 };
 use re_mcp::McpServerDescriptor;
-use re_plugin::PluginDescriptor;
+use re_plugin::{POLICY, PluginDescriptor, PluginRuntimeHook};
 
 /// Immutable owned snapshot of the official runtime catalog.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -18,6 +18,8 @@ pub struct OfficialRuntimeSnapshot {
     pub plugins: [RuntimePluginRegistration; 8],
     /// Resolved official capability registrations.
     pub capabilities: Vec<RuntimeCapabilityRegistration>,
+    /// Resolved official policy registrations.
+    pub policies: Vec<RuntimePolicyRegistration>,
     /// Resolved official runtime-hook registrations.
     pub hooks: Vec<RuntimeHookRegistration>,
     /// Resolved official MCP registrations.
@@ -31,6 +33,7 @@ impl OfficialRuntimeSnapshot {
         official_runtime_topology(
             &self.plugins,
             &self.capabilities,
+            &self.policies,
             &self.hooks,
             &self.mcp_servers,
         )
@@ -170,11 +173,33 @@ pub fn official_runtime_hooks() -> Vec<RuntimeHookRegistration> {
         .collect()
 }
 
+/// Returns the resolved runtime policy registrations for the official catalog.
+#[must_use]
+pub fn official_runtime_policies() -> Vec<RuntimePolicyRegistration> {
+    official_runtime_plugins()
+        .into_iter()
+        .filter(|plugin| plugin.descriptor.capabilities.contains(&POLICY))
+        .map(|plugin| {
+            RuntimePolicyRegistration::new(
+                plugin.descriptor.id,
+                plugin.descriptor.id,
+                plugin.activation,
+                plugin.descriptor.load_boundary,
+                plugin
+                    .descriptor
+                    .runtime_hooks
+                    .contains(&PluginRuntimeHook::PolicyEnforcement),
+            )
+        })
+        .collect()
+}
+
 /// Returns the resolved runtime topology for the official catalog.
 #[must_use]
 pub fn official_runtime_topology<'a>(
     plugins: &'a [RuntimePluginRegistration],
     capabilities: &'a [RuntimeCapabilityRegistration],
+    policies: &'a [RuntimePolicyRegistration],
     hooks: &'a [RuntimeHookRegistration],
     mcp_servers: &'a [RuntimeMcpRegistration],
 ) -> RuntimeTopology<'a> {
@@ -183,6 +208,7 @@ pub fn official_runtime_topology<'a>(
         locale: default_project_config_layer().config.default_locale,
         plugins,
         capabilities,
+        policies,
         hooks,
         mcp_servers,
     }
@@ -193,12 +219,14 @@ pub fn official_runtime_topology<'a>(
 pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
     let plugins = official_runtime_plugins();
     let capabilities = official_runtime_capabilities();
+    let policies = official_runtime_policies();
     let hooks = official_runtime_hooks();
     let mcp_servers = official_runtime_mcp_registrations();
 
     OfficialRuntimeSnapshot {
         plugins,
         capabilities,
+        policies,
         hooks,
         mcp_servers,
     }
