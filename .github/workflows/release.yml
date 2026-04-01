@@ -50,4 +50,4 @@ jobs:
         run: ./scripts/validate.sh --mode release
       - name: Build release artifacts
         shell: bash
-        run: cargo dist build --tag ${{ github.ref_name }}
+        run: dist build --tag ${{ github.ref_name }}

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -196,7 +196,7 @@ const pages = [
   },
 ];
 
-rmSync(outputDir, { recursive: true, force: true });
+mkdirSync(outputDir, { recursive: true });
 
 for (const page of pages) {
   const body = readFileSync(page.bodyFile, "utf8").trim();

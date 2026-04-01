@@ -15,6 +15,7 @@
 - Actions são pinadas por SHA.
 - As ferramentas de release são pinadas em versões revisadas.
 - O contrato de release SHALL rodar via `./scripts/validate.sh --mode release` antes da publicação.
+- `cargo-dist` DEVE ser o builder de artefatos Rust para a distribuição de release.
 - `Quality`, `Security` e `SonarCloud` DEVEM passar antes da criação de uma tag de release.
 - Checksums, SBOMs e atestações de artefato fazem parte do contrato-alvo de release.
 - npm e Homebrew continuam canais oficiais, mas ainda não estão integrados.

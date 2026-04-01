@@ -1,0 +1,17 @@
+[workspace]
+members = ["cargo:."]
+
+# Config for `dist`
+[dist]
+cargo-dist-version = "0.31.0"
+allow-dirty = ["ci"]
+installers = ["shell", "powershell"]
+targets = [
+  "aarch64-apple-darwin",
+  "x86_64-apple-darwin",
+  "x86_64-pc-windows-msvc",
+  "x86_64-unknown-linux-gnu",
+]
+install-path = "CARGO_HOME"
+hosting = "github"
+install-updater = false
