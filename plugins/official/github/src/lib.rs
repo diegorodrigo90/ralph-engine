@@ -1,17 +1,19 @@
 //! Official GitHub integration plugin metadata.
 
 use re_mcp::{McpServerDescriptor, McpTransport};
-use re_plugin::PluginDescriptor;
+use re_plugin::{
+    CONTEXT_PROVIDER, DATA_SOURCE, FORGE_PROVIDER, MCP_CONTRIBUTION, PluginDescriptor,
+};
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.github";
 const PLUGIN_NAME: &str = "GitHub";
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
-const CAPABILITIES: &[&str] = &[
-    "data_source",
-    "context_provider",
-    "forge_provider",
-    "mcp_contribution",
+const CAPABILITIES: &[re_plugin::PluginCapability] = &[
+    DATA_SOURCE,
+    CONTEXT_PROVIDER,
+    FORGE_PROVIDER,
+    MCP_CONTRIBUTION,
 ];
 const DESCRIPTOR: PluginDescriptor =
     PluginDescriptor::new(PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION, CAPABILITIES);
@@ -24,7 +26,7 @@ const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
 
 /// Declared capabilities for the official plugin foundation.
 #[must_use]
-pub fn capabilities() -> &'static [&'static str] {
+pub fn capabilities() -> &'static [re_plugin::PluginCapability] {
     DESCRIPTOR.capabilities
 }
 

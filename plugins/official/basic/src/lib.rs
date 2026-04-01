@@ -1,18 +1,18 @@
 //! Official basic starter plugin metadata.
 
-use re_plugin::PluginDescriptor;
+use re_plugin::{PluginDescriptor, TEMPLATE};
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.basic";
 const PLUGIN_NAME: &str = "Basic";
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
-const CAPABILITIES: &[&str] = &["template"];
+const CAPABILITIES: &[re_plugin::PluginCapability] = &[TEMPLATE];
 const DESCRIPTOR: PluginDescriptor =
     PluginDescriptor::new(PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION, CAPABILITIES);
 
 /// Declared capabilities for the official plugin foundation.
 #[must_use]
-pub fn capabilities() -> &'static [&'static str] {
+pub fn capabilities() -> &'static [re_plugin::PluginCapability] {
     DESCRIPTOR.capabilities
 }
 

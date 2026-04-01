@@ -1,23 +1,19 @@
 //! Official BMAD workflow plugin metadata.
 
-use re_plugin::PluginDescriptor;
+use re_plugin::{DOCTOR_CHECKS, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginDescriptor, TEMPLATE};
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.bmad";
 const PLUGIN_NAME: &str = "BMAD";
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
-const CAPABILITIES: &[&str] = &[
-    "template",
-    "prompt_fragments",
-    "prepare_checks",
-    "doctor_checks",
-];
+const CAPABILITIES: &[re_plugin::PluginCapability] =
+    &[TEMPLATE, PROMPT_FRAGMENTS, PREPARE_CHECKS, DOCTOR_CHECKS];
 const DESCRIPTOR: PluginDescriptor =
     PluginDescriptor::new(PLUGIN_ID, PLUGIN_NAME, PLUGIN_VERSION, CAPABILITIES);
 
 /// Declared capabilities for the official plugin foundation.
 #[must_use]
-pub fn capabilities() -> &'static [&'static str] {
+pub fn capabilities() -> &'static [re_plugin::PluginCapability] {
     DESCRIPTOR.capabilities
 }
 
