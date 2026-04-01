@@ -4,7 +4,7 @@ Atualizado: 2026-04-01
 
 - Expandir `re-cli` além da superfície inicial de bootstrap.
 - Expandir o contrato de `re-mcp` de metadados tipados de lançamento para contratos mais ricos de registro e orquestração de runtime, sem voltar para branching baseado em strings.
-- Expandir os contratos do runtime além de metadados tipados, escopos de ativação, registro de capability, lifecycle, fronteiras de carregamento, runtime hooks, registro de topologia e health status para uma orquestração de estado mais rica.
+- Expandir os contratos do runtime além de metadados tipados, escopos de ativação, registro de capability, lifecycle, fronteiras de carregamento, runtime hooks, registro de topologia, health status e issue reporting para uma orquestração de estado mais rica.
 - Adicionar empacotamento cross-platform para os artefatos de release.
 - Adicionar validação explícita para `dist-workspace.toml` e para os artefatos gerados por release.
 - Restaurar exemplos mais ricos nas docs quando os contratos do runtime estiverem de volta.

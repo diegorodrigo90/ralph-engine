@@ -371,6 +371,24 @@ mod tests {
     }
 
     #[test]
+    fn execute_runtime_issues_returns_typed_issue_summary() {
+        // Arrange
+        let command = args(&["ralph-engine", "runtime", "issues"]);
+
+        // Act
+        let output = execute(command).expect("runtime issues should succeed");
+
+        // Assert
+        assert!(output.contains("Runtime issues (28)"));
+        assert!(output.contains(
+            "plugin_disabled | subject=official.github | action=enable the plugin in typed project configuration"
+        ));
+        assert!(output.contains(
+            "mcp_server_disabled | subject=official.github.repository | action=enable the owning plugin or opt in to the MCP server"
+        ));
+    }
+
+    #[test]
     fn execute_runtime_without_subcommand_returns_resolved_topology() {
         // Arrange
         let command = args(&["ralph-engine", "runtime"]);
