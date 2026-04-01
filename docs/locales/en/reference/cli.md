@@ -16,3 +16,5 @@ ralph-engine mcp
 ralph-engine mcp list
 ralph-engine mcp show <server-id>
 ```
+
+The `plugins show` command prints the immutable plugin contract, including lifecycle, load boundary, runtime hooks, and default activation state.

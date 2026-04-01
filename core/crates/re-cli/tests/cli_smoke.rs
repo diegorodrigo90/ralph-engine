@@ -64,6 +64,9 @@ fn binary_plugins_show_succeeds() {
     assert!(stdout.contains("Plugin: official.github"));
     assert!(stdout.contains("Lifecycle: discover -> configure -> load"));
     assert!(stdout.contains("Load boundary: in_process"));
+    assert!(stdout.contains(
+        "Runtime hooks: mcp_registration, data_source_registration, context_provider_registration, forge_provider_registration"
+    ));
     assert!(stdout.contains("Default activation: disabled"));
 }
 

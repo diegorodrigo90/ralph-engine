@@ -3,7 +3,7 @@
 use re_mcp::{McpAvailability, McpProcessModel, McpServerDescriptor, McpTransport};
 use re_plugin::{
     CONTEXT_PROVIDER, DATA_SOURCE, FORGE_PROVIDER, MCP_CONTRIBUTION, PluginDescriptor,
-    PluginLifecycleStage, PluginLoadBoundary,
+    PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook,
 };
 
 /// Stable plugin identifier.
@@ -21,6 +21,12 @@ const LIFECYCLE: &[PluginLifecycleStage] = &[
     PluginLifecycleStage::Configure,
     PluginLifecycleStage::Load,
 ];
+const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
+    PluginRuntimeHook::McpRegistration,
+    PluginRuntimeHook::DataSourceRegistration,
+    PluginRuntimeHook::ContextProviderRegistration,
+    PluginRuntimeHook::ForgeProviderRegistration,
+];
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
     PLUGIN_NAME,
@@ -28,6 +34,7 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     CAPABILITIES,
     LIFECYCLE,
     PluginLoadBoundary::InProcess,
+    RUNTIME_HOOKS,
 );
 const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
     "official.github.repository",
@@ -50,6 +57,12 @@ pub fn lifecycle() -> &'static [PluginLifecycleStage] {
     DESCRIPTOR.lifecycle
 }
 
+/// Declared runtime hooks for the official plugin foundation.
+#[must_use]
+pub fn runtime_hooks() -> &'static [PluginRuntimeHook] {
+    DESCRIPTOR.runtime_hooks
+}
+
 /// Returns the immutable plugin descriptor.
 #[must_use]
 pub const fn descriptor() -> PluginDescriptor {
@@ -64,7 +77,7 @@ pub const fn mcp_servers() -> &'static [McpServerDescriptor] {
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, capabilities, descriptor, lifecycle, mcp_servers};
+    use super::{PLUGIN_ID, capabilities, descriptor, lifecycle, mcp_servers, runtime_hooks};
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -124,5 +137,17 @@ mod tests {
 
         // Assert
         assert!(has_lifecycle);
+    }
+
+    #[test]
+    fn plugin_declares_runtime_hooks() {
+        // Arrange
+        let declared_hooks = runtime_hooks();
+
+        // Act
+        let has_hooks = !declared_hooks.is_empty();
+
+        // Assert
+        assert!(has_hooks);
     }
 }

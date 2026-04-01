@@ -3,8 +3,8 @@
 use re_plugin::{
     AGENT_RUNTIME, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, MCP_CONTRIBUTION,
     POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCapability, PluginDescriptor,
-    PluginLifecycleStage, PluginLoadBoundary, REMOTE_CONTROL, TEMPLATE, render_plugin_detail,
-    render_plugin_listing,
+    PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook, REMOTE_CONTROL, TEMPLATE,
+    render_plugin_detail, render_plugin_listing,
 };
 
 const BASIC_CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -22,6 +22,12 @@ const GITHUB_LIFECYCLE: &[PluginLifecycleStage] = &[
     PluginLifecycleStage::Configure,
     PluginLifecycleStage::Load,
 ];
+const BASIC_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[PluginRuntimeHook::Scaffold];
+const GITHUB_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
+    PluginRuntimeHook::McpRegistration,
+    PluginRuntimeHook::DataSourceRegistration,
+    PluginRuntimeHook::ForgeProviderRegistration,
+];
 
 fn basic_plugin() -> PluginDescriptor {
     PluginDescriptor::new(
@@ -31,6 +37,7 @@ fn basic_plugin() -> PluginDescriptor {
         BASIC_CAPABILITIES,
         BASIC_LIFECYCLE,
         PluginLoadBoundary::InProcess,
+        BASIC_RUNTIME_HOOKS,
     )
 }
 
@@ -42,6 +49,7 @@ fn github_plugin() -> PluginDescriptor {
         GITHUB_CAPABILITIES,
         GITHUB_LIFECYCLE,
         PluginLoadBoundary::InProcess,
+        GITHUB_RUNTIME_HOOKS,
     )
 }
 
@@ -53,6 +61,7 @@ fn invalid_plugin() -> PluginDescriptor {
         &[],
         &[],
         PluginLoadBoundary::Remote,
+        &[],
     )
 }
 
@@ -162,6 +171,48 @@ fn load_boundary_display_is_stable() {
 }
 
 #[test]
+fn runtime_hook_display_is_stable() {
+    // Arrange
+    let hooks = [
+        PluginRuntimeHook::Scaffold,
+        PluginRuntimeHook::Prepare,
+        PluginRuntimeHook::Doctor,
+        PluginRuntimeHook::PromptAssembly,
+        PluginRuntimeHook::AgentBootstrap,
+        PluginRuntimeHook::McpRegistration,
+        PluginRuntimeHook::DataSourceRegistration,
+        PluginRuntimeHook::ContextProviderRegistration,
+        PluginRuntimeHook::ForgeProviderRegistration,
+        PluginRuntimeHook::RemoteControlBootstrap,
+        PluginRuntimeHook::PolicyEnforcement,
+    ];
+
+    // Act
+    let rendered = hooks
+        .into_iter()
+        .map(PluginRuntimeHook::as_str)
+        .collect::<Vec<_>>();
+
+    // Assert
+    assert_eq!(
+        rendered,
+        vec![
+            "scaffold",
+            "prepare",
+            "doctor",
+            "prompt_assembly",
+            "agent_bootstrap",
+            "mcp_registration",
+            "data_source_registration",
+            "context_provider_registration",
+            "forge_provider_registration",
+            "remote_control_bootstrap",
+            "policy_enforcement",
+        ]
+    );
+}
+
+#[test]
 fn descriptor_requires_namespaced_identifier() {
     // Arrange
     let descriptor = basic_plugin();
@@ -234,6 +285,30 @@ fn descriptor_rejects_missing_lifecycle_stages() {
 }
 
 #[test]
+fn descriptor_requires_runtime_hooks() {
+    // Arrange
+    let descriptor = github_plugin();
+
+    // Act
+    let has_runtime_hooks = descriptor.has_runtime_hooks();
+
+    // Assert
+    assert!(has_runtime_hooks);
+}
+
+#[test]
+fn descriptor_rejects_missing_runtime_hooks() {
+    // Arrange
+    let descriptor = invalid_plugin();
+
+    // Act
+    let has_runtime_hooks = descriptor.has_runtime_hooks();
+
+    // Assert
+    assert!(!has_runtime_hooks);
+}
+
+#[test]
 fn render_plugin_listing_includes_human_readable_lines() {
     // Arrange
     let plugins = [basic_plugin(), github_plugin()];
@@ -260,6 +335,20 @@ fn render_plugin_listing_handles_empty_sets() {
 
     // Assert
     assert_eq!(listing, "Official plugins (0)");
+}
+
+#[test]
+fn render_plugin_detail_includes_runtime_hooks() {
+    // Arrange
+    let plugin = github_plugin();
+
+    // Act
+    let detail = render_plugin_detail(&plugin);
+
+    // Assert
+    assert!(detail.contains(
+        "Runtime hooks: mcp_registration, data_source_registration, forge_provider_registration"
+    ));
 }
 
 #[test]
