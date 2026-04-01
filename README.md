@@ -22,6 +22,7 @@ Those public surfaces also follow a shared UX contract: consistent navigation, s
 ```bash
 ./scripts/bootstrap-dev.sh
 ./scripts/validate.sh --mode local
+./scripts/validate-ci-local.sh
 cargo test --workspace --all-targets --all-features
 ```
 
@@ -30,6 +31,7 @@ cargo test --workspace --all-targets --all-features
 - Public Rust APIs are documented with `rustdoc`
 - Rust tests prefer Arrange, Act, Assert
 - The repository enforces `fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, and docs build from the same validation contract
+- `./scripts/validate-ci-local.sh` provides a supported local smoke run for the GitHub Actions CI workflow when `act` is installed
 
 ## Release model
 

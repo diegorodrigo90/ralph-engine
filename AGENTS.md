@@ -12,6 +12,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 
 - `AGENTS.md` SHALL be the canonical assistant contract.
 - `scripts/validate.sh` SHALL be the canonical validation contract for local work, CI, hooks, and release.
+- `scripts/validate-ci-local.sh` SHALL be the supported local smoke check for GitHub Actions workflow behavior.
 - `rust-toolchain.toml` SHALL pin the canonical Rust toolchain.
 - `.tool-versions` SHALL pin the canonical asdf tool versions.
 - GitHub Actions SHALL be pinned to full SHAs.
@@ -26,8 +27,8 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 5. Core and official plugin code SHALL target 100% meaningful coverage.
 6. `cargo fmt`, `clippy`, tests, coverage, deny, audit, rustdoc, docs build, CR, and quality gates SHALL be treated as mandatory, not optional.
 7. Repository code, tests, and commit messages SHALL be in English.
-8. Public-facing surfaces SHALL be designed for bilingual operation in English and pt-BR, including the CLI, docs, site, and catalog.
-9. Site, docs, and catalog SHALL share a coherent UX system: clear menus, stable public paths, predictable navigation, and consistent brand language across the three surfaces.
+8. Public-facing surfaces SHALL be designed for bilingual operation in English and pt-BR, including the CLI, docs, site, and plugins surface.
+9. Site, docs, and plugins SHALL share a coherent UX system: clear menus, stable public paths, predictable navigation, and consistent brand language across the three surfaces.
 10. Public surfaces SHALL target A-grade accessibility, performance, and SEO baselines through semantic HTML, strong contrast, low-friction navigation, lightweight assets, and metadata discipline.
 11. Public Rust APIs SHALL use `rustdoc` comments. Public undocumented items SHALL fail the quality contract.
 12. Rust tests SHALL follow the Arrange, Act, Assert structure when practical. AAA clarity SHALL be enforced through examples, CR, and repository rules.
@@ -37,6 +38,9 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 16. DDD, SOLID, object calisthenics, early returns, strong typing, and clear names SHALL be applied where they improve maintainability in idiomatic Rust.
 17. The repository SHALL optimize for low token cost and high signal: prompt/context control, MCP governance, and plugin contracts are core responsibilities.
 18. Pre-1.0 cleanup MAY break compatibility when it improves the final architecture. Compatibility debt SHALL not block necessary refactors.
+19. Selective validation MAY skip checks only when the changed files fit an explicit, reviewed safe scope. If the change set crosses domains, touches tooling, or falls outside a known-safe scope, validation SHALL fall back to the full contract.
+20. CI, hooks, and local validation SHALL use the same selective-validation rules. The optimization SHALL be conservative: skip only for clearly docs-only or clearly Rust-only change sets; uncertainty SHALL resolve to full validation.
+21. Local GitHub Actions simulation MAY be used to catch workflow failures before push, but it SHALL complement `scripts/validate.sh`, not replace it.
 
 ## Structure
 
