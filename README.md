@@ -40,7 +40,7 @@ cargo test --workspace --all-targets --all-features
 - commitlint + lefthook
 - release-plz opens release PRs from `main`
 - merging the release PR prepares the versioned release state
-- the canonical `CI` workflow on `main` builds reusable release artifacts for the approved SHA
+- the canonical `CI` workflow on `main` builds reusable release artifacts for the approved SHA only after `Quality`, `Security`, and `SonarCloud` have passed
 - the manual hardened release workflow verifies green CI for the current `main` SHA and promotes those same artifacts instead of rebuilding them
 
 ## Status

@@ -51,7 +51,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 29. Coverage used by SonarCloud SHALL be generated once in the canonical Linux quality job, uploaded as an artifact, and reused by the SonarCloud job instead of rerunning test coverage.
 30. The hardened release workflow SHALL verify that the target SHA is the current `origin/main` head and that the canonical `CI` workflow has already completed successfully for that exact push before any tag or publication step begins.
 31. GitHub Actions checkouts SHALL disable persisted credentials unless a later step in that same job explicitly needs to push or publish.
-32. The canonical `CI` workflow on `main` SHALL build reusable cross-platform release artifacts for the exact approved SHA. The publish workflow SHALL promote those artifacts instead of rebuilding them.
+32. The canonical `CI` workflow on `main` SHALL build reusable cross-platform release artifacts for the exact approved SHA only after `Quality`, `Security`, and `SonarCloud` have all passed. The publish workflow SHALL promote those artifacts instead of rebuilding them.
 
 ## Structure
 
