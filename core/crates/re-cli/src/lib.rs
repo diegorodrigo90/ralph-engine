@@ -64,6 +64,44 @@ mod tests {
     }
 
     #[test]
+    fn execute_config_show_defaults_returns_yaml_contract() {
+        // Arrange
+        let command = args(&["ralph-engine", "config", "show-defaults"]);
+
+        // Act
+        let output = execute(command).expect("config show-defaults should succeed");
+
+        // Assert
+        assert!(output.contains("schema_version: 1"));
+        assert!(output.contains("default_locale: en"));
+        assert!(output.contains("official.basic"));
+    }
+
+    #[test]
+    fn execute_config_without_subcommand_returns_yaml_contract() {
+        // Arrange
+        let command = args(&["ralph-engine", "config"]);
+
+        // Act
+        let output = execute(command).expect("config command should succeed");
+
+        // Assert
+        assert!(output.contains("mcp:"));
+    }
+
+    #[test]
+    fn execute_unknown_config_subcommand_fails() {
+        // Arrange
+        let command = args(&["ralph-engine", "config", "doctor"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown config command should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown config command: doctor");
+    }
+
+    #[test]
     fn execute_mcp_lists_official_servers() {
         // Arrange
         let command = args(&["ralph-engine", "mcp", "list"]);

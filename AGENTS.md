@@ -64,6 +64,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 
 - `core/` SHALL own the Rust runtime crates.
 - `core/crates/re-core/` SHALL own shared runtime foundations.
+- `core/crates/re-config/` SHALL own typed runtime configuration contracts and defaults.
 - `core/crates/re-mcp/` SHALL own typed MCP contribution contracts.
 - `core/crates/re-plugin/` SHALL own typed plugin metadata and capability contracts.
 - `core/crates/re-cli/` SHALL own the modular CLI surface and command registry.
