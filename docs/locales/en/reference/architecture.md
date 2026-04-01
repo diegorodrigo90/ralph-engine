@@ -35,6 +35,6 @@ Ralph Engine is an open-source plugin-first runtime for agentic coding workflows
 - plugin lifecycle evolves through shared typed stages so discovery, configuration, validation, and loading stay explicit and extensible
 - plugin runtime hooks evolve through shared typed descriptors so prepare, doctor, prompt, agent, MCP, and policy contributions stay modular without ad hoc dispatch
 - configuration resolution evolves through typed layered scopes so defaults and future overrides stay explicit instead of being inferred inside commands
-- runtime topology, health, issue reporting, runtime action planning, and runtime-hook registration evolve through typed registrations and shared contracts so plugin activation, capability registration, hook registration, and MCP enablement stay explicit instead of being reconstructed ad hoc per command
+- runtime topology, health, issue reporting, doctor reporting, runtime action planning, and runtime-hook registration evolve through typed registrations and shared contracts so plugin activation, capability registration, hook registration, and MCP enablement stay explicit instead of being reconstructed ad hoc per command
 - disabled capabilities and disabled runtime hooks stay visible in runtime health plus remediation output; they do not become invisible metadata just because the topology resolved
 - plugin load boundaries stay typed so in-process, subprocess, and remote integration can evolve without ad hoc runtime branching

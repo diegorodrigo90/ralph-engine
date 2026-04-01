@@ -10,6 +10,8 @@ ralph-engine --version
 ralph-engine capabilities
 ralph-engine capabilities list
 ralph-engine capabilities show <capability-id>
+ralph-engine doctor
+ralph-engine doctor runtime
 ralph-engine hooks
 ralph-engine hooks list
 ralph-engine hooks show <hook-id>
@@ -34,6 +36,8 @@ ralph-engine mcp show <server-id>
 O comando `plugins show` imprime o contrato imutável do plugin, incluindo lifecycle, fronteira de carregamento, runtime hooks e o estado de ativação resolvido.
 
 A família `capabilities` imprime o registro tipado de capabilities do runtime para que os providers permaneçam explícitos e modulares.
+
+A família `doctor` imprime o relatório tipado de diagnóstico do runtime, compondo status, issues pendentes e ações de remediação a partir de um snapshot compartilhado do runtime, em vez de espalhar o diagnóstico por lógicas ad hoc em cada comando.
 
 A família `hooks` imprime o registro tipado de runtime hooks do runtime para que os providers permaneçam explícitos e modulares.
 

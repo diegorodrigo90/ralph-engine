@@ -1,8 +1,8 @@
 //! Immutable built-in catalog for official plugins, MCP contributions, and runtime topology.
 
 use re_config::{
-    ConfigScope, PluginActivation, ResolvedPluginConfig, default_project_config_layer,
-    resolve_plugin_config,
+    ConfigScope, PluginActivation, ResolvedPluginConfig, canonical_config_layers,
+    default_project_config_layer, resolve_plugin_config,
 };
 use re_core::{
     RuntimeCapabilityRegistration, RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase,
@@ -10,6 +10,32 @@ use re_core::{
 };
 use re_mcp::McpServerDescriptor;
 use re_plugin::PluginDescriptor;
+
+/// Immutable owned snapshot of the official runtime catalog.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OfficialRuntimeSnapshot {
+    /// Resolved official plugin registrations.
+    pub plugins: [RuntimePluginRegistration; 8],
+    /// Resolved official capability registrations.
+    pub capabilities: Vec<RuntimeCapabilityRegistration>,
+    /// Resolved official runtime-hook registrations.
+    pub hooks: Vec<RuntimeHookRegistration>,
+    /// Resolved official MCP registrations.
+    pub mcp_servers: [RuntimeMcpRegistration; 4],
+}
+
+impl OfficialRuntimeSnapshot {
+    /// Returns the borrowed runtime topology view for this snapshot.
+    #[must_use]
+    pub fn topology(&self) -> RuntimeTopology<'_> {
+        official_runtime_topology(
+            &self.plugins,
+            &self.capabilities,
+            &self.hooks,
+            &self.mcp_servers,
+        )
+    }
+}
 
 /// Returns the immutable catalog of official plugins.
 #[must_use]
@@ -54,13 +80,13 @@ pub fn find_official_mcp_server(server_id: &str) -> Option<McpServerDescriptor> 
 }
 
 fn resolved_plugin_entry(plugin: PluginDescriptor) -> ResolvedPluginConfig {
-    let layers = [default_project_config_layer()];
-
-    resolve_plugin_config(&layers, plugin.id).unwrap_or(ResolvedPluginConfig::new(
-        plugin.id,
-        PluginActivation::Disabled,
-        ConfigScope::BuiltInDefaults,
-    ))
+    resolve_plugin_config(canonical_config_layers(), plugin.id).unwrap_or(
+        ResolvedPluginConfig::new(
+            plugin.id,
+            PluginActivation::Disabled,
+            ConfigScope::BuiltInDefaults,
+        ),
+    )
 }
 
 fn resolved_plugin_entry_by_id(plugin_id: &'static str) -> ResolvedPluginConfig {
@@ -155,6 +181,22 @@ pub fn official_runtime_topology<'a>(
     RuntimeTopology {
         phase: RuntimePhase::Ready,
         locale: default_project_config_layer().config.default_locale,
+        plugins,
+        capabilities,
+        hooks,
+        mcp_servers,
+    }
+}
+
+/// Returns one immutable owned snapshot of the official runtime catalog.
+#[must_use]
+pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
+    let plugins = official_runtime_plugins();
+    let capabilities = official_runtime_capabilities();
+    let hooks = official_runtime_hooks();
+    let mcp_servers = official_runtime_mcp_registrations();
+
+    OfficialRuntimeSnapshot {
         plugins,
         capabilities,
         hooks,

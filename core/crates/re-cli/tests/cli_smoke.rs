@@ -22,7 +22,7 @@ fn binary_without_args_succeeds() {
 fn binary_with_unknown_command_fails() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
-    command.arg("doctor");
+    command.arg("unknown");
 
     // Act
     let output = command.output().expect("binary should run");
@@ -30,7 +30,7 @@ fn binary_with_unknown_command_fails() {
     // Assert
     assert_eq!(output.status.code(), Some(2));
     let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
-    assert!(stderr.contains("unknown command: doctor"));
+    assert!(stderr.contains("unknown command: unknown"));
 }
 
 #[test]
@@ -242,6 +242,23 @@ fn binary_config_layers_succeeds() {
     assert!(stdout.contains("layers:"));
     assert!(stdout.contains("scope: built_in_defaults"));
     assert!(stdout.contains("plugin_count: 1"));
+}
+
+#[test]
+fn binary_doctor_succeeds() {
+    // Arrange
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.arg("doctor");
+
+    // Act
+    let output = command.output().expect("binary should run");
+
+    // Assert
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Runtime doctor"));
+    assert!(stdout.contains("Runtime issues (45)"));
+    assert!(stdout.contains("Runtime action plan (45)"));
 }
 
 #[test]
