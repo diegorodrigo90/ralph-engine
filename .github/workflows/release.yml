@@ -162,6 +162,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
+      actions: read
       contents: write
       id-token: write
       attestations: write
@@ -181,6 +182,11 @@ jobs:
         with:
           name: approved-release-assets
           path: .release/assets
+      - name: Re-verify current main SHA and green CI run before publish
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: ./scripts/verify-release-readiness.sh
       - name: Create Git tag when it does not exist yet
         shell: bash
         run: |

@@ -55,6 +55,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 33. Reviewed pinned tool binaries that are installed by repository scripts MAY be cached in CI only when the cache key stays scoped by operating system, installer definition, and job purpose. Tool caches SHALL NOT be shared blindly across unrelated jobs or platforms.
 34. Workflows SHALL avoid no-op cache restores and unnecessary setup steps. If a job does not install or consume a dependency set, it SHALL NOT restore that cache just for symmetry.
 35. Matrix fail-fast behavior SHALL match the purpose of the matrix. Quality matrices SHOULD keep `fail-fast: false` to surface cross-platform regressions in one run, while release-artifact matrices SHOULD keep `fail-fast: true` because one failed platform already invalidates the publishable set.
+36. Pages publication from `main` SHALL wait for the canonical `CI` workflow to complete successfully for the same SHA. Public web deployment SHALL NOT outrun failing or incomplete quality gates.
 
 ## Structure
 
