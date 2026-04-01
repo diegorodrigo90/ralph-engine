@@ -19,19 +19,28 @@ jobs:
         uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
         with:
           egress-policy: audit
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '20.19.0'
       - working-directory: docs
         run: npm ci
       - working-directory: docs
         run: npm run build
-      - run: cp llms.txt docs/.vitepress/dist/llms.txt
+      - name: Assemble Pages artifact
+        shell: bash
+        run: |
+          rm -rf .site-dist
+          mkdir -p .site-dist/docs .site-dist/catalog
+          cp -R site/landing/. .site-dist/
+          cp -R docs/public/. .site-dist/
+          cp -R docs/.vitepress/dist/. .site-dist/docs/
+          cp -R catalog/. .site-dist/catalog/
+          cp llms.txt .site-dist/llms.txt
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d
       - uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b
         with:
-          path: docs/.vitepress/dist
+          path: .site-dist
 
   deploy:
     needs: build

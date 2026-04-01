@@ -7,7 +7,7 @@ export default defineConfig({
   base: "/docs/",
   cleanUrls: true,
   sitemap: {
-    hostname: "https://ralphengine.com/docs",
+    hostname: "https://ralphengine.com",
   },
 
   head: [
@@ -99,7 +99,7 @@ export default defineConfig({
 
     editLink: {
       pattern:
-        "https://github.com/diegorodrigo90/ralph-engine/edit/main/site/docs/:path",
+        "https://github.com/diegorodrigo90/ralph-engine/edit/main/docs/:path",
       text: "Edit this page on GitHub",
     },
 
