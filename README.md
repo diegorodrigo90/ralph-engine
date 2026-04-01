@@ -39,9 +39,9 @@ cargo test --workspace --all-targets --all-features
 - Conventional Commits
 - commitlint + lefthook
 - release-plz opens release PRs from `main`
-- merging the release PR creates the version tag
-- tag workflows build release artifacts
+- merging the release PR prepares the versioned release state
+- the manual hardened release workflow verifies green CI for the current `main` SHA before tagging and publishing artifacts
 
 ## Status
 
-This is the Rust-first reboot baseline. The release pipeline is being hardened on top of the new Rust foundation. npm now targets reviewed `cargo-dist` artifacts, and the Homebrew channel has a tracked formula template, but automatic publication remains disabled until GitHub Releases, npm, and Homebrew are connected end to end with provenance.
+This is the Rust-first reboot baseline. The release pipeline is being hardened on top of the new Rust foundation. npm now targets reviewed `cargo-dist` artifacts, the Homebrew channel has a tracked formula template, and the hardened release workflow now reuses green CI from the target `main` SHA instead of rerunning the full contract. Automatic publication still remains disabled until GitHub Releases, npm, and Homebrew are connected end to end with provenance.
