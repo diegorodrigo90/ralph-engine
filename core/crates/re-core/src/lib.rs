@@ -66,6 +66,8 @@ pub enum RuntimeIssueKind {
     PluginDisabled,
     /// A capability provider is registered but still disabled.
     CapabilityDisabled,
+    /// A policy provider is registered but still disabled.
+    PolicyDisabled,
     /// A runtime-hook provider is registered but still disabled.
     HookDisabled,
     /// An MCP server is registered but still disabled.
@@ -79,6 +81,7 @@ impl RuntimeIssueKind {
         match self {
             Self::PluginDisabled => "plugin_disabled",
             Self::CapabilityDisabled => "capability_disabled",
+            Self::PolicyDisabled => "policy_disabled",
             Self::HookDisabled => "hook_disabled",
             Self::McpServerDisabled => "mcp_server_disabled",
         }
@@ -92,6 +95,8 @@ pub enum RuntimeActionKind {
     EnablePlugin,
     /// Re-enable a disabled capability provider.
     EnableCapabilityProvider,
+    /// Re-enable a disabled policy provider.
+    EnablePolicyProvider,
     /// Re-enable a disabled runtime-hook provider.
     EnableHookProvider,
     /// Opt in to a disabled MCP contribution.
@@ -105,6 +110,7 @@ impl RuntimeActionKind {
         match self {
             Self::EnablePlugin => "enable_plugin",
             Self::EnableCapabilityProvider => "enable_capability_provider",
+            Self::EnablePolicyProvider => "enable_policy_provider",
             Self::EnableHookProvider => "enable_hook_provider",
             Self::EnableMcpServer => "enable_mcp_server",
         }
@@ -201,6 +207,47 @@ impl RuntimeCapabilityRegistration {
     }
 }
 
+/// One typed policy registration in the resolved runtime topology.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimePolicyRegistration {
+    /// Stable policy identifier.
+    pub policy_id: &'static str,
+    /// Plugin providing the policy.
+    pub plugin_id: &'static str,
+    /// Effective activation state for the provider plugin.
+    pub activation: PluginActivation,
+    /// Declared load boundary for the provider plugin.
+    pub load_boundary: PluginLoadBoundary,
+    /// Whether the provider also declares the policy-enforcement runtime hook.
+    pub enforcement_hook_registered: bool,
+}
+
+impl RuntimePolicyRegistration {
+    /// Creates a new immutable runtime policy registration.
+    #[must_use]
+    pub const fn new(
+        policy_id: &'static str,
+        plugin_id: &'static str,
+        activation: PluginActivation,
+        load_boundary: PluginLoadBoundary,
+        enforcement_hook_registered: bool,
+    ) -> Self {
+        Self {
+            policy_id,
+            plugin_id,
+            activation,
+            load_boundary,
+            enforcement_hook_registered,
+        }
+    }
+
+    /// Returns whether the policy provider is enabled in the resolved topology.
+    #[must_use]
+    pub const fn is_enabled(self) -> bool {
+        matches!(self.activation, PluginActivation::Enabled)
+    }
+}
+
 /// One typed runtime-hook registration in the resolved runtime topology.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RuntimeHookRegistration {
@@ -249,6 +296,8 @@ pub struct RuntimeTopology<'a> {
     pub plugins: &'a [RuntimePluginRegistration],
     /// Resolved capability registrations.
     pub capabilities: &'a [RuntimeCapabilityRegistration],
+    /// Resolved policy registrations.
+    pub policies: &'a [RuntimePolicyRegistration],
     /// Resolved runtime-hook registrations.
     pub hooks: &'a [RuntimeHookRegistration],
     /// Resolved MCP registrations.
@@ -270,6 +319,10 @@ pub struct RuntimeStatus {
     pub enabled_capabilities: usize,
     /// Number of disabled capability providers.
     pub disabled_capabilities: usize,
+    /// Number of enabled policy providers.
+    pub enabled_policies: usize,
+    /// Number of disabled policy providers.
+    pub disabled_policies: usize,
     /// Number of enabled runtime-hook providers.
     pub enabled_hooks: usize,
     /// Number of disabled runtime-hook providers.
@@ -388,6 +441,19 @@ pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
         ));
     }
 
+    lines.push(format!("Policies ({})", topology.policies.len()));
+
+    for policy in topology.policies {
+        lines.push(format!(
+            "- {} | plugin={} | activation={} | boundary={} | enforcement_hook={}",
+            policy.policy_id,
+            policy.plugin_id,
+            policy.activation.as_str(),
+            policy.load_boundary.as_str(),
+            policy.enforcement_hook_registered
+        ));
+    }
+
     lines.push(format!("Runtime hooks ({})", topology.hooks.len()));
 
     for hook in topology.hooks {
@@ -430,6 +496,12 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
         .filter(|capability| capability.is_enabled())
         .count();
     let disabled_capabilities = topology.capabilities.len() - enabled_capabilities;
+    let enabled_policies = topology
+        .policies
+        .iter()
+        .filter(|policy| policy.is_enabled())
+        .count();
+    let disabled_policies = topology.policies.len() - enabled_policies;
     let enabled_hooks = topology
         .hooks
         .iter()
@@ -444,6 +516,7 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
     let disabled_mcp_servers = topology.mcp_servers.len() - enabled_mcp_servers;
     let health = if disabled_plugins == 0
         && disabled_capabilities == 0
+        && disabled_policies == 0
         && disabled_hooks == 0
         && disabled_mcp_servers == 0
     {
@@ -459,6 +532,8 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
         disabled_plugins,
         enabled_capabilities,
         disabled_capabilities,
+        enabled_policies,
+        disabled_policies,
         enabled_hooks,
         disabled_hooks,
         enabled_mcp_servers,
@@ -479,6 +554,10 @@ pub fn render_runtime_status(status: &RuntimeStatus) -> String {
         format!(
             "Capabilities: enabled={}, disabled={}",
             status.enabled_capabilities, status.disabled_capabilities
+        ),
+        format!(
+            "Policies: enabled={}, disabled={}",
+            status.enabled_policies, status.disabled_policies
         ),
         format!(
             "Runtime hooks: enabled={}, disabled={}",
@@ -513,6 +592,16 @@ pub fn collect_runtime_issues(topology: &RuntimeTopology<'_>) -> Vec<RuntimeIssu
                 RuntimeIssueKind::CapabilityDisabled,
                 capability.capability.as_str(),
                 "enable the provider plugin that owns this capability",
+            ));
+        }
+    }
+
+    for policy in topology.policies {
+        if !policy.is_enabled() {
+            issues.push(RuntimeIssue::new(
+                RuntimeIssueKind::PolicyDisabled,
+                policy.policy_id,
+                "enable the provider plugin that owns this policy",
             ));
         }
     }
@@ -585,6 +674,16 @@ pub fn build_runtime_action_plan(topology: &RuntimeTopology<'_>) -> Vec<RuntimeA
                     "the provider still disables capability {}",
                     capability.capability.as_str()
                 ),
+            ));
+        }
+    }
+
+    for policy in topology.policies {
+        if !policy.is_enabled() {
+            actions.push(RuntimeAction::new(
+                RuntimeActionKind::EnablePolicyProvider,
+                policy.plugin_id,
+                format!("the provider still disables policy {}", policy.policy_id),
             ));
         }
     }
@@ -674,10 +773,10 @@ mod tests {
         PRODUCT_NAME, PRODUCT_TAGLINE, RuntimeAction, RuntimeActionKind,
         RuntimeCapabilityRegistration, RuntimeDoctorReport, RuntimeHealth, RuntimeHookRegistration,
         RuntimeIssue, RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase,
-        RuntimePluginRegistration, RuntimeTopology, banner, build_runtime_action_plan,
-        build_runtime_doctor_report, collect_runtime_issues, evaluate_runtime_status,
-        render_runtime_action_plan, render_runtime_doctor_report, render_runtime_issues,
-        render_runtime_status, render_runtime_topology,
+        RuntimePluginRegistration, RuntimePolicyRegistration, RuntimeTopology, banner,
+        build_runtime_action_plan, build_runtime_doctor_report, collect_runtime_issues,
+        evaluate_runtime_status, render_runtime_action_plan, render_runtime_doctor_report,
+        render_runtime_issues, render_runtime_status, render_runtime_topology,
     };
 
     const CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -722,6 +821,16 @@ mod tests {
             "official.basic",
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
+        )
+    }
+
+    fn policy_registration() -> RuntimePolicyRegistration {
+        RuntimePolicyRegistration::new(
+            "official.basic",
+            "official.basic",
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
+            true,
         )
     }
 
@@ -776,6 +885,7 @@ mod tests {
         let values = [
             RuntimeIssueKind::PluginDisabled,
             RuntimeIssueKind::CapabilityDisabled,
+            RuntimeIssueKind::PolicyDisabled,
             RuntimeIssueKind::HookDisabled,
             RuntimeIssueKind::McpServerDisabled,
         ];
@@ -792,6 +902,7 @@ mod tests {
             vec![
                 "plugin_disabled",
                 "capability_disabled",
+                "policy_disabled",
                 "hook_disabled",
                 "mcp_server_disabled"
             ]
@@ -804,6 +915,7 @@ mod tests {
         let values = [
             RuntimeActionKind::EnablePlugin,
             RuntimeActionKind::EnableCapabilityProvider,
+            RuntimeActionKind::EnablePolicyProvider,
             RuntimeActionKind::EnableHookProvider,
             RuntimeActionKind::EnableMcpServer,
         ];
@@ -820,6 +932,7 @@ mod tests {
             vec![
                 "enable_plugin",
                 "enable_capability_provider",
+                "enable_policy_provider",
                 "enable_hook_provider",
                 "enable_mcp_server",
             ]
@@ -883,6 +996,18 @@ mod tests {
     }
 
     #[test]
+    fn runtime_policy_registration_tracks_enabled_state() {
+        // Arrange
+        let registration = policy_registration();
+
+        // Act
+        let enabled = registration.is_enabled();
+
+        // Assert
+        assert!(enabled);
+    }
+
+    #[test]
     fn render_runtime_topology_is_human_readable() {
         // Arrange
         let plugins = [RuntimePluginRegistration::new(
@@ -891,6 +1016,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let policies = [policy_registration()];
         let hooks = [hook_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
         let topology = RuntimeTopology {
@@ -898,6 +1024,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
@@ -916,6 +1043,10 @@ mod tests {
         assert!(rendered.contains(
             "- template | plugin=official.basic | activation=enabled | boundary=in_process"
         ));
+        assert!(rendered.contains("Policies (1)"));
+        assert!(rendered.contains(
+            "- official.basic | plugin=official.basic | activation=enabled | boundary=in_process | enforcement_hook=true"
+        ));
         assert!(rendered.contains("Runtime hooks (1)"));
         assert!(rendered.contains(
             "- scaffold | plugin=official.basic | activation=enabled | boundary=in_process"
@@ -933,6 +1064,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let policies = [policy_registration()];
         let hooks = [hook_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
         let topology = RuntimeTopology {
@@ -940,6 +1072,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
@@ -953,6 +1086,8 @@ mod tests {
         assert_eq!(status.disabled_plugins, 0);
         assert_eq!(status.enabled_capabilities, 1);
         assert_eq!(status.disabled_capabilities, 0);
+        assert_eq!(status.enabled_policies, 1);
+        assert_eq!(status.disabled_policies, 0);
         assert_eq!(status.enabled_hooks, 1);
         assert_eq!(status.disabled_hooks, 0);
         assert_eq!(status.enabled_mcp_servers, 1);
@@ -973,6 +1108,13 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let policies = [RuntimePolicyRegistration::new(
+            "official.basic",
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let hooks = [RuntimeHookRegistration::new(
             PluginRuntimeHook::Scaffold,
             "official.basic",
@@ -985,6 +1127,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
@@ -999,6 +1142,7 @@ mod tests {
         assert!(rendered.contains("Runtime health: degraded"));
         assert!(rendered.contains("Plugins: enabled=0, disabled=1"));
         assert!(rendered.contains("Capabilities: enabled=0, disabled=1"));
+        assert!(rendered.contains("Policies: enabled=0, disabled=1"));
         assert!(rendered.contains("Runtime hooks: enabled=0, disabled=1"));
         assert!(rendered.contains("MCP servers: enabled=0, disabled=1"));
     }
@@ -1017,6 +1161,13 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let policies = [RuntimePolicyRegistration::new(
+            "official.basic",
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let hooks = [hook_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), false)];
         let topology = RuntimeTopology {
@@ -1024,6 +1175,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
@@ -1038,6 +1190,8 @@ mod tests {
         assert_eq!(status.disabled_plugins, 0);
         assert_eq!(status.enabled_capabilities, 0);
         assert_eq!(status.disabled_capabilities, 1);
+        assert_eq!(status.enabled_policies, 0);
+        assert_eq!(status.disabled_policies, 1);
         assert_eq!(status.enabled_hooks, 1);
         assert_eq!(status.disabled_hooks, 0);
         assert_eq!(status.enabled_mcp_servers, 0);
@@ -1046,6 +1200,7 @@ mod tests {
         assert!(rendered.contains("Runtime health: degraded"));
         assert!(rendered.contains("Plugins: enabled=1, disabled=0"));
         assert!(rendered.contains("Capabilities: enabled=0, disabled=1"));
+        assert!(rendered.contains("Policies: enabled=0, disabled=1"));
         assert!(rendered.contains("Runtime hooks: enabled=1, disabled=0"));
         assert!(rendered.contains("MCP servers: enabled=0, disabled=1"));
     }
@@ -1064,6 +1219,13 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let policies = [RuntimePolicyRegistration::new(
+            "official.basic",
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let hooks = [RuntimeHookRegistration::new(
             PluginRuntimeHook::Scaffold,
             "official.basic",
@@ -1076,6 +1238,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
@@ -1096,6 +1259,11 @@ mod tests {
                     RuntimeIssueKind::CapabilityDisabled,
                     "template",
                     "enable the provider plugin that owns this capability",
+                ),
+                RuntimeIssue::new(
+                    RuntimeIssueKind::PolicyDisabled,
+                    "official.basic",
+                    "enable the provider plugin that owns this policy",
                 ),
                 RuntimeIssue::new(
                     RuntimeIssueKind::HookDisabled,
@@ -1120,6 +1288,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let policies = [policy_registration()];
         let hooks = [hook_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
         let topology = RuntimeTopology {
@@ -1127,6 +1296,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
@@ -1183,6 +1353,13 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let policies = [RuntimePolicyRegistration::new(
+            "official.basic",
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let hooks = [RuntimeHookRegistration::new(
             PluginRuntimeHook::Scaffold,
             "official.basic",
@@ -1195,6 +1372,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
@@ -1215,6 +1393,11 @@ mod tests {
                     RuntimeActionKind::EnableCapabilityProvider,
                     "official.basic",
                     "the provider still disables capability template",
+                ),
+                RuntimeAction::new(
+                    RuntimeActionKind::EnablePolicyProvider,
+                    "official.basic",
+                    "the provider still disables policy official.basic",
                 ),
                 RuntimeAction::new(
                     RuntimeActionKind::EnableHookProvider,
@@ -1239,6 +1422,7 @@ mod tests {
             ConfigScope::BuiltInDefaults,
         )];
         let capabilities = [capability_registration()];
+        let policies = [policy_registration()];
         let hooks = [hook_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
         let topology = RuntimeTopology {
@@ -1246,6 +1430,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
@@ -1302,6 +1487,13 @@ mod tests {
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
+        let policies = [RuntimePolicyRegistration::new(
+            "official.basic",
+            "official.basic",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
         let hooks = [RuntimeHookRegistration::new(
             PluginRuntimeHook::Scaffold,
             "official.basic",
@@ -1314,6 +1506,7 @@ mod tests {
             locale: "en",
             plugins: &plugins,
             capabilities: &capabilities,
+            policies: &policies,
             hooks: &hooks,
             mcp_servers: &mcp_servers,
         };
@@ -1343,6 +1536,8 @@ mod tests {
                 disabled_plugins: 1,
                 enabled_capabilities: 1,
                 disabled_capabilities: 1,
+                enabled_policies: 0,
+                disabled_policies: 1,
                 enabled_hooks: 1,
                 disabled_hooks: 1,
                 enabled_mcp_servers: 0,
@@ -1378,6 +1573,7 @@ mod tests {
             locale: "en",
             plugins: &[],
             capabilities: &[],
+            policies: &[],
             hooks: &[],
             mcp_servers: &[],
         };
@@ -1389,6 +1585,7 @@ mod tests {
         assert!(rendered.contains("Runtime phase: bootstrapped"));
         assert!(rendered.contains("Plugins (0)"));
         assert!(rendered.contains("Capabilities (0)"));
+        assert!(rendered.contains("Policies (0)"));
         assert!(rendered.contains("Runtime hooks (0)"));
         assert!(rendered.contains("MCP servers (0)"));
     }

@@ -6,6 +6,7 @@ mod doctor;
 mod hooks;
 mod mcp;
 mod plugins;
+mod policies;
 mod runtime;
 
 use crate::CliError;
@@ -35,6 +36,10 @@ const COMMANDS: &[CommandDescriptor] = &[
     CommandDescriptor {
         name: "mcp",
         handler: mcp::execute,
+    },
+    CommandDescriptor {
+        name: "policies",
+        handler: policies::execute,
     },
     CommandDescriptor {
         name: "plugins",
