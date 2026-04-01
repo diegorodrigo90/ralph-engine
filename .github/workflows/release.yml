@@ -73,6 +73,8 @@ jobs:
     permissions:
       contents: read
       actions: read
+    outputs:
+      ci_run_id: ${{ steps.release_readiness.outputs.ci_run_id }}
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
@@ -83,6 +85,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Verify current main SHA and green CI run
+        id: release_readiness
         env:
           GITHUB_TOKEN: ${{ github.token }}
         shell: bash
@@ -113,61 +116,56 @@ jobs:
           node --check ./scripts/prepare-npm-release.mjs
           node --check ./scripts/render-homebrew-formula.mjs
 
-  build-artifacts:
-    name: Build release artifacts (${{ matrix.os }})
+  fetch-release-artifacts:
+    name: Download reusable release artifacts from CI
     needs:
       - validate-release-tag
       - verify-release-target
       - verify-release-helpers
-    timeout-minutes: 25
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            artifact_name: dist-ubuntu
-          - os: macos-latest
-            artifact_name: dist-macos
-          - os: windows-latest
-            artifact_name: dist-windows
-    runs-on: ${{ matrix.os }}
+      actions: read
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
         with:
           egress-policy: audit
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - name: Install pinned Rust toolchain
+      - name: Download reusable Linux release artifacts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh run download "${{ needs.verify-release-target.outputs.ci_run_id }}" --repo "${{ github.repository }}" --name release-dist-ubuntu --dir .release/dist/ubuntu
+      - name: Download reusable macOS release artifacts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh run download "${{ needs.verify-release-target.outputs.ci_run_id }}" --repo "${{ github.repository }}" --name release-dist-macos --dir .release/dist/macos
+      - name: Download reusable Windows release artifacts
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh run download "${{ needs.verify-release-target.outputs.ci_run_id }}" --repo "${{ github.repository }}" --name release-dist-windows --dir .release/dist/windows
+      - name: Assemble publishable release asset set
         shell: bash
         run: |
-          rustup toolchain install 1.91.1 --profile minimal
-          rustup default 1.91.1
-      - name: Restore Rust cache
-        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
-        with:
-          shared-key: release-${{ matrix.os }}
-      - name: Install pinned cargo-dist
-        shell: bash
-        run: ./scripts/install-dev-tools.sh --tools cargo-dist
-      - name: Build cargo-dist artifacts for target runner
-        shell: bash
-        run: dist build --tag ${{ inputs.tag }}
-      - name: Upload cargo-dist artifacts
+          mkdir -p .release/assets
+          find .release/dist -type f -print0 | while IFS= read -r -d '' file; do
+            cp -n "$file" .release/assets/
+          done
+          ls -1 .release/assets
+      - name: Upload staged release assets
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          name: ${{ matrix.artifact_name }}
-          path: target/distrib/*
+          name: approved-release-assets
+          path: .release/assets/*
           if-no-files-found: error
           retention-days: 3
 
   publish:
     name: Publish release channels
-    needs: build-artifacts
+    needs: fetch-release-artifacts
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -185,29 +183,11 @@ jobs:
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:
           node-version: '20.19.0'
-      - name: Download Linux release artifacts
+      - name: Download staged approved release assets
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
-          name: dist-ubuntu
-          path: .release/dist/ubuntu
-      - name: Download macOS release artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
-        with:
-          name: dist-macos
-          path: .release/dist/macos
-      - name: Download Windows release artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
-        with:
-          name: dist-windows
-          path: .release/dist/windows
-      - name: Assemble publishable release asset set
-        shell: bash
-        run: |
-          mkdir -p .release/assets
-          find .release/dist -type f -print0 | while IFS= read -r -d '' file; do
-            cp -n "$file" .release/assets/
-          done
-          ls -1 .release/assets
+          name: approved-release-assets
+          path: .release/assets
       - name: Create Git tag when it does not exist yet
         shell: bash
         run: |
