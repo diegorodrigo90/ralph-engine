@@ -25,7 +25,7 @@ Secrets used by this workflow:
 
 The `tag` input SHALL include the leading `v`, for example `v0.2.0-alpha.1`. The workflow strips that prefix before preparing npm package versions.
 Before it publishes anything, the workflow verifies that the selected SHA is the current `origin/main` head and that the canonical `CI` workflow has already completed successfully for that exact push.
-That same `CI` workflow is responsible for building the reusable cross-platform release artifacts for the approved SHA.
+That same `CI` workflow is responsible for building the reusable cross-platform release artifacts for the approved SHA only after `Quality`, `Security`, and `SonarCloud` have all passed.
 
 ## Rules
 

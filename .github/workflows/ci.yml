@@ -205,7 +205,7 @@ jobs:
     name: Build reusable release artifacts (${{ matrix.os }})
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ${{ matrix.os }}
-    needs: [quality]
+    needs: [sonar]
     timeout-minutes: 25
     permissions:
       contents: read

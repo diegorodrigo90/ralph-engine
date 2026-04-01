@@ -25,7 +25,7 @@ Secrets usados por esse workflow:
 
 O campo `tag` DEVE incluir o prefixo `v`, por exemplo `v0.2.0-alpha.1`. O workflow remove esse prefixo antes de preparar as versões dos pacotes npm.
 Antes de publicar qualquer coisa, o workflow valida que o SHA selecionado é o HEAD atual de `origin/main` e que o workflow canônico de `CI` já terminou com sucesso exatamente para esse push.
-Esse mesmo workflow de `CI` é responsável por gerar os artifacts reutilizáveis de release para o SHA aprovado.
+Esse mesmo workflow de `CI` é responsável por gerar os artifacts reutilizáveis de release para o SHA aprovado só depois de `Quality`, `Security` e `SonarCloud` terem passado.
 
 ## Regras
 
