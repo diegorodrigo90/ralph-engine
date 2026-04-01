@@ -3,7 +3,7 @@
 Updated: 2026-04-01
 
 - Flesh out `re-cli` beyond the bootstrap surface.
-- Introduce the `re-mcp` crate.
+- Expand the `re-mcp` contract beyond immutable server metadata into transport configuration, process launching, and policy boundaries.
 - Expand the `re-plugin` contract beyond immutable metadata into configuration, lifecycle, and loading boundaries.
 - Add cross-platform release artifact packaging.
 - Add explicit validation for `dist-workspace.toml` and generated release artifacts.

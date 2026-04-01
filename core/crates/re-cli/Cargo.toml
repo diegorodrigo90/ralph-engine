@@ -14,6 +14,7 @@ path = "src/main.rs"
 
 [dependencies]
 re-core = { path = "../re-core", version = "0.2.0-alpha.1" }
+re-mcp = { path = "../re-mcp", version = "0.2.0-alpha.1" }
 re-plugin = { path = "../re-plugin", version = "0.2.0-alpha.1" }
 re-plugin-basic = { path = "../../../plugins/official/basic", version = "0.2.0-alpha.1" }
 re-plugin-bmad = { path = "../../../plugins/official/bmad", version = "0.2.0-alpha.1" }
