@@ -37,6 +37,7 @@ Esse mesmo workflow de `CI` é responsável por gerar os artifacts reutilizávei
 - O workflow de release DEVE reaproveitar a evidência de `CI` verde desse mesmo SHA da `main`, em vez de rerodar o contrato completo de validação dentro do fluxo de publish.
 - O workflow canônico de `CI` DEVE gerar os artifacts reutilizáveis de release para o SHA alvo da `main`.
 - O workflow de release DEVE baixar e publicar esse mesmo conjunto aprovado de artifacts, em vez de rebuildá-lo.
+- O Pages DEVE publicar a partir de tags de release para manter site e docs alinhados com versões publicadas.
 - `cargo-dist` DEVE ser o builder de artefatos Rust para a distribuição de release.
 - `Quality`, `Security` e `SonarCloud` DEVEM passar antes da criação de uma tag de release.
 - `SONAR_TOKEN` DEVE apontar para um token do SonarCloud com permissão para navegar e analisar o projeto alvo.

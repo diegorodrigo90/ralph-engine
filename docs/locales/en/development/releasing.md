@@ -37,6 +37,7 @@ That same `CI` workflow is responsible for building the reusable cross-platform 
 - The release workflow SHALL reuse prior green CI evidence for the target `main` SHA instead of rerunning the full validation contract inside the publish workflow.
 - The canonical `CI` workflow SHALL build the reusable cross-platform release artifacts for the target `main` SHA.
 - The release workflow SHALL download and publish that approved artifact set instead of rebuilding it.
+- Pages SHALL publish from release tags so the public site and docs stay aligned with published versions.
 - `cargo-dist` SHALL be the Rust artifact builder for release distribution.
 - `Quality`, `Security`, and `SonarCloud` SHALL all pass before a release tag is created.
 - `SONAR_TOKEN` SHALL resolve to a SonarCloud token that can browse and analyze the target project.
