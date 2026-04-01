@@ -2,7 +2,7 @@
 
 use re_config::{ConfigScope, PluginActivation};
 use re_mcp::McpServerDescriptor;
-use re_plugin::PluginDescriptor;
+use re_plugin::{PluginCapability, PluginDescriptor, PluginLoadBoundary};
 
 /// Public product name.
 pub const PRODUCT_NAME: &str = "Ralph Engine";
@@ -92,6 +92,43 @@ impl RuntimeMcpRegistration {
     }
 }
 
+/// One typed capability registration in the resolved runtime topology.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimeCapabilityRegistration {
+    /// Stable capability identifier.
+    pub capability: PluginCapability,
+    /// Plugin providing the capability.
+    pub plugin_id: &'static str,
+    /// Effective activation state for the provider plugin.
+    pub activation: PluginActivation,
+    /// Declared load boundary for the provider plugin.
+    pub load_boundary: PluginLoadBoundary,
+}
+
+impl RuntimeCapabilityRegistration {
+    /// Creates a new immutable runtime capability registration.
+    #[must_use]
+    pub const fn new(
+        capability: PluginCapability,
+        plugin_id: &'static str,
+        activation: PluginActivation,
+        load_boundary: PluginLoadBoundary,
+    ) -> Self {
+        Self {
+            capability,
+            plugin_id,
+            activation,
+            load_boundary,
+        }
+    }
+
+    /// Returns whether the capability provider is enabled in the resolved topology.
+    #[must_use]
+    pub const fn is_enabled(self) -> bool {
+        matches!(self.activation, PluginActivation::Enabled)
+    }
+}
+
 /// Immutable snapshot of the resolved runtime topology.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RuntimeTopology<'a> {
@@ -101,6 +138,8 @@ pub struct RuntimeTopology<'a> {
     pub locale: &'static str,
     /// Resolved plugin registrations.
     pub plugins: &'a [RuntimePluginRegistration],
+    /// Resolved capability registrations.
+    pub capabilities: &'a [RuntimeCapabilityRegistration],
     /// Resolved MCP registrations.
     pub mcp_servers: &'a [RuntimeMcpRegistration],
 }
@@ -121,6 +160,18 @@ pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
             plugin.activation.as_str(),
             plugin.resolved_from.as_str(),
             plugin.descriptor.load_boundary.as_str()
+        ));
+    }
+
+    lines.push(format!("Capabilities ({})", topology.capabilities.len()));
+
+    for capability in topology.capabilities {
+        lines.push(format!(
+            "- {} | plugin={} | activation={} | boundary={}",
+            capability.capability.as_str(),
+            capability.plugin_id,
+            capability.activation.as_str(),
+            capability.load_boundary.as_str()
         ));
     }
 
@@ -149,8 +200,8 @@ mod tests {
     };
 
     use super::{
-        PRODUCT_NAME, PRODUCT_TAGLINE, RuntimeMcpRegistration, RuntimePhase,
-        RuntimePluginRegistration, RuntimeTopology, banner, render_runtime_topology,
+        PRODUCT_NAME, PRODUCT_TAGLINE, RuntimeCapabilityRegistration, RuntimeMcpRegistration,
+        RuntimePhase, RuntimePluginRegistration, RuntimeTopology, banner, render_runtime_topology,
     };
 
     const CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -177,6 +228,15 @@ mod tests {
             McpTransport::Stdio,
             McpLaunchPolicy::PluginRuntime,
             McpAvailability::OnDemand,
+        )
+    }
+
+    fn capability_registration() -> RuntimeCapabilityRegistration {
+        RuntimeCapabilityRegistration::new(
+            PluginCapability::new("template"),
+            "official.basic",
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
         )
     }
 
@@ -243,6 +303,18 @@ mod tests {
     }
 
     #[test]
+    fn runtime_capability_registration_tracks_enabled_state() {
+        // Arrange
+        let registration = capability_registration();
+
+        // Act
+        let enabled = registration.is_enabled();
+
+        // Assert
+        assert!(enabled);
+    }
+
+    #[test]
     fn render_runtime_topology_is_human_readable() {
         // Arrange
         let plugins = [RuntimePluginRegistration::new(
@@ -250,11 +322,13 @@ mod tests {
             PluginActivation::Enabled,
             ConfigScope::BuiltInDefaults,
         )];
+        let capabilities = [capability_registration()];
         let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
         let topology = RuntimeTopology {
             phase: RuntimePhase::Ready,
             locale: "en",
             plugins: &plugins,
+            capabilities: &capabilities,
             mcp_servers: &mcp_servers,
         };
 
@@ -268,6 +342,10 @@ mod tests {
         assert!(rendered.contains(
             "- official.basic | activation=enabled | scope=built_in_defaults | boundary=in_process"
         ));
+        assert!(rendered.contains("Capabilities (1)"));
+        assert!(rendered.contains(
+            "- template | plugin=official.basic | activation=enabled | boundary=in_process"
+        ));
         assert!(rendered.contains("MCP servers (1)"));
         assert!(rendered.contains("- official.codex.session | enabled=true | process=plugin_managed | availability=on_demand"));
     }
@@ -279,6 +357,7 @@ mod tests {
             phase: RuntimePhase::Bootstrapped,
             locale: "en",
             plugins: &[],
+            capabilities: &[],
             mcp_servers: &[],
         };
 
@@ -288,6 +367,7 @@ mod tests {
         // Assert
         assert!(rendered.contains("Runtime phase: bootstrapped"));
         assert!(rendered.contains("Plugins (0)"));
+        assert!(rendered.contains("Capabilities (0)"));
         assert!(rendered.contains("MCP servers (0)"));
     }
 }

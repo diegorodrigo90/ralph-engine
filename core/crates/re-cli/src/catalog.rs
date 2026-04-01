@@ -4,7 +4,10 @@ use re_config::{
     ConfigScope, PluginActivation, ResolvedPluginConfig, default_project_config_layer,
     resolve_plugin_config,
 };
-use re_core::{RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration, RuntimeTopology};
+use re_core::{
+    RuntimeCapabilityRegistration, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
+    RuntimeTopology,
+};
 use re_mcp::McpServerDescriptor;
 use re_plugin::PluginDescriptor;
 
@@ -95,16 +98,41 @@ pub fn official_runtime_mcp_registrations() -> [RuntimeMcpRegistration; 4] {
     })
 }
 
+/// Returns the resolved runtime capability registrations for the official catalog.
+#[must_use]
+pub fn official_runtime_capabilities() -> Vec<RuntimeCapabilityRegistration> {
+    official_runtime_plugins()
+        .into_iter()
+        .flat_map(|plugin| {
+            plugin
+                .descriptor
+                .capabilities
+                .iter()
+                .copied()
+                .map(move |capability| {
+                    RuntimeCapabilityRegistration::new(
+                        capability,
+                        plugin.descriptor.id,
+                        plugin.activation,
+                        plugin.descriptor.load_boundary,
+                    )
+                })
+        })
+        .collect()
+}
+
 /// Returns the resolved runtime topology for the official catalog.
 #[must_use]
 pub fn official_runtime_topology<'a>(
     plugins: &'a [RuntimePluginRegistration],
+    capabilities: &'a [RuntimeCapabilityRegistration],
     mcp_servers: &'a [RuntimeMcpRegistration],
 ) -> RuntimeTopology<'a> {
     RuntimeTopology {
         phase: RuntimePhase::Ready,
         locale: default_project_config_layer().config.default_locale,
         plugins,
+        capabilities,
         mcp_servers,
     }
 }

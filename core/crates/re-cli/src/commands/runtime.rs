@@ -14,8 +14,9 @@ pub fn execute(args: &[String]) -> Result<String, CliError> {
 
 fn show_runtime() -> String {
     let plugins = catalog::official_runtime_plugins();
+    let capabilities = catalog::official_runtime_capabilities();
     let mcp_servers = catalog::official_runtime_mcp_registrations();
-    let topology = catalog::official_runtime_topology(&plugins, &mcp_servers);
+    let topology = catalog::official_runtime_topology(&plugins, &capabilities, &mcp_servers);
 
     render_runtime_topology(&topology)
 }

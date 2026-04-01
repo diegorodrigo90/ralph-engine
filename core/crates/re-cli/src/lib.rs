@@ -50,6 +50,62 @@ mod tests {
     }
 
     #[test]
+    fn execute_capabilities_lists_runtime_capabilities() {
+        // Arrange
+        let command = args(&["ralph-engine", "capabilities", "list"]);
+
+        // Act
+        let output = execute(command).expect("capabilities list should succeed");
+
+        // Assert
+        assert!(output.contains("Capabilities (11)"));
+        assert!(output.contains("- agent_runtime | providers=3 | enabled=0"));
+        assert!(output.contains("- template | providers=3 | enabled=1"));
+    }
+
+    #[test]
+    fn execute_capabilities_show_returns_provider_detail() {
+        // Arrange
+        let command = args(&["ralph-engine", "capabilities", "show", "mcp_contribution"]);
+
+        // Act
+        let output = execute(command).expect("capabilities show should succeed");
+
+        // Assert
+        assert!(output.contains("Capability: mcp_contribution"));
+        assert!(output.contains("Providers (4)"));
+        assert!(output.contains("- official.claude | activation=disabled | boundary=in_process"));
+        assert!(output.contains("- official.github | activation=disabled | boundary=in_process"));
+    }
+
+    #[test]
+    fn execute_capabilities_show_requires_capability_id() {
+        // Arrange
+        let command = args(&["ralph-engine", "capabilities", "show"]);
+
+        // Act
+        let error = execute(command).expect_err("missing capability id should fail");
+
+        // Assert
+        assert_eq!(
+            error.to_string(),
+            "capabilities show requires a capability id"
+        );
+    }
+
+    #[test]
+    fn execute_capabilities_show_rejects_unknown_capability() {
+        // Arrange
+        let command = args(&["ralph-engine", "capabilities", "show", "unknown"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown capability should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown capability: unknown");
+    }
+
+    #[test]
     fn execute_plugins_lists_official_plugins() {
         // Arrange
         let command = args(&["ralph-engine", "plugins", "list"]);
@@ -293,6 +349,8 @@ mod tests {
         assert!(output.contains("Plugins (8)"));
         assert!(output.contains("official.basic | activation=enabled | scope=built_in_defaults"));
         assert!(output.contains("official.github | activation=disabled | scope=built_in_defaults"));
+        assert!(output.contains("Capabilities (18)"));
+        assert!(output.contains("template | plugin=official.basic | activation=enabled"));
         assert!(output.contains("MCP servers (4)"));
     }
 
@@ -318,6 +376,30 @@ mod tests {
 
         // Assert
         assert_eq!(error.to_string(), "unknown runtime command: doctor");
+    }
+
+    #[test]
+    fn execute_capabilities_without_subcommand_lists_runtime_capabilities() {
+        // Arrange
+        let command = args(&["ralph-engine", "capabilities"]);
+
+        // Act
+        let output = execute(command).expect("capabilities command should succeed");
+
+        // Assert
+        assert!(output.contains("Capabilities (11)"));
+    }
+
+    #[test]
+    fn execute_unknown_capabilities_subcommand_fails() {
+        // Arrange
+        let command = args(&["ralph-engine", "capabilities", "doctor"]);
+
+        // Act
+        let error = execute(command).expect_err("unknown capabilities command should fail");
+
+        // Assert
+        assert_eq!(error.to_string(), "unknown capabilities command: doctor");
     }
 
     #[test]

@@ -1,5 +1,6 @@
 //! Modular CLI command routing.
 
+mod capabilities;
 mod config;
 mod mcp;
 mod plugins;
@@ -13,6 +14,10 @@ struct CommandDescriptor {
 }
 
 const COMMANDS: &[CommandDescriptor] = &[
+    CommandDescriptor {
+        name: "capabilities",
+        handler: capabilities::execute,
+    },
     CommandDescriptor {
         name: "config",
         handler: config::execute,
