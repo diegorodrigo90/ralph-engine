@@ -101,7 +101,9 @@ fn binary_mcp_show_succeeds() {
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
     assert!(stdout.contains("MCP server: official.codex.session"));
     assert!(stdout.contains("Process model: plugin_managed"));
+    assert!(stdout.contains("Launch policy: plugin_runtime"));
     assert!(stdout.contains("Availability: on_demand"));
+    assert!(stdout.contains("Command: managed by plugin runtime"));
 }
 
 #[test]

@@ -1,7 +1,8 @@
 //! Integration tests for the shared Ralph Engine MCP contract.
 
 use re_mcp::{
-    McpAvailability, McpProcessModel, McpServerDescriptor, McpTransport, render_mcp_server_detail,
+    McpAvailability, McpCommandDescriptor, McpEnvironmentPolicy, McpLaunchPolicy, McpProcessModel,
+    McpServerDescriptor, McpTransport, McpWorkingDirectoryPolicy, render_mcp_server_detail,
     render_mcp_server_listing,
 };
 
@@ -11,7 +12,7 @@ fn claude_server() -> McpServerDescriptor {
         "official.claude",
         "Claude Session",
         McpTransport::Stdio,
-        McpProcessModel::PluginManaged,
+        McpLaunchPolicy::PluginRuntime,
         McpAvailability::OnDemand,
     )
 }
@@ -22,7 +23,12 @@ fn invalid_server() -> McpServerDescriptor {
         "claude",
         "Broken",
         McpTransport::Stdio,
-        McpProcessModel::ExternalBinary,
+        McpLaunchPolicy::SpawnProcess(McpCommandDescriptor::new(
+            "broken-mcp",
+            &["serve"],
+            McpWorkingDirectoryPolicy::ProjectRoot,
+            McpEnvironmentPolicy::PluginScoped,
+        )),
         McpAvailability::ExplicitOptIn,
     )
 }
@@ -106,6 +112,107 @@ fn process_model_display_is_stable() {
 }
 
 #[test]
+fn working_directory_policy_display_is_stable() {
+    // Arrange
+    let policies = [
+        McpWorkingDirectoryPolicy::RuntimeManaged,
+        McpWorkingDirectoryPolicy::ProjectRoot,
+        McpWorkingDirectoryPolicy::PluginWorkspace,
+    ];
+
+    // Act
+    let rendered = policies
+        .into_iter()
+        .map(|policy| policy.to_string())
+        .collect::<Vec<_>>();
+
+    // Assert
+    assert_eq!(
+        rendered,
+        vec!["runtime_managed", "project_root", "plugin_workspace"]
+    );
+}
+
+#[test]
+fn environment_policy_display_is_stable() {
+    // Arrange
+    let policies = [
+        McpEnvironmentPolicy::MinimalRuntime,
+        McpEnvironmentPolicy::PluginScoped,
+    ];
+
+    // Act
+    let rendered = policies
+        .into_iter()
+        .map(|policy| policy.to_string())
+        .collect::<Vec<_>>();
+
+    // Assert
+    assert_eq!(rendered, vec!["minimal_runtime", "plugin_scoped"]);
+}
+
+#[test]
+fn launch_policy_display_is_stable() {
+    // Arrange
+    let policies = [
+        McpLaunchPolicy::PluginRuntime,
+        McpLaunchPolicy::SpawnProcess(McpCommandDescriptor::new(
+            "codex-mcp",
+            &["serve"],
+            McpWorkingDirectoryPolicy::ProjectRoot,
+            McpEnvironmentPolicy::PluginScoped,
+        )),
+    ];
+
+    // Act
+    let rendered = policies
+        .into_iter()
+        .map(|policy| policy.to_string())
+        .collect::<Vec<_>>();
+
+    // Assert
+    assert_eq!(rendered, vec!["plugin_runtime", "spawn_process"]);
+}
+
+#[test]
+fn command_descriptor_reports_arguments_when_present() {
+    // Arrange
+    let command = McpCommandDescriptor::new(
+        "codex-mcp",
+        &["serve"],
+        McpWorkingDirectoryPolicy::ProjectRoot,
+        McpEnvironmentPolicy::PluginScoped,
+    );
+
+    // Act
+    let has_args = command.has_args();
+    let invocation = command.render_invocation();
+
+    // Assert
+    assert!(has_args);
+    assert_eq!(invocation, "codex-mcp serve");
+}
+
+#[test]
+fn command_descriptor_handles_argument_free_invocation() {
+    // Arrange
+    let command = McpCommandDescriptor::new(
+        "claude-mcp",
+        &[],
+        McpWorkingDirectoryPolicy::RuntimeManaged,
+        McpEnvironmentPolicy::MinimalRuntime,
+    );
+
+    // Act
+    let has_args = command.has_args();
+    let invocation = command.render_invocation();
+
+    // Assert
+    assert!(!has_args);
+    assert_eq!(invocation, "claude-mcp");
+}
+
+#[test]
 fn availability_display_is_stable() {
     // Arrange
     let availability = [McpAvailability::OnDemand, McpAvailability::ExplicitOptIn];
@@ -142,6 +249,32 @@ fn server_descriptor_reports_external_execution() {
 
     // Assert
     assert!(!plugin_managed);
+}
+
+#[test]
+fn launch_policy_returns_spawn_command_for_external_binary() {
+    // Arrange
+    let server = invalid_server();
+
+    // Act
+    let command = server.command();
+    let invocation = command.map(|spawn_command| spawn_command.render_invocation());
+
+    // Assert
+    assert!(command.is_some());
+    assert_eq!(invocation, Some("broken-mcp serve".to_owned()));
+}
+
+#[test]
+fn launch_policy_reports_no_spawn_command_for_plugin_runtime() {
+    // Arrange
+    let server = claude_server();
+
+    // Act
+    let command = server.command();
+
+    // Assert
+    assert!(command.is_none());
 }
 
 #[test]
@@ -206,5 +339,23 @@ fn render_mcp_server_detail_includes_process_model_and_policy() {
     // Assert
     assert!(detail.contains("MCP server: official.claude.session"));
     assert!(detail.contains("Process model: plugin_managed"));
+    assert!(detail.contains("Launch policy: plugin_runtime"));
     assert!(detail.contains("Availability: on_demand"));
+    assert!(detail.contains("Command: managed by plugin runtime"));
+}
+
+#[test]
+fn render_mcp_server_detail_includes_spawn_contract() {
+    // Arrange
+    let server = invalid_server();
+
+    // Act
+    let detail = render_mcp_server_detail(&server);
+
+    // Assert
+    assert!(detail.contains("Process model: external_binary"));
+    assert!(detail.contains("Launch policy: spawn_process"));
+    assert!(detail.contains("Command: broken-mcp serve"));
+    assert!(detail.contains("Working directory: project_root"));
+    assert!(detail.contains("Environment: plugin_scoped"));
 }

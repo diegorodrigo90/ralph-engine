@@ -22,4 +22,6 @@ ralph-engine mcp show <server-id>
 
 O comando `plugins show` imprime o contrato imutável do plugin, incluindo lifecycle, fronteira de carregamento, runtime hooks e o estado de ativação resolvido.
 
+O comando `mcp show` imprime o contrato tipado de lançamento do MCP, incluindo modelo de processo, policy de lançamento, fronteiras de comando, policy de diretório de trabalho, policy de ambiente e disponibilidade.
+
 O comando `runtime show` imprime a topologia resolvida do runtime, incluindo ativação efetiva de plugin e enablement de MCP.
