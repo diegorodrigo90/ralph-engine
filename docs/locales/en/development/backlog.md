@@ -6,6 +6,8 @@ Updated: 2026-04-01
 - Introduce `re-plugin` and `re-mcp` crates.
 - Add cross-platform release artifact packaging.
 - Restore rich docs examples once the runtime contracts are back.
-- Define i18n contracts for CLI messages, docs, site, and catalog with English and pt-BR as first-class locales.
-- Add performance, accessibility, and SEO budgets for public surfaces so site, docs, and catalog stay at an A-grade baseline.
-- Define shared information architecture, menus, and navigation contracts across `/`, `/docs`, and `/catalog`.
+- Define i18n contracts for CLI messages, docs, site, and plugins with English and pt-BR as first-class locales.
+- Add performance, accessibility, and SEO budgets for public surfaces so site, docs, and plugins stay at an A-grade baseline.
+- Define shared information architecture, menus, and navigation contracts across `/`, `/docs`, and `/plugins`.
+- Refactor `site/ui` into a real shared presentation layer for `site/landing` and `site/plugins`.
+- Align the public header contract so the logo always returns to `/` and navigation stays coherent across site, docs, and plugins.

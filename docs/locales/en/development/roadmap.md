@@ -15,5 +15,5 @@ Updated: 2026-04-01
 - [ ] Reintroduce configuration, state, MCP, and plugin lifecycle on the new core.
 - [ ] Wire npm and Homebrew publication to the Rust release pipeline.
 - [ ] Rebuild the official plugins on the new Rust contracts.
-- [ ] Introduce first-class bilingual support for the CLI, docs, site, and catalog in English and pt-BR.
-- [ ] Establish one coherent UX system across site, docs, and catalog with clear navigation and A-grade accessibility, performance, and SEO baselines.
+- [ ] Introduce first-class bilingual support for the CLI, docs, site, and plugins surface in English and pt-BR.
+- [ ] Establish one coherent UX system across site, docs, and plugins with clear navigation and A-grade accessibility, performance, and SEO baselines.
