@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 permissions:
   contents: read
 
@@ -22,7 +25,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:
           node-version: '20.19.0'
       - run: npm ci
@@ -35,8 +38,8 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            checks: fmt,clippy,test,rustdoc,deny,audit,gitleaks,trivy,public
-            install_dev_tools: true
+            checks: fmt,clippy,test,rustdoc,public
+            install_dev_tools: false
           - os: macos-latest
             checks: fmt,clippy,test,rustdoc,public
             install_dev_tools: false
@@ -51,7 +54,7 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:
           node-version: '20.19.0'
           cache: npm
@@ -71,14 +74,6 @@ jobs:
         run: npm ci
       - name: Install docs Node tools
         run: npm --prefix docs ci
-      - name: Install pinned developer tools (Unix)
-        if: matrix.install_dev_tools && runner.os != 'Windows'
-        shell: bash
-        run: ./scripts/install-dev-tools.sh --tools cargo-audit,cargo-deny,gitleaks,trivy
-      - name: Install pinned developer tools (Windows)
-        if: matrix.install_dev_tools && runner.os == 'Windows'
-        shell: pwsh
-        run: ./scripts/install-dev-tools.ps1 --tools cargo-audit,cargo-deny,gitleaks,trivy
       - name: Run validation contract
         shell: bash
         env:
@@ -86,10 +81,9 @@ jobs:
           GIT_HEAD_SHA: ${{ github.sha }}
         run: ./scripts/validate.sh --mode ci --checks "${{ matrix.checks }}"
 
-  sonar:
-    name: SonarCloud
+  security:
+    name: Security (ubuntu-latest)
     runs-on: ubuntu-latest
-    needs: [quality]
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
@@ -98,7 +92,49 @@ jobs:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: '20.19.0'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            docs/package-lock.json
+      - name: Install Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install 1.91.1 --profile minimal
+          rustup default 1.91.1
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
+        with:
+          shared-key: security-ubuntu-latest
+      - name: Install repository Node tools
+        run: npm ci
+      - name: Install docs Node tools
+        run: npm --prefix docs ci
+      - name: Install pinned security tools
+        shell: bash
+        run: ./scripts/install-dev-tools.sh --tools cargo-audit,cargo-deny,gitleaks,trivy
+      - name: Run security contract
+        shell: bash
+        env:
+          GIT_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          GIT_HEAD_SHA: ${{ github.sha }}
+        run: ./scripts/validate.sh --mode ci --checks deny,audit,gitleaks,trivy
+
+  sonar:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    needs: [quality, security]
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:
           node-version: '20.19.0'
           cache: npm
@@ -111,7 +147,7 @@ jobs:
           rustup toolchain install 1.91.1 --profile minimal --component rustfmt --component clippy
           rustup default 1.91.1
       - name: Restore Rust cache
-        uses: Swatinem/rust-cache@bc2d2e71bd35c5549942babaa51a89c586b981d1
+        uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae
         with:
           shared-key: sonar-ubuntu-latest
       - name: Install docs Node tools
