@@ -63,7 +63,7 @@
             <p class="eyebrow">Plugins</p>
             <h1>Plugin discovery without <span class="accent-word">marketplace theater</span>.</h1>
             <p class="lede">
-              The Ralph Engine catalog is being built as a durable ecosystem surface: official plugins, trust framing, stable metadata paths, and machine-readable indexes first. Density comes later.
+              The Ralph Engine plugin surface is being built as durable infrastructure for discovery: official plugins, trust framing, stable metadata paths, and machine-readable indexes first. Density comes later.
             </p>
             <div class="actions">
               <a class="button primary" href="/docs/guides/plugins">Read the plugin guide</a>
@@ -90,6 +90,44 @@
 }</code></pre>
             </div>
           </aside>
+        </section>
+
+        <section class="section" aria-labelledby="plugins-editorial-title">
+          <div class="section-header">
+            <div>
+              <p class="eyebrow">What this surface is for</p>
+              <h2 id="plugins-editorial-title">The goal is not to fake a marketplace. The goal is to make extension trust easier to judge.</h2>
+            </div>
+            <p>
+              A good plugin surface should help a technical reader answer practical questions fast: who owns this, how mature is it, what capability does it expose, and how do I verify it without guesswork.
+            </p>
+          </div>
+          <div class="catalog-layout">
+            <article class="editorial-panel">
+              <h3>Discovery should stay useful before it becomes crowded.</h3>
+              <p>
+                That is why the public path starts with stable URLs, explicit trust framing, and machine-readable metadata. Visual density can come later, after the runtime and plugin contracts settle.
+              </p>
+              <p>
+                Until then, the docs remain the deeper source of truth and the plugin surface stays focused on comparison, trust, and public contract clarity.
+              </p>
+            </article>
+            <aside class="catalog-callout">
+              <div>
+                <p class="catalog-kicker">Current state</p>
+                <h3>Official plugins first, broader ecosystem later.</h3>
+                <p>
+                  The surface starts narrow on purpose so every future entry can carry clearer publisher, compatibility, and security signals.
+                </p>
+              </div>
+              <div class="terminal">
+                <p class="terminal-label">Public contract</p>
+                <pre><code>/plugins/
+/plugins/index.json
+/docs/guides/plugins</code></pre>
+              </div>
+            </aside>
+          </div>
         </section>
 
         <section class="section" aria-labelledby="catalog-pillars-title">
