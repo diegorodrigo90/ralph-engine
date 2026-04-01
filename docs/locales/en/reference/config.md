@@ -6,7 +6,7 @@ The current default contract now exposes:
 
 - `schema_version`
 - `default_locale`
-- default plugin entries
+- default plugin entries with typed activation state
 - MCP defaults
 
 The broader target architecture still includes:
