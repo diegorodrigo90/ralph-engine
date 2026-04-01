@@ -1,6 +1,6 @@
 //! Official SSH remote-control plugin metadata.
 
-use re_plugin::{PluginDescriptor, PluginLifecycleStage, REMOTE_CONTROL};
+use re_plugin::{PluginDescriptor, PluginLifecycleStage, PluginLoadBoundary, REMOTE_CONTROL};
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.ssh";
@@ -15,6 +15,7 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,
+    PluginLoadBoundary::InProcess,
 );
 
 /// Declared capabilities for the official plugin foundation.

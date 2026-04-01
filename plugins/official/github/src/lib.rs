@@ -3,7 +3,7 @@
 use re_mcp::{McpAvailability, McpProcessModel, McpServerDescriptor, McpTransport};
 use re_plugin::{
     CONTEXT_PROVIDER, DATA_SOURCE, FORGE_PROVIDER, MCP_CONTRIBUTION, PluginDescriptor,
-    PluginLifecycleStage,
+    PluginLifecycleStage, PluginLoadBoundary,
 };
 
 /// Stable plugin identifier.
@@ -27,6 +27,7 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,
+    PluginLoadBoundary::InProcess,
 );
 const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
     "official.github.repository",

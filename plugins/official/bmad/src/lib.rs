@@ -2,7 +2,7 @@
 
 use re_plugin::{
     DOCTOR_CHECKS, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginDescriptor, PluginLifecycleStage,
-    TEMPLATE,
+    PluginLoadBoundary, TEMPLATE,
 };
 
 /// Stable plugin identifier.
@@ -23,6 +23,7 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,
+    PluginLoadBoundary::InProcess,
 );
 
 /// Declared capabilities for the official plugin foundation.

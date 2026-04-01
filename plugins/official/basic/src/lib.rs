@@ -1,6 +1,6 @@
 //! Official basic starter plugin metadata.
 
-use re_plugin::{PluginDescriptor, PluginLifecycleStage, TEMPLATE};
+use re_plugin::{PluginDescriptor, PluginLifecycleStage, PluginLoadBoundary, TEMPLATE};
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.basic";
@@ -18,6 +18,7 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,
+    PluginLoadBoundary::InProcess,
 );
 
 /// Declared capabilities for the official plugin foundation.

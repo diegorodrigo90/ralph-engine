@@ -75,6 +75,7 @@ mod tests {
         assert!(output.contains("Plugin: official.github"));
         assert!(output.contains("Name: GitHub"));
         assert!(output.contains("Lifecycle: discover -> configure -> load"));
+        assert!(output.contains("Load boundary: in_process"));
         assert!(output.contains("Default activation: disabled"));
     }
 

@@ -3,7 +3,8 @@
 use re_plugin::{
     AGENT_RUNTIME, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, MCP_CONTRIBUTION,
     POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCapability, PluginDescriptor,
-    PluginLifecycleStage, REMOTE_CONTROL, TEMPLATE, render_plugin_detail, render_plugin_listing,
+    PluginLifecycleStage, PluginLoadBoundary, REMOTE_CONTROL, TEMPLATE, render_plugin_detail,
+    render_plugin_listing,
 };
 
 const BASIC_CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -29,6 +30,7 @@ fn basic_plugin() -> PluginDescriptor {
         "0.2.0-alpha.1",
         BASIC_CAPABILITIES,
         BASIC_LIFECYCLE,
+        PluginLoadBoundary::InProcess,
     )
 }
 
@@ -39,11 +41,19 @@ fn github_plugin() -> PluginDescriptor {
         "0.2.0-alpha.1",
         GITHUB_CAPABILITIES,
         GITHUB_LIFECYCLE,
+        PluginLoadBoundary::InProcess,
     )
 }
 
 fn invalid_plugin() -> PluginDescriptor {
-    PluginDescriptor::new("basic", "Broken", "0.2.0-alpha.1", &[], &[])
+    PluginDescriptor::new(
+        "basic",
+        "Broken",
+        "0.2.0-alpha.1",
+        &[],
+        &[],
+        PluginLoadBoundary::Remote,
+    )
 }
 
 #[test]
@@ -130,6 +140,25 @@ fn lifecycle_as_str_is_stable() {
 
     // Assert
     assert_eq!(rendered, vec!["discover", "configure", "validate", "load"]);
+}
+
+#[test]
+fn load_boundary_display_is_stable() {
+    // Arrange
+    let boundaries = [
+        PluginLoadBoundary::InProcess,
+        PluginLoadBoundary::Subprocess,
+        PluginLoadBoundary::Remote,
+    ];
+
+    // Act
+    let rendered = boundaries
+        .into_iter()
+        .map(|boundary| boundary.to_string())
+        .collect::<Vec<_>>();
+
+    // Assert
+    assert_eq!(rendered, vec!["in_process", "subprocess", "remote"]);
 }
 
 #[test]
@@ -245,4 +274,5 @@ fn render_plugin_detail_includes_capabilities_and_lifecycle() {
     assert!(detail.contains("Plugin: official.github"));
     assert!(detail.contains("Capabilities: data_source, forge_provider"));
     assert!(detail.contains("Lifecycle: discover -> configure -> load"));
+    assert!(detail.contains("Load boundary: in_process"));
 }

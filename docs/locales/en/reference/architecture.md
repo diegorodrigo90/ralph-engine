@@ -19,7 +19,7 @@ Ralph Engine is an open-source plugin-first runtime for agentic coding workflows
 - `re-core` — shared runtime foundations
 - `re-config` — shared runtime configuration contracts and defaults
 - `re-mcp` — shared MCP contribution, process-model, and policy contracts
-- `re-plugin` — shared plugin metadata, lifecycle, and capability contracts
+- `re-plugin` — shared plugin metadata, lifecycle, loading-boundary, and capability contracts
 - `re-cli` — CLI crate producing `ralph-engine`
 - official plugin crates live under `plugins/official/*`
 
@@ -33,3 +33,4 @@ Ralph Engine is an open-source plugin-first runtime for agentic coding workflows
 - CLI command families evolve through isolated modules and registries rather than one growing central dispatcher
 - plugin capabilities and MCP contributions evolve through typed descriptors so new capabilities can be added without string-coupled runtime logic
 - plugin lifecycle evolves through shared typed stages so discovery, configuration, validation, and loading stay explicit and extensible
+- plugin load boundaries stay typed so in-process, subprocess, and remote integration can evolve without ad hoc runtime branching

@@ -81,6 +81,35 @@ impl fmt::Display for PluginLifecycleStage {
     }
 }
 
+/// Typed plugin loading boundary identifier.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PluginLoadBoundary {
+    /// The plugin is loaded in process with the runtime.
+    InProcess,
+    /// The plugin runs behind a subprocess boundary.
+    Subprocess,
+    /// The plugin is resolved through a remote boundary.
+    Remote,
+}
+
+impl PluginLoadBoundary {
+    /// Returns the stable loading-boundary identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::InProcess => "in_process",
+            Self::Subprocess => "subprocess",
+            Self::Remote => "remote",
+        }
+    }
+}
+
+impl fmt::Display for PluginLoadBoundary {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// Immutable metadata for a Ralph Engine plugin.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PluginDescriptor {
@@ -94,6 +123,8 @@ pub struct PluginDescriptor {
     pub capabilities: &'static [PluginCapability],
     /// Declared lifecycle stages supported by the plugin.
     pub lifecycle: &'static [PluginLifecycleStage],
+    /// Declared runtime loading boundary for the plugin.
+    pub load_boundary: PluginLoadBoundary,
 }
 
 impl PluginDescriptor {
@@ -105,6 +136,7 @@ impl PluginDescriptor {
         version: &'static str,
         capabilities: &'static [PluginCapability],
         lifecycle: &'static [PluginLifecycleStage],
+        load_boundary: PluginLoadBoundary,
     ) -> Self {
         Self {
             id,
@@ -112,6 +144,7 @@ impl PluginDescriptor {
             version,
             capabilities,
             lifecycle,
+            load_boundary,
         }
     }
 
@@ -174,7 +207,7 @@ pub fn render_plugin_detail(plugin: &PluginDescriptor) -> String {
         .join(" -> ");
 
     format!(
-        "Plugin: {}\nName: {}\nVersion: v{}\nCapabilities: {}\nLifecycle: {}",
-        plugin.id, plugin.name, plugin.version, capabilities, lifecycle
+        "Plugin: {}\nName: {}\nVersion: v{}\nCapabilities: {}\nLifecycle: {}\nLoad boundary: {}",
+        plugin.id, plugin.name, plugin.version, capabilities, lifecycle, plugin.load_boundary
     )
 }

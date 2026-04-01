@@ -1,7 +1,9 @@
 //! Official Claude Box runtime plugin metadata.
 
 use re_mcp::{McpAvailability, McpProcessModel, McpServerDescriptor, McpTransport};
-use re_plugin::{AGENT_RUNTIME, MCP_CONTRIBUTION, PluginDescriptor, PluginLifecycleStage};
+use re_plugin::{
+    AGENT_RUNTIME, MCP_CONTRIBUTION, PluginDescriptor, PluginLifecycleStage, PluginLoadBoundary,
+};
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.claudebox";
@@ -16,6 +18,7 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,
+    PluginLoadBoundary::InProcess,
 );
 const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
     "official.claudebox.session",
