@@ -64,7 +64,7 @@ cargo audit
 - `main` SHALL stay releasable.
 - Feature work SHALL happen on short-lived branches and merge through PRs.
 - Conventional Commits SHALL be enforced by hooks and CI.
-- release-please SHALL manage version bumps, changelog updates, and tags.
+- release-plz SHALL manage version bumps, changelog updates, and tags.
 - Merge to `main` SHALL update the release PR. Merging the release PR SHALL create the release tag.
 
 ## Documentation Sync

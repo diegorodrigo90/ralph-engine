@@ -17,10 +17,10 @@ jobs:
         uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
         with:
           egress-policy: audit
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '20.19.0'
       - name: Install Rust toolchain
@@ -28,13 +28,11 @@ jobs:
         run: |
           rustup toolchain install 1.91.1 --profile minimal --component rustfmt --component clippy
           rustup default 1.91.1
-      - name: Install pinned cargo tools
+      - name: Install docs Node tools
+        run: npm --prefix docs ci
+      - name: Install pinned developer tools
         shell: bash
-        run: |
-          cargo install cargo-llvm-cov --version 0.8.5 --locked
-          cargo install cargo-audit --version 0.22.1 --locked
-          cargo install cargo-deny --version 0.19.0 --locked
-          cargo install cargo-dist --version 0.31.0 --locked
+        run: ./scripts/install-dev-tools.sh
       - name: Validate release tag
         shell: bash
         run: ./scripts/release-check.sh

@@ -34,7 +34,7 @@ cargo test --workspace --all-targets --all-features
 - SemVer 2.0.0
 - Conventional Commits
 - commitlint + lefthook
-- release-please opens release PRs from `main`
+- release-plz opens release PRs from `main`
 - merging the release PR creates the version tag
 - tag workflows build release artifacts
 

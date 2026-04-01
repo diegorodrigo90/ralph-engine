@@ -8,7 +8,7 @@ Use `AGENTS.md` as the primary contract.
 - Rust toolchain contract: `rust-toolchain.toml`
 - asdf contract: `.tool-versions`
 - Hooks: `lefthook.yml`
-- Versioning: Conventional Commits + release-please + SemVer
+- Versioning: Conventional Commits + release-plz + SemVer
 
 ## Important commands
 
