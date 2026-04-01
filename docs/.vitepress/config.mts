@@ -65,7 +65,7 @@ export default defineConfig({
   base: "/docs/",
   cleanUrls: true,
   sitemap: {
-    hostname: "https://ralphengine.com",
+    hostname: "https://ralphengine.com/docs",
   },
 
   head: [
@@ -76,11 +76,14 @@ export default defineConfig({
     ],
     [
       "script",
-      {
-        defer: "",
-        src: "https://static.cloudflareinsights.com/beacon.min.js",
-        "data-cf-beacon": '{"token": "882eb5c78500434c86bc3c6bbde81b4a"}',
-      },
+      {},
+      `if (window.location.hostname === "ralphengine.com") {
+        const script = document.createElement("script");
+        script.defer = true;
+        script.src = "https://static.cloudflareinsights.com/beacon.min.js";
+        script.setAttribute("data-cf-beacon", '{"token":"882eb5c78500434c86bc3c6bbde81b4a"}');
+        document.head.appendChild(script);
+      }`,
     ],
   ],
 
@@ -187,6 +190,10 @@ export default defineConfig({
 
     search: {
       provider: "local",
+    },
+
+    outline: {
+      level: [2, 3],
     },
 
     footer: {
