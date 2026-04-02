@@ -90,14 +90,14 @@ fn render_policy_detail(registration: &RuntimePolicyRegistration, locale: &str) 
         ),
         i18n::detail_heading(
             locale,
-            "Activation",
-            "Ativação",
+            i18n::activation_label(locale),
+            i18n::activation_label(locale),
             registration.activation.as_str(),
         ),
         i18n::detail_heading(
             locale,
-            "Load boundary",
-            "Fronteira de carregamento",
+            i18n::load_boundary_label(locale),
+            i18n::load_boundary_label(locale),
             registration.load_boundary.as_str(),
         ),
         format!(
