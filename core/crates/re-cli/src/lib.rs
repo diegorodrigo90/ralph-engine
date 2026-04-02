@@ -1242,6 +1242,32 @@ mod tests {
     }
 
     #[test]
+    fn execute_runtime_write_patched_config_persists_yaml() {
+        let output_path = std::env::temp_dir().join(format!(
+            "ralph-engine-runtime-write-config-{}.yaml",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&output_path);
+        let output_path_str = output_path.display().to_string();
+
+        let command = args(&[
+            "ralph-engine",
+            "runtime",
+            "write-patched-config",
+            &output_path_str,
+        ]);
+
+        let output = execute(command).expect("runtime write-patched-config should succeed");
+
+        assert_eq!(output, format!("Wrote output: {output_path_str}"));
+        let persisted = std::fs::read_to_string(&output_path).expect("config file should exist");
+        assert!(persisted.contains("schema_version: 1"));
+        assert!(persisted.contains("- id: official.github"));
+
+        let _ = std::fs::remove_file(output_path);
+    }
+
+    #[test]
     fn execute_runtime_without_subcommand_returns_resolved_topology() {
         // Arrange
         let command = args(&["ralph-engine", "runtime"]);

@@ -1,5 +1,7 @@
 //! Runtime command handlers.
 
+use std::path::Path;
+
 use re_core::{
     render_runtime_action_plan_for_locale, render_runtime_agent_bootstrap_plans_for_locale,
     render_runtime_check_execution_plans_for_locale, render_runtime_config_patch_yaml,
@@ -9,6 +11,7 @@ use re_core::{
     render_runtime_topology_for_locale,
 };
 
+use super::embedded_assets::write_text_output;
 use super::runtime_state::{
     render_official_runtime_patched_config, with_official_runtime_snapshot,
 };
@@ -21,6 +24,9 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         Some("issues") => Ok(show_runtime_issues(locale)),
         Some("patch") => Ok(show_runtime_config_patch()),
         Some("patched-config") => Ok(show_runtime_patched_config()),
+        Some("write-patched-config") => {
+            write_runtime_patched_config(args.get(1).map(String::as_str), locale)
+        }
         Some("plan") => Ok(show_runtime_action_plan(locale)),
         Some("agent-plans") => Ok(show_runtime_agent_bootstrap_plans(locale)),
         Some("provider-plans") => Ok(show_runtime_provider_registration_plans(locale)),
@@ -102,4 +108,22 @@ fn show_runtime_config_patch() -> String {
 
 fn show_runtime_patched_config() -> String {
     render_official_runtime_patched_config()
+}
+
+fn write_runtime_patched_config(
+    output_path: Option<&str>,
+    locale: &str,
+) -> Result<String, CliError> {
+    let output_path = output_path.ok_or_else(|| {
+        CliError::new(i18n::missing_output_path(
+            locale,
+            "runtime write-patched-config",
+        ))
+    })?;
+
+    write_text_output(
+        Path::new(output_path),
+        &render_official_runtime_patched_config(),
+        locale,
+    )
 }

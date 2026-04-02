@@ -58,9 +58,13 @@ pub(super) struct CliLocaleCatalog {
     #[allow(dead_code)]
     pub missing_output_directory: fn(&str) -> String,
     #[allow(dead_code)]
+    pub missing_output_path: fn(&str) -> String,
+    #[allow(dead_code)]
     pub invalid_embedded_asset_path: fn(&str) -> String,
     #[allow(dead_code)]
     pub failed_to_write_output: fn(&str, &str) -> String,
+    #[allow(dead_code)]
+    pub wrote_output: fn(&str) -> String,
     pub unknown_template_asset: fn(&str) -> String,
     pub unknown_prompt_asset: fn(&str) -> String,
     #[allow(dead_code)]
@@ -223,6 +227,12 @@ pub fn missing_output_directory(locale: &str, command_group: &str) -> String {
 
 #[must_use]
 #[allow(dead_code)]
+pub fn missing_output_path(locale: &str, command_group: &str) -> String {
+    (locale_catalog(locale).missing_output_path)(command_group)
+}
+
+#[must_use]
+#[allow(dead_code)]
 pub fn invalid_embedded_asset_path(locale: &str, value: &str) -> String {
     (locale_catalog(locale).invalid_embedded_asset_path)(value)
 }
@@ -231,6 +241,12 @@ pub fn invalid_embedded_asset_path(locale: &str, value: &str) -> String {
 #[allow(dead_code)]
 pub fn failed_to_write_output(locale: &str, path: &str, error: &str) -> String {
     (locale_catalog(locale).failed_to_write_output)(path, error)
+}
+
+#[must_use]
+#[allow(dead_code)]
+pub fn wrote_output(locale: &str, path: &str) -> String {
+    (locale_catalog(locale).wrote_output)(path)
 }
 
 #[must_use]

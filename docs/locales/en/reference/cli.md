@@ -58,6 +58,7 @@ ralph-engine runtime policy-plans
 ralph-engine runtime mcp-plans
 ralph-engine runtime patch
 ralph-engine runtime patched-config
+ralph-engine runtime write-patched-config <output-path>
 ralph-engine prompts
 ralph-engine prompts list
 ralph-engine prompts show <prompt-id>
@@ -136,3 +137,5 @@ The `runtime mcp-plans` command prints the executable MCP launch plans that rema
 The `runtime patch` command renders the typed configuration patch that would remediate the current degraded topology, including plugin activation entries and per-server MCP enablement, so runtime recovery stays explicit and reusable instead of remaining only a textual plan.
 
 The `runtime patched-config` command renders the owned project configuration produced by applying the typed runtime patch to the current defaults, so operators can inspect the effective remediation result before persisting it elsewhere.
+
+The `runtime write-patched-config` command persists that fully materialized remediation target to one output path, so runtime recovery can move from inspection into an explicit, repeatable file-writing step.
