@@ -1,6 +1,7 @@
 //! Runtime-hook command handlers.
 
 use re_core::RuntimeHookRegistration;
+use re_plugin::parse_plugin_runtime_hook;
 
 use crate::{CliError, catalog, i18n};
 
@@ -26,18 +27,17 @@ fn show_hook(hook_id: Option<&str>, locale: &str) -> Result<String, CliError> {
             i18n::hook_id_entity_label(locale),
         ))
     })?;
-    let providers = catalog::official_runtime_hooks()
-        .into_iter()
-        .filter(|registration| registration.hook.as_str() == hook_id)
-        .collect::<Vec<_>>();
-
-    if providers.is_empty() {
-        return Err(CliError::new(i18n::unknown_entity(
+    let hook = parse_plugin_runtime_hook(hook_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
             locale,
             i18n::hook_entity_label(locale),
             hook_id,
-        )));
-    }
+        ))
+    })?;
+    let providers = catalog::official_runtime_hooks()
+        .into_iter()
+        .filter(|registration| registration.hook == hook)
+        .collect::<Vec<_>>();
 
     Ok(render_hook_detail(hook_id, &providers, locale))
 }
