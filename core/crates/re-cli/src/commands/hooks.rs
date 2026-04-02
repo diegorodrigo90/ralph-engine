@@ -19,15 +19,24 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 }
 
 fn show_hook(hook_id: Option<&str>, locale: &str) -> Result<String, CliError> {
-    let hook_id =
-        hook_id.ok_or_else(|| CliError::new(i18n::missing_id(locale, "hooks", "a hook id")))?;
+    let hook_id = hook_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "hooks",
+            i18n::hook_id_entity_label(locale),
+        ))
+    })?;
     let providers = catalog::official_runtime_hooks()
         .into_iter()
         .filter(|registration| registration.hook.as_str() == hook_id)
         .collect::<Vec<_>>();
 
     if providers.is_empty() {
-        return Err(CliError::new(i18n::unknown_entity(locale, "hook", hook_id)));
+        return Err(CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::hook_entity_label(locale),
+            hook_id,
+        )));
     }
 
     Ok(render_hook_detail(hook_id, &providers, locale))
@@ -64,11 +73,21 @@ fn render_hook_listing(registrations: &[RuntimeHookRegistration], locale: &str) 
     }
 
     if lines.is_empty() {
-        i18n::list_heading(locale, "Runtime hooks", "Hooks de runtime", 0)
+        i18n::list_heading(
+            locale,
+            i18n::hooks_label(locale),
+            i18n::hooks_label(locale),
+            0,
+        )
     } else {
         format!(
             "{}\n{}",
-            i18n::list_heading(locale, "Runtime hooks", "Hooks de runtime", lines.len()),
+            i18n::list_heading(
+                locale,
+                i18n::hooks_label(locale),
+                i18n::hooks_label(locale),
+                lines.len(),
+            ),
             lines.join("\n")
         )
     }
@@ -80,7 +99,12 @@ fn render_hook_detail(
     locale: &str,
 ) -> String {
     let mut lines = vec![
-        i18n::detail_heading(locale, "Runtime hook", "Hook de runtime", hook_id),
+        i18n::detail_heading(
+            locale,
+            i18n::hook_label(locale),
+            i18n::hook_label(locale),
+            hook_id,
+        ),
         i18n::providers_heading(locale, providers.len()),
     ];
 

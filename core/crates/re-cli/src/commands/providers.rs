@@ -21,10 +21,20 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 }
 
 fn show_provider(provider_kind: Option<&str>, locale: &str) -> Result<String, CliError> {
-    let provider_kind = provider_kind
-        .ok_or_else(|| CliError::new(i18n::missing_id(locale, "providers", "a provider id")))?;
-    let kind = parse_provider_kind(provider_kind)
-        .ok_or_else(|| CliError::new(i18n::unknown_entity(locale, "provider", provider_kind)))?;
+    let provider_kind = provider_kind.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "providers",
+            i18n::provider_id_entity_label(locale),
+        ))
+    })?;
+    let kind = parse_provider_kind(provider_kind).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::provider_entity_label(locale),
+            provider_kind,
+        ))
+    })?;
     let providers = catalog::official_runtime_providers()
         .into_iter()
         .filter(|registration| registration.kind == kind)
@@ -74,11 +84,11 @@ fn render_provider_listing(registrations: &[RuntimeProviderRegistration], locale
     }
 
     if lines.is_empty() {
-        i18n::list_heading(locale, "Providers", "Provedores", 0)
+        i18n::providers_heading(locale, 0)
     } else {
         format!(
             "{}\n{}",
-            i18n::list_heading(locale, "Providers", "Provedores", lines.len()),
+            i18n::providers_heading(locale, lines.len()),
             lines.join("\n")
         )
     }
@@ -90,7 +100,12 @@ fn render_provider_detail(
     locale: &str,
 ) -> String {
     let mut lines = vec![
-        i18n::detail_heading(locale, "Provider", "Provedor", provider_kind.as_str()),
+        i18n::detail_heading(
+            locale,
+            i18n::provider_label(locale),
+            i18n::provider_label(locale),
+            provider_kind.as_str(),
+        ),
         i18n::providers_heading(locale, providers.len()),
     ];
 

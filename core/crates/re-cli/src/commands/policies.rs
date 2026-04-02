@@ -82,7 +82,12 @@ fn render_policy_detail(registration: &RuntimePolicyRegistration, locale: &str) 
             i18n::policy_label(locale),
             registration.policy_id,
         ),
-        i18n::detail_heading(locale, "Provider", "Provedor", registration.plugin_id),
+        i18n::detail_heading(
+            locale,
+            i18n::provider_label(locale),
+            i18n::provider_label(locale),
+            registration.plugin_id,
+        ),
         i18n::detail_heading(
             locale,
             "Activation",

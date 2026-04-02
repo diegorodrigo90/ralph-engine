@@ -19,10 +19,20 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 }
 
 fn show_server(server_id: Option<&str>, locale: &str) -> Result<String, CliError> {
-    let server_id =
-        server_id.ok_or_else(|| CliError::new(i18n::missing_id(locale, "mcp", "a server id")))?;
-    let server = catalog::find_official_mcp_server(server_id)
-        .ok_or_else(|| CliError::new(i18n::unknown_entity(locale, "mcp server", server_id)))?;
+    let server_id = server_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "mcp",
+            i18n::mcp_server_id_entity_label(locale),
+        ))
+    })?;
+    let server = catalog::find_official_mcp_server(server_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::mcp_server_entity_label(locale),
+            server_id,
+        ))
+    })?;
 
     Ok(render_mcp_server_detail_for_locale(&server, locale))
 }
