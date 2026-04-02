@@ -177,6 +177,9 @@ mod tests {
         "pt-br",
         "Expõe dados tipados de repositório para workflows Ralph Engine.",
     )];
+    const PRIMARY_PLUGIN_ID: &str = "fixture.github";
+    const SECONDARY_PLUGIN_ID: &str = "fixture.archive";
+    const PROVIDER_ID: &str = "fixture.github.data";
 
     #[test]
     fn parse_provider_kind_supports_stable_identifiers() {
@@ -236,14 +239,14 @@ mod tests {
         let registrations = [
             RuntimeProviderRegistration::new(
                 RuntimeProviderKind::DataSource,
-                "official.github",
+                PRIMARY_PLUGIN_ID,
                 PluginActivation::Disabled,
                 PluginLoadBoundary::InProcess,
                 true,
             ),
             RuntimeProviderRegistration::new(
                 RuntimeProviderKind::DataSource,
-                "official.archive",
+                SECONDARY_PLUGIN_ID,
                 PluginActivation::Enabled,
                 PluginLoadBoundary::InProcess,
                 false,
@@ -263,7 +266,7 @@ mod tests {
         // Arrange
         let providers = [RuntimeProviderRegistration::new(
             RuntimeProviderKind::DataSource,
-            "official.github",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
             true,
@@ -272,8 +275,8 @@ mod tests {
         // Act
         let contributions = [OfficialProviderContribution {
             descriptor: PluginProviderDescriptor::new(
-                "official.github.data",
-                "official.github",
+                PROVIDER_ID,
+                PRIMARY_PLUGIN_ID,
                 PluginProviderKind::DataSource,
                 "GitHub data source",
                 PROVIDER_LOCALIZED_NAMES,
@@ -296,7 +299,7 @@ mod tests {
         assert!(rendered.contains("Provider: data_source"));
         assert!(rendered.contains("Providers (1)"));
         assert!(rendered.contains(
-            "- official.github.data | plugin=official.github | name=GitHub data source | summary=Exposes typed repository data to Ralph Engine workflows. | activation=enabled | boundary=in_process | registration_hook=true"
+            "- fixture.github.data | plugin=fixture.github | name=GitHub data source | summary=Exposes typed repository data to Ralph Engine workflows. | activation=enabled | boundary=in_process | registration_hook=true"
         ));
     }
 }

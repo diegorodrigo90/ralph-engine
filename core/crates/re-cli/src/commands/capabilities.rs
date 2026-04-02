@@ -87,6 +87,8 @@ mod tests {
 
     use super::{render_capability_detail, render_capability_listing};
 
+    const PLUGIN_ID: &str = "fixture.templates";
+
     #[test]
     fn render_capability_listing_handles_empty_sets() {
         // Arrange
@@ -104,7 +106,7 @@ mod tests {
         // Arrange
         let providers = [RuntimeCapabilityRegistration::new(
             PluginCapability::new("template"),
-            "official.basic",
+            PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
         )];
@@ -115,14 +117,16 @@ mod tests {
         // Assert
         assert!(rendered.contains("Capability: template"));
         assert!(rendered.contains("Providers (1)"));
-        assert!(rendered.contains("- official.basic | activation=enabled | boundary=in_process"));
+        assert!(
+            rendered.contains("- fixture.templates | activation=enabled | boundary=in_process")
+        );
     }
 
     #[test]
     fn render_capability_detail_supports_pt_br() {
         let providers = [RuntimeCapabilityRegistration::new(
             PluginCapability::new("template"),
-            "official.basic",
+            PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
         )];

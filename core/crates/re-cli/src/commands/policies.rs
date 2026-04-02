@@ -118,11 +118,13 @@ mod tests {
         "pt-br",
         "Política oficial com guardrails estritos de TDD.",
     )];
+    const POLICY_ID: &str = "fixture.strict.guardrails";
+    const PLUGIN_ID: &str = "fixture.strict";
 
     fn policy_descriptor() -> PluginPolicyDescriptor {
         PluginPolicyDescriptor::new(
-            "official.tdd-strict.guardrails",
-            "official.tdd-strict",
+            POLICY_ID,
+            PLUGIN_ID,
             "TDD strict guardrails",
             LOCALIZED_NAMES,
             "Official policy with strict TDD guardrails.",
@@ -151,9 +153,9 @@ mod tests {
             "en",
         );
 
-        assert!(rendered.contains("Policy: official.tdd-strict.guardrails"));
+        assert!(rendered.contains("Policy: fixture.strict.guardrails"));
         assert!(rendered.contains("Name: TDD strict guardrails"));
-        assert!(rendered.contains("Provider: official.tdd-strict"));
+        assert!(rendered.contains("Provider: fixture.strict"));
         assert!(rendered.contains("Activation: enabled"));
         assert!(rendered.contains("Policy enforcement hook: policy_enforcement"));
     }
@@ -170,9 +172,9 @@ mod tests {
             "pt-br",
         );
 
-        assert!(rendered.contains("Política: official.tdd-strict.guardrails"));
+        assert!(rendered.contains("Política: fixture.strict.guardrails"));
         assert!(rendered.contains("Nome: Guardrails TDD estrito"));
-        assert!(rendered.contains("Provedor: official.tdd-strict"));
+        assert!(rendered.contains("Provedor: fixture.strict"));
         assert!(rendered.contains("Hook de aplicação de política: policy_enforcement"));
     }
 }

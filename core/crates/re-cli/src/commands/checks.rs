@@ -163,6 +163,9 @@ mod tests {
         "pt-br",
         "Executa validação tipada de preparo para workflows BMAD.",
     )];
+    const CHECK_ID: &str = "fixture.bmad.prepare";
+    const PRIMARY_PLUGIN_ID: &str = "fixture.bmad";
+    const SECONDARY_PLUGIN_ID: &str = "fixture.other";
 
     #[test]
     fn parse_check_kind_supports_stable_identifiers() {
@@ -215,14 +218,14 @@ mod tests {
         let registrations = [
             RuntimeCheckRegistration::new(
                 RuntimeCheckKind::Prepare,
-                "official.bmad",
+                PRIMARY_PLUGIN_ID,
                 PluginActivation::Enabled,
                 PluginLoadBoundary::InProcess,
                 true,
             ),
             RuntimeCheckRegistration::new(
                 RuntimeCheckKind::Prepare,
-                "official.other",
+                SECONDARY_PLUGIN_ID,
                 PluginActivation::Disabled,
                 PluginLoadBoundary::InProcess,
                 false,
@@ -241,7 +244,7 @@ mod tests {
         // Arrange
         let checks = [RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
-            "official.bmad",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
             true,
@@ -250,8 +253,8 @@ mod tests {
         // Act
         let contributions = [OfficialCheckContribution {
             descriptor: PluginCheckDescriptor::new(
-                "official.bmad.prepare",
-                "official.bmad",
+                CHECK_ID,
+                PRIMARY_PLUGIN_ID,
                 PluginCheckKind::Prepare,
                 "BMAD prepare check",
                 CHECK_LOCALIZED_NAMES,
@@ -270,7 +273,7 @@ mod tests {
         assert!(rendered.contains("Check: prepare"));
         assert!(rendered.contains("Providers (1)"));
         assert!(rendered.contains(
-            "- official.bmad.prepare | plugin=official.bmad | name=BMAD prepare check | summary=Runs typed prepare-time validation for BMAD workflows. | activation=enabled | boundary=in_process | runtime_hook=true"
+            "- fixture.bmad.prepare | plugin=fixture.bmad | name=BMAD prepare check | summary=Runs typed prepare-time validation for BMAD workflows. | activation=enabled | boundary=in_process | runtime_hook=true"
         ));
     }
 
@@ -278,7 +281,7 @@ mod tests {
     fn render_check_detail_supports_pt_br() {
         let checks = [RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
-            "official.bmad",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
             true,
@@ -286,8 +289,8 @@ mod tests {
 
         let contributions = [OfficialCheckContribution {
             descriptor: PluginCheckDescriptor::new(
-                "official.bmad.prepare",
-                "official.bmad",
+                CHECK_ID,
+                PRIMARY_PLUGIN_ID,
                 PluginCheckKind::Prepare,
                 "BMAD prepare check",
                 CHECK_LOCALIZED_NAMES,
