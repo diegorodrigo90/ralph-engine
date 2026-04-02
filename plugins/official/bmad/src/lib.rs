@@ -1,5 +1,7 @@
 //! Official BMAD workflow plugin metadata.
 
+mod i18n;
+
 use re_plugin::{
     DOCTOR_CHECKS, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginDescriptor, PluginKind,
     PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginRuntimeHook,
@@ -8,13 +10,10 @@ use re_plugin::{
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.bmad";
-const PLUGIN_NAME: &str = "BMAD";
-const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "BMAD")];
-const PLUGIN_SUMMARY: &str = "Workflow plugin for BMAD scaffolding and prompts.";
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
-    "pt-br",
-    "Plugin de workflow para scaffolding e prompts do BMAD.",
-)];
+const PLUGIN_NAME: &str = i18n::default_name();
+const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_names();
+const PLUGIN_SUMMARY: &str = i18n::default_summary();
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_summaries();
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] =
     &[TEMPLATE, PROMPT_FRAGMENTS, PREPARE_CHECKS, DOCTOR_CHECKS];
@@ -71,7 +70,9 @@ pub const fn descriptor() -> PluginDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, lifecycle, runtime_hooks};
+    use super::{
+        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, runtime_hooks,
+    };
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -104,10 +105,9 @@ mod tests {
 
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == "BMAD"
-            && plugin.display_name_for_locale("pt-br") == "BMAD"
-            && plugin.summary_for_locale("pt-br")
-                == "Plugin de workflow para scaffolding e prompts do BMAD."
+            && plugin.name == i18n::en::NAME
+            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::NAME
+            && plugin.summary_for_locale("pt-br") == i18n::pt_br::SUMMARY
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert

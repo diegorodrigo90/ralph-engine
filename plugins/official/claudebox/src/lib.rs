@@ -1,5 +1,7 @@
 //! Official Claude Box runtime plugin metadata.
 
+mod i18n;
+
 use re_mcp::{McpAvailability, McpLaunchPolicy, McpServerDescriptor, McpTransport};
 use re_plugin::{
     AGENT_RUNTIME, MCP_CONTRIBUTION, PluginDescriptor, PluginKind, PluginLifecycleStage,
@@ -8,13 +10,10 @@ use re_plugin::{
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.claudebox";
-const PLUGIN_NAME: &str = "Claude Box";
-const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "Claude Box")];
-const PLUGIN_SUMMARY: &str = "Claude Box runtime and MCP session integration.";
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
-    "pt-br",
-    "Integração do runtime Claude Box com sessão MCP.",
-)];
+const PLUGIN_NAME: &str = i18n::default_name();
+const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_names();
+const PLUGIN_SUMMARY: &str = i18n::default_summary();
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_summaries();
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[AGENT_RUNTIME, MCP_CONTRIBUTION];
 const LIFECYCLE: &[PluginLifecycleStage] =
@@ -79,7 +78,8 @@ pub const fn mcp_servers() -> &'static [McpServerDescriptor] {
 #[cfg(test)]
 mod tests {
     use super::{
-        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, lifecycle, mcp_servers, runtime_hooks,
+        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, mcp_servers,
+        runtime_hooks,
     };
 
     #[test]
@@ -113,10 +113,9 @@ mod tests {
 
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == "Claude Box"
-            && plugin.display_name_for_locale("pt-br") == "Claude Box"
-            && plugin.summary_for_locale("pt-br")
-                == "Integração do runtime Claude Box com sessão MCP."
+            && plugin.name == i18n::en::NAME
+            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::NAME
+            && plugin.summary_for_locale("pt-br") == i18n::pt_br::SUMMARY
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert
