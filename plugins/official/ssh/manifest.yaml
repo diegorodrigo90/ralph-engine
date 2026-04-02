@@ -1,7 +1,11 @@
 id: official.ssh
 name: ssh
 display_name: SSH
+display_name_locales:
+  pt-br: SSH
 summary: SSH remote control integration.
+summary_locales:
+  pt-br: Integração de controle remoto por SSH.
 publisher: ralph-engine
 version: 0.2.0-alpha.1
 capabilities:

@@ -13,9 +13,12 @@ use re_plugin::{
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.github";
 const PLUGIN_NAME: &str = "GitHub";
-const LOCALIZED_NAMES: &[PluginLocalizedText] = &[];
+const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "GitHub")];
 const PLUGIN_SUMMARY: &str = "GitHub data, context, forge, and MCP integration.";
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[];
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Integração de dados, contexto, forge e MCP do GitHub.",
+)];
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[
     DATA_SOURCE,
@@ -130,6 +133,9 @@ mod tests {
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
             && plugin.name == "GitHub"
+            && plugin.display_name_for_locale("pt-br") == "GitHub"
+            && plugin.summary_for_locale("pt-br")
+                == "Integração de dados, contexto, forge e MCP do GitHub."
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert

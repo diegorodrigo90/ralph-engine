@@ -1,7 +1,11 @@
 id: official.claudebox
 name: claudebox
 display_name: Claude Box
+display_name_locales:
+  pt-br: Claude Box
 summary: Claude Box runtime and MCP session integration.
+summary_locales:
+  pt-br: Integração do runtime Claude Box com sessão MCP.
 publisher: ralph-engine
 version: 0.2.0-alpha.1
 capabilities:

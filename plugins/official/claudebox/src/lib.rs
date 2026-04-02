@@ -9,9 +9,12 @@ use re_plugin::{
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.claudebox";
 const PLUGIN_NAME: &str = "Claude Box";
-const LOCALIZED_NAMES: &[PluginLocalizedText] = &[];
+const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "Claude Box")];
 const PLUGIN_SUMMARY: &str = "Claude Box runtime and MCP session integration.";
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[];
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Integração do runtime Claude Box com sessão MCP.",
+)];
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[AGENT_RUNTIME, MCP_CONTRIBUTION];
 const LIFECYCLE: &[PluginLifecycleStage] =
@@ -111,6 +114,9 @@ mod tests {
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
             && plugin.name == "Claude Box"
+            && plugin.display_name_for_locale("pt-br") == "Claude Box"
+            && plugin.summary_for_locale("pt-br")
+                == "Integração do runtime Claude Box com sessão MCP."
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert

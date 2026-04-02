@@ -9,9 +9,12 @@ use re_plugin::{
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.bmad";
 const PLUGIN_NAME: &str = "BMAD";
-const LOCALIZED_NAMES: &[PluginLocalizedText] = &[];
+const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "BMAD")];
 const PLUGIN_SUMMARY: &str = "Workflow plugin for BMAD scaffolding and prompts.";
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[];
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Plugin de workflow para scaffolding e prompts do BMAD.",
+)];
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] =
     &[TEMPLATE, PROMPT_FRAGMENTS, PREPARE_CHECKS, DOCTOR_CHECKS];
@@ -102,6 +105,9 @@ mod tests {
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
             && plugin.name == "BMAD"
+            && plugin.display_name_for_locale("pt-br") == "BMAD"
+            && plugin.summary_for_locale("pt-br")
+                == "Plugin de workflow para scaffolding e prompts do BMAD."
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert

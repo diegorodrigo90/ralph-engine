@@ -8,9 +8,12 @@ use re_plugin::{
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.ssh";
 const PLUGIN_NAME: &str = "SSH";
-const LOCALIZED_NAMES: &[PluginLocalizedText] = &[];
+const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "SSH")];
 const PLUGIN_SUMMARY: &str = "SSH remote control integration.";
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[];
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Integração de controle remoto por SSH.",
+)];
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[REMOTE_CONTROL];
 const LIFECYCLE: &[PluginLifecycleStage] =
@@ -91,6 +94,8 @@ mod tests {
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
             && plugin.name == "SSH"
+            && plugin.display_name_for_locale("pt-br") == "SSH"
+            && plugin.summary_for_locale("pt-br") == "Integração de controle remoto por SSH."
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert
