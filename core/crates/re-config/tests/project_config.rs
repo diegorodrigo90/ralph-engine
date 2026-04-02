@@ -132,10 +132,10 @@ fn apply_project_config_patch_merges_plugin_and_mcp_entries_by_identifier() {
     );
     assert_eq!(
         owned.mcp.servers,
-        vec![McpServerConfig::new(
-            TEST_DEFAULT_MCP_SERVER_ID,
-            true,
-        ), McpServerConfig::new(TEST_OVERRIDE_MCP_SERVER_ID, true)]
+        vec![
+            McpServerConfig::new(TEST_DEFAULT_MCP_SERVER_ID, true,),
+            McpServerConfig::new(TEST_OVERRIDE_MCP_SERVER_ID, true)
+        ]
     );
 }
 
