@@ -4,7 +4,10 @@ mod i18n;
 
 use re_config::{ConfigScope, PluginActivation};
 use re_mcp::McpServerDescriptor;
-use re_plugin::{PluginCapability, PluginDescriptor, PluginLoadBoundary, PluginRuntimeHook};
+use re_plugin::{
+    CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, PREPARE_CHECKS, PluginCapability,
+    PluginDescriptor, PluginLoadBoundary, PluginRuntimeHook, REMOTE_CONTROL,
+};
 
 /// Public product name.
 pub const PRODUCT_NAME: &str = "Ralph Engine";
@@ -370,6 +373,16 @@ impl RuntimeCheckKind {
     }
 }
 
+/// Resolves the typed runtime-check surface declared by one plugin capability.
+#[must_use]
+pub fn runtime_check_kind_for_capability(capability: PluginCapability) -> Option<RuntimeCheckKind> {
+    match capability {
+        PREPARE_CHECKS => Some(RuntimeCheckKind::Prepare),
+        DOCTOR_CHECKS => Some(RuntimeCheckKind::Doctor),
+        _ => None,
+    }
+}
+
 /// One typed runtime check registration in the resolved runtime topology.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RuntimeCheckRegistration {
@@ -434,6 +447,20 @@ impl RuntimeProviderKind {
             Self::ForgeProvider => "forge_provider",
             Self::RemoteControl => "remote_control",
         }
+    }
+}
+
+/// Resolves the typed runtime-provider surface declared by one plugin capability.
+#[must_use]
+pub fn runtime_provider_kind_for_capability(
+    capability: PluginCapability,
+) -> Option<RuntimeProviderKind> {
+    match capability {
+        DATA_SOURCE => Some(RuntimeProviderKind::DataSource),
+        CONTEXT_PROVIDER => Some(RuntimeProviderKind::ContextProvider),
+        FORGE_PROVIDER => Some(RuntimeProviderKind::ForgeProvider),
+        REMOTE_CONTROL => Some(RuntimeProviderKind::RemoteControl),
+        _ => None,
     }
 }
 

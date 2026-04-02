@@ -9,12 +9,11 @@ use re_core::{
     RuntimeCheckRegistration, RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase,
     RuntimePluginRegistration, RuntimePolicyRegistration, RuntimePromptRegistration,
     RuntimeProviderKind, RuntimeProviderRegistration, RuntimeTemplateRegistration, RuntimeTopology,
+    runtime_check_kind_for_capability, runtime_provider_kind_for_capability,
 };
 use re_mcp::McpServerDescriptor;
 use re_plugin::{
-    AGENT_RUNTIME, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, POLICY,
-    PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCapability, PluginDescriptor, PluginRuntimeHook,
-    REMOTE_CONTROL, TEMPLATE,
+    AGENT_RUNTIME, POLICY, PROMPT_FRAGMENTS, PluginDescriptor, PluginRuntimeHook, TEMPLATE,
 };
 
 /// Immutable owned snapshot of the official runtime catalog.
@@ -256,14 +255,6 @@ pub fn official_runtime_hooks() -> Vec<RuntimeHookRegistration> {
         .collect()
 }
 
-fn check_kind_for_capability(capability: PluginCapability) -> Option<RuntimeCheckKind> {
-    match capability {
-        PREPARE_CHECKS => Some(RuntimeCheckKind::Prepare),
-        DOCTOR_CHECKS => Some(RuntimeCheckKind::Doctor),
-        _ => None,
-    }
-}
-
 fn runtime_hook_for_check(kind: RuntimeCheckKind) -> PluginRuntimeHook {
     match kind {
         RuntimeCheckKind::Prepare => PluginRuntimeHook::Prepare,
@@ -283,7 +274,7 @@ pub fn official_runtime_checks() -> Vec<RuntimeCheckRegistration> {
                 .iter()
                 .copied()
                 .filter_map(move |capability| {
-                    check_kind_for_capability(capability).map(|kind| {
+                    runtime_check_kind_for_capability(capability).map(|kind| {
                         RuntimeCheckRegistration::new(
                             kind,
                             plugin.descriptor.id,
@@ -298,16 +289,6 @@ pub fn official_runtime_checks() -> Vec<RuntimeCheckRegistration> {
                 })
         })
         .collect()
-}
-
-fn provider_kind_for_capability(capability: PluginCapability) -> Option<RuntimeProviderKind> {
-    match capability {
-        DATA_SOURCE => Some(RuntimeProviderKind::DataSource),
-        CONTEXT_PROVIDER => Some(RuntimeProviderKind::ContextProvider),
-        FORGE_PROVIDER => Some(RuntimeProviderKind::ForgeProvider),
-        REMOTE_CONTROL => Some(RuntimeProviderKind::RemoteControl),
-        _ => None,
-    }
 }
 
 fn registration_hook_for_provider(kind: RuntimeProviderKind) -> PluginRuntimeHook {
@@ -331,7 +312,7 @@ pub fn official_runtime_providers() -> Vec<RuntimeProviderRegistration> {
                 .iter()
                 .copied()
                 .filter_map(move |capability| {
-                    provider_kind_for_capability(capability).map(|kind| {
+                    runtime_provider_kind_for_capability(capability).map(|kind| {
                         RuntimeProviderRegistration::new(
                             kind,
                             plugin.descriptor.id,
@@ -405,6 +386,7 @@ mod tests {
         official_runtime_prompts, official_runtime_providers, official_runtime_snapshot,
         official_runtime_templates,
     };
+    use re_core::{runtime_check_kind_for_capability, runtime_provider_kind_for_capability};
     use re_plugin::{ALL_PLUGIN_CAPABILITIES, PluginCapability, runtime_surface_for_capability};
 
     fn capability_names(capabilities: &[PluginCapability]) -> Vec<&'static str> {
@@ -460,8 +442,8 @@ mod tests {
         let unknown = PluginCapability::new("unknown_surface");
 
         assert_eq!(runtime_surface_for_capability(unknown), None);
-        assert_eq!(super::check_kind_for_capability(unknown), None);
-        assert_eq!(super::provider_kind_for_capability(unknown), None);
+        assert_eq!(runtime_check_kind_for_capability(unknown), None);
+        assert_eq!(runtime_provider_kind_for_capability(unknown), None);
     }
 
     #[test]
