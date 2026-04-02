@@ -38,7 +38,8 @@ cargo test --workspace --all-targets --all-features
 - Developer scaffolding stays tooling-owned: `tools/create-ralph-engine/` is the home of plugin scaffold generation through `npx create-ralph-engine-plugin`, while runtime surfaces stay focused on typed runtime contracts instead of turning scaffolding into a generic runtime responsibility
 - The plugin scaffolder only accepts kinds and capabilities that the typed runtime already defines; future surfaces stay rejected until the core contracts exist for them
 - Official and scaffolded plugin identifiers use the same dotted namespace contract, such as `official.basic` and `acme.jira-suite`
-- Cross-language plugin contracts are verified explicitly so Rust capability contracts and `create-ralph-engine-plugin` supported surfaces cannot drift silently
+- Third-party plugin manifests stay contract-driven: `tools/create-ralph-engine/` owns a versioned `manifest.yaml` schema plus validation helpers so language-agnostic plugin metadata cannot drift away from the typed runtime contracts
+- Cross-language plugin contracts are verified explicitly so Rust capability contracts, manifest schema enums, and `create-ralph-engine-plugin` supported surfaces cannot drift silently
 - Runtime diagnostics stay typed: doctor-style reporting is expected to compose status, unresolved issues, and remediation actions from one shared runtime snapshot instead of re-deriving them ad hoc in separate commands
 - The repository enforces `fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, docs build, and public-surface assembly from the same validation contract
 - SonarCloud is configured as the final coverage gate for analyzed code, and the release path is blocked unless that gate stays at `100%`

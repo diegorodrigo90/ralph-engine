@@ -9,3 +9,4 @@ O reboot mantém estas regras arquiteturais:
 - capabilities continuam sendo o modelo de extensibilidade
 - templates são capabilities de plugin, não um tipo de artefato separado
 - MCP pode ser configurado externamente e ampliado por plugins
+- manifests de plugins de terceiros seguem um contrato versionado de `manifest.yaml` mantido em `tools/create-ralph-engine/`

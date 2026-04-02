@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const readline = require("node:readline/promises");
 const { stdin, stdout, stderr, exit } = require("node:process");
+const { validateManifestDocument } = require("../lib/manifest-contract.js");
 
 const DEFAULT_KIND = "mcp_contribution";
 const DEFAULT_ENGINE_VERSION = ">=0.1.0";
@@ -206,7 +207,9 @@ function validateScaffold(scaffold) {
 
 function createScaffold(scaffold) {
   fs.mkdirSync(scaffold.targetDir, { recursive: true });
-  writeFile(scaffold.targetDir, "manifest.yaml", renderManifest(scaffold));
+  const manifest = renderManifest(scaffold);
+  validateManifestDocument(manifest, "manifest.yaml");
+  writeFile(scaffold.targetDir, "manifest.yaml", manifest);
   writeFile(scaffold.targetDir, "README.md", renderREADME(scaffold));
 
   if (scaffold.capabilities.includes("template")) {

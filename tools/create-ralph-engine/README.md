@@ -13,6 +13,10 @@ runtime defines them explicitly.
 Scaffolded plugin identifiers use the same dotted namespace contract as the
 runtime and official manifests, for example `acme.jira-suite`.
 
+The generated `manifest.yaml` follows the versioned manifest contract shipped in
+`schema/plugin-manifest.schema.json`, and the scaffolder validates that manifest
+before writing it to disk.
+
 ## Usage
 
 ```bash

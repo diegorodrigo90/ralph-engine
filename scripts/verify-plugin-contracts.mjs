@@ -3,8 +3,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { createRequire } from "node:module";
 
 const ROOT_DIR = path.resolve(import.meta.dirname, "..");
+const require = createRequire(import.meta.url);
 const RUST_PLUGIN_CONTRACT_PATH = path.join(
   ROOT_DIR,
   "core",
@@ -19,6 +21,13 @@ const SCAFFOLDER_PATH = path.join(
   "create-ralph-engine",
   "bin",
   "create-ralph-engine-plugin.js",
+);
+const MANIFEST_CONTRACT_PATH = path.join(
+  ROOT_DIR,
+  "tools",
+  "create-ralph-engine",
+  "lib",
+  "manifest-contract.js",
 );
 
 function fail(message) {
@@ -110,11 +119,15 @@ function assertExactSet(actualSet, expectedSet, label) {
 
 const rustPluginContract = readUtf8(RUST_PLUGIN_CONTRACT_PATH);
 const scaffolderSource = readUtf8(SCAFFOLDER_PATH);
+const manifestContract = require(MANIFEST_CONTRACT_PATH);
+const manifestSchema = manifestContract.loadManifestSchema();
 
 const rustCapabilities = parseRustCapabilityConstants(rustPluginContract);
 const rustKinds = parseRustPluginKinds(rustPluginContract);
 const supportedCapabilities = parseScaffolderSet(scaffolderSource, "SUPPORTED_CAPABILITIES");
 const supportedKinds = parseScaffolderSet(scaffolderSource, "SUPPORTED_KINDS");
+const manifestCapabilities = new Set(manifestSchema.properties.capabilities.items.enum);
+const manifestKinds = new Set(manifestSchema.properties.kind.enum);
 const defaultKind = parseDefaultKind(scaffolderSource);
 const defaultCapabilitiesByKind = parseDefaultCapabilitiesByKind(scaffolderSource);
 
@@ -124,6 +137,8 @@ assertExactSet(
   "scaffolder supported capabilities",
 );
 assertExactSet(supportedKinds, rustKinds, "scaffolder supported kinds");
+assertExactSet(manifestCapabilities, rustCapabilities, "manifest schema capabilities");
+assertExactSet(manifestKinds, rustKinds, "manifest schema kinds");
 
 if (!supportedKinds.has(defaultKind)) {
   fail(`DEFAULT_KIND must stay inside SUPPORTED_KINDS: ${defaultKind}`);
