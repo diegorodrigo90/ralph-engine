@@ -13,6 +13,11 @@ pub struct TemplateLocaleCatalog {
     pub summary: &'static str,
 }
 
+pub struct PolicyLocaleCatalog {
+    pub name: &'static str,
+    pub summary: &'static str,
+}
+
 const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
     "pt-br",
     pt_br::PLUGIN_LOCALE.plugin_name,
@@ -28,6 +33,12 @@ const LOCALIZED_TEMPLATE_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::
 const LOCALIZED_TEMPLATE_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
     "pt-br",
     pt_br::TEMPLATE_LOCALE.summary,
+)];
+const LOCALIZED_POLICY_NAMES: &[PluginLocalizedText] =
+    &[PluginLocalizedText::new("pt-br", pt_br::POLICY_LOCALE.name)];
+const LOCALIZED_POLICY_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    pt_br::POLICY_LOCALE.summary,
 )];
 
 #[must_use]
@@ -68,4 +79,24 @@ pub const fn localized_template_names() -> &'static [PluginLocalizedText] {
 #[must_use]
 pub const fn localized_template_summaries() -> &'static [PluginLocalizedText] {
     LOCALIZED_TEMPLATE_SUMMARIES
+}
+
+#[must_use]
+pub const fn default_policy_name() -> &'static str {
+    en::POLICY_LOCALE.name
+}
+
+#[must_use]
+pub const fn default_policy_summary() -> &'static str {
+    en::POLICY_LOCALE.summary
+}
+
+#[must_use]
+pub const fn localized_policy_names() -> &'static [PluginLocalizedText] {
+    LOCALIZED_POLICY_NAMES
+}
+
+#[must_use]
+pub const fn localized_policy_summaries() -> &'static [PluginLocalizedText] {
+    LOCALIZED_POLICY_SUMMARIES
 }

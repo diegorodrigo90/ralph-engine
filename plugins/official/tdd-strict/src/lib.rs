@@ -4,7 +4,8 @@ mod i18n;
 
 use re_plugin::{
     POLICY, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
-    PluginLocalizedText, PluginRuntimeHook, PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
+    PluginLocalizedText, PluginPolicyDescriptor, PluginRuntimeHook, PluginTemplateDescriptor,
+    PluginTrustLevel, TEMPLATE,
 };
 
 /// Stable plugin identifier.
@@ -47,6 +48,14 @@ const TEMPLATES: &[PluginTemplateDescriptor] = &[PluginTemplateDescriptor::new(
     i18n::default_template_summary(),
     i18n::localized_template_summaries(),
 )];
+const POLICIES: &[PluginPolicyDescriptor] = &[PluginPolicyDescriptor::new(
+    "official.tdd-strict.guardrails",
+    PLUGIN_ID,
+    i18n::default_policy_name(),
+    i18n::localized_policy_names(),
+    i18n::default_policy_summary(),
+    i18n::localized_policy_summaries(),
+)];
 
 /// Declared capabilities for the official plugin foundation.
 #[must_use]
@@ -78,11 +87,17 @@ pub const fn templates() -> &'static [PluginTemplateDescriptor] {
     TEMPLATES
 }
 
+/// Returns the immutable policy contributions declared by the plugin.
+#[must_use]
+pub const fn policies() -> &'static [PluginPolicyDescriptor] {
+    POLICIES
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, runtime_hooks,
-        templates,
+        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, policies,
+        runtime_hooks, templates,
     };
 
     #[test]
@@ -162,6 +177,22 @@ mod tests {
         assert_eq!(
             template.summary_for_locale("pt-br"),
             "Template inicial com guardrails estritos de TDD ativados."
+        );
+    }
+
+    #[test]
+    fn plugin_declares_policy_contributions() {
+        let policy = policies()[0];
+
+        assert_eq!(policy.id, "official.tdd-strict.guardrails");
+        assert_eq!(policy.plugin_id, PLUGIN_ID);
+        assert_eq!(
+            policy.display_name_for_locale("pt-br"),
+            "Guardrails TDD estrito"
+        );
+        assert_eq!(
+            policy.summary_for_locale("pt-br"),
+            "Política oficial com guardrails estritos de TDD."
         );
     }
 }

@@ -12,8 +12,6 @@ pub(super) struct CliLocaleCatalog {
     pub resolved_from_label: &'static str,
     pub activation_label: &'static str,
     pub load_boundary_label: &'static str,
-    pub agent_runtime_label: &'static str,
-    pub agent_runtimes_label: &'static str,
     pub policy_label: &'static str,
     pub policies_label: &'static str,
     pub policy_enforcement_hook_label: &'static str,
@@ -28,6 +26,7 @@ pub(super) struct CliLocaleCatalog {
     pub mcp_server_id_entity_label: &'static str,
     pub plugin_config_entity_label: &'static str,
     pub plugin_id_entity_label: &'static str,
+    pub agent_id_entity_label: &'static str,
     pub template_id_entity_label: &'static str,
     pub prompt_id_entity_label: &'static str,
     pub policy_id_entity_label: &'static str,
@@ -192,8 +191,6 @@ catalog_str!(resolved_activation_label, resolved_activation_label);
 catalog_str!(resolved_from_label, resolved_from_label);
 catalog_str!(activation_label, activation_label);
 catalog_str!(load_boundary_label, load_boundary_label);
-catalog_str!(agent_runtime_label, agent_runtime_label);
-catalog_str!(agent_runtimes_label, agent_runtimes_label);
 catalog_str!(policy_label, policy_label);
 catalog_str!(policies_label, policies_label);
 catalog_str!(policy_enforcement_hook_label, policy_enforcement_hook_label);
@@ -214,6 +211,7 @@ catalog_str!(provider_id_entity_label, provider_id_entity_label);
 catalog_str!(locale_id_entity_label, locale_id_entity_label);
 catalog_str!(mcp_server_id_entity_label, mcp_server_id_entity_label);
 catalog_str!(plugin_config_entity_label, plugin_config_entity_label);
+catalog_str!(agent_id_entity_label, agent_id_entity_label);
 catalog_str!(template_id_entity_label, template_id_entity_label);
 catalog_str!(prompt_id_entity_label, prompt_id_entity_label);
 catalog_str!(plugin_entity_label, plugin_entity_label);

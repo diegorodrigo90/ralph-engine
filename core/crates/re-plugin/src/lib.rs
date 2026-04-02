@@ -374,6 +374,108 @@ impl PluginPromptDescriptor {
     }
 }
 
+/// Immutable agent runtime contribution owned by one plugin.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PluginAgentDescriptor {
+    /// Stable agent identifier.
+    pub id: &'static str,
+    /// Plugin that owns the agent runtime.
+    pub plugin_id: &'static str,
+    /// Human-readable agent name.
+    pub name: &'static str,
+    /// Optional localized agent names keyed by locale.
+    pub localized_names: &'static [PluginLocalizedText],
+    /// Human-readable English summary.
+    pub summary: &'static str,
+    /// Optional localized agent summaries keyed by locale.
+    pub localized_summaries: &'static [PluginLocalizedText],
+}
+
+impl PluginAgentDescriptor {
+    /// Creates a new immutable agent descriptor.
+    #[must_use]
+    pub const fn new(
+        id: &'static str,
+        plugin_id: &'static str,
+        name: &'static str,
+        localized_names: &'static [PluginLocalizedText],
+        summary: &'static str,
+        localized_summaries: &'static [PluginLocalizedText],
+    ) -> Self {
+        Self {
+            id,
+            plugin_id,
+            name,
+            localized_names,
+            summary,
+            localized_summaries,
+        }
+    }
+
+    /// Resolves the display name for a locale with English fallback.
+    #[must_use]
+    pub fn display_name_for_locale(&self, locale: &str) -> &'static str {
+        resolve_localized_text(self.localized_names, locale, self.name)
+    }
+
+    /// Resolves the summary for a locale with English fallback.
+    #[must_use]
+    pub fn summary_for_locale(&self, locale: &str) -> &'static str {
+        resolve_localized_text(self.localized_summaries, locale, self.summary)
+    }
+}
+
+/// Immutable policy contribution owned by one plugin.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PluginPolicyDescriptor {
+    /// Stable policy identifier.
+    pub id: &'static str,
+    /// Plugin that owns the policy.
+    pub plugin_id: &'static str,
+    /// Human-readable policy name.
+    pub name: &'static str,
+    /// Optional localized policy names keyed by locale.
+    pub localized_names: &'static [PluginLocalizedText],
+    /// Human-readable English summary.
+    pub summary: &'static str,
+    /// Optional localized policy summaries keyed by locale.
+    pub localized_summaries: &'static [PluginLocalizedText],
+}
+
+impl PluginPolicyDescriptor {
+    /// Creates a new immutable policy descriptor.
+    #[must_use]
+    pub const fn new(
+        id: &'static str,
+        plugin_id: &'static str,
+        name: &'static str,
+        localized_names: &'static [PluginLocalizedText],
+        summary: &'static str,
+        localized_summaries: &'static [PluginLocalizedText],
+    ) -> Self {
+        Self {
+            id,
+            plugin_id,
+            name,
+            localized_names,
+            summary,
+            localized_summaries,
+        }
+    }
+
+    /// Resolves the display name for a locale with English fallback.
+    #[must_use]
+    pub fn display_name_for_locale(&self, locale: &str) -> &'static str {
+        resolve_localized_text(self.localized_names, locale, self.name)
+    }
+
+    /// Resolves the summary for a locale with English fallback.
+    #[must_use]
+    pub fn summary_for_locale(&self, locale: &str) -> &'static str {
+        resolve_localized_text(self.localized_summaries, locale, self.summary)
+    }
+}
+
 /// Typed plugin lifecycle stage identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PluginLifecycleStage {

@@ -1,20 +1,14 @@
 //! Agent runtime command handlers.
 
-use re_core::RuntimeAgentRegistration;
+use crate::{CliError, catalog, i18n};
 
-use crate::{
-    CliError, catalog,
-    commands::plugin_surfaces::{
-        render_plugin_owned_surface_detail, render_plugin_owned_surface_listing,
-    },
-    i18n,
-};
+use catalog::OfficialAgentContribution;
 
 /// Executes the agents command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
         None | Some("list") => Ok(render_agent_listing(
-            &catalog::official_runtime_agents(),
+            &catalog::official_agent_contributions(),
             locale,
         )),
         Some("show") => show_agent(args.get(1).map(String::as_str), locale),
@@ -24,77 +18,113 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     }
 }
 
-fn show_agent(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError> {
-    let plugin_id = plugin_id.ok_or_else(|| {
+fn show_agent(agent_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let agent_id = agent_id.ok_or_else(|| {
         CliError::new(i18n::missing_id(
             locale,
             "agents",
-            i18n::plugin_id_entity_label(locale),
+            i18n::agent_id_entity_label(locale),
         ))
     })?;
-    let agents = catalog::find_official_runtime_agents(plugin_id);
-
-    if agents.is_empty() {
-        return Err(CliError::new(i18n::unknown_entity(
+    let agent = catalog::find_official_agent_contribution(agent_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
             locale,
             i18n::agent_runtime_entity_label(locale),
-            plugin_id,
-        )));
+            agent_id,
+        ))
+    })?;
+
+    Ok(render_agent_detail(agent, locale))
+}
+
+fn render_agent_listing(registrations: &[OfficialAgentContribution], locale: &str) -> String {
+    let mut lines = Vec::with_capacity(registrations.len() + 1);
+    lines.push(i18n::list_heading(
+        locale,
+        "Agent runtimes",
+        "Runtimes de agente",
+        registrations.len(),
+    ));
+
+    for registration in registrations {
+        lines.push(format!(
+            "- {} | {} | plugin={} | activation={}",
+            registration.descriptor.id,
+            registration.descriptor.display_name_for_locale(locale),
+            registration.descriptor.plugin_id,
+            registration.activation.as_str(),
+        ));
     }
 
-    Ok(render_agent_detail(plugin_id, &agents, locale))
+    lines.join("\n")
 }
 
-fn render_agent_listing(registrations: &[RuntimeAgentRegistration], locale: &str) -> String {
-    render_plugin_owned_surface_listing(
-        registrations,
-        locale,
-        i18n::agent_runtimes_label,
-        render_agent_registration,
-    )
-}
+fn render_agent_detail(agent: OfficialAgentContribution, locale: &str) -> String {
+    let name_label = if i18n::is_pt_br(locale) {
+        "Nome"
+    } else {
+        "Name"
+    };
+    let summary_label = if i18n::is_pt_br(locale) {
+        "Resumo"
+    } else {
+        "Summary"
+    };
+    let hook_label = if i18n::is_pt_br(locale) {
+        "Hook de runtime"
+    } else {
+        "Runtime hook"
+    };
 
-fn render_agent_detail(
-    plugin_id: &str,
-    agents: &[RuntimeAgentRegistration],
-    locale: &str,
-) -> String {
-    render_plugin_owned_surface_detail(
-        plugin_id,
-        agents,
-        locale,
-        i18n::agent_runtime_label,
-        render_agent_registration,
-    )
-}
-
-fn render_agent_registration(registration: &RuntimeAgentRegistration) -> String {
     format!(
-        "- {} | activation={} | boundary={} | bootstrap_hook={}",
-        registration.plugin_id,
-        registration.activation.as_str(),
-        registration.load_boundary.as_str(),
-        registration.bootstrap_hook_registered
+        "Agent runtime: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{}: {}\n{}: {}\n{hook_label}: {}",
+        agent.descriptor.id,
+        agent.descriptor.display_name_for_locale(locale),
+        agent.descriptor.summary_for_locale(locale),
+        agent.descriptor.plugin_id,
+        i18n::activation_label(locale),
+        agent.activation.as_str(),
+        i18n::load_boundary_label(locale),
+        agent.load_boundary.as_str(),
+        if agent.bootstrap_hook_registered {
+            "agent_bootstrap"
+        } else {
+            "missing"
+        },
     )
 }
 
 #[cfg(test)]
 mod tests {
     use re_config::PluginActivation;
-    use re_core::RuntimeAgentRegistration;
-    use re_plugin::PluginLoadBoundary;
+    use re_plugin::{PluginAgentDescriptor, PluginLoadBoundary, PluginLocalizedText};
 
-    use super::{render_agent_detail, render_agent_listing};
+    use super::{OfficialAgentContribution, render_agent_detail, render_agent_listing};
+
+    const LOCALIZED_NAMES: &[PluginLocalizedText] =
+        &[PluginLocalizedText::new("pt-br", "Sessão Codex")];
+    const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+        "pt-br",
+        "Sessão de runtime do Codex para o Ralph Engine.",
+    )];
+
+    fn agent_descriptor() -> PluginAgentDescriptor {
+        PluginAgentDescriptor::new(
+            "official.codex.session",
+            "official.codex",
+            "Codex session",
+            LOCALIZED_NAMES,
+            "Codex runtime session for Ralph Engine.",
+            LOCALIZED_SUMMARIES,
+        )
+    }
 
     #[test]
     fn render_agent_listing_handles_empty_sets() {
-        // Arrange
         let registrations = [];
 
-        // Act
         let rendered = render_agent_listing(&registrations, "en");
 
-        // Assert
         assert_eq!(rendered, "Agent runtimes (0)");
     }
 
@@ -109,37 +139,37 @@ mod tests {
 
     #[test]
     fn render_agent_detail_is_human_readable() {
-        // Arrange
-        let agents = [RuntimeAgentRegistration::new(
-            "official.codex",
-            PluginActivation::Enabled,
-            PluginLoadBoundary::InProcess,
-            true,
-        )];
+        let rendered = render_agent_detail(
+            OfficialAgentContribution {
+                descriptor: agent_descriptor(),
+                activation: PluginActivation::Enabled,
+                load_boundary: PluginLoadBoundary::InProcess,
+                bootstrap_hook_registered: true,
+            },
+            "en",
+        );
 
-        // Act
-        let rendered = render_agent_detail("official.codex", &agents, "en");
-
-        // Assert
-        assert!(rendered.contains("Agent runtime: official.codex"));
-        assert!(rendered.contains("Providers (1)"));
-        assert!(rendered.contains(
-            "- official.codex | activation=enabled | boundary=in_process | bootstrap_hook=true"
-        ));
+        assert!(rendered.contains("Agent runtime: official.codex.session"));
+        assert!(rendered.contains("Name: Codex session"));
+        assert!(rendered.contains("Plugin: official.codex"));
+        assert!(rendered.contains("Activation: enabled"));
+        assert!(rendered.contains("Runtime hook: agent_bootstrap"));
     }
 
     #[test]
     fn render_agent_detail_supports_pt_br() {
-        let agents = [RuntimeAgentRegistration::new(
-            "official.codex",
-            PluginActivation::Enabled,
-            PluginLoadBoundary::InProcess,
-            true,
-        )];
+        let rendered = render_agent_detail(
+            OfficialAgentContribution {
+                descriptor: agent_descriptor(),
+                activation: PluginActivation::Enabled,
+                load_boundary: PluginLoadBoundary::InProcess,
+                bootstrap_hook_registered: true,
+            },
+            "pt-br",
+        );
 
-        let rendered = render_agent_detail("official.codex", &agents, "pt-br");
-
-        assert!(rendered.contains("Runtime de agente: official.codex"));
-        assert!(rendered.contains("Provedores (1)"));
+        assert!(rendered.contains("Agent runtime: official.codex.session"));
+        assert!(rendered.contains("Nome: Sessão Codex"));
+        assert!(rendered.contains("Resumo: Sessão de runtime do Codex para o Ralph Engine."));
     }
 }

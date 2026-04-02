@@ -132,8 +132,8 @@ fn binary_agents_list_succeeds() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
     assert!(stdout.contains("Agent runtimes (3)"));
-    assert!(stdout.contains("official.claude"));
-    assert!(stdout.contains("official.codex"));
+    assert!(stdout.contains("official.claude.session"));
+    assert!(stdout.contains("official.codex.session"));
 }
 
 #[test]
@@ -147,14 +147,14 @@ fn binary_agents_list_succeeds_in_pt_br() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
     assert!(stdout.contains("Runtimes de agente (3)"));
-    assert!(stdout.contains("official.codex"));
+    assert!(stdout.contains("official.codex.session"));
 }
 
 #[test]
 fn binary_agents_show_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
-    command.args(["agents", "show", "official.codex"]);
+    command.args(["agents", "show", "official.codex.session"]);
 
     // Act
     let output = command.output().expect("binary should run");
@@ -162,8 +162,8 @@ fn binary_agents_show_succeeds() {
     // Assert
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    assert!(stdout.contains("Agent runtime: official.codex"));
-    assert!(stdout.contains("bootstrap_hook=true"));
+    assert!(stdout.contains("Agent runtime: official.codex.session"));
+    assert!(stdout.contains("Runtime hook: agent_bootstrap"));
 }
 
 #[test]
@@ -425,14 +425,14 @@ fn binary_checks_show_succeeds() {
 fn binary_policies_show_succeeds_in_pt_br() {
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
-    command.args(["policies", "show", "official.tdd-strict"]);
+    command.args(["policies", "show", "official.tdd-strict.guardrails"]);
 
     let output = command.output().expect("binary should run");
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    assert!(stdout.contains("Política: official.tdd-strict"));
-    assert!(stdout.contains("Hook de aplicação de política: true"));
+    assert!(stdout.contains("Política: official.tdd-strict.guardrails"));
+    assert!(stdout.contains("Hook de aplicação de política: policy_enforcement"));
 }
 
 #[test]
@@ -448,14 +448,14 @@ fn binary_policies_list_succeeds() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
     assert!(stdout.contains("Policies (1)"));
-    assert!(stdout.contains("official.tdd-strict"));
+    assert!(stdout.contains("official.tdd-strict.guardrails"));
 }
 
 #[test]
 fn binary_policies_show_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
-    command.args(["policies", "show", "official.tdd-strict"]);
+    command.args(["policies", "show", "official.tdd-strict.guardrails"]);
 
     // Act
     let output = command.output().expect("binary should run");
@@ -463,9 +463,9 @@ fn binary_policies_show_succeeds() {
     // Assert
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    assert!(stdout.contains("Policy: official.tdd-strict"));
+    assert!(stdout.contains("Policy: official.tdd-strict.guardrails"));
     assert!(stdout.contains("Provider: official.tdd-strict"));
-    assert!(stdout.contains("Policy enforcement hook: true"));
+    assert!(stdout.contains("Policy enforcement hook: policy_enforcement"));
 }
 
 #[test]
