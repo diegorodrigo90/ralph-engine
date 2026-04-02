@@ -1,5 +1,7 @@
 //! Official basic starter plugin metadata.
 
+mod i18n;
+
 use re_plugin::{
     PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
     PluginRuntimeHook, PluginTrustLevel, TEMPLATE,
@@ -7,13 +9,10 @@ use re_plugin::{
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.basic";
-const PLUGIN_NAME: &str = "Basic";
-const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "Básico")];
-const PLUGIN_SUMMARY: &str = "Foundation plugin for starter templates.";
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
-    "pt-br",
-    "Plugin base para templates iniciais.",
-)];
+const PLUGIN_NAME: &str = i18n::default_name();
+const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_names();
+const PLUGIN_SUMMARY: &str = i18n::default_summary();
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_summaries();
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[TEMPLATE];
 const LIFECYCLE: &[PluginLifecycleStage] = &[
@@ -63,7 +62,9 @@ pub const fn descriptor() -> PluginDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, lifecycle, runtime_hooks};
+    use super::{
+        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, runtime_hooks,
+    };
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -96,9 +97,9 @@ mod tests {
 
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == "Basic"
-            && plugin.display_name_for_locale("pt-br") == "Básico"
-            && plugin.summary_for_locale("pt-br") == "Plugin base para templates iniciais."
+            && plugin.name == i18n::en::NAME
+            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::NAME
+            && plugin.summary_for_locale("pt-br") == i18n::pt_br::SUMMARY
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert

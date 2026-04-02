@@ -1,5 +1,7 @@
 //! Official GitHub integration plugin metadata.
 
+mod i18n;
+
 use re_mcp::{
     McpAvailability, McpCommandDescriptor, McpEnvironmentPolicy, McpLaunchPolicy,
     McpServerDescriptor, McpTransport, McpWorkingDirectoryPolicy,
@@ -12,13 +14,10 @@ use re_plugin::{
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.github";
-const PLUGIN_NAME: &str = "GitHub";
-const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "GitHub")];
-const PLUGIN_SUMMARY: &str = "GitHub data, context, forge, and MCP integration.";
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
-    "pt-br",
-    "Integração de dados, contexto, forge e MCP do GitHub.",
-)];
+const PLUGIN_NAME: &str = i18n::default_name();
+const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_names();
+const PLUGIN_SUMMARY: &str = i18n::default_summary();
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_summaries();
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[
     DATA_SOURCE,
@@ -98,7 +97,8 @@ pub const fn mcp_servers() -> &'static [McpServerDescriptor] {
 #[cfg(test)]
 mod tests {
     use super::{
-        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, lifecycle, mcp_servers, runtime_hooks,
+        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, mcp_servers,
+        runtime_hooks,
     };
 
     #[test]
@@ -132,10 +132,9 @@ mod tests {
 
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == "GitHub"
-            && plugin.display_name_for_locale("pt-br") == "GitHub"
-            && plugin.summary_for_locale("pt-br")
-                == "Integração de dados, contexto, forge e MCP do GitHub."
+            && plugin.name == i18n::en::NAME
+            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::NAME
+            && plugin.summary_for_locale("pt-br") == i18n::pt_br::SUMMARY
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert

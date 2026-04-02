@@ -1,5 +1,7 @@
 //! Official TDD strict policy plugin metadata.
 
+mod i18n;
+
 use re_plugin::{
     POLICY, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
     PluginLocalizedText, PluginRuntimeHook, PluginTrustLevel, TEMPLATE,
@@ -7,13 +9,10 @@ use re_plugin::{
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.tdd-strict";
-const PLUGIN_NAME: &str = "TDD Strict";
-const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "TDD Estrito")];
-const PLUGIN_SUMMARY: &str = "Strict TDD policy and template guardrails.";
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
-    "pt-br",
-    "Política estrita de TDD com guardrails de template.",
-)];
+const PLUGIN_NAME: &str = i18n::default_name();
+const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_names();
+const PLUGIN_SUMMARY: &str = i18n::default_summary();
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_summaries();
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[TEMPLATE, POLICY];
 const LIFECYCLE: &[PluginLifecycleStage] = &[
@@ -67,7 +66,9 @@ pub const fn descriptor() -> PluginDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, lifecycle, runtime_hooks};
+    use super::{
+        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, runtime_hooks,
+    };
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -100,9 +101,9 @@ mod tests {
 
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == "TDD Strict"
-            && plugin.summary_for_locale("pt-br")
-                == "Política estrita de TDD com guardrails de template."
+            && plugin.name == i18n::en::NAME
+            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::NAME
+            && plugin.summary_for_locale("pt-br") == i18n::pt_br::SUMMARY
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert
