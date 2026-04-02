@@ -34,6 +34,32 @@ fn binary_without_args_succeeds_in_pt_br() {
 }
 
 #[test]
+fn binary_without_args_accepts_global_locale_flag() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["--locale", "pt-br"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Fundação Rust inicializada."));
+}
+
+#[test]
+fn binary_global_locale_flag_overrides_environment() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "en");
+    command.args(["--locale", "pt-br", "plugins", "show", "official.basic"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Nome: Básico"));
+    assert!(stdout.contains("Resumo: Plugin base para templates iniciais."));
+}
+
+#[test]
 fn binary_rejects_unsupported_locale() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
