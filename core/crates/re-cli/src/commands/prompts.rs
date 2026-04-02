@@ -2,7 +2,13 @@
 
 use re_core::RuntimePromptRegistration;
 
-use crate::{CliError, catalog, i18n};
+use crate::{
+    CliError, catalog,
+    commands::plugin_surfaces::{
+        render_plugin_owned_surface_detail, render_plugin_owned_surface_listing,
+    },
+    i18n,
+};
 
 /// Executes the prompts command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
@@ -40,37 +46,11 @@ fn show_prompt(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError
 }
 
 fn render_prompt_listing(registrations: &[RuntimePromptRegistration], locale: &str) -> String {
-    if registrations.is_empty() {
-        return i18n::list_heading(
-            locale,
-            i18n::prompts_label(locale),
-            i18n::prompts_label(locale),
-            0,
-        );
-    }
-
-    let lines = registrations
-        .iter()
-        .map(|registration| {
-            format!(
-                "- {} | activation={} | boundary={} | prompt_hook={}",
-                registration.plugin_id,
-                registration.activation.as_str(),
-                registration.load_boundary.as_str(),
-                registration.prompt_hook_registered
-            )
-        })
-        .collect::<Vec<_>>();
-
-    format!(
-        "{}\n{}",
-        i18n::list_heading(
-            locale,
-            i18n::prompts_label(locale),
-            i18n::prompts_label(locale),
-            lines.len()
-        ),
-        lines.join("\n")
+    render_plugin_owned_surface_listing(
+        registrations,
+        locale,
+        i18n::prompts_label,
+        render_prompt_registration,
     )
 }
 
@@ -79,27 +59,23 @@ fn render_prompt_detail(
     prompts: &[RuntimePromptRegistration],
     locale: &str,
 ) -> String {
-    let mut lines = vec![
-        i18n::detail_heading(
-            locale,
-            i18n::prompt_provider_label(locale),
-            i18n::prompt_provider_label(locale),
-            plugin_id,
-        ),
-        i18n::providers_heading(locale, prompts.len()),
-    ];
+    render_plugin_owned_surface_detail(
+        plugin_id,
+        prompts,
+        locale,
+        i18n::prompt_provider_label,
+        render_prompt_registration,
+    )
+}
 
-    for prompt in prompts {
-        lines.push(format!(
-            "- {} | activation={} | boundary={} | prompt_hook={}",
-            prompt.plugin_id,
-            prompt.activation.as_str(),
-            prompt.load_boundary.as_str(),
-            prompt.prompt_hook_registered
-        ));
-    }
-
-    lines.join("\n")
+fn render_prompt_registration(registration: &RuntimePromptRegistration) -> String {
+    format!(
+        "- {} | activation={} | boundary={} | prompt_hook={}",
+        registration.plugin_id,
+        registration.activation.as_str(),
+        registration.load_boundary.as_str(),
+        registration.prompt_hook_registered
+    )
 }
 
 #[cfg(test)]

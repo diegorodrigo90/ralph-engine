@@ -2,7 +2,13 @@
 
 use re_core::RuntimeAgentRegistration;
 
-use crate::{CliError, catalog, i18n};
+use crate::{
+    CliError, catalog,
+    commands::plugin_surfaces::{
+        render_plugin_owned_surface_detail, render_plugin_owned_surface_listing,
+    },
+    i18n,
+};
 
 /// Executes the agents command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
@@ -40,37 +46,11 @@ fn show_agent(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError>
 }
 
 fn render_agent_listing(registrations: &[RuntimeAgentRegistration], locale: &str) -> String {
-    if registrations.is_empty() {
-        return i18n::list_heading(
-            locale,
-            i18n::agent_runtimes_label(locale),
-            i18n::agent_runtimes_label(locale),
-            0,
-        );
-    }
-
-    let lines = registrations
-        .iter()
-        .map(|registration| {
-            format!(
-                "- {} | activation={} | boundary={} | bootstrap_hook={}",
-                registration.plugin_id,
-                registration.activation.as_str(),
-                registration.load_boundary.as_str(),
-                registration.bootstrap_hook_registered
-            )
-        })
-        .collect::<Vec<_>>();
-
-    format!(
-        "{}\n{}",
-        i18n::list_heading(
-            locale,
-            i18n::agent_runtimes_label(locale),
-            i18n::agent_runtimes_label(locale),
-            lines.len(),
-        ),
-        lines.join("\n")
+    render_plugin_owned_surface_listing(
+        registrations,
+        locale,
+        i18n::agent_runtimes_label,
+        render_agent_registration,
     )
 }
 
@@ -79,27 +59,23 @@ fn render_agent_detail(
     agents: &[RuntimeAgentRegistration],
     locale: &str,
 ) -> String {
-    let mut lines = vec![
-        i18n::detail_heading(
-            locale,
-            i18n::agent_runtime_label(locale),
-            i18n::agent_runtime_label(locale),
-            plugin_id,
-        ),
-        i18n::providers_heading(locale, agents.len()),
-    ];
+    render_plugin_owned_surface_detail(
+        plugin_id,
+        agents,
+        locale,
+        i18n::agent_runtime_label,
+        render_agent_registration,
+    )
+}
 
-    for agent in agents {
-        lines.push(format!(
-            "- {} | activation={} | boundary={} | bootstrap_hook={}",
-            agent.plugin_id,
-            agent.activation.as_str(),
-            agent.load_boundary.as_str(),
-            agent.bootstrap_hook_registered
-        ));
-    }
-
-    lines.join("\n")
+fn render_agent_registration(registration: &RuntimeAgentRegistration) -> String {
+    format!(
+        "- {} | activation={} | boundary={} | bootstrap_hook={}",
+        registration.plugin_id,
+        registration.activation.as_str(),
+        registration.load_boundary.as_str(),
+        registration.bootstrap_hook_registered
+    )
 }
 
 #[cfg(test)]
