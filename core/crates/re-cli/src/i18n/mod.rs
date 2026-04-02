@@ -3,6 +3,7 @@
 use std::env;
 
 use crate::CliError;
+use re_config::SupportedLocale;
 
 pub(super) struct CliLocaleCatalog {
     pub root_bootstrapped: &'static str,
@@ -65,25 +66,24 @@ enum CliLocale {
 }
 
 impl CliLocale {
-    const fn as_str(self) -> &'static str {
-        match self {
-            Self::En => "en",
-            Self::PtBr => "pt-br",
+    const fn from_supported(locale: SupportedLocale) -> Self {
+        match locale {
+            SupportedLocale::En => Self::En,
+            SupportedLocale::PtBr => Self::PtBr,
         }
     }
 }
 
 #[must_use]
 pub fn is_pt_br(locale: &str) -> bool {
-    re_config::resolve_locale_or_default(locale) == "pt-br"
+    matches!(
+        re_config::resolve_supported_locale_or_default(locale),
+        SupportedLocale::PtBr
+    )
 }
 
 fn parse_locale(locale: &str) -> CliLocale {
-    if is_pt_br(locale) {
-        CliLocale::PtBr
-    } else {
-        CliLocale::En
-    }
+    CliLocale::from_supported(re_config::resolve_supported_locale_or_default(locale))
 }
 
 fn locale_catalog(locale: &str) -> &'static CliLocaleCatalog {
@@ -113,13 +113,15 @@ fn resolve_cli_locale_from_env_result(
 
 fn normalize_cli_locale(value: &str) -> Result<&'static str, CliError> {
     let normalized = value.trim();
-    match re_config::canonical_locale_id(normalized) {
-        Some("en") => Ok(CliLocale::En.as_str()),
-        Some("pt-br") => Ok(CliLocale::PtBr.as_str()),
-        Some(other) => Err(CliError::new(format!(
-            "unsupported locale: {other}. supported locales: {}",
-            supported_locale_ids(),
-        ))),
+    match re_config::parse_supported_locale(normalized) {
+        Some(locale) => Ok(locale.as_str()),
+        None if re_config::canonical_locale_id(normalized).is_some() => {
+            let other = normalized.to_ascii_lowercase();
+            Err(CliError::new(format!(
+                "unsupported locale: {other}. supported locales: {}",
+                supported_locale_ids(),
+            )))
+        }
         None => {
             let other = normalized.to_ascii_lowercase();
             Err(CliError::new(format!(
