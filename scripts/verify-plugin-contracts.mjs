@@ -204,6 +204,58 @@ function assertOfficialManifestsStayLocalizedAndVersioned(
   }
 }
 
+function localeModuleFileName(locale) {
+  return locale.replace(/-/g, "_");
+}
+
+function assertOfficialPluginLocaleModules(supportedLocales) {
+  const pluginDirs = fs.readdirSync(OFFICIAL_PLUGIN_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(OFFICIAL_PLUGIN_DIR, entry.name));
+
+  for (const pluginDir of pluginDirs) {
+    const pluginName = path.basename(pluginDir);
+    const sourceDir = path.join(pluginDir, "src");
+    const libPath = path.join(sourceDir, "lib.rs");
+    const i18nDir = path.join(sourceDir, "i18n");
+    const modPath = path.join(i18nDir, "mod.rs");
+
+    if (!fs.existsSync(libPath)) {
+      fail(`official plugin ${pluginName} is missing src/lib.rs`);
+    }
+
+    if (!fs.existsSync(i18nDir)) {
+      fail(`official plugin ${pluginName} is missing src/i18n/`);
+    }
+
+    if (!fs.existsSync(modPath)) {
+      fail(`official plugin ${pluginName} is missing src/i18n/mod.rs`);
+    }
+
+    const libSource = readUtf8(libPath);
+    const modSource = readUtf8(modPath);
+
+    if (!libSource.includes("mod i18n;")) {
+      fail(`official plugin ${pluginName} must declare mod i18n; in src/lib.rs`);
+    }
+
+    for (const locale of supportedLocales) {
+      const localeFile = `${localeModuleFileName(locale)}.rs`;
+      const localePath = path.join(i18nDir, localeFile);
+
+      if (!fs.existsSync(localePath)) {
+        fail(`official plugin ${pluginName} is missing src/i18n/${localeFile}`);
+      }
+
+      if (!modSource.includes(`pub mod ${localeModuleFileName(locale)};`)) {
+        fail(
+          `official plugin ${pluginName} must re-export locale module ${localeModuleFileName(locale)} in src/i18n/mod.rs`,
+        );
+      }
+    }
+  }
+}
+
 function parseDefaultKind(source) {
   const match = source.match(/const DEFAULT_KIND = "([^"]+)";/);
   if (!match) {
@@ -333,5 +385,6 @@ assertOfficialManifestsStayLocalizedAndVersioned(
   rustSupportedLocales,
   workspaceVersion,
 );
+assertOfficialPluginLocaleModules(rustSupportedLocales);
 
 process.stdout.write("Plugin contracts verified.\n");
