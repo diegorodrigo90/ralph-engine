@@ -25,6 +25,8 @@ Secrets usados por esse workflow:
 
 O campo `tag` DEVE incluir o prefixo `v`, por exemplo `v0.2.0-alpha.1`. O workflow remove esse prefixo antes de preparar as versões dos pacotes npm.
 Antes de publicar qualquer coisa, o workflow valida que o SHA selecionado é o HEAD atual de `origin/main` e que o workflow canônico de `CI` já terminou com sucesso exatamente para esse push.
+O workflow também rejeita `publish_npm=true` ou `publish_homebrew=true` quando `publish_github_release=false`, porque os dois canais downstream dependem do conjunto revisado de assets do GitHub Release para a tag selecionada.
+Quando `publish_npm=true`, o workflow também roda `npm pack --json --dry-run` sobre os payloads staged de `ralph-engine` e `create-ralph-engine-plugin` e rejeita a publicação se entradas obrigatórias, `bin`, scripts, nomes de pacote ou versões reescritas estiverem incorretos.
 Esse mesmo workflow de `CI` gera candidates cross-platform de release em paralelo com os gates de qualidade e só publica os artifacts reutilizáveis aprovados para o SHA depois de `Quality`, `Security` e `SonarCloud` terem passado.
 Tanto o contrato revisado de `dist-workspace.toml` quanto os assets gerados por release passam por validação explícita antes que os artefatos sejam aprovados ou promovidos.
 O quality gate do SonarCloud também é a trava dura de cobertura: se ele cair abaixo da meta configurada de `100%` para o código analisado, o SHA não é aprovado para publicação de artifacts nem para promoção de release.
@@ -37,6 +39,9 @@ O quality gate do SonarCloud também é a trava dura de cobertura: se ele cair a
 - As ferramentas de release são pinadas em versões revisadas.
 - O workflow de release DEVE validar o SHA alvo da `main` contra o workflow canônico de `CI` antes de publicar artefatos.
 - O workflow de release DEVE reaproveitar a evidência de `CI` verde desse mesmo SHA da `main`, em vez de rerodar o contrato completo de validação dentro do fluxo de publish.
+- O workflow de release DEVE rejeitar publicação de canais downstream quando `publish_github_release=false`.
+- O workflow de release DEVE validar que o GitHub Release da tag selecionada existe antes de iniciar publicação em npm ou Homebrew.
+- O workflow de release DEVE validar os tarballs staged de npm antes de publicar canais npm.
 - O workflow canônico de `CI` DEVE gerar candidates cross-platform de release para o SHA alvo da `main` em paralelo com os gates de qualidade.
 - O workflow canônico de `CI` DEVE publicar os artifacts reutilizáveis aprovados para esse SHA só depois de `Quality`, `Security` e `SonarCloud` terem passado.
 - O workflow de release DEVE baixar e publicar esse mesmo conjunto aprovado de artifacts, em vez de rebuildá-lo.

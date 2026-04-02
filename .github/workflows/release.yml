@@ -107,12 +107,38 @@ jobs:
         shell: bash
         run: |
           node --check ./scripts/prepare-npm-release.mjs
+          node --check ./scripts/verify-npm-release.mjs
           node --check ./scripts/render-homebrew-formula.mjs
+          bash -n ./scripts/verify-release-channel-contract.sh
           bash -n ./scripts/verify-dist-workspace.sh
           bash -n ./scripts/verify-release-assets.sh
       - name: Verify cargo-dist workspace contract
         shell: bash
         run: ./scripts/verify-dist-workspace.sh
+
+  verify-release-channel-contract:
+    name: Verify release channel contract
+    needs: validate-release-tag
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify release channel contract
+        shell: bash
+        run: |
+          ./scripts/verify-release-channel-contract.sh \
+            "${{ inputs.publish_github_release }}" \
+            "${{ inputs.publish_npm }}" \
+            "${{ inputs.publish_homebrew }}"
 
   fetch-release-artifacts:
     name: Download reusable release artifacts from CI
@@ -120,6 +146,7 @@ jobs:
       - validate-release-tag
       - verify-release-target
       - verify-release-helpers
+      - verify-release-channel-contract
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -214,6 +241,12 @@ jobs:
           else
             gh release create "${{ inputs.tag }}" .release/assets/* --title "${{ inputs.tag }}" --generate-notes
           fi
+      - name: Verify published GitHub Release exists for downstream channels
+        if: inputs.publish_npm || inputs.publish_homebrew
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: gh release view "${{ inputs.tag }}" --repo "${{ github.repository }}" >/dev/null
       - name: Attest published release assets
         if: inputs.publish_github_release
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
@@ -226,6 +259,13 @@ jobs:
           VERSION="${{ inputs.tag }}"
           VERSION="${VERSION#v}"
           node ./scripts/prepare-npm-release.mjs --version "$VERSION" --out-dir .release/npm
+      - name: Verify staged npm package payloads
+        if: inputs.publish_npm
+        shell: bash
+        run: |
+          node ./scripts/verify-npm-release.mjs \
+            --package-dir .release/npm/ralph-engine \
+            --package-dir .release/npm/create-ralph-engine-plugin
       - name: Publish npm packages
         if: inputs.publish_npm
         env:
