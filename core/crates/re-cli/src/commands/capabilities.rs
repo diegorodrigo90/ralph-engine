@@ -22,7 +22,11 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 
 fn show_capability(capability_id: Option<&str>, locale: &str) -> Result<String, CliError> {
     let capability_id = capability_id.ok_or_else(|| {
-        CliError::new(i18n::missing_id(locale, "capabilities", "a capability id"))
+        CliError::new(i18n::missing_id(
+            locale,
+            "capabilities",
+            i18n::capability_id_entity_label(locale),
+        ))
     })?;
     let providers = catalog::official_runtime_capabilities()
         .into_iter()
@@ -32,7 +36,7 @@ fn show_capability(capability_id: Option<&str>, locale: &str) -> Result<String, 
     if providers.is_empty() {
         return Err(CliError::new(i18n::unknown_entity(
             locale,
-            "capability",
+            i18n::capability_entity_label(locale),
             capability_id,
         )));
     }
@@ -74,11 +78,21 @@ fn render_capability_listing(
     }
 
     if lines.is_empty() {
-        i18n::list_heading(locale, "Capabilities", "Capabilities", 0)
+        i18n::list_heading(
+            locale,
+            i18n::capabilities_label(locale),
+            i18n::capabilities_label(locale),
+            0,
+        )
     } else {
         format!(
             "{}\n{}",
-            i18n::list_heading(locale, "Capabilities", "Capabilities", lines.len()),
+            i18n::list_heading(
+                locale,
+                i18n::capabilities_label(locale),
+                i18n::capabilities_label(locale),
+                lines.len(),
+            ),
             lines.join("\n")
         )
     }
@@ -90,7 +104,12 @@ fn render_capability_detail(
     locale: &str,
 ) -> String {
     let mut lines = vec![
-        i18n::detail_heading(locale, "Capability", "Capability", capability_id),
+        i18n::detail_heading(
+            locale,
+            i18n::capability_label(locale),
+            i18n::capability_label(locale),
+            capability_id,
+        ),
         i18n::providers_heading(locale, providers.len()),
     ];
 

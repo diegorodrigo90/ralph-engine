@@ -11,13 +11,31 @@ pub(super) const PROMPTS_LABEL: &str = "Prompts";
 pub(super) const POLICY_LABEL: &str = "Policy";
 pub(super) const POLICIES_LABEL: &str = "Policies";
 pub(super) const POLICY_ENFORCEMENT_HOOK_LABEL: &str = "Hook de enforcement de policy";
+pub(super) const CAPABILITY_LABEL: &str = "Capability";
+pub(super) const CAPABILITIES_LABEL: &str = "Capabilities";
+pub(super) const CHECK_LABEL: &str = "Check";
+pub(super) const CHECKS_LABEL: &str = "Checks";
+pub(super) const HOOK_LABEL: &str = "Hook de runtime";
+pub(super) const HOOKS_LABEL: &str = "Hooks de runtime";
+pub(super) const PROVIDER_LABEL: &str = "Provedor";
+pub(super) const MCP_SERVER_ID_ENTITY_LABEL: &str = "um id de servidor";
+pub(super) const PLUGIN_CONFIG_ENTITY_LABEL: &str = "configuração de plugin";
 pub(super) const PLUGIN_ID_ENTITY_LABEL: &str = "um id de plugin";
 pub(super) const POLICY_ID_ENTITY_LABEL: &str = "um id de policy";
+pub(super) const CAPABILITY_ID_ENTITY_LABEL: &str = "um id de capability";
+pub(super) const CHECK_ID_ENTITY_LABEL: &str = "um id de check";
+pub(super) const HOOK_ID_ENTITY_LABEL: &str = "um id de hook";
+pub(super) const PROVIDER_ID_ENTITY_LABEL: &str = "um id de provedor";
 pub(super) const PLUGIN_ENTITY_LABEL: &str = "plugin";
 pub(super) const AGENT_RUNTIME_ENTITY_LABEL: &str = "runtime de agente";
 pub(super) const TEMPLATE_PROVIDER_ENTITY_LABEL: &str = "provedor de template";
 pub(super) const PROMPT_PROVIDER_ENTITY_LABEL: &str = "provedor de prompt";
 pub(super) const POLICY_ENTITY_LABEL: &str = "policy";
+pub(super) const CAPABILITY_ENTITY_LABEL: &str = "capability";
+pub(super) const CHECK_ENTITY_LABEL: &str = "check";
+pub(super) const HOOK_ENTITY_LABEL: &str = "hook";
+pub(super) const PROVIDER_ENTITY_LABEL: &str = "provedor";
+pub(super) const MCP_SERVER_ENTITY_LABEL: &str = "servidor MCP";
 
 pub(super) fn unknown_command(command_name: &str) -> String {
     format!("comando desconhecido: {command_name}")

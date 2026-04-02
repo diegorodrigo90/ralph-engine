@@ -19,10 +19,20 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 }
 
 fn show_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError> {
-    let check_kind = check_kind
-        .ok_or_else(|| CliError::new(i18n::missing_id(locale, "checks", "a check id")))?;
-    let kind = parse_check_kind(check_kind)
-        .ok_or_else(|| CliError::new(i18n::unknown_entity(locale, "check", check_kind)))?;
+    let check_kind = check_kind.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "checks",
+            i18n::check_id_entity_label(locale),
+        ))
+    })?;
+    let kind = parse_check_kind(check_kind).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::check_entity_label(locale),
+            check_kind,
+        ))
+    })?;
     let checks = catalog::official_runtime_checks()
         .into_iter()
         .filter(|registration| registration.kind == kind)
@@ -67,11 +77,21 @@ fn render_check_listing(registrations: &[RuntimeCheckRegistration], locale: &str
     }
 
     if lines.is_empty() {
-        i18n::list_heading(locale, "Checks", "Checks", 0)
+        i18n::list_heading(
+            locale,
+            i18n::checks_label(locale),
+            i18n::checks_label(locale),
+            0,
+        )
     } else {
         format!(
             "{}\n{}",
-            i18n::list_heading(locale, "Checks", "Checks", lines.len()),
+            i18n::list_heading(
+                locale,
+                i18n::checks_label(locale),
+                i18n::checks_label(locale),
+                lines.len(),
+            ),
             lines.join("\n")
         )
     }
@@ -83,7 +103,12 @@ fn render_check_detail(
     locale: &str,
 ) -> String {
     let mut lines = vec![
-        i18n::detail_heading(locale, "Check", "Check", kind.as_str()),
+        i18n::detail_heading(
+            locale,
+            i18n::check_label(locale),
+            i18n::check_label(locale),
+            kind.as_str(),
+        ),
         i18n::providers_heading(locale, checks.len()),
     ];
 

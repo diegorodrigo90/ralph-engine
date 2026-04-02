@@ -221,6 +221,62 @@ pub fn policy_enforcement_hook_label(locale: &str) -> &'static str {
 }
 
 #[must_use]
+pub fn capability_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::CAPABILITY_LABEL,
+        CliLocale::PtBr => pt_br::CAPABILITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn capabilities_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::CAPABILITIES_LABEL,
+        CliLocale::PtBr => pt_br::CAPABILITIES_LABEL,
+    }
+}
+
+#[must_use]
+pub fn check_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::CHECK_LABEL,
+        CliLocale::PtBr => pt_br::CHECK_LABEL,
+    }
+}
+
+#[must_use]
+pub fn checks_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::CHECKS_LABEL,
+        CliLocale::PtBr => pt_br::CHECKS_LABEL,
+    }
+}
+
+#[must_use]
+pub fn hook_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::HOOK_LABEL,
+        CliLocale::PtBr => pt_br::HOOK_LABEL,
+    }
+}
+
+#[must_use]
+pub fn hooks_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::HOOKS_LABEL,
+        CliLocale::PtBr => pt_br::HOOKS_LABEL,
+    }
+}
+
+#[must_use]
+pub fn provider_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::PROVIDER_LABEL,
+        CliLocale::PtBr => pt_br::PROVIDER_LABEL,
+    }
+}
+
+#[must_use]
 pub fn plugin_id_entity_label(locale: &str) -> &'static str {
     match parse_locale(locale) {
         CliLocale::En => en::PLUGIN_ID_ENTITY_LABEL,
@@ -237,10 +293,98 @@ pub fn policy_id_entity_label(locale: &str) -> &'static str {
 }
 
 #[must_use]
+pub fn capability_id_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::CAPABILITY_ID_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::CAPABILITY_ID_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn check_id_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::CHECK_ID_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::CHECK_ID_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn hook_id_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::HOOK_ID_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::HOOK_ID_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn provider_id_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::PROVIDER_ID_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::PROVIDER_ID_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn mcp_server_id_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::MCP_SERVER_ID_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::MCP_SERVER_ID_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn plugin_config_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::PLUGIN_CONFIG_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::PLUGIN_CONFIG_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
 pub fn plugin_entity_label(locale: &str) -> &'static str {
     match parse_locale(locale) {
         CliLocale::En => en::PLUGIN_ENTITY_LABEL,
         CliLocale::PtBr => pt_br::PLUGIN_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn mcp_server_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::MCP_SERVER_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::MCP_SERVER_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn capability_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::CAPABILITY_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::CAPABILITY_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn check_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::CHECK_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::CHECK_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn hook_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::HOOK_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::HOOK_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn provider_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::PROVIDER_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::PROVIDER_ENTITY_LABEL,
     }
 }
 

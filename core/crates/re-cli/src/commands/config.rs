@@ -26,10 +26,20 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 }
 
 fn show_plugin(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError> {
-    let plugin_id = plugin_id
-        .ok_or_else(|| CliError::new(i18n::missing_id(locale, "config", "a plugin id")))?;
-    let plugin = catalog::find_official_plugin(plugin_id)
-        .ok_or_else(|| CliError::new(i18n::unknown_entity(locale, "plugin config", plugin_id)))?;
+    let plugin_id = plugin_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "config",
+            i18n::plugin_id_entity_label(locale),
+        ))
+    })?;
+    let plugin = catalog::find_official_plugin(plugin_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::plugin_config_entity_label(locale),
+            plugin_id,
+        ))
+    })?;
     let resolved = resolve_plugin_config(canonical_config_layers(), plugin.id).unwrap_or(
         ResolvedPluginConfig::new(
             plugin.id,
