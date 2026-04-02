@@ -185,6 +185,7 @@ mod tests {
             template.summary_for_locale("es"),
             "Starter template for new Ralph Engine projects."
         );
+        assert_eq!(template.display_name_for_locale("es"), "Basic starter");
     }
 
     #[test]

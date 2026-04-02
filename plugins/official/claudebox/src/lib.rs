@@ -156,6 +156,10 @@ mod tests {
             servers[0].display_name_for_locale("pt-br"),
             "Sessão Claude Box"
         );
+        assert_eq!(
+            servers[0].display_name_for_locale("es"),
+            i18n::en::MCP_SERVER_LOCALE.name
+        );
     }
 
     #[test]
@@ -192,6 +196,10 @@ mod tests {
         assert_eq!(
             agent.summary_for_locale("pt-br"),
             "Sessão de runtime do Claude Box para o Ralph Engine."
+        );
+        assert_eq!(
+            agent.summary_for_locale("es"),
+            "Claude Box runtime session for Ralph Engine."
         );
     }
 

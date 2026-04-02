@@ -159,6 +159,10 @@ mod tests {
             providers[0].display_name_for_locale("pt-br"),
             "Controle remoto SSH"
         );
+        assert_eq!(
+            providers[0].summary_for_locale("es"),
+            i18n::en::REMOTE_CONTROL_LOCALE.summary
+        );
     }
 
     #[test]
