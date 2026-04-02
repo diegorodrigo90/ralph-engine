@@ -888,6 +888,19 @@ mod tests {
     }
 
     #[test]
+    fn execute_doctor_config_returns_merged_project_config() {
+        let command = args(&["ralph-engine", "doctor", "config"]);
+
+        let output = execute(command).expect("doctor config should succeed");
+
+        assert!(output.contains("schema_version: 1"));
+        assert!(output.contains("default_locale: en"));
+        assert!(output.contains("- id: official.github"));
+        assert!(output.contains("- id: official.github.repository"));
+        assert!(output.contains("enabled: true"));
+    }
+
+    #[test]
     fn execute_unknown_doctor_subcommand_fails() {
         // Arrange
         let command = args(&["ralph-engine", "doctor", "plugins"]);

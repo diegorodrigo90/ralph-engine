@@ -18,6 +18,7 @@ ralph-engine checks list
 ralph-engine checks show <check-id>
 ralph-engine doctor
 ralph-engine doctor runtime
+ralph-engine doctor config
 ralph-engine hooks
 ralph-engine hooks list
 ralph-engine hooks show <hook-id>
@@ -74,6 +75,8 @@ A família `prompts` imprime o registro tipado de prompts do runtime para que pr
 A família `checks` imprime o registro tipado de checks do runtime para que contribuições de validação de prepare e doctor permaneçam explícitas, em vez de ficarem escondidas só como capabilities genéricas.
 
 A família `doctor` imprime o relatório tipado de diagnóstico do runtime, compondo status, issues pendentes e ações de remediação a partir de um snapshot compartilhado do runtime, em vez de espalhar o diagnóstico por lógicas ad hoc em cada comando.
+
+O comando `doctor config` renderiza a mesma configuração de projeto resultante da aplicação do patch de remediação do runtime sobre os defaults atuais, para que o fluxo de diagnóstico aponte diretamente para um alvo de remediação inspecionável em vez de parar só na análise.
 
 A família `config locale` imprime o contrato tipado do locale padrão, para que o i18n da CLI permaneça inspecionável em vez de ficar implícito nos defaults do runtime.
 
