@@ -34,6 +34,37 @@ impl LocaleDescriptor {
     }
 }
 
+/// Canonical supported runtime locales.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SupportedLocale {
+    /// English locale.
+    En,
+    /// Portuguese (Brazil) locale.
+    PtBr,
+}
+
+impl SupportedLocale {
+    /// Returns the canonical locale identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::En => "en",
+            Self::PtBr => "pt-br",
+        }
+    }
+
+    /// Returns the immutable locale descriptor.
+    #[must_use]
+    pub const fn descriptor(self) -> LocaleDescriptor {
+        match self {
+            Self::En => LocaleDescriptor::new("en", "English", "English", false),
+            Self::PtBr => {
+                LocaleDescriptor::new("pt-br", "Portuguese (Brazil)", "Português (Brasil)", true)
+            }
+        }
+    }
+}
+
 /// Typed project configuration contract.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ProjectConfig {
@@ -192,8 +223,8 @@ const DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
     PluginActivation::Enabled,
 )];
 const SUPPORTED_LOCALES: &[LocaleDescriptor] = &[
-    LocaleDescriptor::new("en", "English", "English", false),
-    LocaleDescriptor::new("pt-br", "Portuguese (Brazil)", "Português (Brasil)", true),
+    SupportedLocale::En.descriptor(),
+    SupportedLocale::PtBr.descriptor(),
 ];
 const DEFAULT_MCP: McpConfig = McpConfig {
     enabled: true,
@@ -258,10 +289,26 @@ pub fn canonical_locale_id(locale_id: &str) -> Option<&'static str> {
     find_locale_descriptor(locale_id).map(|locale| locale.id)
 }
 
+/// Parses one locale identifier into the canonical typed locale when supported.
+#[must_use]
+pub fn parse_supported_locale(locale_id: &str) -> Option<SupportedLocale> {
+    match canonical_locale_id(locale_id) {
+        Some("en") => Some(SupportedLocale::En),
+        Some("pt-br") => Some(SupportedLocale::PtBr),
+        _ => None,
+    }
+}
+
 /// Resolves one locale identifier to a supported value, falling back to English.
 #[must_use]
 pub fn resolve_locale_or_default(locale_id: &str) -> &'static str {
-    canonical_locale_id(locale_id).unwrap_or(DEFAULT_LOCALE)
+    resolve_supported_locale_or_default(locale_id).as_str()
+}
+
+/// Resolves one locale identifier to a supported typed value, falling back to English.
+#[must_use]
+pub fn resolve_supported_locale_or_default(locale_id: &str) -> SupportedLocale {
+    parse_supported_locale(locale_id).unwrap_or(SupportedLocale::En)
 }
 
 /// Returns one immutable plugin config entry by identifier.

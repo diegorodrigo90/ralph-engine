@@ -3,11 +3,12 @@
 use re_config::{
     CANONICAL_CONFIG_LAYERS, CANONICAL_SUPPORTED_LOCALES, ConfigScope, DEFAULT_LOCALE, McpConfig,
     McpDiscovery, PluginActivation, PluginConfig, ProjectConfig, ProjectConfigLayer,
-    ResolvedPluginConfig, RuntimeBudgetConfig, canonical_config_layers, default_project_config,
-    default_project_config_layer, find_locale_descriptor, find_plugin_config,
-    render_config_layers_yaml, render_default_locale_yaml, render_locale_descriptor_yaml,
-    render_project_config_yaml, render_resolved_plugin_config_yaml, render_runtime_budgets_yaml,
-    render_supported_locales_yaml, resolve_locale_or_default, resolve_plugin_config,
+    ResolvedPluginConfig, RuntimeBudgetConfig, SupportedLocale, canonical_config_layers,
+    default_project_config, default_project_config_layer, find_locale_descriptor,
+    find_plugin_config, parse_supported_locale, render_config_layers_yaml,
+    render_default_locale_yaml, render_locale_descriptor_yaml, render_project_config_yaml,
+    render_resolved_plugin_config_yaml, render_runtime_budgets_yaml, render_supported_locales_yaml,
+    resolve_locale_or_default, resolve_plugin_config, resolve_supported_locale_or_default,
     supported_locales,
 };
 
@@ -105,6 +106,25 @@ fn resolve_locale_or_default_returns_supported_locale() {
 #[test]
 fn resolve_locale_or_default_falls_back_to_english() {
     assert_eq!(resolve_locale_or_default("es"), "en");
+}
+
+#[test]
+fn parse_supported_locale_returns_typed_locale() {
+    assert_eq!(parse_supported_locale("pt-BR"), Some(SupportedLocale::PtBr));
+    assert_eq!(parse_supported_locale("en"), Some(SupportedLocale::En));
+    assert_eq!(parse_supported_locale("es"), None);
+}
+
+#[test]
+fn resolve_supported_locale_or_default_returns_typed_locale() {
+    assert_eq!(
+        resolve_supported_locale_or_default("pt-BR"),
+        SupportedLocale::PtBr
+    );
+    assert_eq!(
+        resolve_supported_locale_or_default("es"),
+        SupportedLocale::En
+    );
 }
 
 #[test]

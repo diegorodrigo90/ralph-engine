@@ -21,26 +21,10 @@ pub(super) struct RuntimeLocaleCatalog {
 mod en;
 mod pt_br;
 
-#[derive(Clone, Copy)]
-enum RuntimeLocale {
-    En,
-    PtBr,
-}
-
-impl RuntimeLocale {
-    fn resolve(locale: &str) -> Self {
-        if re_config::resolve_locale_or_default(locale) == "pt-br" {
-            Self::PtBr
-        } else {
-            Self::En
-        }
-    }
-}
-
 fn locale_catalog(locale: &str) -> &'static RuntimeLocaleCatalog {
-    match RuntimeLocale::resolve(locale) {
-        RuntimeLocale::En => &en::LOCALE,
-        RuntimeLocale::PtBr => &pt_br::LOCALE,
+    match re_config::resolve_supported_locale_or_default(locale) {
+        re_config::SupportedLocale::En => &en::LOCALE,
+        re_config::SupportedLocale::PtBr => &pt_br::LOCALE,
     }
 }
 
