@@ -807,6 +807,43 @@ impl RuntimeDoctorReport {
     }
 }
 
+/// Immutable runtime snapshot derived from one resolved topology.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RuntimeSnapshot<'a> {
+    /// Resolved topology used to derive the snapshot.
+    pub topology: RuntimeTopology<'a>,
+    /// Derived runtime status.
+    pub status: RuntimeStatus,
+    /// Derived unresolved issues.
+    pub issues: Vec<RuntimeIssue>,
+    /// Derived remediation actions.
+    pub actions: Vec<RuntimeAction>,
+}
+
+impl<'a> RuntimeSnapshot<'a> {
+    /// Creates a new immutable runtime snapshot.
+    #[must_use]
+    pub fn new(
+        topology: RuntimeTopology<'a>,
+        status: RuntimeStatus,
+        issues: Vec<RuntimeIssue>,
+        actions: Vec<RuntimeAction>,
+    ) -> Self {
+        Self {
+            topology,
+            status,
+            issues,
+            actions,
+        }
+    }
+
+    /// Builds the doctor report view for this snapshot.
+    #[must_use]
+    pub fn doctor_report(&self) -> RuntimeDoctorReport {
+        RuntimeDoctorReport::new(self.status, self.issues.clone(), self.actions.clone())
+    }
+}
+
 /// Renders a human-readable runtime topology summary.
 #[must_use]
 pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
@@ -1472,11 +1509,17 @@ pub fn render_runtime_action_plan_for_locale(actions: &[RuntimeAction], locale: 
 /// Builds a typed runtime doctor report from the resolved topology.
 #[must_use]
 pub fn build_runtime_doctor_report(topology: &RuntimeTopology<'_>) -> RuntimeDoctorReport {
+    build_runtime_snapshot(topology).doctor_report()
+}
+
+/// Builds a typed runtime snapshot from the resolved topology.
+#[must_use]
+pub fn build_runtime_snapshot<'a>(topology: &'a RuntimeTopology<'a>) -> RuntimeSnapshot<'a> {
     let status = evaluate_runtime_status(topology);
     let issues = collect_runtime_issues(topology);
     let actions = build_runtime_action_plan(topology);
 
-    RuntimeDoctorReport::new(status, issues, actions)
+    RuntimeSnapshot::new(*topology, status, issues, actions)
 }
 
 /// Renders a human-readable runtime doctor report.
@@ -1522,16 +1565,16 @@ mod tests {
         RuntimeDoctorReport, RuntimeHealth, RuntimeHookRegistration, RuntimeIssue,
         RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
         RuntimePolicyRegistration, RuntimePromptRegistration, RuntimeProviderKind,
-        RuntimeProviderRegistration, RuntimeStatus, RuntimeTemplateRegistration, RuntimeTopology,
-        agent_runtime_hook, banner, build_runtime_action_plan, build_runtime_doctor_report,
-        capability_activates_agent_surface, capability_activates_policy_surface,
-        capability_activates_prompt_surface, capability_activates_template_surface,
-        collect_runtime_issues, evaluate_runtime_status, policy_runtime_hook, prompt_runtime_hook,
-        render_runtime_action_plan, render_runtime_action_plan_for_locale,
-        render_runtime_doctor_report, render_runtime_doctor_report_for_locale,
-        render_runtime_issues, render_runtime_issues_for_locale, render_runtime_status,
-        render_runtime_status_for_locale, render_runtime_topology,
-        render_runtime_topology_for_locale, template_runtime_hook,
+        RuntimeProviderRegistration, RuntimeSnapshot, RuntimeStatus, RuntimeTemplateRegistration,
+        RuntimeTopology, agent_runtime_hook, banner, build_runtime_action_plan,
+        build_runtime_doctor_report, build_runtime_snapshot, capability_activates_agent_surface,
+        capability_activates_policy_surface, capability_activates_prompt_surface,
+        capability_activates_template_surface, collect_runtime_issues, evaluate_runtime_status,
+        policy_runtime_hook, prompt_runtime_hook, render_runtime_action_plan,
+        render_runtime_action_plan_for_locale, render_runtime_doctor_report,
+        render_runtime_doctor_report_for_locale, render_runtime_issues,
+        render_runtime_issues_for_locale, render_runtime_status, render_runtime_status_for_locale,
+        render_runtime_topology, render_runtime_topology_for_locale, template_runtime_hook,
     };
 
     const CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -1888,6 +1931,104 @@ mod tests {
         assert_eq!(prompt_runtime_hook(), PluginRuntimeHook::PromptAssembly);
         assert_eq!(agent_runtime_hook(), PluginRuntimeHook::AgentBootstrap);
         assert_eq!(policy_runtime_hook(), PluginRuntimeHook::PolicyEnforcement);
+    }
+
+    #[test]
+    fn build_runtime_snapshot_collects_runtime_state_once() {
+        let plugins = [RuntimePluginRegistration::new(
+            plugin_descriptor(),
+            PluginActivation::Enabled,
+            ConfigScope::BuiltInDefaults,
+        )];
+        let capabilities = [capability_registration()];
+        let templates = [template_registration()];
+        let prompts = [prompt_registration()];
+        let agents = [agent_registration()];
+        let checks = [check_registration()];
+        let providers = [provider_registration()];
+        let policies = [policy_registration()];
+        let hooks = [hook_registration()];
+        let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), true)];
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &plugins,
+            capabilities: &capabilities,
+            templates: &templates,
+            prompts: &prompts,
+            agents: &agents,
+            checks: &checks,
+            providers: &providers,
+            policies: &policies,
+            hooks: &hooks,
+            mcp_servers: &mcp_servers,
+        };
+
+        let snapshot = build_runtime_snapshot(&topology);
+
+        assert_eq!(snapshot.topology, topology);
+        assert_eq!(snapshot.status.health, RuntimeHealth::Healthy);
+        assert!(snapshot.issues.is_empty());
+        assert!(snapshot.actions.is_empty());
+    }
+
+    #[test]
+    fn runtime_snapshot_builds_doctor_report_view() {
+        let report = RuntimeSnapshot::new(
+            RuntimeTopology {
+                phase: RuntimePhase::Bootstrapped,
+                locale: "en",
+                plugins: &[],
+                capabilities: &[],
+                templates: &[],
+                prompts: &[],
+                agents: &[],
+                checks: &[],
+                providers: &[],
+                policies: &[],
+                hooks: &[],
+                mcp_servers: &[],
+            },
+            RuntimeStatus {
+                phase: RuntimePhase::Bootstrapped,
+                health: RuntimeHealth::Degraded,
+                enabled_plugins: 0,
+                disabled_plugins: 0,
+                enabled_capabilities: 0,
+                disabled_capabilities: 0,
+                enabled_templates: 0,
+                disabled_templates: 0,
+                enabled_prompts: 0,
+                disabled_prompts: 0,
+                enabled_agents: 0,
+                disabled_agents: 0,
+                enabled_checks: 0,
+                disabled_checks: 0,
+                enabled_providers: 0,
+                disabled_providers: 0,
+                enabled_policies: 0,
+                disabled_policies: 0,
+                enabled_hooks: 0,
+                disabled_hooks: 0,
+                enabled_mcp_servers: 0,
+                disabled_mcp_servers: 0,
+            },
+            vec![RuntimeIssue::new(
+                RuntimeIssueKind::PluginDisabled,
+                "official.basic",
+                "enable plugin official.basic",
+            )],
+            vec![RuntimeAction::new(
+                RuntimeActionKind::EnablePlugin,
+                "official.basic",
+                "enable plugin official.basic",
+            )],
+        )
+        .doctor_report();
+
+        assert_eq!(report.status.health, RuntimeHealth::Degraded);
+        assert_eq!(report.issues.len(), 1);
+        assert_eq!(report.actions.len(), 1);
     }
 
     #[test]
