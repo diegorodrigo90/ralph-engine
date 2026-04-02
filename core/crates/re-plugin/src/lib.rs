@@ -289,6 +289,23 @@ impl PluginTemplateAsset {
     }
 }
 
+/// One immutable prompt asset entry owned by one prompt contribution.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PluginPromptAsset {
+    /// Stable relative asset path exposed by the prompt contribution.
+    pub path: &'static str,
+    /// Immutable embedded prompt contents.
+    pub contents: &'static str,
+}
+
+impl PluginPromptAsset {
+    /// Creates one immutable prompt asset entry.
+    #[must_use]
+    pub const fn new(path: &'static str, contents: &'static str) -> Self {
+        Self { path, contents }
+    }
+}
+
 /// Immutable template contribution owned by one plugin.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PluginTemplateDescriptor {
@@ -365,6 +382,8 @@ pub struct PluginPromptDescriptor {
     pub summary: &'static str,
     /// Optional localized prompt summaries keyed by locale.
     pub localized_summaries: &'static [PluginLocalizedText],
+    /// Immutable prompt assets exposed by this contribution.
+    pub assets: &'static [PluginPromptAsset],
 }
 
 impl PluginPromptDescriptor {
@@ -377,6 +396,7 @@ impl PluginPromptDescriptor {
         localized_names: &'static [PluginLocalizedText],
         summary: &'static str,
         localized_summaries: &'static [PluginLocalizedText],
+        assets: &'static [PluginPromptAsset],
     ) -> Self {
         Self {
             id,
@@ -385,6 +405,7 @@ impl PluginPromptDescriptor {
             localized_names,
             summary,
             localized_summaries,
+            assets,
         }
     }
 
@@ -398,6 +419,12 @@ impl PluginPromptDescriptor {
     #[must_use]
     pub fn summary_for_locale(&self, locale: &str) -> &'static str {
         resolve_localized_text(self.localized_summaries, locale, self.summary)
+    }
+
+    /// Returns whether the prompt exposes embedded assets.
+    #[must_use]
+    pub const fn has_assets(&self) -> bool {
+        !self.assets.is_empty()
     }
 }
 
