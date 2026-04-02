@@ -5,7 +5,7 @@ use re_mcp::{
     McpServerDescriptor, McpTransport, McpWorkingDirectoryPolicy,
 };
 use re_plugin::{
-    CONTEXT_PROVIDER, DATA_SOURCE, FORGE_PROVIDER, MCP_CONTRIBUTION, PluginDescriptor,
+    CONTEXT_PROVIDER, DATA_SOURCE, FORGE_PROVIDER, MCP_CONTRIBUTION, PluginDescriptor, PluginKind,
     PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook,
 };
 
@@ -32,6 +32,7 @@ const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
 ];
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
+    PluginKind::DataSource,
     PLUGIN_NAME,
     PLUGIN_VERSION,
     CAPABILITIES,

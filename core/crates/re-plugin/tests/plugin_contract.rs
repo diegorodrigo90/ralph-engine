@@ -1,10 +1,10 @@
 //! Integration tests for the shared Ralph Engine plugin contract.
 
 use re_plugin::{
-    AGENT_RUNTIME, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, MCP_CONTRIBUTION,
-    POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCapability, PluginDescriptor,
-    PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook, REMOTE_CONTROL, TEMPLATE,
-    render_plugin_detail, render_plugin_listing,
+    AGENT_RUNTIME, ALL_PLUGIN_KINDS, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER,
+    MCP_CONTRIBUTION, POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCapability, PluginDescriptor,
+    PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook, REMOTE_CONTROL,
+    TEMPLATE, render_plugin_detail, render_plugin_listing,
 };
 
 const BASIC_CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -32,6 +32,7 @@ const GITHUB_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
 fn basic_plugin() -> PluginDescriptor {
     PluginDescriptor::new(
         "official.basic",
+        PluginKind::Template,
         "Basic",
         "0.2.0-alpha.1",
         BASIC_CAPABILITIES,
@@ -44,6 +45,7 @@ fn basic_plugin() -> PluginDescriptor {
 fn github_plugin() -> PluginDescriptor {
     PluginDescriptor::new(
         "official.github",
+        PluginKind::DataSource,
         "GitHub",
         "0.2.0-alpha.1",
         GITHUB_CAPABILITIES,
@@ -56,6 +58,7 @@ fn github_plugin() -> PluginDescriptor {
 fn invalid_plugin() -> PluginDescriptor {
     PluginDescriptor::new(
         "basic",
+        PluginKind::Template,
         "Broken",
         "0.2.0-alpha.1",
         &[],
@@ -152,6 +155,31 @@ fn lifecycle_as_str_is_stable() {
 }
 
 #[test]
+fn kind_as_str_is_stable() {
+    // Arrange
+    let rendered = ALL_PLUGIN_KINDS
+        .iter()
+        .copied()
+        .map(PluginKind::as_str)
+        .collect::<Vec<_>>();
+
+    // Assert
+    assert_eq!(
+        rendered,
+        vec![
+            "template",
+            "agent_runtime",
+            "forge_provider",
+            "context_provider",
+            "data_source",
+            "remote_control",
+            "mcp_contribution",
+            "policy",
+        ]
+    );
+}
+
+#[test]
 fn load_boundary_display_is_stable() {
     // Arrange
     let boundaries = [
@@ -222,6 +250,7 @@ fn descriptor_requires_namespaced_identifier() {
 
     // Assert
     assert!(namespaced);
+    assert_eq!(descriptor.kind, PluginKind::Template);
 }
 
 #[test]
@@ -318,11 +347,10 @@ fn render_plugin_listing_includes_human_readable_lines() {
 
     // Assert
     assert!(listing.contains("Official plugins (2)"));
-    assert!(listing.contains("- official.basic | Basic | v0.2.0-alpha.1 | template"));
-    assert!(
-        listing
-            .contains("- official.github | GitHub | v0.2.0-alpha.1 | data_source, forge_provider")
-    );
+    assert!(listing.contains("- official.basic | template | Basic | v0.2.0-alpha.1 | template"));
+    assert!(listing.contains(
+        "- official.github | data_source | GitHub | v0.2.0-alpha.1 | data_source, forge_provider"
+    ));
 }
 
 #[test]
@@ -361,6 +389,7 @@ fn render_plugin_detail_includes_capabilities_and_lifecycle() {
 
     // Assert
     assert!(detail.contains("Plugin: official.github"));
+    assert!(detail.contains("Kind: data_source"));
     assert!(detail.contains("Capabilities: data_source, forge_provider"));
     assert!(detail.contains("Lifecycle: discover -> configure -> load"));
     assert!(detail.contains("Load boundary: in_process"));

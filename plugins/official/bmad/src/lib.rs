@@ -1,8 +1,8 @@
 //! Official BMAD workflow plugin metadata.
 
 use re_plugin::{
-    DOCTOR_CHECKS, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginDescriptor, PluginLifecycleStage,
-    PluginLoadBoundary, PluginRuntimeHook, TEMPLATE,
+    DOCTOR_CHECKS, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginDescriptor, PluginKind,
+    PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook, TEMPLATE,
 };
 
 /// Stable plugin identifier.
@@ -25,6 +25,7 @@ const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
 ];
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
+    PluginKind::Template,
     PLUGIN_NAME,
     PLUGIN_VERSION,
     CAPABILITIES,

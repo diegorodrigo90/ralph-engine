@@ -35,6 +35,19 @@ function parseRustCapabilityConstants(source) {
   return new Set(matches.map((match) => match[1]));
 }
 
+function parseRustPluginKinds(source) {
+  const kindImplMatch = source.match(/impl PluginKind \{([\s\S]*?)\n\}/);
+  if (!kindImplMatch) {
+    fail("could not find PluginKind implementation in Rust plugin contract");
+  }
+
+  return new Set(
+    [...kindImplMatch[1].matchAll(/Self::[A-Za-z]+ => "([^"]+)"/g)].map(
+      (match) => match[1],
+    ),
+  );
+}
+
 function parseScaffolderSet(source, setName) {
   const regex = new RegExp(
     `const ${setName} = new Set\\(\\[([\\s\\S]*?)\\]\\);`,
@@ -99,6 +112,7 @@ const rustPluginContract = readUtf8(RUST_PLUGIN_CONTRACT_PATH);
 const scaffolderSource = readUtf8(SCAFFOLDER_PATH);
 
 const rustCapabilities = parseRustCapabilityConstants(rustPluginContract);
+const rustKinds = parseRustPluginKinds(rustPluginContract);
 const supportedCapabilities = parseScaffolderSet(scaffolderSource, "SUPPORTED_CAPABILITIES");
 const supportedKinds = parseScaffolderSet(scaffolderSource, "SUPPORTED_KINDS");
 const defaultKind = parseDefaultKind(scaffolderSource);
@@ -109,6 +123,7 @@ assertExactSet(
   rustCapabilities,
   "scaffolder supported capabilities",
 );
+assertExactSet(supportedKinds, rustKinds, "scaffolder supported kinds");
 
 if (!supportedKinds.has(defaultKind)) {
   fail(`DEFAULT_KIND must stay inside SUPPORTED_KINDS: ${defaultKind}`);
