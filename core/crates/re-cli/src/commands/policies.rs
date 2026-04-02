@@ -97,7 +97,7 @@ fn render_policy_detail(registration: &RuntimePolicyRegistration, locale: &str) 
         i18n::detail_heading(
             locale,
             "Load boundary",
-            "Boundary de carga",
+            "Fronteira de carregamento",
             registration.load_boundary.as_str(),
         ),
         format!(
