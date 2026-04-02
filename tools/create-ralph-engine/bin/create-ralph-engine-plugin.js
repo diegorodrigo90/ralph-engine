@@ -462,6 +462,10 @@ pub const fn descriptor() -> PluginDescriptor {
 mod tests {
     use super::{PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, lifecycle, runtime_hooks};
 
+    fn manifest_document() -> &'static str {
+        include_str!("../manifest.yaml")
+    }
+
     #[test]
     fn plugin_id_is_namespaced() {
         let plugin_id = PLUGIN_ID;
@@ -495,6 +499,16 @@ mod tests {
     #[test]
     fn plugin_declares_runtime_hooks() {
         assert!(!runtime_hooks().is_empty());
+    }
+
+    #[test]
+    fn plugin_manifest_matches_typed_contract_surface() {
+        let manifest = manifest_document();
+
+        assert!(manifest.contains("id: ${scaffold.id}"));
+        assert!(manifest.contains("kind: ${scaffold.kind}"));
+        assert!(manifest.contains("trust_level: community"));
+${scaffold.capabilities.map((capability) => `        assert!(manifest.contains("- ${capability}"));`).join("\n")}
     }
 }
 `;
