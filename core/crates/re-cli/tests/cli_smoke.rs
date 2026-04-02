@@ -438,6 +438,29 @@ fn binary_prompts_asset_rejects_unknown_asset_in_pt_br() {
 }
 
 #[test]
+fn binary_prompts_materialize_writes_embedded_assets() {
+    let output_dir = unique_temp_dir("prompts-materialize");
+    let output_dir_str = output_dir.to_string_lossy().into_owned();
+
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args([
+        "prompts",
+        "materialize",
+        "official.bmad.workflow",
+        &output_dir_str,
+    ]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Materialized assets (1)"));
+    assert!(output_dir.join("prompts/workflow.md").is_file());
+
+    std::fs::remove_dir_all(&output_dir).expect("temporary directory should be removable");
+}
+
+#[test]
 fn binary_capabilities_list_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));

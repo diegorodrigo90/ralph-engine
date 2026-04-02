@@ -1,7 +1,10 @@
 //! Prompt provider command handlers.
 
+use std::path::Path;
+
 use crate::{CliError, catalog, i18n};
 
+use super::embedded_assets::{MaterializedAsset, materialize_assets};
 use catalog::OfficialPromptContribution;
 
 /// Executes the prompts command tree.
@@ -13,6 +16,11 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         )),
         Some("show") => show_prompt(args.get(1).map(String::as_str), locale),
         Some("asset") => show_prompt_asset(
+            args.get(1).map(String::as_str),
+            args.get(2).map(String::as_str),
+            locale,
+        ),
+        Some("materialize") => materialize_prompt(
             args.get(1).map(String::as_str),
             args.get(2).map(String::as_str),
             locale,
@@ -71,6 +79,44 @@ fn show_prompt_asset(
         .ok_or_else(|| CliError::new(i18n::unknown_prompt_asset(locale, asset_path)))?;
 
     Ok(asset.contents.to_owned())
+}
+
+fn materialize_prompt(
+    prompt_id: Option<&str>,
+    output_dir: Option<&str>,
+    locale: &str,
+) -> Result<String, CliError> {
+    let prompt_id = prompt_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "prompts materialize",
+            i18n::prompt_id_entity_label(locale),
+        ))
+    })?;
+    let output_dir = output_dir.ok_or_else(|| {
+        CliError::new(i18n::missing_output_directory(
+            locale,
+            "prompts materialize",
+        ))
+    })?;
+    let prompt = catalog::find_official_prompt_contribution(prompt_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::prompt_entity_label(locale),
+            prompt_id,
+        ))
+    })?;
+    let assets = prompt
+        .descriptor
+        .assets
+        .iter()
+        .map(|asset| MaterializedAsset {
+            path: asset.path,
+            contents: asset.contents,
+        })
+        .collect::<Vec<_>>();
+
+    materialize_assets(&assets, Path::new(output_dir), locale)
 }
 
 fn render_prompt_listing(registrations: &[OfficialPromptContribution], locale: &str) -> String {
@@ -239,5 +285,30 @@ mod tests {
                 .unwrap_or_default()
                 .contains("# Ralph Engine — BMAD Template")
         );
+    }
+
+    #[test]
+    fn execute_prompt_materialize_writes_embedded_assets() {
+        let base = std::env::temp_dir().join(format!(
+            "ralph-engine-prompt-materialize-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&base);
+
+        let output = execute(
+            &[
+                "materialize".to_owned(),
+                "official.bmad.workflow".to_owned(),
+                base.display().to_string(),
+            ],
+            "en",
+        );
+
+        assert!(output.is_ok());
+        let rendered = output.unwrap_or_default();
+        assert!(rendered.contains("Materialized assets (1)"));
+        assert!(base.join("prompts/workflow.md").exists());
+
+        let _ = std::fs::remove_dir_all(base);
     }
 }

@@ -1,12 +1,10 @@
 //! Template command handlers.
 
-use std::{
-    fs,
-    path::{Component, Path, PathBuf},
-};
+use std::path::Path;
 
 use crate::{CliError, catalog, i18n};
 
+use super::embedded_assets::{MaterializedAsset, materialize_assets};
 use catalog::OfficialTemplateContribution;
 
 /// Executes the templates command tree.
@@ -111,61 +109,17 @@ fn materialize_template(
         ))
     })?;
 
-    materialize_assets(template.descriptor.assets, Path::new(output_dir), locale)
-}
+    let assets = template
+        .descriptor
+        .assets
+        .iter()
+        .map(|asset| MaterializedAsset {
+            path: asset.path,
+            contents: asset.contents,
+        })
+        .collect::<Vec<_>>();
 
-fn materialize_assets(
-    assets: &[re_plugin::PluginTemplateAsset],
-    output_dir: &Path,
-    locale: &str,
-) -> Result<String, CliError> {
-    let mut lines = vec![i18n::materialized_assets_heading(locale, assets.len())];
-
-    for asset in assets {
-        let output_path = resolve_safe_output_path(output_dir, asset.path, locale)?;
-        if let Some(parent) = output_path.parent() {
-            fs::create_dir_all(parent).map_err(|error| {
-                CliError::new(i18n::failed_to_write_output(
-                    locale,
-                    &output_path.display().to_string(),
-                    &error.to_string(),
-                ))
-            })?;
-        }
-        fs::write(&output_path, asset.contents).map_err(|error| {
-            CliError::new(i18n::failed_to_write_output(
-                locale,
-                &output_path.display().to_string(),
-                &error.to_string(),
-            ))
-        })?;
-        lines.push(output_path.display().to_string());
-    }
-
-    Ok(lines.join("\n"))
-}
-
-fn resolve_safe_output_path(
-    output_dir: &Path,
-    asset_path: &str,
-    locale: &str,
-) -> Result<PathBuf, CliError> {
-    let relative_path = Path::new(asset_path);
-    let mut output_path = PathBuf::from(output_dir);
-
-    for component in relative_path.components() {
-        match component {
-            Component::Normal(segment) => output_path.push(segment),
-            Component::CurDir => {}
-            Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
-                return Err(CliError::new(i18n::invalid_embedded_asset_path(
-                    locale, asset_path,
-                )));
-            }
-        }
-    }
-
-    Ok(output_path)
+    materialize_assets(&assets, Path::new(output_dir), locale)
 }
 
 fn render_template_listing(registrations: &[OfficialTemplateContribution], locale: &str) -> String {
