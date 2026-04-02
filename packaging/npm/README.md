@@ -1,10 +1,32 @@
-# packaging/npm
+# ralph-engine
 
-The npm packaging channel remains part of the official Ralph Engine distribution contract.
+[![CI](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/ci.yml)
+[![Latest Release](https://img.shields.io/github/v/release/diegorodrigo90/ralph-engine?display_name=tag)](https://github.com/diegorodrigo90/ralph-engine/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](../../LICENSE)
+[![Repository](https://img.shields.io/badge/source-ralph--engine-black)](https://github.com/diegorodrigo90/ralph-engine/tree/main/packaging/npm)
 
-Current status:
+Official npm packaging surface for Ralph Engine.
+
+## Status
+
+This package is still intentionally private while the Rust-first reboot finishes its end-to-end release hardening.
+
+Current contract:
 
 - the package remains private during the Rust-first reboot
 - `postinstall` downloads the reviewed `cargo-dist` release asset for the current platform
 - downloaded archives are verified against the published `.sha256` asset before extraction
 - automatic publication remains disabled until GitHub Releases, npm provenance, and Homebrew are wired together
+
+## Packaging Model
+
+- GitHub Releases are the canonical source of reviewed artifacts
+- npm installs the platform-specific release artifact rather than rebuilding locally
+- checksum verification happens before extraction
+- publication will remain gated until provenance and the full release workflow are hardened
+
+## Repository Source
+
+- package source: `packaging/npm/`
+- CLI binary target: `ralph-engine`
+- scaffolder package: `tools/create-ralph-engine/`

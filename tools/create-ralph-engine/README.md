@@ -1,5 +1,9 @@
 # create-ralph-engine-plugin
 
+[![CI](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](../../LICENSE)
+[![Repository](https://img.shields.io/badge/source-ralph--engine-black)](https://github.com/diegorodrigo90/ralph-engine/tree/main/tools/create-ralph-engine)
+
 Developer scaffolder for Ralph Engine plugins.
 
 This package is the separate `npx create-ralph-engine-plugin` entrypoint so
@@ -21,6 +25,14 @@ The generated Rust crate keeps locale-aware plugin metadata under `src/i18n/`
 so new plugin projects start with the same additive locale structure used by
 the runtime and official plugins.
 
+## What it gives you
+
+- namespaced plugin id scaffold such as `acme.jira-suite`
+- versioned `manifest.yaml` aligned with the runtime contract
+- Rust crate with per-locale metadata catalogs in `src/i18n/`
+- generated runtime hooks based on reviewed capability contracts
+- validation before writing the scaffold to disk
+
 ## Usage
 
 ```bash
@@ -39,3 +51,10 @@ official plugins, and scaffolded plugins add new locales on one canonical base.
 Generated Rust plugin crates also start with per-locale catalog modules in
 `src/i18n/`, so localized names and summaries can grow by adding locale files
 instead of rewriting runtime-facing handlers.
+
+## Open Source Notes
+
+- this package is the only supported scaffold entrypoint for plugin creation
+- future plugin kinds or capabilities stay rejected until the core runtime defines them
+- locale growth is additive; `en` remains the fallback when a locale is missing
+- the generated manifest and crate layout are designed to stay compatible with the typed Rust contracts in the main repository
