@@ -1,6 +1,6 @@
 # Roadmap
 
-Atualizado: 2026-04-01
+Atualizado: 2026-04-02
 
 ## Concluído
 
@@ -9,6 +9,8 @@ Atualizado: 2026-04-01
 - [x] Estabelecer SemVer + Conventional Commits + release-plz como modelo de release.
 - [x] Mover o contrato de validação para scripts no nível do repositório.
 - [x] Estabelecer a base inicial de `cargo-dist` no workspace para os artefatos de release em Rust.
+- [x] Introduzir suporte bilíngue de primeira classe para CLI, docs, site e superfície de plugins em inglês e pt-BR.
+- [x] Consolidar um sistema coerente de UX entre site, docs e plugins com navegação clara e baseline A de acessibilidade, performance e SEO.
 
 ## Próximos passos
 
@@ -17,5 +19,3 @@ Atualizado: 2026-04-01
 - [ ] Ligar a publicação em npm e Homebrew ao pipeline de release em Rust.
 - [ ] Endurecer o publish do `cargo-dist` ponta a ponta com GitHub Releases, atestações, SBOM, npm e Homebrew.
 - [ ] Reconstruir os plugins oficiais sobre os novos contratos em Rust.
-- [ ] Introduzir suporte bilíngue de primeira classe para CLI, docs, site e superfície de plugins em inglês e pt-BR.
-- [ ] Consolidar um sistema coerente de UX entre site, docs e plugins com navegação clara e baseline A de acessibilidade, performance e SEO.
