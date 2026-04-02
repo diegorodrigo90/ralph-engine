@@ -429,6 +429,41 @@ impl RuntimeProviderRegistrationPlan {
     }
 }
 
+/// One executable runtime-check plan derived from the resolved runtime.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimeCheckExecutionPlan {
+    /// Stable runtime check kind.
+    pub kind: RuntimeCheckKind,
+    /// Owning plugin identifier.
+    pub plugin_id: &'static str,
+    /// Declared load boundary for the check provider.
+    pub load_boundary: PluginLoadBoundary,
+    /// Runtime hook responsible for the check execution.
+    pub runtime_hook: PluginRuntimeHook,
+    /// Whether the runtime hook is registered for this check.
+    pub runtime_hook_registered: bool,
+}
+
+impl RuntimeCheckExecutionPlan {
+    /// Creates a new immutable runtime-check execution plan.
+    #[must_use]
+    pub const fn new(
+        kind: RuntimeCheckKind,
+        plugin_id: &'static str,
+        load_boundary: PluginLoadBoundary,
+        runtime_hook: PluginRuntimeHook,
+        runtime_hook_registered: bool,
+    ) -> Self {
+        Self {
+            kind,
+            plugin_id,
+            load_boundary,
+            runtime_hook,
+            runtime_hook_registered,
+        }
+    }
+}
+
 /// Typed runtime check-kind identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RuntimeCheckKind {
@@ -961,6 +996,8 @@ pub struct RuntimeSnapshot<'a> {
     pub agent_bootstrap_plans: Vec<RuntimeAgentBootstrapPlan>,
     /// Derived executable provider registration plans for enabled providers.
     pub provider_registration_plans: Vec<RuntimeProviderRegistrationPlan>,
+    /// Derived executable check execution plans for enabled checks.
+    pub check_execution_plans: Vec<RuntimeCheckExecutionPlan>,
     /// Derived executable MCP launch plans for enabled servers.
     pub mcp_launch_plans: Vec<McpLaunchPlan>,
     /// Derived configuration patch that remediates the snapshot.
@@ -980,34 +1017,12 @@ pub struct RuntimeSnapshotDerived {
     pub agent_bootstrap_plans: Vec<RuntimeAgentBootstrapPlan>,
     /// Derived executable provider registration plans for enabled providers.
     pub provider_registration_plans: Vec<RuntimeProviderRegistrationPlan>,
+    /// Derived executable check execution plans for enabled checks.
+    pub check_execution_plans: Vec<RuntimeCheckExecutionPlan>,
     /// Derived executable MCP launch plans for enabled servers.
     pub mcp_launch_plans: Vec<McpLaunchPlan>,
     /// Derived configuration patch that remediates the snapshot.
     pub config_patch: RuntimeConfigPatch,
-}
-
-impl RuntimeSnapshotDerived {
-    /// Creates one immutable bundle of derived runtime state.
-    #[must_use]
-    pub fn new(
-        status: RuntimeStatus,
-        issues: Vec<RuntimeIssue>,
-        actions: Vec<RuntimeAction>,
-        agent_bootstrap_plans: Vec<RuntimeAgentBootstrapPlan>,
-        provider_registration_plans: Vec<RuntimeProviderRegistrationPlan>,
-        mcp_launch_plans: Vec<McpLaunchPlan>,
-        config_patch: RuntimeConfigPatch,
-    ) -> Self {
-        Self {
-            status,
-            issues,
-            actions,
-            agent_bootstrap_plans,
-            provider_registration_plans,
-            mcp_launch_plans,
-            config_patch,
-        }
-    }
 }
 
 impl<'a> RuntimeSnapshot<'a> {
@@ -1021,6 +1036,7 @@ impl<'a> RuntimeSnapshot<'a> {
             actions: derived.actions,
             agent_bootstrap_plans: derived.agent_bootstrap_plans,
             provider_registration_plans: derived.provider_registration_plans,
+            check_execution_plans: derived.check_execution_plans,
             mcp_launch_plans: derived.mcp_launch_plans,
             config_patch: derived.config_patch,
         }
@@ -1666,6 +1682,61 @@ pub fn render_runtime_provider_registration_plans_for_locale(
     lines.join("\n")
 }
 
+/// Builds the executable plans for enabled runtime checks.
+#[must_use]
+pub fn build_runtime_check_execution_plans(
+    topology: &RuntimeTopology<'_>,
+) -> Vec<RuntimeCheckExecutionPlan> {
+    topology
+        .checks
+        .iter()
+        .filter(|check| check.is_enabled())
+        .map(|check| {
+            RuntimeCheckExecutionPlan::new(
+                check.kind,
+                check.plugin_id,
+                check.load_boundary,
+                runtime_hook_for_check(check.kind),
+                check.runtime_hook_registered,
+            )
+        })
+        .collect()
+}
+
+/// Renders the runtime check execution plans in English.
+#[must_use]
+pub fn render_runtime_check_execution_plans(plans: &[RuntimeCheckExecutionPlan]) -> String {
+    render_runtime_check_execution_plans_for_locale(plans, "en")
+}
+
+/// Renders the runtime check execution plans for one locale.
+#[must_use]
+pub fn render_runtime_check_execution_plans_for_locale(
+    plans: &[RuntimeCheckExecutionPlan],
+    locale: &str,
+) -> String {
+    if plans.is_empty() {
+        return format!("{} (0)", i18n::runtime_check_execution_plans_label(locale));
+    }
+
+    let mut lines = vec![format!(
+        "{} ({})",
+        i18n::runtime_check_execution_plans_label(locale),
+        plans.len()
+    )];
+    for plan in plans {
+        lines.push(format!(
+            "- {} | plugin={} | boundary={} | runtime_hook={}",
+            plan.kind.as_str(),
+            plan.plugin_id,
+            plan.load_boundary,
+            plan.runtime_hook.as_str()
+        ));
+    }
+
+    lines.join("\n")
+}
+
 /// Builds the executable MCP launch plans for enabled runtime servers.
 #[must_use]
 pub fn build_runtime_mcp_launch_plans(topology: &RuntimeTopology<'_>) -> Vec<McpLaunchPlan> {
@@ -1919,20 +1990,22 @@ pub fn build_runtime_snapshot<'a>(topology: &'a RuntimeTopology<'a>) -> RuntimeS
     let actions = build_runtime_action_plan(topology);
     let agent_bootstrap_plans = build_runtime_agent_bootstrap_plans(topology);
     let provider_registration_plans = build_runtime_provider_registration_plans(topology);
+    let check_execution_plans = build_runtime_check_execution_plans(topology);
     let mcp_launch_plans = build_runtime_mcp_launch_plans(topology);
     let config_patch = build_runtime_config_patch(topology);
 
     RuntimeSnapshot::new(
         *topology,
-        RuntimeSnapshotDerived::new(
+        RuntimeSnapshotDerived {
             status,
             issues,
             actions,
             agent_bootstrap_plans,
             provider_registration_plans,
+            check_execution_plans,
             mcp_launch_plans,
             config_patch,
-        ),
+        },
     )
 }
 
@@ -1982,15 +2055,16 @@ mod tests {
         RuntimePromptRegistration, RuntimeProviderKind, RuntimeProviderRegistration,
         RuntimeSnapshot, RuntimeSnapshotDerived, RuntimeStatus, RuntimeTemplateRegistration,
         RuntimeTopology, agent_runtime_hook, banner, build_runtime_action_plan,
-        build_runtime_agent_bootstrap_plans, build_runtime_config_patch,
-        build_runtime_doctor_report, build_runtime_mcp_launch_plans, build_runtime_patched_config,
-        build_runtime_provider_registration_plans, build_runtime_snapshot,
-        capability_activates_agent_surface, capability_activates_policy_surface,
-        capability_activates_prompt_surface, capability_activates_template_surface,
-        collect_runtime_issues, evaluate_runtime_status, parse_runtime_check_kind,
-        parse_runtime_provider_kind, policy_runtime_hook, prompt_runtime_hook,
-        render_runtime_action_plan, render_runtime_action_plan_for_locale,
+        build_runtime_agent_bootstrap_plans, build_runtime_check_execution_plans,
+        build_runtime_config_patch, build_runtime_doctor_report, build_runtime_mcp_launch_plans,
+        build_runtime_patched_config, build_runtime_provider_registration_plans,
+        build_runtime_snapshot, capability_activates_agent_surface,
+        capability_activates_policy_surface, capability_activates_prompt_surface,
+        capability_activates_template_surface, collect_runtime_issues, evaluate_runtime_status,
+        parse_runtime_check_kind, parse_runtime_provider_kind, policy_runtime_hook,
+        prompt_runtime_hook, render_runtime_action_plan, render_runtime_action_plan_for_locale,
         render_runtime_agent_bootstrap_plans, render_runtime_agent_bootstrap_plans_for_locale,
+        render_runtime_check_execution_plans, render_runtime_check_execution_plans_for_locale,
         render_runtime_config_patch_yaml, render_runtime_doctor_report,
         render_runtime_doctor_report_for_locale, render_runtime_issues,
         render_runtime_issues_for_locale, render_runtime_mcp_launch_plans,
@@ -2469,6 +2543,10 @@ mod tests {
             build_runtime_provider_registration_plans(&topology)
         );
         assert_eq!(
+            snapshot.check_execution_plans,
+            build_runtime_check_execution_plans(&topology)
+        );
+        assert_eq!(
             snapshot.mcp_launch_plans,
             build_runtime_mcp_launch_plans(&topology)
         );
@@ -2618,6 +2696,75 @@ mod tests {
     }
 
     #[test]
+    fn build_runtime_check_execution_plans_only_includes_enabled_checks() {
+        let enabled = RuntimeCheckRegistration::new(
+            RuntimeCheckKind::Prepare,
+            PROMPT_PLUGIN_ID,
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        );
+        let disabled = RuntimeCheckRegistration::new(
+            RuntimeCheckKind::Doctor,
+            PROMPT_PLUGIN_ID,
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            false,
+        );
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[enabled, disabled],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[],
+        };
+
+        let plans = build_runtime_check_execution_plans(&topology);
+
+        assert_eq!(plans.len(), 1);
+        assert_eq!(plans[0].kind, RuntimeCheckKind::Prepare);
+        assert_eq!(plans[0].plugin_id, PROMPT_PLUGIN_ID);
+        assert_eq!(plans[0].runtime_hook, PluginRuntimeHook::Prepare);
+    }
+
+    #[test]
+    fn render_runtime_check_execution_plans_is_human_readable() {
+        let plans = build_runtime_check_execution_plans(&RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[RuntimeCheckRegistration::new(
+                RuntimeCheckKind::Prepare,
+                PROMPT_PLUGIN_ID,
+                PluginActivation::Enabled,
+                PluginLoadBoundary::InProcess,
+                true,
+            )],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[],
+        });
+
+        let rendered = render_runtime_check_execution_plans(&plans);
+
+        assert!(rendered.contains("Runtime check execution plans (1)"));
+        assert!(rendered.contains("prepare | plugin=test.prompts"));
+        assert!(rendered.contains("runtime_hook=prepare"));
+    }
+
+    #[test]
     fn build_runtime_mcp_launch_plans_only_includes_enabled_servers() {
         let enabled = RuntimeMcpRegistration::new(mcp_descriptor(), true);
         let disabled = RuntimeMcpRegistration::new(mcp_descriptor(), false);
@@ -2682,8 +2829,8 @@ mod tests {
                 hooks: &[],
                 mcp_servers: &[],
             },
-            RuntimeSnapshotDerived::new(
-                RuntimeStatus {
+            RuntimeSnapshotDerived {
+                status: RuntimeStatus {
                     phase: RuntimePhase::Bootstrapped,
                     health: RuntimeHealth::Degraded,
                     enabled_plugins: 0,
@@ -2707,27 +2854,28 @@ mod tests {
                     enabled_mcp_servers: 0,
                     disabled_mcp_servers: 0,
                 },
-                vec![RuntimeIssue::new(
+                issues: vec![RuntimeIssue::new(
                     RuntimeIssueKind::PluginDisabled,
                     PRIMARY_PLUGIN_ID,
                     "enable plugin test.foundation",
                 )],
-                vec![RuntimeAction::new(
+                actions: vec![RuntimeAction::new(
                     RuntimeActionKind::EnablePlugin,
                     PRIMARY_PLUGIN_ID,
                     "enable plugin test.foundation",
                 )],
-                Vec::new(),
-                Vec::new(),
-                Vec::new(),
-                RuntimeConfigPatch::new(
+                agent_bootstrap_plans: Vec::new(),
+                provider_registration_plans: Vec::new(),
+                check_execution_plans: Vec::new(),
+                mcp_launch_plans: Vec::new(),
+                config_patch: RuntimeConfigPatch::new(
                     vec![PluginConfig::new(
                         PRIMARY_PLUGIN_ID,
                         PluginActivation::Enabled,
                     )],
                     Vec::new(),
                 ),
-            ),
+            },
         );
         let report = snapshot.doctor_report();
 
@@ -4188,5 +4336,35 @@ mod tests {
         assert!(rendered.contains("Planos de registro de providers do runtime (1)"));
         assert!(rendered.contains("data_source | plugin=test.providers"));
         assert!(rendered.contains("registration_hook=data_source_registration"));
+    }
+
+    #[test]
+    fn render_runtime_check_execution_plans_supports_pt_br() {
+        let plans = build_runtime_check_execution_plans(&RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "pt-br",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[RuntimeCheckRegistration::new(
+                RuntimeCheckKind::Prepare,
+                PROMPT_PLUGIN_ID,
+                PluginActivation::Enabled,
+                PluginLoadBoundary::InProcess,
+                true,
+            )],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[],
+        });
+
+        let rendered = render_runtime_check_execution_plans_for_locale(&plans, "pt-br");
+
+        assert!(rendered.contains("Planos de execução de verificações do runtime (1)"));
+        assert!(rendered.contains("prepare | plugin=test.prompts"));
+        assert!(rendered.contains("runtime_hook=prepare"));
     }
 }
