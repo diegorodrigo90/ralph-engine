@@ -12,6 +12,7 @@ ralph-engine --locale <locale-id> --version
 ralph-engine agents
 ralph-engine agents list
 ralph-engine agents show <agent-id>
+ralph-engine agents plan <agent-id>
 ralph-engine capabilities
 ralph-engine capabilities list
 ralph-engine capabilities show <capability-id>
@@ -36,6 +37,7 @@ ralph-engine policies show <policy-id>
 ralph-engine providers
 ralph-engine providers list
 ralph-engine providers show <provider-id>
+ralph-engine providers plan <provider-id>
 ralph-engine config
 ralph-engine config budgets
 ralph-engine config layers
@@ -85,6 +87,8 @@ The `plugins show` command prints the immutable plugin contract, including lifec
 
 The `agents` command family prints the typed agent runtime registry so official agent integrations stay explicit instead of hiding only inside generic capability listings.
 
+The `agents plan` command prints the executable bootstrap plan for one typed agent runtime, so operator-facing startup steps stay attached to the agent surface that owns them instead of leaking only through aggregate runtime output.
+
 The `capabilities` command family prints the typed runtime capability registry so capability providers remain explicit and modular.
 
 The `templates` command family prints the typed runtime template registry so template providers stay explicit and separate from generic capability listings while scaffolding ownership remains tooling-owned.
@@ -118,6 +122,8 @@ The `hooks` command family prints the typed runtime-hook registry so hook provid
 The `policies` command family prints the typed runtime policy registry so policy providers stay explicit, inspectable, and separate from generic capability listings.
 
 The `providers` command family prints the typed runtime provider registry so data-source, context-provider, forge-provider, and remote-control contributions stay explicit instead of hiding only inside generic capability output.
+
+The `providers plan` command prints the executable registration plan for one typed provider contribution, so provider-managed registration steps stay attached to the provider surface that owns them instead of leaking only through aggregate runtime output.
 
 The `mcp show` command prints the typed MCP launch contract, including process model, launch policy, command boundaries, working-directory policy, environment policy, and availability.
 

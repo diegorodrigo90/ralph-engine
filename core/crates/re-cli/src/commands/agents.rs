@@ -1,5 +1,7 @@
 //! Agent runtime command handlers.
 
+use re_core::RuntimeAgentBootstrapPlan;
+
 use crate::{CliError, catalog, i18n};
 
 use catalog::OfficialAgentContribution;
@@ -12,6 +14,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
             locale,
         )),
         Some("show") => show_agent(args.get(1).map(String::as_str), locale),
+        Some("plan") => show_agent_plan(args.get(1).map(String::as_str), locale),
         Some(other) => Err(CliError::new(i18n::unknown_subcommand(
             locale, "agents", other,
         ))),
@@ -35,6 +38,32 @@ fn show_agent(agent_id: Option<&str>, locale: &str) -> Result<String, CliError> 
     })?;
 
     Ok(render_agent_detail(agent, locale))
+}
+
+fn show_agent_plan(agent_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let agent_id = agent_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "agents",
+            i18n::agent_id_entity_label(locale),
+        ))
+    })?;
+    let agent = catalog::find_official_agent_contribution(agent_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::agent_runtime_entity_label(locale),
+            agent_id,
+        ))
+    })?;
+
+    let plan = RuntimeAgentBootstrapPlan::new(
+        agent.descriptor.id,
+        agent.descriptor.plugin_id,
+        agent.load_boundary,
+        agent.bootstrap_hook_registered,
+    );
+
+    Ok(render_agent_plan(agent, plan, locale))
 }
 
 fn render_agent_listing(registrations: &[OfficialAgentContribution], locale: &str) -> String {
@@ -81,12 +110,37 @@ fn render_agent_detail(agent: OfficialAgentContribution, locale: &str) -> String
     )
 }
 
+fn render_agent_plan(
+    agent: OfficialAgentContribution,
+    plan: RuntimeAgentBootstrapPlan,
+    locale: &str,
+) -> String {
+    format!(
+        "Agent bootstrap plan: {}\n{name_label}: {}\nPlugin: {}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: agent_bootstrap\n{registered_label}: {registered}",
+        agent.descriptor.id,
+        agent.descriptor.display_name_for_locale(locale),
+        agent.descriptor.plugin_id,
+        name_label = i18n::name_label(locale),
+        activation_label = i18n::activation_label(locale),
+        activation = agent.activation.as_str(),
+        load_boundary_label = i18n::load_boundary_label(locale),
+        load_boundary = plan.load_boundary.as_str(),
+        hook_label = i18n::hook_label(locale),
+        registered_label = i18n::registration_hook_label(locale),
+        registered = plan.bootstrap_hook_registered,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use re_config::PluginActivation;
     use re_plugin::{PluginAgentDescriptor, PluginLoadBoundary, PluginLocalizedText};
 
-    use super::{OfficialAgentContribution, render_agent_detail, render_agent_listing};
+    use re_core::RuntimeAgentBootstrapPlan;
+
+    use super::{
+        OfficialAgentContribution, render_agent_detail, render_agent_listing, render_agent_plan,
+    };
 
     const LOCALIZED_NAMES: &[PluginLocalizedText] =
         &[PluginLocalizedText::new("pt-br", "Sessão Codex")];
@@ -160,5 +214,28 @@ mod tests {
         assert!(rendered.contains("Agent runtime: fixture.codex.session"));
         assert!(rendered.contains("Nome: Sessão Codex"));
         assert!(rendered.contains("Resumo: Sessão de runtime do Codex para o Ralph Engine."));
+    }
+
+    #[test]
+    fn render_agent_plan_is_human_readable() {
+        let rendered = render_agent_plan(
+            OfficialAgentContribution {
+                descriptor: agent_descriptor(),
+                activation: PluginActivation::Enabled,
+                load_boundary: PluginLoadBoundary::InProcess,
+                bootstrap_hook_registered: true,
+            },
+            RuntimeAgentBootstrapPlan::new(
+                AGENT_ID,
+                PLUGIN_ID,
+                PluginLoadBoundary::InProcess,
+                true,
+            ),
+            "en",
+        );
+
+        assert!(rendered.contains("Agent bootstrap plan: fixture.codex.session"));
+        assert!(rendered.contains("Plugin: fixture.codex"));
+        assert!(rendered.contains("Registration hook: true"));
     }
 }

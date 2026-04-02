@@ -162,6 +162,18 @@ mod tests {
     }
 
     #[test]
+    fn execute_agents_plan_returns_bootstrap_plan() {
+        let agent = catalog::find_official_agent_contribution(sample_agent_id())
+            .expect("sample agent should exist");
+        let command = args(&["ralph-engine", "agents", "plan", agent.descriptor.id]);
+
+        let output = execute(command).expect("agents plan should succeed");
+
+        assert!(output.contains(&format!("Agent bootstrap plan: {}", agent.descriptor.id)));
+        assert!(output.contains(&format!("Plugin: {}", agent.descriptor.plugin_id)));
+    }
+
+    #[test]
     fn execute_locales_lists_supported_locale_catalog() {
         let command = args(&["ralph-engine", "locales", "list"]);
 
@@ -708,6 +720,17 @@ mod tests {
 
         // Assert
         assert_eq!(error.to_string(), "unknown provider: unknown");
+    }
+
+    #[test]
+    fn execute_providers_plan_returns_registration_plan() {
+        let command = args(&["ralph-engine", "providers", "plan", "official.github.data"]);
+
+        let output = execute(command).expect("providers plan should succeed");
+
+        assert!(output.contains("Provider registration plan: official.github.data"));
+        assert!(output.contains("Plugin: official.github"));
+        assert!(output.contains("Registration hook: data_source_registration"));
     }
 
     #[test]

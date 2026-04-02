@@ -16,6 +16,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
             locale,
         )),
         Some("show") => show_provider(args.get(1).map(String::as_str), locale),
+        Some("plan") => show_provider_plan(args.get(1).map(String::as_str), locale),
         Some(other) => Err(CliError::new(i18n::unknown_subcommand(
             locale,
             "providers",
@@ -57,6 +58,45 @@ fn show_provider(provider_kind: Option<&str>, locale: &str) -> Result<String, Cl
         &contributions,
         locale,
     ))
+}
+
+fn show_provider_plan(provider_kind: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let provider_id = provider_kind.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "providers",
+            i18n::provider_id_entity_label(locale),
+        ))
+    })?;
+
+    let surface = catalog::find_official_provider_surface(provider_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::provider_entity_label(locale),
+            provider_id,
+        ))
+    })?;
+
+    let plan = re_core::RuntimeProviderRegistrationPlan::new(
+        surface.registration.kind,
+        surface.registration.plugin_id,
+        surface.registration.load_boundary,
+        match surface.registration.kind {
+            RuntimeProviderKind::DataSource => re_plugin::PluginRuntimeHook::DataSourceRegistration,
+            RuntimeProviderKind::ContextProvider => {
+                re_plugin::PluginRuntimeHook::ContextProviderRegistration
+            }
+            RuntimeProviderKind::ForgeProvider => {
+                re_plugin::PluginRuntimeHook::ForgeProviderRegistration
+            }
+            RuntimeProviderKind::RemoteControl => {
+                re_plugin::PluginRuntimeHook::RemoteControlBootstrap
+            }
+        },
+        surface.registration.registration_hook_registered,
+    );
+
+    Ok(render_provider_plan(surface.contribution, plan, locale))
 }
 
 fn render_provider_listing(registrations: &[RuntimeProviderRegistration], locale: &str) -> String {
@@ -126,17 +166,43 @@ fn render_provider_contribution_detail(
     )
 }
 
+fn render_provider_plan(
+    contribution: catalog::OfficialProviderContribution,
+    plan: re_core::RuntimeProviderRegistrationPlan,
+    locale: &str,
+) -> String {
+    format!(
+        "Provider registration plan: {}\n{name_label}: {}\nPlugin: {}\n{kind_label}: {kind}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {registration_hook}\nregistered: {registered}",
+        contribution.descriptor.id,
+        contribution.descriptor.display_name_for_locale(locale),
+        contribution.descriptor.plugin_id,
+        name_label = i18n::name_label(locale),
+        kind_label = i18n::kind_label(locale),
+        kind = contribution.descriptor.kind.as_str(),
+        activation_label = i18n::activation_label(locale),
+        activation = contribution.activation.as_str(),
+        load_boundary_label = i18n::load_boundary_label(locale),
+        load_boundary = plan.load_boundary.as_str(),
+        hook_label = i18n::registration_hook_label(locale),
+        registration_hook = plan.registration_hook.as_str(),
+        registered = plan.registration_hook_registered,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use crate::catalog::OfficialProviderContribution;
     use re_config::PluginActivation;
-    use re_core::{RuntimeProviderKind, RuntimeProviderRegistration};
+    use re_core::{
+        RuntimeProviderKind, RuntimeProviderRegistration, RuntimeProviderRegistrationPlan,
+        parse_runtime_provider_kind,
+    };
     use re_plugin::{
         PluginLoadBoundary, PluginLocalizedText, PluginProviderDescriptor, PluginProviderKind,
+        PluginRuntimeHook,
     };
 
-    use super::{render_provider_detail, render_provider_listing};
-    use re_core::parse_runtime_provider_kind;
+    use super::{render_provider_detail, render_provider_listing, render_provider_plan};
 
     const PROVIDER_LOCALIZED_NAMES: &[PluginLocalizedText] =
         &[PluginLocalizedText::new("pt-br", "Fonte de dados GitHub")];
@@ -271,5 +337,39 @@ mod tests {
         assert!(rendered.contains(
             "- fixture.github.data | plugin=fixture.github | name=GitHub data source | summary=Exposes typed repository data to Ralph Engine workflows. | activation=enabled | boundary=in_process | registration_hook=true"
         ));
+    }
+
+    #[test]
+    fn render_provider_plan_is_human_readable() {
+        let contribution = OfficialProviderContribution {
+            descriptor: PluginProviderDescriptor::new(
+                PROVIDER_ID,
+                PRIMARY_PLUGIN_ID,
+                PluginProviderKind::DataSource,
+                "GitHub data source",
+                PROVIDER_LOCALIZED_NAMES,
+                "Exposes typed repository data to Ralph Engine workflows.",
+                PROVIDER_LOCALIZED_SUMMARIES,
+            ),
+            activation: PluginActivation::Enabled,
+            load_boundary: PluginLoadBoundary::InProcess,
+            registration_hook_registered: true,
+        };
+
+        let rendered = render_provider_plan(
+            contribution,
+            RuntimeProviderRegistrationPlan::new(
+                RuntimeProviderKind::DataSource,
+                PRIMARY_PLUGIN_ID,
+                PluginLoadBoundary::InProcess,
+                PluginRuntimeHook::DataSourceRegistration,
+                true,
+            ),
+            "en",
+        );
+
+        assert!(rendered.contains("Provider registration plan: fixture.github.data"));
+        assert!(rendered.contains("Plugin: fixture.github"));
+        assert!(rendered.contains("Registration hook: data_source_registration"));
     }
 }
