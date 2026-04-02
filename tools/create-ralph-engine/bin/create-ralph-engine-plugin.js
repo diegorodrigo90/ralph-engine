@@ -455,6 +455,12 @@ pub mod pt_br;
 
 use re_plugin::PluginLocalizedText;
 
+const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", pt_br::NAME)];
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    pt_br::SUMMARY,
+)];
+
 /// Returns the default English plugin name.
 #[must_use]
 pub const fn default_name() -> &'static str {
@@ -470,13 +476,13 @@ pub const fn default_summary() -> &'static str {
 /// Returns localized plugin names beyond the default English value.
 #[must_use]
 pub const fn localized_names() -> &'static [PluginLocalizedText] {
-    &[PluginLocalizedText::new("pt-br", pt_br::NAME)]
+    LOCALIZED_NAMES
 }
 
 /// Returns localized plugin summaries beyond the default English value.
 #[must_use]
 pub const fn localized_summaries() -> &'static [PluginLocalizedText] {
-    &[PluginLocalizedText::new("pt-br", pt_br::SUMMARY)]
+    LOCALIZED_SUMMARIES
 }
 `;
 }
