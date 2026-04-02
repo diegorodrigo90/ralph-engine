@@ -5,6 +5,7 @@ const path = require("node:path");
 const readline = require("node:readline/promises");
 const { stdin, stdout, stderr, exit } = require("node:process");
 const { validateManifestDocument } = require("../lib/manifest-contract.js");
+const { resolveLocaleCatalog } = require("../lib/i18n/index.js");
 
 const DEFAULT_KIND = "mcp_contribution";
 const DEFAULT_ENGINE_VERSION = ">=0.1.0";
@@ -33,6 +34,7 @@ const SUPPORTED_CAPABILITIES = new Set([
   "mcp_contribution",
   "policy",
 ]);
+const t = resolveLocaleCatalog();
 
 async function main() {
   const args = process.argv.slice(2);
@@ -54,24 +56,24 @@ async function main() {
   validateScaffold(scaffold);
   createScaffold(scaffold);
 
-  stdout.write(`Created Ralph Engine plugin scaffold at ${scaffold.targetDir}\n`);
-  stdout.write(`Plugin ID: ${scaffold.id}\n`);
+  stdout.write(`${t.createdAt} ${scaffold.targetDir}\n`);
+  stdout.write(`${t.pluginId}: ${scaffold.id}\n`);
 }
 
 function printHelp() {
-  stdout.write(`create-ralph-engine-plugin\n\n`);
-  stdout.write(`Usage:\n`);
+  stdout.write(`${t.helpTitle}\n\n`);
+  stdout.write(`${t.usageHeading}\n`);
   stdout.write(`  create-ralph-engine-plugin plugin <name> [options]\n`);
   stdout.write(`  create-ralph-engine-plugin --name <name> --publisher <publisher> [options]\n\n`);
-  stdout.write(`Options:\n`);
-  stdout.write(`  --name <name>                 Plugin name slug\n`);
-  stdout.write(`  --publisher <publisher>       Publisher slug (GitHub owner style)\n`);
-  stdout.write(`  --kind <kind>                 Primary kind (default: ${DEFAULT_KIND})\n`);
-  stdout.write(`  --capability <cap>            Repeatable capability flag\n`);
-  stdout.write(`  --capabilities <a,b,c>        Comma-separated capabilities\n`);
-  stdout.write(`  --dir <path>                  Target directory (default: ./<name>)\n`);
-  stdout.write(`  --yes                         Accept defaults in non-interactive mode\n`);
-  stdout.write(`  -h, --help                    Show this help\n`);
+  stdout.write(`${t.optionsHeading}\n`);
+  stdout.write(`  --name <name>                 ${t.optionName}\n`);
+  stdout.write(`  --publisher <publisher>       ${t.optionPublisher}\n`);
+  stdout.write(`  --kind <kind>                 ${t.optionKind} (default: ${DEFAULT_KIND})\n`);
+  stdout.write(`  --capability <cap>            ${t.optionCapability}\n`);
+  stdout.write(`  --capabilities <a,b,c>        ${t.optionCapabilities}\n`);
+  stdout.write(`  --dir <path>                  ${t.optionDir} (default: ./<name>)\n`);
+  stdout.write(`  --yes                         ${t.optionYes}\n`);
+  stdout.write(`  -h, --help                    ${t.optionHelp}\n`);
 }
 
 function parseArgs(argv) {
@@ -95,7 +97,7 @@ function parseArgs(argv) {
 
     const next = argv[index + 1];
     if (next == null || next.startsWith("--")) {
-      return { error: `Missing value for ${arg}` };
+      return { error: t.missingValue(arg) };
     }
 
     switch (arg) {
@@ -133,12 +135,12 @@ function parseArgs(argv) {
 async function resolveInteractive(parsed) {
   const rl = readline.createInterface({ input: stdin, output: stdout });
   try {
-    const name = normalizeSlug(parsed.flags.name || parsed.positionals[0] || await ask(rl, "Plugin name", ""));
-    const publisher = normalizeSlug(parsed.flags.publisher || await ask(rl, "Publisher slug", ""));
-    const kind = normalizeKind(parsed.flags.kind || await ask(rl, "Primary kind", DEFAULT_KIND) || DEFAULT_KIND);
+    const name = normalizeSlug(parsed.flags.name || parsed.positionals[0] || await ask(rl, t.promptPluginName, ""));
+    const publisher = normalizeSlug(parsed.flags.publisher || await ask(rl, t.promptPublisher, ""));
+    const kind = normalizeKind(parsed.flags.kind || await ask(rl, t.promptPrimaryKind, DEFAULT_KIND) || DEFAULT_KIND);
     const capabilityInput = parsed.flags.capability.length > 0
       ? parsed.flags.capability.join(",")
-      : await ask(rl, "Capabilities (comma separated)", defaultCapabilitiesForKind(kind).join(","));
+      : await ask(rl, t.promptCapabilities, defaultCapabilitiesForKind(kind).join(","));
 
     const capabilities = normalizeCapabilities(splitCSV(capabilityInput), kind);
     const targetDir = path.resolve(parsed.flags.dir || path.join(process.cwd(), name));
@@ -184,24 +186,24 @@ function buildScaffold(input) {
 
 function validateScaffold(scaffold) {
   if (!scaffold.name) {
-    fail("Plugin name is required. Use --name or pass it as the first positional argument.");
+    fail(t.pluginNameRequired);
   }
   if (!scaffold.publisher) {
-    fail("Publisher is required. Use --publisher.");
+    fail(t.publisherRequired);
   }
   if (RESERVED_PUBLISHERS.has(scaffold.publisher)) {
-    fail(`Publisher "${scaffold.publisher}" is reserved.`);
+    fail(t.reservedPublisher(scaffold.publisher));
   }
   if (!SUPPORTED_KINDS.has(scaffold.kind)) {
-    fail(`Unsupported kind "${scaffold.kind}".`);
+    fail(t.unsupportedKind(scaffold.kind));
   }
   for (const capability of scaffold.capabilities) {
     if (!SUPPORTED_CAPABILITIES.has(capability)) {
-      fail(`Unsupported capability "${capability}".`);
+      fail(t.unsupportedCapability(capability));
     }
   }
   if (fs.existsSync(scaffold.targetDir)) {
-    fail(`Target directory already exists: ${scaffold.targetDir}`);
+    fail(t.targetDirectoryExists(scaffold.targetDir));
   }
 }
 

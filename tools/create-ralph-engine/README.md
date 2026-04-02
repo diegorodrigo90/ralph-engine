@@ -25,3 +25,7 @@ npx create-ralph-engine-plugin plugin jira-suite --publisher acme
 
 Interactive mode works when running in a TTY without `--yes`. Non-interactive
 mode is driven by flags and is suitable for automation.
+
+The scaffolder resolves user-facing CLI text through locale catalogs and
+currently supports `en` plus `pt-br` via `RALPH_ENGINE_LOCALE`, falling back to
+English when an unsupported locale is requested.

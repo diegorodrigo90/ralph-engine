@@ -46,6 +46,25 @@ test("creates a non-interactive plugin scaffold", () => {
   assert.match(manifest, /- data_source/);
 });
 
+test("renders help in pt-br when locale is configured", () => {
+  const result = spawnSync(process.execPath, [
+    binPath,
+    "--help",
+  ], {
+    cwd: rootDir,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      RALPH_ENGINE_LOCALE: "pt-br",
+    },
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Uso:/);
+  assert.match(result.stdout, /Opções:/);
+  assert.match(result.stdout, /Slug do nome do plugin/);
+});
+
 test("creates template assets when template capability is present", () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-ralph-engine-plugin-"));
   const targetDir = path.join(tempDir, "bmad-pack");
@@ -112,6 +131,27 @@ test("rejects reserved publisher", () => {
   });
 
   assert.equal(result.status, 1);
+});
+
+test("renders validation errors in pt-br when locale is configured", () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-ralph-engine-plugin-"));
+  const result = spawnSync(process.execPath, [
+    binPath,
+    "plugin",
+    "danger",
+    "--publisher",
+    "official",
+  ], {
+    cwd: tempDir,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      RALPH_ENGINE_LOCALE: "pt-br",
+    },
+  });
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /O publicador "official" é reservado\./);
 });
 
 test("rejects unsupported future kind", () => {
