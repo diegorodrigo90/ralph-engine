@@ -121,7 +121,7 @@ pub struct OfficialResolvedProviderSurface {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OfficialRuntimeSnapshot {
     /// Resolved official plugin registrations.
-    pub plugins: [RuntimePluginRegistration; 8],
+    pub plugins: Vec<RuntimePluginRegistration>,
     /// Resolved official capability registrations.
     pub capabilities: Vec<RuntimeCapabilityRegistration>,
     /// Resolved official template registrations.
@@ -139,7 +139,7 @@ pub struct OfficialRuntimeSnapshot {
     /// Resolved official runtime-hook registrations.
     pub hooks: Vec<RuntimeHookRegistration>,
     /// Resolved official MCP registrations.
-    pub mcp_servers: [RuntimeMcpRegistration; 4],
+    pub mcp_servers: Vec<RuntimeMcpRegistration>,
 }
 
 impl OfficialRuntimeSnapshot {
@@ -220,8 +220,8 @@ const fn runtime_provider_kind_for_descriptor(kind: PluginProviderKind) -> Runti
     }
 }
 
-fn official_plugin_bundles() -> [OfficialPluginBundle; 8] {
-    [
+fn official_plugin_bundles() -> Vec<OfficialPluginBundle> {
+    vec![
         official_plugin_bundle(
             re_plugin_basic::descriptor(),
             re_plugin_basic::templates(),
@@ -307,8 +307,11 @@ fn official_plugin_bundles() -> [OfficialPluginBundle; 8] {
 
 /// Returns the immutable catalog of official plugins.
 #[must_use]
-pub fn official_plugins() -> [PluginDescriptor; 8] {
-    official_plugin_bundles().map(|bundle| bundle.descriptor)
+pub fn official_plugins() -> Vec<PluginDescriptor> {
+    official_plugin_bundles()
+        .into_iter()
+        .map(|bundle| bundle.descriptor)
+        .collect()
 }
 
 /// Returns one immutable official plugin descriptor by identifier.
@@ -321,14 +324,11 @@ pub fn find_official_plugin(plugin_id: &str) -> Option<PluginDescriptor> {
 
 /// Returns the immutable catalog of official MCP server contributions.
 #[must_use]
-pub fn official_mcp_servers() -> [McpServerDescriptor; 4] {
-    let bundles = official_plugin_bundles();
-    [
-        bundles[2].mcp_servers[0],
-        bundles[3].mcp_servers[0],
-        bundles[4].mcp_servers[0],
-        bundles[5].mcp_servers[0],
-    ]
+pub fn official_mcp_servers() -> Vec<McpServerDescriptor> {
+    official_plugin_bundles()
+        .into_iter()
+        .flat_map(|bundle| bundle.mcp_servers.iter().copied())
+        .collect()
 }
 
 /// Returns one immutable official MCP server descriptor by identifier.
@@ -367,48 +367,45 @@ fn resolved_mcp_registration(
     RuntimeMcpRegistration::new(server, enabled)
 }
 
-fn resolved_official_plugin_bundles() -> [ResolvedOfficialPluginBundle; 8] {
-    official_plugin_bundles().map(|bundle| {
-        let resolved = resolved_plugin_entry(bundle.descriptor);
-        let plugin = RuntimePluginRegistration::new(
-            bundle.descriptor,
-            resolved.activation,
-            resolved.resolved_from,
-        );
+fn resolved_official_plugin_bundles() -> Vec<ResolvedOfficialPluginBundle> {
+    official_plugin_bundles()
+        .into_iter()
+        .map(|bundle| {
+            let resolved = resolved_plugin_entry(bundle.descriptor);
+            let plugin = RuntimePluginRegistration::new(
+                bundle.descriptor,
+                resolved.activation,
+                resolved.resolved_from,
+            );
 
-        ResolvedOfficialPluginBundle { plugin, bundle }
-    })
+            ResolvedOfficialPluginBundle { plugin, bundle }
+        })
+        .collect()
 }
 
 /// Returns the resolved runtime plugin registrations for the official catalog.
 #[must_use]
-pub fn official_runtime_plugins() -> [RuntimePluginRegistration; 8] {
-    resolved_official_plugin_bundles().map(|bundle| bundle.plugin)
+pub fn official_runtime_plugins() -> Vec<RuntimePluginRegistration> {
+    resolved_official_plugin_bundles()
+        .into_iter()
+        .map(|bundle| bundle.plugin)
+        .collect()
 }
 
 /// Returns the resolved runtime MCP registrations for the official catalog.
 #[must_use]
-pub fn official_runtime_mcp_registrations() -> [RuntimeMcpRegistration; 4] {
-    let bundles = resolved_official_plugin_bundles();
-
-    [
-        resolved_mcp_registration(
-            bundles[2].bundle.mcp_servers[0],
-            bundles[2].plugin.activation,
-        ),
-        resolved_mcp_registration(
-            bundles[3].bundle.mcp_servers[0],
-            bundles[3].plugin.activation,
-        ),
-        resolved_mcp_registration(
-            bundles[4].bundle.mcp_servers[0],
-            bundles[4].plugin.activation,
-        ),
-        resolved_mcp_registration(
-            bundles[5].bundle.mcp_servers[0],
-            bundles[5].plugin.activation,
-        ),
-    ]
+pub fn official_runtime_mcp_registrations() -> Vec<RuntimeMcpRegistration> {
+    resolved_official_plugin_bundles()
+        .into_iter()
+        .flat_map(|bundle| {
+            bundle
+                .bundle
+                .mcp_servers
+                .iter()
+                .copied()
+                .map(move |server| resolved_mcp_registration(server, bundle.plugin.activation))
+        })
+        .collect()
 }
 
 /// Returns the resolved runtime capability registrations for the official catalog.
