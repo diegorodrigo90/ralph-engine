@@ -928,6 +928,8 @@ pub struct PluginDescriptor {
     pub localized_summaries: &'static [PluginLocalizedText],
     /// Published plugin version.
     pub version: &'static str,
+    /// Minimum plugin API version required by this plugin (semver major).
+    pub plugin_api_version: u16,
     /// Declared plugin capabilities.
     pub capabilities: &'static [PluginCapability],
     /// Declared lifecycle stages supported by the plugin.
@@ -937,6 +939,9 @@ pub struct PluginDescriptor {
     /// Declared runtime hooks contributed by the plugin.
     pub runtime_hooks: &'static [PluginRuntimeHook],
 }
+
+/// Current plugin API version supported by this runtime.
+pub const CURRENT_PLUGIN_API_VERSION: u16 = 1;
 
 impl PluginDescriptor {
     /// Creates a new immutable plugin descriptor.
@@ -951,6 +956,7 @@ impl PluginDescriptor {
         summary: &'static str,
         localized_summaries: &'static [PluginLocalizedText],
         version: &'static str,
+        plugin_api_version: u16,
         capabilities: &'static [PluginCapability],
         lifecycle: &'static [PluginLifecycleStage],
         load_boundary: PluginLoadBoundary,
@@ -965,11 +971,18 @@ impl PluginDescriptor {
             summary,
             localized_summaries,
             version,
+            plugin_api_version,
             capabilities,
             lifecycle,
             load_boundary,
             runtime_hooks,
         }
+    }
+
+    /// Returns whether this plugin is compatible with the current runtime API version.
+    #[must_use]
+    pub const fn is_api_compatible(&self) -> bool {
+        self.plugin_api_version <= CURRENT_PLUGIN_API_VERSION
     }
 
     /// Returns whether the plugin identifier uses a namespace prefix.

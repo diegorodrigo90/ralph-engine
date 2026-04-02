@@ -107,6 +107,7 @@ fn basic_plugin() -> PluginDescriptor {
         BASIC_SUMMARY,
         BASIC_LOCALIZED_SUMMARIES,
         "0.2.0-alpha.1",
+        1,
         BASIC_CAPABILITIES,
         BASIC_LIFECYCLE,
         PluginLoadBoundary::InProcess,
@@ -124,6 +125,7 @@ fn github_plugin() -> PluginDescriptor {
         "Fixture integration for data and forge workflows.",
         &[],
         "0.2.0-alpha.1",
+        1,
         GITHUB_CAPABILITIES,
         GITHUB_LIFECYCLE,
         PluginLoadBoundary::InProcess,
@@ -141,6 +143,7 @@ fn invalid_plugin() -> PluginDescriptor {
         "Broken plugin fixture.",
         &[],
         "0.2.0-alpha.1",
+        1,
         &[],
         &[],
         PluginLoadBoundary::Remote,
@@ -846,4 +849,31 @@ fn render_plugin_detail_includes_capabilities_and_lifecycle() {
     assert!(detail.contains("Capabilities: data_source, forge_provider"));
     assert!(detail.contains("Lifecycle: discover -> configure -> load"));
     assert!(detail.contains("Load boundary: in_process"));
+}
+
+#[test]
+fn plugin_api_version_is_compatible_with_current_runtime() {
+    let plugin = basic_plugin();
+    assert!(plugin.is_api_compatible());
+    assert_eq!(plugin.plugin_api_version, 1);
+}
+
+#[test]
+fn plugin_api_version_rejects_future_versions() {
+    let future_plugin = PluginDescriptor::new(
+        "test.future",
+        PluginKind::Template,
+        PluginTrustLevel::Community,
+        "Future Plugin",
+        &[],
+        "A plugin from the future.",
+        &[],
+        "9.0.0",
+        99,
+        &[],
+        &[],
+        PluginLoadBoundary::InProcess,
+        &[],
+    );
+    assert!(!future_plugin.is_api_compatible());
 }
