@@ -6,7 +6,9 @@ use re_config::{
     ConfigScope, McpServerConfig, OwnedProjectConfig, PluginActivation, PluginConfig,
     apply_project_config_patch, default_project_config,
 };
-use re_mcp::McpServerDescriptor;
+use re_mcp::{
+    McpLaunchPlan, McpServerDescriptor, build_mcp_launch_plan, render_mcp_launch_plan_for_locale,
+};
 use re_plugin::{
     AGENT_RUNTIME, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, POLICY,
     PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCapability, PluginDescriptor, PluginLoadBoundary,
@@ -881,6 +883,8 @@ pub struct RuntimeSnapshot<'a> {
     pub issues: Vec<RuntimeIssue>,
     /// Derived remediation actions.
     pub actions: Vec<RuntimeAction>,
+    /// Derived executable MCP launch plans for enabled servers.
+    pub mcp_launch_plans: Vec<McpLaunchPlan>,
     /// Derived configuration patch that remediates the snapshot.
     pub config_patch: RuntimeConfigPatch,
 }
@@ -893,6 +897,7 @@ impl<'a> RuntimeSnapshot<'a> {
         status: RuntimeStatus,
         issues: Vec<RuntimeIssue>,
         actions: Vec<RuntimeAction>,
+        mcp_launch_plans: Vec<McpLaunchPlan>,
         config_patch: RuntimeConfigPatch,
     ) -> Self {
         Self {
@@ -900,6 +905,7 @@ impl<'a> RuntimeSnapshot<'a> {
             status,
             issues,
             actions,
+            mcp_launch_plans,
             config_patch,
         }
     }
@@ -1433,6 +1439,42 @@ pub fn render_runtime_issues_for_locale(issues: &[RuntimeIssue], locale: &str) -
     lines.join("\n")
 }
 
+/// Builds the executable MCP launch plans for enabled runtime servers.
+#[must_use]
+pub fn build_runtime_mcp_launch_plans(topology: &RuntimeTopology<'_>) -> Vec<McpLaunchPlan> {
+    topology
+        .mcp_servers
+        .iter()
+        .filter(|server| server.enabled)
+        .map(|server| build_mcp_launch_plan(&server.descriptor))
+        .collect()
+}
+
+/// Renders the runtime MCP launch plans in English.
+#[must_use]
+pub fn render_runtime_mcp_launch_plans(plans: &[McpLaunchPlan]) -> String {
+    render_runtime_mcp_launch_plans_for_locale(plans, "en")
+}
+
+/// Renders the runtime MCP launch plans for one locale.
+#[must_use]
+pub fn render_runtime_mcp_launch_plans_for_locale(plans: &[McpLaunchPlan], locale: &str) -> String {
+    if plans.is_empty() {
+        return format!("{} (0)", i18n::runtime_mcp_launch_plans_label(locale));
+    }
+
+    let mut lines = vec![format!(
+        "{} ({})",
+        i18n::runtime_mcp_launch_plans_label(locale),
+        plans.len()
+    )];
+    for plan in plans {
+        lines.push(render_mcp_launch_plan_for_locale(plan, locale));
+    }
+
+    lines.join("\n\n")
+}
+
 /// Builds a typed remediation plan from the resolved runtime topology.
 #[must_use]
 pub fn build_runtime_action_plan(topology: &RuntimeTopology<'_>) -> Vec<RuntimeAction> {
@@ -1648,9 +1690,17 @@ pub fn build_runtime_snapshot<'a>(topology: &'a RuntimeTopology<'a>) -> RuntimeS
     let status = evaluate_runtime_status(topology);
     let issues = collect_runtime_issues(topology);
     let actions = build_runtime_action_plan(topology);
+    let mcp_launch_plans = build_runtime_mcp_launch_plans(topology);
     let config_patch = build_runtime_config_patch(topology);
 
-    RuntimeSnapshot::new(*topology, status, issues, actions, config_patch)
+    RuntimeSnapshot::new(
+        *topology,
+        status,
+        issues,
+        actions,
+        mcp_launch_plans,
+        config_patch,
+    )
 }
 
 /// Renders a human-readable runtime doctor report.
@@ -1699,16 +1749,18 @@ mod tests {
         RuntimePromptRegistration, RuntimeProviderKind, RuntimeProviderRegistration,
         RuntimeSnapshot, RuntimeStatus, RuntimeTemplateRegistration, RuntimeTopology,
         agent_runtime_hook, banner, build_runtime_action_plan, build_runtime_config_patch,
-        build_runtime_doctor_report, build_runtime_patched_config, build_runtime_snapshot,
-        capability_activates_agent_surface, capability_activates_policy_surface,
-        capability_activates_prompt_surface, capability_activates_template_surface,
-        collect_runtime_issues, evaluate_runtime_status, parse_runtime_check_kind,
-        parse_runtime_provider_kind, policy_runtime_hook, prompt_runtime_hook,
-        render_runtime_action_plan, render_runtime_action_plan_for_locale,
+        build_runtime_doctor_report, build_runtime_mcp_launch_plans, build_runtime_patched_config,
+        build_runtime_snapshot, capability_activates_agent_surface,
+        capability_activates_policy_surface, capability_activates_prompt_surface,
+        capability_activates_template_surface, collect_runtime_issues, evaluate_runtime_status,
+        parse_runtime_check_kind, parse_runtime_provider_kind, policy_runtime_hook,
+        prompt_runtime_hook, render_runtime_action_plan, render_runtime_action_plan_for_locale,
         render_runtime_config_patch_yaml, render_runtime_doctor_report,
         render_runtime_doctor_report_for_locale, render_runtime_issues,
-        render_runtime_issues_for_locale, render_runtime_status, render_runtime_status_for_locale,
-        render_runtime_topology, render_runtime_topology_for_locale, template_runtime_hook,
+        render_runtime_issues_for_locale, render_runtime_mcp_launch_plans,
+        render_runtime_mcp_launch_plans_for_locale, render_runtime_status,
+        render_runtime_status_for_locale, render_runtime_topology,
+        render_runtime_topology_for_locale, template_runtime_hook,
     };
 
     const CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -2169,7 +2221,59 @@ mod tests {
         assert_eq!(snapshot.status.health, RuntimeHealth::Healthy);
         assert!(snapshot.issues.is_empty());
         assert!(snapshot.actions.is_empty());
+        assert_eq!(
+            snapshot.mcp_launch_plans,
+            build_runtime_mcp_launch_plans(&topology)
+        );
         assert!(snapshot.config_patch.is_empty());
+    }
+
+    #[test]
+    fn build_runtime_mcp_launch_plans_only_includes_enabled_servers() {
+        let enabled = RuntimeMcpRegistration::new(mcp_descriptor(), true);
+        let disabled = RuntimeMcpRegistration::new(mcp_descriptor(), false);
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[enabled, disabled],
+        };
+
+        let plans = build_runtime_mcp_launch_plans(&topology);
+
+        assert_eq!(plans.len(), 1);
+        assert_eq!(plans[0].server_id, MCP_SERVER_ID);
+    }
+
+    #[test]
+    fn render_runtime_mcp_launch_plans_is_human_readable() {
+        let plans = build_runtime_mcp_launch_plans(&RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[RuntimeMcpRegistration::new(mcp_descriptor(), true)],
+        });
+
+        let rendered = render_runtime_mcp_launch_plans(&plans);
+
+        assert!(rendered.contains("Runtime MCP launch plans (1)"));
+        assert!(rendered.contains("MCP launch plan: test.mcp.session"));
     }
 
     #[test]
@@ -2223,6 +2327,7 @@ mod tests {
                 PRIMARY_PLUGIN_ID,
                 "enable plugin test.foundation",
             )],
+            Vec::new(),
             RuntimeConfigPatch::new(
                 vec![PluginConfig::new(
                     PRIMARY_PLUGIN_ID,
@@ -3597,5 +3702,28 @@ mod tests {
         assert!(rendered.contains("Diagnóstico do runtime"));
         assert!(rendered.contains("Problemas do runtime (1)"));
         assert!(rendered.contains("Plano de ação do runtime (1)"));
+    }
+
+    #[test]
+    fn render_runtime_mcp_launch_plans_supports_pt_br() {
+        let plans = build_runtime_mcp_launch_plans(&RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "pt-br",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[RuntimeMcpRegistration::new(mcp_descriptor(), true)],
+        });
+
+        let rendered = render_runtime_mcp_launch_plans_for_locale(&plans, "pt-br");
+
+        assert!(rendered.contains("Planos de lançamento MCP do runtime (1)"));
+        assert!(rendered.contains("Plano de lançamento MCP: test.mcp.session"));
     }
 }

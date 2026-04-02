@@ -2,8 +2,8 @@
 
 use re_core::{
     render_runtime_action_plan_for_locale, render_runtime_config_patch_yaml,
-    render_runtime_issues_for_locale, render_runtime_status_for_locale,
-    render_runtime_topology_for_locale,
+    render_runtime_issues_for_locale, render_runtime_mcp_launch_plans_for_locale,
+    render_runtime_status_for_locale, render_runtime_topology_for_locale,
 };
 
 use super::runtime_state::{
@@ -19,6 +19,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         Some("patch") => Ok(show_runtime_config_patch()),
         Some("patched-config") => Ok(show_runtime_patched_config()),
         Some("plan") => Ok(show_runtime_action_plan(locale)),
+        Some("mcp-plans") => Ok(show_runtime_mcp_launch_plans(locale)),
         Some("status") => Ok(show_runtime_status(locale)),
         Some(other) => Err(CliError::new(i18n::unknown_subcommand(
             locale, "runtime", other,
@@ -47,6 +48,12 @@ fn show_runtime_issues(locale: &str) -> String {
 fn show_runtime_action_plan(locale: &str) -> String {
     with_official_runtime_snapshot(|runtime| {
         render_runtime_action_plan_for_locale(&runtime.actions, locale)
+    })
+}
+
+fn show_runtime_mcp_launch_plans(locale: &str) -> String {
+    with_official_runtime_snapshot(|runtime| {
+        render_runtime_mcp_launch_plans_for_locale(&runtime.mcp_launch_plans, locale)
     })
 }
 

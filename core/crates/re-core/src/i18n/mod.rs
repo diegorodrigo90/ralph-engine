@@ -12,6 +12,7 @@ pub(super) struct RuntimeLocaleCatalog {
     pub policies: &'static str,
     pub runtime_hooks: &'static str,
     pub mcp_servers: &'static str,
+    pub runtime_mcp_launch_plans: &'static str,
     pub runtime_issues: &'static str,
     pub runtime_action_plan: &'static str,
     pub runtime_doctor: &'static str,
@@ -49,6 +50,7 @@ locale_label!(providers_label, providers);
 locale_label!(policies_label, policies);
 locale_label!(runtime_hooks_label, runtime_hooks);
 locale_label!(mcp_servers_label, mcp_servers);
+locale_label!(runtime_mcp_launch_plans_label, runtime_mcp_launch_plans);
 locale_label!(runtime_issues_label, runtime_issues);
 locale_label!(runtime_action_plan_label, runtime_action_plan);
 locale_label!(runtime_doctor_label, runtime_doctor);
