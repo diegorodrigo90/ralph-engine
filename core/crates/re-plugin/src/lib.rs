@@ -373,18 +373,22 @@ impl PluginDescriptor {
     /// Resolves the display name for a locale with English fallback.
     #[must_use]
     pub fn display_name_for_locale(&self, locale: &str) -> &'static str {
+        let locale = re_config::resolve_locale_or_default(locale.trim());
+
         self.localized_names
             .iter()
-            .find(|entry| entry.locale.eq_ignore_ascii_case(locale))
+            .find(|entry| entry.locale == locale)
             .map_or(self.name, |entry| entry.value)
     }
 
     /// Resolves the plugin summary for a locale with English fallback.
     #[must_use]
     pub fn summary_for_locale(&self, locale: &str) -> &'static str {
+        let locale = re_config::resolve_locale_or_default(locale.trim());
+
         self.localized_summaries
             .iter()
-            .find(|entry| entry.locale.eq_ignore_ascii_case(locale))
+            .find(|entry| entry.locale == locale)
             .map_or(self.summary, |entry| entry.value)
     }
 }
