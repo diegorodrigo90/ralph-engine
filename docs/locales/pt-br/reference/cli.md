@@ -22,6 +22,7 @@ ralph-engine checks run <check-id>
 ralph-engine doctor
 ralph-engine doctor runtime
 ralph-engine doctor config
+ralph-engine doctor apply-config <output-path>
 ralph-engine doctor write-config <output-path>
 ralph-engine hooks
 ralph-engine hooks list
@@ -60,6 +61,7 @@ ralph-engine runtime policy-plans
 ralph-engine runtime mcp-plans
 ralph-engine runtime patch
 ralph-engine runtime patched-config
+ralph-engine runtime apply-config <output-path>
 ralph-engine runtime write-patched-config <output-path>
 ralph-engine prompts
 ralph-engine prompts list
@@ -101,7 +103,9 @@ A família `doctor` imprime o relatório tipado de diagnóstico do runtime, comp
 
 O comando `doctor config` renderiza a mesma configuração de projeto resultante da aplicação do patch de remediação do runtime sobre os defaults atuais, para que o fluxo de diagnóstico aponte diretamente para um alvo de remediação inspecionável em vez de parar só na análise.
 
-O comando `doctor write-config` persiste esse mesmo alvo de remediação em um caminho de saída, para que o fluxo de diagnóstico produza um artefato concreto de próximo passo em vez de parar em YAML renderizado.
+O comando `doctor apply-config` persiste esse mesmo alvo de remediação em um caminho de saída, para que o fluxo de diagnóstico produza um artefato concreto de próximo passo em vez de parar em YAML renderizado.
+
+O comando `doctor write-config` continua disponível como alias de compatibilidade para `doctor apply-config`.
 
 A família `config locale` imprime o contrato tipado do locale padrão, para que o i18n da CLI permaneça inspecionável em vez de ficar implícito nos defaults do runtime.
 
@@ -141,4 +145,6 @@ O comando `runtime patch` renderiza o patch tipado de configuração que remedia
 
 O comando `runtime patched-config` renderiza a configuração de projeto resultante da aplicação do patch tipado de runtime sobre os defaults atuais, para que o operador possa inspecionar o resultado efetivo da remediação antes de persistir essa configuração em outro lugar.
 
-O comando `runtime write-patched-config` persiste esse alvo de remediação totalmente materializado em um caminho de saída, para que a recuperação do runtime saia da inspeção e vire um passo explícito e reproduzível de escrita em arquivo.
+O comando `runtime apply-config` persiste esse alvo de remediação totalmente materializado em um caminho de saída, para que a recuperação do runtime saia da inspeção e vire um passo explícito e reproduzível de escrita em arquivo.
+
+O comando `runtime write-patched-config` continua disponível como alias de compatibilidade para `runtime apply-config`.

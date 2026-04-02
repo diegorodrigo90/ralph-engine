@@ -22,6 +22,7 @@ ralph-engine checks run <check-id>
 ralph-engine doctor
 ralph-engine doctor runtime
 ralph-engine doctor config
+ralph-engine doctor apply-config <output-path>
 ralph-engine doctor write-config <output-path>
 ralph-engine hooks
 ralph-engine hooks list
@@ -60,6 +61,7 @@ ralph-engine runtime policy-plans
 ralph-engine runtime mcp-plans
 ralph-engine runtime patch
 ralph-engine runtime patched-config
+ralph-engine runtime apply-config <output-path>
 ralph-engine runtime write-patched-config <output-path>
 ralph-engine prompts
 ralph-engine prompts list
@@ -101,7 +103,9 @@ The `doctor` command family prints the typed runtime diagnostic report by compos
 
 The `doctor config` command renders the same owned project configuration that results from applying the runtime remediation patch to the current defaults, so the doctor flow can point directly at an inspectable remediation target instead of stopping at diagnosis.
 
-The `doctor write-config` command persists that same remediation target to one output path, so the diagnostic flow can produce a concrete next-step artifact instead of stopping at rendered YAML.
+The `doctor apply-config` command persists that same remediation target to one output path, so the diagnostic flow can produce a concrete next-step artifact instead of stopping at rendered YAML.
+
+The `doctor write-config` command remains available as a compatibility alias for `doctor apply-config`.
 
 The `config locale` command prints the typed default locale contract so CLI i18n stays inspectable instead of remaining implicit in the runtime defaults.
 
@@ -141,4 +145,6 @@ The `runtime patch` command renders the typed configuration patch that would rem
 
 The `runtime patched-config` command renders the owned project configuration produced by applying the typed runtime patch to the current defaults, so operators can inspect the effective remediation result before persisting it elsewhere.
 
-The `runtime write-patched-config` command persists that fully materialized remediation target to one output path, so runtime recovery can move from inspection into an explicit, repeatable file-writing step.
+The `runtime apply-config` command persists that fully materialized remediation target to one output path, so runtime recovery can move from inspection into an explicit, repeatable file-writing step.
+
+The `runtime write-patched-config` command remains available as a compatibility alias for `runtime apply-config`.
