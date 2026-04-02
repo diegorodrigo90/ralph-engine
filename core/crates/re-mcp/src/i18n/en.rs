@@ -1,0 +1,12 @@
+pub(super) const OFFICIAL_SERVERS: &str = "Official MCP servers";
+pub(super) const SERVER: &str = "MCP server";
+pub(super) const NAME: &str = "Name";
+pub(super) const PLUGIN: &str = "Plugin";
+pub(super) const TRANSPORT: &str = "Transport";
+pub(super) const PROCESS_MODEL: &str = "Process model";
+pub(super) const LAUNCH_POLICY: &str = "Launch policy";
+pub(super) const AVAILABILITY: &str = "Availability";
+pub(super) const COMMAND: &str = "Command";
+pub(super) const WORKING_DIRECTORY: &str = "Working directory";
+pub(super) const ENVIRONMENT: &str = "Environment";
+pub(super) const RUNTIME_MANAGED_COMMAND: &str = "managed by plugin runtime";
