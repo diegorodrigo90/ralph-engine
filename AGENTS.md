@@ -13,6 +13,8 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 - `AGENTS.md` SHALL be the canonical assistant contract.
 - `scripts/validate.sh` SHALL be the canonical validation contract for local work, CI, hooks, and release.
 - `scripts/validate-ci-local.sh` SHALL be the supported local smoke check for GitHub Actions workflow behavior.
+- `scripts/verify-dist-workspace.sh` SHALL validate the reviewed `cargo-dist` workspace contract before release-candidate or publish steps depend on it.
+- `scripts/verify-release-assets.sh` SHALL validate generated release assets, checksums, and target completeness before artifacts are approved or published.
 - `rust-toolchain.toml` SHALL pin the canonical Rust toolchain.
 - `.tool-versions` SHALL pin the canonical asdf tool versions.
 - GitHub Actions SHALL be pinned to full SHAs.
@@ -65,6 +67,8 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 43. Workflows SHALL avoid no-op cache restores and unnecessary setup steps. If a job does not install or consume a dependency set, it SHALL NOT restore that cache just for symmetry.
 44. Matrix fail-fast behavior SHALL match the purpose of the matrix. Quality matrices SHOULD keep `fail-fast: false` to surface cross-platform regressions in one run, while release-artifact matrices SHOULD keep `fail-fast: true` because one failed platform already invalidates the publishable set.
 45. Pages publication SHALL happen from published releases and SHALL build from the release tag so the public site, docs, and plugins surface reflect published versions rather than unreleased `main` state.
+46. `dist-workspace.toml` SHALL remain an explicit reviewed contract. CI and release workflows SHALL validate it before building or promoting `cargo-dist` artifacts.
+47. Reusable release artifacts SHALL be treated as first-class contract outputs. Candidate and publishable asset sets SHALL pass explicit checksum and target-completeness validation before approval or publication.
 
 ## Structure
 

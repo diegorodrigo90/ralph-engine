@@ -26,6 +26,7 @@ Secrets used by this workflow:
 The `tag` input SHALL include the leading `v`, for example `v0.2.0-alpha.1`. The workflow strips that prefix before preparing npm package versions.
 Before it publishes anything, the workflow verifies that the selected SHA is the current `origin/main` head and that the canonical `CI` workflow has already completed successfully for that exact push.
 That same `CI` workflow builds cross-platform release candidates in parallel with the quality gates and publishes reusable approved release artifacts for the SHA only after `Quality`, `Security`, and `SonarCloud` have all passed.
+Both the reviewed `dist-workspace.toml` contract and the generated release assets are validated explicitly before artifacts are approved or promoted.
 The SonarCloud quality gate is also the hard release stop for coverage: if it falls below the configured `100%` target for analyzed code, the SHA is not approved for artifact publication or release promotion.
 
 ## Rules
@@ -39,6 +40,8 @@ The SonarCloud quality gate is also the hard release stop for coverage: if it fa
 - The canonical `CI` workflow SHALL build cross-platform release candidates for the target `main` SHA in parallel with the quality gates.
 - The canonical `CI` workflow SHALL publish reusable approved release artifacts for that SHA only after `Quality`, `Security`, and `SonarCloud` have all passed.
 - The release workflow SHALL download and publish that approved artifact set instead of rebuilding it.
+- `scripts/verify-dist-workspace.sh` SHALL validate the reviewed `cargo-dist` workspace contract before release-candidate or publish steps depend on it.
+- `scripts/verify-release-assets.sh` SHALL validate candidate and assembled release assets, checksums, and target completeness before approval or publication.
 - Pages SHALL publish from published releases and build from the release tag so the public site and docs stay aligned with published versions.
 - `cargo-dist` SHALL be the Rust artifact builder for release distribution.
 - `Quality`, `Security`, and `SonarCloud` SHALL all pass before a release tag is created.

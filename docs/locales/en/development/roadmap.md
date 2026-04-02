@@ -20,5 +20,5 @@ Updated: 2026-04-02
 - [ ] Move the runtime from typed metadata and diagnostics into richer executable orchestration and state handling under TDD and 100% meaningful coverage.
 - [ ] Rebuild official plugins beyond typed descriptors so they execute real behavior on top of the new Rust runtime contracts.
 - [ ] Finish the end-to-end release pipeline for GitHub Releases, npm, and Homebrew with provenance, checksums, attestations, and final publish gates.
-- [ ] Add explicit validation for generated release artifacts and `dist-workspace.toml`.
+- [x] Add explicit validation for generated release artifacts and `dist-workspace.toml`.
 - [ ] Restore richer runtime examples in docs once the executable runtime layer is further along.

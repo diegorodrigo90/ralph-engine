@@ -108,6 +108,11 @@ jobs:
         run: |
           node --check ./scripts/prepare-npm-release.mjs
           node --check ./scripts/render-homebrew-formula.mjs
+          bash -n ./scripts/verify-dist-workspace.sh
+          bash -n ./scripts/verify-release-assets.sh
+      - name: Verify cargo-dist workspace contract
+        shell: bash
+        run: ./scripts/verify-dist-workspace.sh
 
   fetch-release-artifacts:
     name: Download reusable release artifacts from CI
@@ -148,6 +153,9 @@ jobs:
             cp -n "$file" .release/assets/
           done
           ls -1 .release/assets
+      - name: Verify assembled release assets
+        shell: bash
+        run: ./scripts/verify-release-assets.sh .release/assets --require-all-targets
       - name: Upload staged release assets
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
