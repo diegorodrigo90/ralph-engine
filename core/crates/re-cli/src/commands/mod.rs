@@ -85,16 +85,21 @@ const COMMANDS: &[CommandDescriptor] = &[
 
 /// Executes the CLI command tree from collected process arguments.
 pub fn execute(args: &[String]) -> Result<String, CliError> {
-    let locale = i18n::resolve_cli_locale()?;
+    let invocation = i18n::resolve_cli_invocation(args)?;
+    let locale = invocation.locale;
 
-    match args.get(1).map(String::as_str) {
+    match args.get(invocation.command_index).map(String::as_str) {
         None => Ok(format!(
             "{}\n\n{}",
             re_core::banner(),
             i18n::root_bootstrapped(locale)
         )),
         Some("--version") => Ok(env!("CARGO_PKG_VERSION").to_owned()),
-        Some(command_name) => dispatch_command(command_name, &args[2..], locale),
+        Some(command_name) => dispatch_command(
+            command_name,
+            &args[(invocation.command_index + 1)..],
+            locale,
+        ),
     }
 }
 

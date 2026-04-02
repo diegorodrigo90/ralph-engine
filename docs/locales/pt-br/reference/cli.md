@@ -6,7 +6,9 @@ A base atual em Rust expõe uma superfície mínima de CLI enquanto o runtime é
 
 ```bash
 ralph-engine
+ralph-engine --locale <locale-id>
 ralph-engine --version
+ralph-engine --locale <locale-id> --version
 ralph-engine agents
 ralph-engine agents list
 ralph-engine agents show <agent-id>
@@ -61,6 +63,8 @@ ralph-engine mcp
 ralph-engine mcp list
 ralph-engine mcp show <server-id>
 ```
+
+A CLI também aceita o flag global `--locale <locale-id>` ou `-L <locale-id>` para que uma única invocação troque o idioma explicitamente sem depender do ambiente. Quando nenhum flag explícito é passado, a CLI continua fazendo fallback para `RALPH_ENGINE_LOCALE` e depois para o contrato tipado de locale padrão.
 
 O comando `plugins show` imprime o contrato imutável do plugin, incluindo lifecycle, fronteira de carregamento, runtime hooks e o estado de ativação resolvido.
 
