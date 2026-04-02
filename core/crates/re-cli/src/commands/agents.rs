@@ -60,33 +60,20 @@ fn render_agent_listing(registrations: &[OfficialAgentContribution], locale: &st
 }
 
 fn render_agent_detail(agent: OfficialAgentContribution, locale: &str) -> String {
-    let name_label = if i18n::is_pt_br(locale) {
-        "Nome"
-    } else {
-        "Name"
-    };
-    let summary_label = if i18n::is_pt_br(locale) {
-        "Resumo"
-    } else {
-        "Summary"
-    };
-    let hook_label = if i18n::is_pt_br(locale) {
-        "Hook de runtime"
-    } else {
-        "Runtime hook"
-    };
-
     format!(
-        "Agent runtime: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{}: {}\n{}: {}\n{hook_label}: {}",
+        "Agent runtime: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {runtime_hook}",
         agent.descriptor.id,
         agent.descriptor.display_name_for_locale(locale),
         agent.descriptor.summary_for_locale(locale),
         agent.descriptor.plugin_id,
-        i18n::activation_label(locale),
-        agent.activation.as_str(),
-        i18n::load_boundary_label(locale),
-        agent.load_boundary.as_str(),
-        if agent.bootstrap_hook_registered {
+        name_label = i18n::name_label(locale),
+        summary_label = i18n::summary_label(locale),
+        activation_label = i18n::activation_label(locale),
+        activation = agent.activation.as_str(),
+        load_boundary_label = i18n::load_boundary_label(locale),
+        load_boundary = agent.load_boundary.as_str(),
+        hook_label = i18n::hook_label(locale),
+        runtime_hook = if agent.bootstrap_hook_registered {
             "agent_bootstrap"
         } else {
             "missing"

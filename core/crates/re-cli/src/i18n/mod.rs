@@ -8,6 +8,9 @@ use re_config::SupportedLocale;
 pub(super) struct CliLocaleCatalog {
     pub root_bootstrapped: &'static str,
     pub providers_label: &'static str,
+    pub name_label: &'static str,
+    pub summary_label: &'static str,
+    pub kind_label: &'static str,
     pub resolved_activation_label: &'static str,
     pub resolved_from_label: &'static str,
     pub activation_label: &'static str,
@@ -21,6 +24,8 @@ pub(super) struct CliLocaleCatalog {
     pub checks_label: &'static str,
     pub hook_label: &'static str,
     pub hooks_label: &'static str,
+    pub registration_hook_label: &'static str,
+    pub assets_label: &'static str,
     pub provider_label: &'static str,
     pub locale_id_entity_label: &'static str,
     pub mcp_server_id_entity_label: &'static str,
@@ -207,6 +212,9 @@ pub fn detail_heading(locale: &str, label_en: &str, label_pt: &str, value: &str)
 
 catalog_str!(resolved_activation_label, resolved_activation_label);
 catalog_str!(resolved_from_label, resolved_from_label);
+catalog_str!(name_label, name_label);
+catalog_str!(summary_label, summary_label);
+catalog_str!(kind_label, kind_label);
 catalog_str!(activation_label, activation_label);
 catalog_str!(load_boundary_label, load_boundary_label);
 catalog_str!(policy_label, policy_label);
@@ -218,6 +226,8 @@ catalog_str!(check_label, check_label);
 catalog_str!(checks_label, checks_label);
 catalog_str!(hook_label, hook_label);
 catalog_str!(hooks_label, hooks_label);
+catalog_str!(registration_hook_label, registration_hook_label);
+catalog_str!(assets_label, assets_label);
 catalog_str!(providers_label, providers_label);
 catalog_str!(provider_label, provider_label);
 catalog_str!(plugin_id_entity_label, plugin_id_entity_label);

@@ -96,22 +96,6 @@ fn render_prompt_listing(registrations: &[OfficialPromptContribution], locale: &
 }
 
 fn render_prompt_detail(prompt: OfficialPromptContribution, locale: &str) -> String {
-    let name_label = if i18n::is_pt_br(locale) {
-        "Nome"
-    } else {
-        "Name"
-    };
-    let summary_label = if i18n::is_pt_br(locale) {
-        "Resumo"
-    } else {
-        "Summary"
-    };
-    let hook_label = if i18n::is_pt_br(locale) {
-        "Hook de runtime"
-    } else {
-        "Runtime hook"
-    };
-    let assets_label = "Assets";
     let asset_paths = if prompt.descriptor.has_assets() {
         prompt
             .descriptor
@@ -125,21 +109,25 @@ fn render_prompt_detail(prompt: OfficialPromptContribution, locale: &str) -> Str
     };
 
     format!(
-        "Prompt: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{}: {}\n{}: {}\n{hook_label}: {}\n{assets_label}: {}",
+        "Prompt: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {runtime_hook}\n{assets_label}: {assets}",
         prompt.descriptor.id,
         prompt.descriptor.display_name_for_locale(locale),
         prompt.descriptor.summary_for_locale(locale),
         prompt.descriptor.plugin_id,
-        i18n::activation_label(locale),
-        prompt.activation.as_str(),
-        i18n::load_boundary_label(locale),
-        prompt.load_boundary.as_str(),
-        if prompt.prompt_hook_registered {
+        name_label = i18n::name_label(locale),
+        summary_label = i18n::summary_label(locale),
+        activation_label = i18n::activation_label(locale),
+        activation = prompt.activation.as_str(),
+        load_boundary_label = i18n::load_boundary_label(locale),
+        load_boundary = prompt.load_boundary.as_str(),
+        hook_label = i18n::hook_label(locale),
+        assets_label = i18n::assets_label(locale),
+        runtime_hook = if prompt.prompt_hook_registered {
             "prompt_assembly"
         } else {
             "missing"
         },
-        asset_paths,
+        assets = asset_paths,
     )
 }
 
