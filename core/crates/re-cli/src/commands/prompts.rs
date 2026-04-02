@@ -26,10 +26,7 @@ fn show_prompt(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError
             i18n::plugin_id_entity_label(locale),
         ))
     })?;
-    let prompts = catalog::official_runtime_prompts()
-        .into_iter()
-        .filter(|registration| registration.plugin_id == plugin_id)
-        .collect::<Vec<_>>();
+    let prompts = catalog::find_official_runtime_prompts(plugin_id);
 
     if prompts.is_empty() {
         return Err(CliError::new(i18n::unknown_entity(

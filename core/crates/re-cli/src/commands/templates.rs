@@ -28,10 +28,7 @@ fn show_template(plugin_id: Option<&str>, locale: &str) -> Result<String, CliErr
             i18n::plugin_id_entity_label(locale),
         ))
     })?;
-    let templates = catalog::official_runtime_templates()
-        .into_iter()
-        .filter(|registration| registration.plugin_id == plugin_id)
-        .collect::<Vec<_>>();
+    let templates = catalog::find_official_runtime_templates(plugin_id);
 
     if templates.is_empty() {
         return Err(CliError::new(i18n::unknown_entity(

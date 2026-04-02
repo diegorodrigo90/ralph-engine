@@ -392,13 +392,49 @@ pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
     }
 }
 
+fn registrations_for_plugin<T: Copy>(
+    registrations: Vec<T>,
+    plugin_id: &str,
+    plugin_id_of: fn(T) -> &'static str,
+) -> Vec<T> {
+    registrations
+        .into_iter()
+        .filter(|registration| plugin_id_of(*registration) == plugin_id)
+        .collect()
+}
+
+/// Returns the resolved template registrations for one official plugin identifier.
+#[must_use]
+pub fn find_official_runtime_templates(plugin_id: &str) -> Vec<RuntimeTemplateRegistration> {
+    registrations_for_plugin(official_runtime_templates(), plugin_id, |registration| {
+        registration.plugin_id
+    })
+}
+
+/// Returns the resolved prompt registrations for one official plugin identifier.
+#[must_use]
+pub fn find_official_runtime_prompts(plugin_id: &str) -> Vec<RuntimePromptRegistration> {
+    registrations_for_plugin(official_runtime_prompts(), plugin_id, |registration| {
+        registration.plugin_id
+    })
+}
+
+/// Returns the resolved agent registrations for one official plugin identifier.
+#[must_use]
+pub fn find_official_runtime_agents(plugin_id: &str) -> Vec<RuntimeAgentRegistration> {
+    registrations_for_plugin(official_runtime_agents(), plugin_id, |registration| {
+        registration.plugin_id
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        find_official_mcp_server, find_official_plugin, official_plugins, official_runtime_agents,
-        official_runtime_checks, official_runtime_mcp_registrations, official_runtime_policies,
-        official_runtime_prompts, official_runtime_providers, official_runtime_snapshot,
-        official_runtime_templates,
+        find_official_mcp_server, find_official_plugin, find_official_runtime_agents,
+        find_official_runtime_prompts, find_official_runtime_templates, official_plugins,
+        official_runtime_agents, official_runtime_checks, official_runtime_mcp_registrations,
+        official_runtime_policies, official_runtime_prompts, official_runtime_providers,
+        official_runtime_snapshot, official_runtime_templates,
     };
     use re_core::{runtime_check_kind_for_capability, runtime_provider_kind_for_capability};
     use re_plugin::{ALL_PLUGIN_CAPABILITIES, PluginCapability, runtime_surface_for_capability};
@@ -481,5 +517,12 @@ mod tests {
         assert_eq!(topology.policies.len(), snapshot.policies.len());
         assert_eq!(topology.hooks.len(), snapshot.hooks.len());
         assert_eq!(topology.mcp_servers.len(), snapshot.mcp_servers.len());
+    }
+
+    #[test]
+    fn plugin_owned_surface_helpers_reject_unknown_plugins() {
+        assert!(find_official_runtime_templates("official.missing").is_empty());
+        assert!(find_official_runtime_prompts("official.missing").is_empty());
+        assert!(find_official_runtime_agents("official.missing").is_empty());
     }
 }
