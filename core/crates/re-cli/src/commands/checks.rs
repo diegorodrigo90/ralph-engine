@@ -31,20 +31,10 @@ fn show_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError
         ))
     })?;
 
-    if let Some(contribution) = catalog::find_official_check_contribution(check_id) {
-        let registration = catalog::find_official_runtime_checks(kind_for_check(contribution))
-            .into_iter()
-            .find(|candidate| candidate.plugin_id == contribution.descriptor.plugin_id)
-            .ok_or_else(|| {
-                CliError::new(i18n::unknown_entity(
-                    locale,
-                    i18n::check_entity_label(locale),
-                    check_id,
-                ))
-            })?;
+    if let Some(surface) = catalog::find_official_check_surface(check_id) {
         return Ok(render_check_contribution_detail(
-            contribution,
-            registration,
+            surface.contribution,
+            surface.registration,
             locale,
         ));
     }
@@ -60,13 +50,6 @@ fn show_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError
     let contributions = catalog::find_official_check_contributions(kind);
 
     Ok(render_check_detail(kind, &checks, &contributions, locale))
-}
-
-fn kind_for_check(contribution: catalog::OfficialCheckContribution) -> RuntimeCheckKind {
-    match contribution.descriptor.kind {
-        re_plugin::PluginCheckKind::Prepare => RuntimeCheckKind::Prepare,
-        re_plugin::PluginCheckKind::Doctor => RuntimeCheckKind::Doctor,
-    }
 }
 
 fn render_check_listing(registrations: &[RuntimeCheckRegistration], locale: &str) -> String {
