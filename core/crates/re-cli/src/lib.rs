@@ -60,40 +60,44 @@ mod tests {
 
         // Assert
         assert!(output.contains("Agent runtimes (3)"));
-        assert!(output.contains("- official.claude | activation=disabled"));
-        assert!(output.contains("- official.codex | activation=disabled"));
+        assert!(output.contains(
+            "- official.claude.session | Claude session | plugin=official.claude | activation=disabled"
+        ));
+        assert!(output.contains(
+            "- official.codex.session | Codex session | plugin=official.codex | activation=disabled"
+        ));
     }
 
     #[test]
-    fn execute_agents_show_returns_provider_detail() {
+    fn execute_agents_show_returns_agent_detail() {
         // Arrange
-        let command = args(&["ralph-engine", "agents", "show", "official.codex"]);
+        let command = args(&["ralph-engine", "agents", "show", "official.codex.session"]);
 
         // Act
         let output = execute(command).expect("agents show should succeed");
 
         // Assert
-        assert!(output.contains("Agent runtime: official.codex"));
-        assert!(output.contains("Providers (1)"));
-        assert!(output.contains(
-            "- official.codex | activation=disabled | boundary=in_process | bootstrap_hook=true"
-        ));
+        assert!(output.contains("Agent runtime: official.codex.session"));
+        assert!(output.contains("Name: Codex session"));
+        assert!(output.contains("Plugin: official.codex"));
+        assert!(output.contains("Activation: disabled"));
+        assert!(output.contains("Runtime hook: agent_bootstrap"));
     }
 
     #[test]
-    fn execute_agents_show_requires_plugin_id() {
+    fn execute_agents_show_requires_agent_id() {
         // Arrange
         let command = args(&["ralph-engine", "agents", "show"]);
 
         // Act
-        let error = execute(command).expect_err("missing plugin id should fail");
+        let error = execute(command).expect_err("missing agent id should fail");
 
         // Assert
-        assert_eq!(error.to_string(), "agents show requires a plugin id");
+        assert_eq!(error.to_string(), "agents show requires an agent id");
     }
 
     #[test]
-    fn execute_agents_show_rejects_unknown_plugin() {
+    fn execute_agents_show_rejects_unknown_agent() {
         // Arrange
         let command = args(&["ralph-engine", "agents", "show", "official.unknown"]);
 
@@ -433,21 +437,29 @@ mod tests {
 
         // Assert
         assert!(output.contains("Policies (1)"));
-        assert!(output.contains("official.tdd-strict"));
+        assert!(output.contains(
+            "official.tdd-strict.guardrails | TDD strict guardrails | plugin=official.tdd-strict"
+        ));
     }
 
     #[test]
-    fn execute_policies_show_returns_provider_detail() {
+    fn execute_policies_show_returns_policy_detail() {
         // Arrange
-        let command = args(&["ralph-engine", "policies", "show", "official.tdd-strict"]);
+        let command = args(&[
+            "ralph-engine",
+            "policies",
+            "show",
+            "official.tdd-strict.guardrails",
+        ]);
 
         // Act
         let output = execute(command).expect("policies show should succeed");
 
         // Assert
-        assert!(output.contains("Policy: official.tdd-strict"));
+        assert!(output.contains("Policy: official.tdd-strict.guardrails"));
+        assert!(output.contains("Name: TDD strict guardrails"));
         assert!(output.contains("Provider: official.tdd-strict"));
-        assert!(output.contains("Policy enforcement hook: true"));
+        assert!(output.contains("Policy enforcement hook: policy_enforcement"));
     }
 
     #[test]

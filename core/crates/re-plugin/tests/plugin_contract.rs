@@ -4,12 +4,12 @@ use re_plugin::{
     AGENT_RUNTIME, ALL_PLUGIN_CAPABILITIES, ALL_PLUGIN_KINDS, ALL_PLUGIN_RUNTIME_HOOKS,
     ALL_PLUGIN_RUNTIME_SURFACES, ALL_PLUGIN_TRUST_LEVELS, CONTEXT_PROVIDER, DATA_SOURCE,
     DOCTOR_CHECKS, FORGE_PROVIDER, MCP_CONTRIBUTION, POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS,
-    PluginCapability, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
-    PluginLocalizedText, PluginPromptDescriptor, PluginRuntimeHook, PluginRuntimeSurface,
-    PluginTemplateDescriptor, PluginTrustLevel, REMOTE_CONTROL, TEMPLATE,
-    parse_plugin_runtime_hook, parse_reviewed_plugin_capability, render_plugin_detail,
-    render_plugin_detail_for_locale, render_plugin_listing, render_plugin_listing_for_locale,
-    runtime_surface_for_capability,
+    PluginAgentDescriptor, PluginCapability, PluginDescriptor, PluginKind, PluginLifecycleStage,
+    PluginLoadBoundary, PluginLocalizedText, PluginPolicyDescriptor, PluginPromptDescriptor,
+    PluginRuntimeHook, PluginRuntimeSurface, PluginTemplateDescriptor, PluginTrustLevel,
+    REMOTE_CONTROL, TEMPLATE, parse_plugin_runtime_hook, parse_reviewed_plugin_capability,
+    render_plugin_detail, render_plugin_detail_for_locale, render_plugin_listing,
+    render_plugin_listing_for_locale, runtime_surface_for_capability,
 };
 
 const BASIC_CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -46,6 +46,18 @@ const BMAD_PROMPT_LOCALIZED_NAMES: &[PluginLocalizedText] =
 const BMAD_PROMPT_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
     "pt-br",
     "Pacote de prompts para montar workflows BMAD.",
+)];
+const CODEX_AGENT_LOCALIZED_NAMES: &[PluginLocalizedText] =
+    &[PluginLocalizedText::new("pt-br", "Sessão Codex")];
+const CODEX_AGENT_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Sessão de runtime do Codex para o Ralph Engine.",
+)];
+const TDD_POLICY_LOCALIZED_NAMES: &[PluginLocalizedText] =
+    &[PluginLocalizedText::new("pt-br", "Guardrails TDD estrito")];
+const TDD_POLICY_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Política oficial com guardrails estritos de TDD.",
 )];
 const GITHUB_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
     PluginRuntimeHook::McpRegistration,
@@ -176,6 +188,50 @@ fn prompt_descriptor_resolves_locales_with_english_fallback() {
     assert_eq!(
         descriptor.summary_for_locale("fr"),
         "Prompt bundle for BMAD workflow assembly."
+    );
+}
+
+#[test]
+fn agent_descriptor_resolves_locales_with_english_fallback() {
+    let descriptor = PluginAgentDescriptor::new(
+        "official.codex.session",
+        "official.codex",
+        "Codex session",
+        CODEX_AGENT_LOCALIZED_NAMES,
+        "Codex runtime session for Ralph Engine.",
+        CODEX_AGENT_LOCALIZED_SUMMARIES,
+    );
+
+    assert_eq!(descriptor.display_name_for_locale("pt-br"), "Sessão Codex");
+    assert_eq!(
+        descriptor.summary_for_locale("pt-br"),
+        "Sessão de runtime do Codex para o Ralph Engine."
+    );
+    assert_eq!(descriptor.display_name_for_locale("fr"), "Codex session");
+}
+
+#[test]
+fn policy_descriptor_resolves_locales_with_english_fallback() {
+    let descriptor = PluginPolicyDescriptor::new(
+        "official.tdd-strict.guardrails",
+        "official.tdd-strict",
+        "TDD strict guardrails",
+        TDD_POLICY_LOCALIZED_NAMES,
+        "Official policy with strict TDD guardrails.",
+        TDD_POLICY_LOCALIZED_SUMMARIES,
+    );
+
+    assert_eq!(
+        descriptor.display_name_for_locale("pt-br"),
+        "Guardrails TDD estrito"
+    );
+    assert_eq!(
+        descriptor.summary_for_locale("pt-br"),
+        "Política oficial com guardrails estritos de TDD."
+    );
+    assert_eq!(
+        descriptor.summary_for_locale("fr"),
+        "Official policy with strict TDD guardrails."
     );
 }
 

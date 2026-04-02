@@ -17,7 +17,8 @@ use re_core::{
 };
 use re_mcp::McpServerDescriptor;
 use re_plugin::{
-    PluginDescriptor, PluginPromptDescriptor, PluginRuntimeHook, PluginTemplateDescriptor,
+    PluginAgentDescriptor, PluginDescriptor, PluginPolicyDescriptor, PluginPromptDescriptor,
+    PluginRuntimeHook, PluginTemplateDescriptor,
 };
 
 /// One resolved official template contribution.
@@ -44,6 +45,32 @@ pub struct OfficialPromptContribution {
     pub load_boundary: re_plugin::PluginLoadBoundary,
     /// Whether the owning plugin declares the prompt-assembly hook.
     pub prompt_hook_registered: bool,
+}
+
+/// One resolved official agent runtime contribution.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct OfficialAgentContribution {
+    /// Immutable agent descriptor.
+    pub descriptor: PluginAgentDescriptor,
+    /// Effective activation state for the owning plugin.
+    pub activation: PluginActivation,
+    /// Declared load boundary for the owning plugin.
+    pub load_boundary: re_plugin::PluginLoadBoundary,
+    /// Whether the owning plugin declares the bootstrap hook.
+    pub bootstrap_hook_registered: bool,
+}
+
+/// One resolved official policy contribution.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct OfficialPolicyContribution {
+    /// Immutable policy descriptor.
+    pub descriptor: PluginPolicyDescriptor,
+    /// Effective activation state for the owning plugin.
+    pub activation: PluginActivation,
+    /// Declared load boundary for the owning plugin.
+    pub load_boundary: re_plugin::PluginLoadBoundary,
+    /// Whether the owning plugin declares the policy-enforcement hook.
+    pub enforcement_hook_registered: bool,
 }
 
 /// Immutable owned snapshot of the official runtime catalog.
@@ -339,6 +366,35 @@ pub fn official_runtime_agents() -> Vec<RuntimeAgentRegistration> {
         .collect()
 }
 
+/// Returns the resolved agent runtime contributions for the official catalog.
+#[must_use]
+pub fn official_agent_contributions() -> Vec<OfficialAgentContribution> {
+    official_runtime_plugins()
+        .into_iter()
+        .flat_map(|plugin| {
+            let agents: &'static [PluginAgentDescriptor] = match plugin.descriptor.id {
+                re_plugin_claude::PLUGIN_ID => re_plugin_claude::agents(),
+                re_plugin_claudebox::PLUGIN_ID => re_plugin_claudebox::agents(),
+                re_plugin_codex::PLUGIN_ID => re_plugin_codex::agents(),
+                _ => &[],
+            };
+
+            agents
+                .iter()
+                .copied()
+                .map(move |descriptor| OfficialAgentContribution {
+                    descriptor,
+                    activation: plugin.activation,
+                    load_boundary: plugin.descriptor.load_boundary,
+                    bootstrap_hook_registered: plugin
+                        .descriptor
+                        .runtime_hooks
+                        .contains(&agent_runtime_hook()),
+                })
+        })
+        .collect()
+}
+
 /// Returns the resolved runtime-hook registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_hooks() -> Vec<RuntimeHookRegistration> {
@@ -448,6 +504,33 @@ pub fn official_runtime_policies() -> Vec<RuntimePolicyRegistration> {
         .collect()
 }
 
+/// Returns the resolved policy contributions for the official catalog.
+#[must_use]
+pub fn official_policy_contributions() -> Vec<OfficialPolicyContribution> {
+    official_runtime_plugins()
+        .into_iter()
+        .flat_map(|plugin| {
+            let policies: &'static [PluginPolicyDescriptor] = match plugin.descriptor.id {
+                re_plugin_tdd_strict::PLUGIN_ID => re_plugin_tdd_strict::policies(),
+                _ => &[],
+            };
+
+            policies
+                .iter()
+                .copied()
+                .map(move |descriptor| OfficialPolicyContribution {
+                    descriptor,
+                    activation: plugin.activation,
+                    load_boundary: plugin.descriptor.load_boundary,
+                    enforcement_hook_registered: plugin
+                        .descriptor
+                        .runtime_hooks
+                        .contains(&policy_runtime_hook()),
+                })
+        })
+        .collect()
+}
+
 /// Returns one immutable owned snapshot of the official runtime catalog.
 #[must_use]
 pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
@@ -476,17 +559,6 @@ pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
     }
 }
 
-fn registrations_for_plugin<T: Copy>(
-    registrations: Vec<T>,
-    plugin_id: &str,
-    plugin_id_of: fn(T) -> &'static str,
-) -> Vec<T> {
-    registrations
-        .into_iter()
-        .filter(|registration| plugin_id_of(*registration) == plugin_id)
-        .collect()
-}
-
 fn registrations_for_key<T: Copy, K: Copy + Eq>(
     registrations: Vec<T>,
     key: K,
@@ -508,6 +580,14 @@ pub fn find_official_template_contribution(
         .find(|template| template.descriptor.id == template_id)
 }
 
+/// Returns one resolved agent contribution by stable identifier.
+#[must_use]
+pub fn find_official_agent_contribution(agent_id: &str) -> Option<OfficialAgentContribution> {
+    official_agent_contributions()
+        .into_iter()
+        .find(|agent| agent.descriptor.id == agent_id)
+}
+
 /// Returns one resolved prompt contribution by stable identifier.
 #[must_use]
 pub fn find_official_prompt_contribution(prompt_id: &str) -> Option<OfficialPromptContribution> {
@@ -516,12 +596,12 @@ pub fn find_official_prompt_contribution(prompt_id: &str) -> Option<OfficialProm
         .find(|prompt| prompt.descriptor.id == prompt_id)
 }
 
-/// Returns the resolved agent registrations for one official plugin identifier.
+/// Returns one resolved policy contribution by stable identifier.
 #[must_use]
-pub fn find_official_runtime_agents(plugin_id: &str) -> Vec<RuntimeAgentRegistration> {
-    registrations_for_plugin(official_runtime_agents(), plugin_id, |registration| {
-        registration.plugin_id
-    })
+pub fn find_official_policy_contribution(policy_id: &str) -> Option<OfficialPolicyContribution> {
+    official_policy_contributions()
+        .into_iter()
+        .find(|policy| policy.descriptor.id == policy_id)
 }
 
 /// Returns the resolved capability registrations for one reviewed capability.
@@ -562,24 +642,17 @@ pub fn find_official_runtime_providers(
     })
 }
 
-/// Returns one resolved runtime policy registration by policy identifier.
-#[must_use]
-pub fn find_official_runtime_policy(policy_id: &str) -> Option<RuntimePolicyRegistration> {
-    official_runtime_policies()
-        .into_iter()
-        .find(|registration| registration.policy_id == policy_id)
-}
-
 #[cfg(test)]
 mod tests {
     use super::{
-        find_official_mcp_server, find_official_plugin, find_official_prompt_contribution,
-        find_official_runtime_agents, find_official_runtime_capabilities,
-        find_official_runtime_checks, find_official_runtime_hooks, find_official_runtime_policy,
-        find_official_runtime_providers, find_official_template_contribution, official_plugins,
-        official_runtime_agents, official_runtime_checks, official_runtime_mcp_registrations,
-        official_runtime_policies, official_runtime_prompts, official_runtime_providers,
-        official_runtime_snapshot, official_runtime_templates,
+        find_official_agent_contribution, find_official_mcp_server, find_official_plugin,
+        find_official_policy_contribution, find_official_prompt_contribution,
+        find_official_runtime_capabilities, find_official_runtime_checks,
+        find_official_runtime_hooks, find_official_runtime_providers,
+        find_official_template_contribution, official_plugins, official_runtime_agents,
+        official_runtime_checks, official_runtime_mcp_registrations, official_runtime_policies,
+        official_runtime_prompts, official_runtime_providers, official_runtime_snapshot,
+        official_runtime_templates,
     };
     use re_core::{
         RuntimeCheckKind, RuntimeProviderKind, runtime_check_kind_for_capability,
@@ -671,13 +744,14 @@ mod tests {
     }
 
     #[test]
-    fn plugin_owned_surface_helpers_reject_unknown_identifiers() {
+    fn contribution_helpers_reject_unknown_identifiers() {
         assert_eq!(
             find_official_template_contribution("official.missing"),
             None
         );
         assert_eq!(find_official_prompt_contribution("official.missing"), None);
-        assert!(find_official_runtime_agents("official.missing").is_empty());
+        assert_eq!(find_official_agent_contribution("official.missing"), None);
+        assert_eq!(find_official_policy_contribution("official.missing"), None);
     }
 
     #[test]
@@ -711,7 +785,7 @@ mod tests {
                 .iter()
                 .all(|registration| registration.kind == RuntimeProviderKind::RemoteControl)
         );
-        assert!(find_official_runtime_policy("official.tdd-strict").is_some());
-        assert!(find_official_runtime_policy("official.missing").is_none());
+        assert!(find_official_policy_contribution("official.tdd-strict.guardrails").is_some());
+        assert_eq!(find_official_policy_contribution("official.missing"), None);
     }
 }

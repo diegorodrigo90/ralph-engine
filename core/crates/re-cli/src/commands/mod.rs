@@ -9,7 +9,6 @@ mod grouped_surfaces;
 mod hooks;
 mod locales;
 mod mcp;
-mod plugin_surfaces;
 mod plugins;
 mod policies;
 mod prompts;

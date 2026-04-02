@@ -4,8 +4,9 @@ mod i18n;
 
 use re_mcp::{McpAvailability, McpLaunchPolicy, McpServerDescriptor, McpTransport};
 use re_plugin::{
-    AGENT_RUNTIME, MCP_CONTRIBUTION, PluginDescriptor, PluginKind, PluginLifecycleStage,
-    PluginLoadBoundary, PluginLocalizedText, PluginRuntimeHook, PluginTrustLevel,
+    AGENT_RUNTIME, MCP_CONTRIBUTION, PluginAgentDescriptor, PluginDescriptor, PluginKind,
+    PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginRuntimeHook,
+    PluginTrustLevel,
 };
 
 /// Stable plugin identifier.
@@ -36,6 +37,14 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PluginLoadBoundary::InProcess,
     RUNTIME_HOOKS,
 );
+const AGENTS: &[PluginAgentDescriptor] = &[PluginAgentDescriptor::new(
+    "official.codex.session",
+    PLUGIN_ID,
+    i18n::default_agent_name(),
+    i18n::localized_agent_names(),
+    i18n::default_agent_summary(),
+    i18n::localized_agent_summaries(),
+)];
 const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
     "official.codex.session",
     PLUGIN_ID,
@@ -69,6 +78,12 @@ pub const fn descriptor() -> PluginDescriptor {
     DESCRIPTOR
 }
 
+/// Returns the immutable agent runtime contributions declared by the plugin.
+#[must_use]
+pub const fn agents() -> &'static [PluginAgentDescriptor] {
+    AGENTS
+}
+
 /// Returns the immutable MCP server contributions declared by the plugin.
 #[must_use]
 pub const fn mcp_servers() -> &'static [McpServerDescriptor] {
@@ -78,7 +93,7 @@ pub const fn mcp_servers() -> &'static [McpServerDescriptor] {
 #[cfg(test)]
 mod tests {
     use super::{
-        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, mcp_servers,
+        AGENTS, PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, mcp_servers,
         runtime_hooks,
     };
 
@@ -113,9 +128,9 @@ mod tests {
 
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == i18n::en::LOCALE.name
-            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::LOCALE.name
-            && plugin.summary_for_locale("pt-br") == i18n::pt_br::LOCALE.summary
+            && plugin.name == i18n::en::PLUGIN_LOCALE.plugin_name
+            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::PLUGIN_LOCALE.plugin_name
+            && plugin.summary_for_locale("pt-br") == i18n::pt_br::PLUGIN_LOCALE.plugin_summary
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert
@@ -156,5 +171,18 @@ mod tests {
 
         // Assert
         assert!(has_hooks);
+    }
+
+    #[test]
+    fn plugin_declares_agent_runtime_contributions() {
+        let agent = AGENTS[0];
+
+        assert_eq!(agent.id, "official.codex.session");
+        assert_eq!(agent.plugin_id, PLUGIN_ID);
+        assert_eq!(agent.display_name_for_locale("pt-br"), "Sessão Codex");
+        assert_eq!(
+            agent.summary_for_locale("pt-br"),
+            "Sessão de runtime do Codex para o Ralph Engine."
+        );
     }
 }
