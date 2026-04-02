@@ -37,3 +37,11 @@ locale_label!(
     RUNTIME_ACTION_PLAN
 );
 locale_label!(runtime_doctor_label, RUNTIME_DOCTOR, RUNTIME_DOCTOR);
+
+pub(crate) fn translate_runtime_reason(locale: &str, reason: &str) -> String {
+    if is_pt_br(locale) {
+        pt_br::translate_runtime_reason(reason)
+    } else {
+        en::translate_runtime_reason(reason)
+    }
+}
