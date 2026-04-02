@@ -204,6 +204,69 @@ function assertOfficialManifestsStayLocalizedAndVersioned(
   }
 }
 
+function assertOfficialManifestContributionLocalization(
+  parseManifestDocument,
+  supportedLocales,
+) {
+  const contributionFields = ["templates", "prompts", "agents", "checks", "providers", "policies"];
+  const manifestFiles = fs.readdirSync(OFFICIAL_PLUGIN_DIR)
+    .map((pluginDir) => path.join(OFFICIAL_PLUGIN_DIR, pluginDir, "manifest.yaml"));
+
+  for (const manifestFile of manifestFiles) {
+    const manifest = parseManifestDocument(readUtf8(manifestFile), manifestFile);
+    const pluginIdPrefix = `${manifest.id}.`;
+
+    for (const fieldName of contributionFields) {
+      const entries = manifest[fieldName];
+
+      if (entries === undefined) {
+        continue;
+      }
+
+      for (const entry of entries) {
+        if (!entry.id.startsWith(pluginIdPrefix)) {
+          fail(
+            `official manifest contribution ${manifestFile} must keep ${fieldName} ids namespaced by ${manifest.id}`,
+          );
+        }
+
+        if (!entry.display_name_locales || typeof entry.display_name_locales !== "object") {
+          fail(
+            `official manifest contribution ${manifestFile} must declare ${fieldName}.${entry.id}.display_name_locales`,
+          );
+        }
+
+        if (!entry.summary_locales || typeof entry.summary_locales !== "object") {
+          fail(
+            `official manifest contribution ${manifestFile} must declare ${fieldName}.${entry.id}.summary_locales`,
+          );
+        }
+
+        for (const locale of supportedLocales) {
+          if (locale === "en") {
+            continue;
+          }
+
+          const localizedName = entry.display_name_locales[locale];
+          const localizedSummary = entry.summary_locales[locale];
+
+          if (typeof localizedName !== "string" || localizedName.trim().length === 0) {
+            fail(
+              `official manifest contribution ${manifestFile} must declare ${fieldName}.${entry.id}.display_name_locales.${locale}`,
+            );
+          }
+
+          if (typeof localizedSummary !== "string" || localizedSummary.trim().length === 0) {
+            fail(
+              `official manifest contribution ${manifestFile} must declare ${fieldName}.${entry.id}.summary_locales.${locale}`,
+            );
+          }
+        }
+      }
+    }
+  }
+}
+
 function localeModuleFileName(locale) {
   return locale.replace(/-/g, "_");
 }
@@ -415,6 +478,10 @@ assertOfficialManifestsStayLocalizedAndVersioned(
   manifestContract.parseManifestDocument,
   rustSupportedLocales,
   workspaceVersion,
+);
+assertOfficialManifestContributionLocalization(
+  manifestContract.parseManifestDocument,
+  rustSupportedLocales,
 );
 assertOfficialPluginLocaleModules(rustSupportedLocales);
 assertOfficialPluginOwnedTests();
