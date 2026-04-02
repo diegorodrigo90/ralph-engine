@@ -36,10 +36,16 @@ dependencies = [
 [[package]]
 name = "re-mcp"
 version = "0.2.0-alpha.1"
+dependencies = [
+ "re-config",
+]
 
 [[package]]
 name = "re-plugin"
 version = "0.2.0-alpha.1"
+dependencies = [
+ "re-config",
+]
 
 [[package]]
 name = "re-plugin-basic"
