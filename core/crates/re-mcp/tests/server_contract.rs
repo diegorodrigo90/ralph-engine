@@ -24,8 +24,8 @@ fn fixture_server() -> McpServerDescriptor {
 
 fn invalid_server() -> McpServerDescriptor {
     McpServerDescriptor::new(
-        "claude",
-        "claude",
+        "broken",
+        "broken",
         "Broken",
         &[],
         McpTransport::Stdio,
@@ -163,7 +163,7 @@ fn launch_policy_display_is_stable() {
     let policies = [
         McpLaunchPolicy::PluginRuntime,
         McpLaunchPolicy::SpawnProcess(McpCommandDescriptor::new(
-            "codex-mcp",
+            "fixture-mcp",
             &["serve"],
             McpWorkingDirectoryPolicy::ProjectRoot,
             McpEnvironmentPolicy::PluginScoped,
@@ -184,7 +184,7 @@ fn launch_policy_display_is_stable() {
 fn command_descriptor_reports_arguments_when_present() {
     // Arrange
     let command = McpCommandDescriptor::new(
-        "codex-mcp",
+        "fixture-mcp",
         &["serve"],
         McpWorkingDirectoryPolicy::ProjectRoot,
         McpEnvironmentPolicy::PluginScoped,
@@ -196,7 +196,7 @@ fn command_descriptor_reports_arguments_when_present() {
 
     // Assert
     assert!(has_args);
-    assert_eq!(invocation, "codex-mcp serve");
+    assert_eq!(invocation, "fixture-mcp serve");
 }
 
 #[test]
