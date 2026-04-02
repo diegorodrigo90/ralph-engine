@@ -295,6 +295,76 @@ function buildManifestContributions(scaffold) {
     }]));
   }
 
+  const checks = [];
+  if (scaffold.capabilities.includes("prepare_checks")) {
+    checks.push({
+      id: `${scaffold.id}.prepare`,
+      kind: "prepare",
+      displayName: `${humanize(scaffold.name)} prepare check`,
+      displayNamePtBr: `Verificação de preparo ${humanize(scaffold.name)}`,
+      summary: `Runs typed prepare-time validation for ${humanize(scaffold.name)} workflows.`,
+      summaryPtBr: `Executa validação tipada de preparo para workflows ${humanize(scaffold.name)}.`,
+    });
+  }
+  if (scaffold.capabilities.includes("doctor_checks")) {
+    checks.push({
+      id: `${scaffold.id}.doctor`,
+      kind: "doctor",
+      displayName: `${humanize(scaffold.name)} doctor check`,
+      displayNamePtBr: `Verificação de diagnóstico ${humanize(scaffold.name)}`,
+      summary: `Runs typed doctor-time validation for ${humanize(scaffold.name)} workflows.`,
+      summaryPtBr: `Executa validação tipada de diagnóstico para workflows ${humanize(scaffold.name)}.`,
+    });
+  }
+  if (checks.length > 0) {
+    sections.push(renderContributionSection("checks", checks));
+  }
+
+  const providers = [];
+  if (scaffold.capabilities.includes("data_source")) {
+    providers.push({
+      id: `${scaffold.id}.data`,
+      kind: "data_source",
+      displayName: `${humanize(scaffold.name)} data source`,
+      displayNamePtBr: `Fonte de dados ${humanize(scaffold.name)}`,
+      summary: `Exposes typed data-source capabilities for ${humanize(scaffold.name)} workflows.`,
+      summaryPtBr: `Expõe capacidades tipadas de fonte de dados para workflows ${humanize(scaffold.name)}.`,
+    });
+  }
+  if (scaffold.capabilities.includes("context_provider")) {
+    providers.push({
+      id: `${scaffold.id}.context`,
+      kind: "context_provider",
+      displayName: `${humanize(scaffold.name)} context provider`,
+      displayNamePtBr: `Provedor de contexto ${humanize(scaffold.name)}`,
+      summary: `Exposes typed context-provider capabilities for ${humanize(scaffold.name)} workflows.`,
+      summaryPtBr: `Expõe capacidades tipadas de provedor de contexto para workflows ${humanize(scaffold.name)}.`,
+    });
+  }
+  if (scaffold.capabilities.includes("forge_provider")) {
+    providers.push({
+      id: `${scaffold.id}.forge`,
+      kind: "forge_provider",
+      displayName: `${humanize(scaffold.name)} forge provider`,
+      displayNamePtBr: `Provedor forge ${humanize(scaffold.name)}`,
+      summary: `Exposes typed forge-provider capabilities for ${humanize(scaffold.name)} workflows.`,
+      summaryPtBr: `Expõe capacidades tipadas de provedor forge para workflows ${humanize(scaffold.name)}.`,
+    });
+  }
+  if (scaffold.capabilities.includes("remote_control")) {
+    providers.push({
+      id: `${scaffold.id}.remote`,
+      kind: "remote_control",
+      displayName: `${humanize(scaffold.name)} remote control`,
+      displayNamePtBr: `Controle remoto ${humanize(scaffold.name)}`,
+      summary: `Exposes typed remote-control capabilities for ${humanize(scaffold.name)} workflows.`,
+      summaryPtBr: `Expõe capacidades tipadas de controle remoto para workflows ${humanize(scaffold.name)}.`,
+    });
+  }
+  if (providers.length > 0) {
+    sections.push(renderContributionSection("providers", providers));
+  }
+
   if (scaffold.capabilities.includes("policy")) {
     sections.push(renderContributionSection("policies", [{
       id: `${scaffold.id}.guardrails`,
@@ -313,6 +383,9 @@ function renderContributionSection(fieldName, entries) {
 
   for (const entry of entries) {
     lines.push(`  - id: ${entry.id}`);
+    if (entry.kind) {
+      lines.push(`    kind: ${entry.kind}`);
+    }
     lines.push(`    display_name: ${entry.displayName}`);
     lines.push("    display_name_locales:");
     lines.push(`      pt-br: ${entry.displayNamePtBr}`);

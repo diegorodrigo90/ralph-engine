@@ -32,6 +32,23 @@ prompts:
     summary: Prompt bundle for BMAD workflow assembly.
     summary_locales:
       pt-br: Pacote de prompts para montar workflows BMAD.
+checks:
+  - id: official.bmad.prepare
+    kind: prepare
+    display_name: BMAD prepare check
+    display_name_locales:
+      pt-br: Verificação de preparo BMAD
+    summary: Runs typed prepare-time validation for BMAD workflows.
+    summary_locales:
+      pt-br: Executa validação tipada de preparo para workflows BMAD.
+  - id: official.bmad.doctor
+    kind: doctor
+    display_name: BMAD doctor check
+    display_name_locales:
+      pt-br: Verificação de diagnóstico BMAD
+    summary: Runs typed doctor-time validation for BMAD workflows.
+    summary_locales:
+      pt-br: Executa validação tipada de diagnóstico para workflows BMAD.
 project:
   required_files:
     - .ralph-engine/config.yaml

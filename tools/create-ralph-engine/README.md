@@ -33,6 +33,7 @@ the runtime and official plugins.
 
 - namespaced plugin id scaffold such as `acme.jira-suite`
 - versioned `manifest.yaml` aligned with the runtime contract
+- typed contribution sections for templates, prompts, agents, checks, providers, and policies when capabilities require them
 - Rust crate with per-locale metadata catalogs in `src/i18n/`
 - generated runtime hooks based on reviewed capability contracts
 - validation before writing the scaffold to disk

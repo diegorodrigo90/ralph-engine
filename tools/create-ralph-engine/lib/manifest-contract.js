@@ -19,10 +19,12 @@ const KIND_CAPABILITY_REQUIREMENTS = new Map([
   ["policy", "policy"],
 ]);
 const CONTRIBUTION_CAPABILITY_REQUIREMENTS = new Map([
-  ["templates", "template"],
-  ["prompts", "prompt_fragments"],
-  ["agents", "agent_runtime"],
-  ["policies", "policy"],
+  ["templates", ["template"]],
+  ["prompts", ["prompt_fragments"]],
+  ["agents", ["agent_runtime"]],
+  ["checks", ["prepare_checks", "doctor_checks"]],
+  ["providers", ["data_source", "context_provider", "forge_provider", "remote_control"]],
+  ["policies", ["policy"]],
 ]);
 
 function loadManifestSchema() {
@@ -267,16 +269,17 @@ function validateManifestObject(manifest, sourceLabel = "manifest.yaml") {
     errors.push(t.manifestTemplateMustDeclareProjectFiles);
   }
 
-  for (const [fieldName, capability] of CONTRIBUTION_CAPABILITY_REQUIREMENTS) {
+  for (const [fieldName, requiredCapabilities] of CONTRIBUTION_CAPABILITY_REQUIREMENTS) {
     const entries = manifest[fieldName];
+    const hasRequiredCapability = requiredCapabilities.some((capability) => seenCapabilities.has(capability));
 
-    if (entries !== undefined && !seenCapabilities.has(capability)) {
-      errors.push(t.manifestContributionRequiresCapability(fieldName, capability));
+    if (entries !== undefined && !hasRequiredCapability) {
+      errors.push(t.manifestContributionRequiresCapability(fieldName, requiredCapabilities.join(" | ")));
       continue;
     }
 
-    if (seenCapabilities.has(capability) && entries === undefined) {
-      errors.push(t.manifestCapabilityRequiresContribution(capability, fieldName));
+    if (hasRequiredCapability && entries === undefined) {
+      errors.push(t.manifestCapabilityRequiresContribution(requiredCapabilities.join(" | "), fieldName));
       continue;
     }
 
@@ -311,6 +314,19 @@ function validateManifestObject(manifest, sourceLabel = "manifest.yaml") {
       }
       if (typeof entry.summary !== "string" || entry.summary.trim().length === 0) {
         errors.push(t.manifestNonEmptyString(`${fieldName}.summary`));
+      }
+      if (fieldName === "checks") {
+        if (typeof entry.kind !== "string" || !["prepare", "doctor"].includes(entry.kind)) {
+          errors.push(t.manifestUnsupportedField(`${fieldName}.kind`));
+        }
+      }
+      if (fieldName === "providers") {
+        if (
+          typeof entry.kind !== "string"
+          || !["data_source", "context_provider", "forge_provider", "remote_control"].includes(entry.kind)
+        ) {
+          errors.push(t.manifestUnsupportedField(`${fieldName}.kind`));
+        }
       }
 
       if ("display_name_locales" in entry) {

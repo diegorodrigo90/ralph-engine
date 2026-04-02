@@ -306,6 +306,174 @@ impl PluginPromptAsset {
     }
 }
 
+/// Typed plugin-owned check kind.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PluginCheckKind {
+    /// Prepare-time validation contribution.
+    Prepare,
+    /// Doctor-time validation contribution.
+    Doctor,
+}
+
+impl PluginCheckKind {
+    /// Returns the stable check-kind identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Prepare => "prepare",
+            Self::Doctor => "doctor",
+        }
+    }
+}
+
+impl fmt::Display for PluginCheckKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Typed plugin-owned provider kind.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PluginProviderKind {
+    /// Data-source provider contribution.
+    DataSource,
+    /// Context-provider contribution.
+    ContextProvider,
+    /// Forge-provider contribution.
+    ForgeProvider,
+    /// Remote-control contribution.
+    RemoteControl,
+}
+
+impl PluginProviderKind {
+    /// Returns the stable provider-kind identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::DataSource => "data_source",
+            Self::ContextProvider => "context_provider",
+            Self::ForgeProvider => "forge_provider",
+            Self::RemoteControl => "remote_control",
+        }
+    }
+}
+
+impl fmt::Display for PluginProviderKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Immutable check contribution owned by one plugin.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PluginCheckDescriptor {
+    /// Stable check identifier.
+    pub id: &'static str,
+    /// Plugin that owns the check.
+    pub plugin_id: &'static str,
+    /// Typed check kind.
+    pub kind: PluginCheckKind,
+    /// Human-readable check name.
+    pub name: &'static str,
+    /// Optional localized check names keyed by locale.
+    pub localized_names: &'static [PluginLocalizedText],
+    /// Human-readable English summary.
+    pub summary: &'static str,
+    /// Optional localized check summaries keyed by locale.
+    pub localized_summaries: &'static [PluginLocalizedText],
+}
+
+impl PluginCheckDescriptor {
+    /// Creates a new immutable check descriptor.
+    #[must_use]
+    pub const fn new(
+        id: &'static str,
+        plugin_id: &'static str,
+        kind: PluginCheckKind,
+        name: &'static str,
+        localized_names: &'static [PluginLocalizedText],
+        summary: &'static str,
+        localized_summaries: &'static [PluginLocalizedText],
+    ) -> Self {
+        Self {
+            id,
+            plugin_id,
+            kind,
+            name,
+            localized_names,
+            summary,
+            localized_summaries,
+        }
+    }
+
+    /// Resolves the display name for a locale with English fallback.
+    #[must_use]
+    pub fn display_name_for_locale(&self, locale: &str) -> &'static str {
+        resolve_localized_text(self.localized_names, locale, self.name)
+    }
+
+    /// Resolves the summary for a locale with English fallback.
+    #[must_use]
+    pub fn summary_for_locale(&self, locale: &str) -> &'static str {
+        resolve_localized_text(self.localized_summaries, locale, self.summary)
+    }
+}
+
+/// Immutable provider contribution owned by one plugin.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PluginProviderDescriptor {
+    /// Stable provider identifier.
+    pub id: &'static str,
+    /// Plugin that owns the provider.
+    pub plugin_id: &'static str,
+    /// Typed provider kind.
+    pub kind: PluginProviderKind,
+    /// Human-readable provider name.
+    pub name: &'static str,
+    /// Optional localized provider names keyed by locale.
+    pub localized_names: &'static [PluginLocalizedText],
+    /// Human-readable English summary.
+    pub summary: &'static str,
+    /// Optional localized provider summaries keyed by locale.
+    pub localized_summaries: &'static [PluginLocalizedText],
+}
+
+impl PluginProviderDescriptor {
+    /// Creates a new immutable provider descriptor.
+    #[must_use]
+    pub const fn new(
+        id: &'static str,
+        plugin_id: &'static str,
+        kind: PluginProviderKind,
+        name: &'static str,
+        localized_names: &'static [PluginLocalizedText],
+        summary: &'static str,
+        localized_summaries: &'static [PluginLocalizedText],
+    ) -> Self {
+        Self {
+            id,
+            plugin_id,
+            kind,
+            name,
+            localized_names,
+            summary,
+            localized_summaries,
+        }
+    }
+
+    /// Resolves the display name for a locale with English fallback.
+    #[must_use]
+    pub fn display_name_for_locale(&self, locale: &str) -> &'static str {
+        resolve_localized_text(self.localized_names, locale, self.name)
+    }
+
+    /// Resolves the summary for a locale with English fallback.
+    #[must_use]
+    pub fn summary_for_locale(&self, locale: &str) -> &'static str {
+        resolve_localized_text(self.localized_summaries, locale, self.summary)
+    }
+}
+
 /// Immutable template contribution owned by one plugin.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PluginTemplateDescriptor {

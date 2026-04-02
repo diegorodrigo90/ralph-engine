@@ -396,8 +396,19 @@ mod tests {
         assert!(output.contains("Check: prepare"));
         assert!(output.contains("Providers (1)"));
         assert!(output.contains(
-            "- official.bmad | activation=disabled | boundary=in_process | runtime_hook=true"
+            "- official.bmad.prepare | plugin=official.bmad | name=BMAD prepare check | summary=Runs typed prepare-time validation for BMAD workflows. | activation=disabled | boundary=in_process | runtime_hook=true"
         ));
+    }
+
+    #[test]
+    fn execute_checks_show_accepts_check_contribution_id() {
+        let command = args(&["ralph-engine", "checks", "show", "official.bmad.prepare"]);
+
+        let output = execute(command).expect("checks show by id should succeed");
+
+        assert!(output.contains("Check: official.bmad.prepare"));
+        assert!(output.contains("Name: BMAD prepare check"));
+        assert!(output.contains("Kind: prepare"));
     }
 
     #[test]
@@ -563,8 +574,19 @@ mod tests {
         assert!(output.contains("Provider: data_source"));
         assert!(output.contains("Providers (1)"));
         assert!(output.contains(
-            "- official.github | activation=disabled | boundary=in_process | registration_hook=true"
+            "- official.github.data | plugin=official.github | name=GitHub data source | summary=Exposes typed repository data to Ralph Engine workflows. | activation=disabled | boundary=in_process | registration_hook=true"
         ));
+    }
+
+    #[test]
+    fn execute_providers_show_accepts_provider_contribution_id() {
+        let command = args(&["ralph-engine", "providers", "show", "official.github.data"]);
+
+        let output = execute(command).expect("providers show by id should succeed");
+
+        assert!(output.contains("Provider: official.github.data"));
+        assert!(output.contains("Name: GitHub data source"));
+        assert!(output.contains("Kind: data_source"));
     }
 
     #[test]

@@ -11,13 +11,13 @@ use re_core::{
     RuntimeProviderKind, RuntimeProviderRegistration, RuntimeTemplateRegistration, RuntimeTopology,
     agent_runtime_hook, capability_activates_agent_surface, capability_activates_policy_surface,
     capability_activates_prompt_surface, capability_activates_template_surface,
-    policy_runtime_hook, prompt_runtime_hook, runtime_check_kind_for_capability,
-    runtime_hook_for_check, runtime_hook_for_provider, runtime_provider_kind_for_capability,
+    policy_runtime_hook, prompt_runtime_hook, runtime_hook_for_check, runtime_hook_for_provider,
     template_runtime_hook,
 };
 use re_mcp::McpServerDescriptor;
 use re_plugin::{
-    PluginAgentDescriptor, PluginDescriptor, PluginPolicyDescriptor, PluginPromptDescriptor,
+    PluginAgentDescriptor, PluginCheckDescriptor, PluginCheckKind, PluginDescriptor,
+    PluginPolicyDescriptor, PluginPromptDescriptor, PluginProviderDescriptor, PluginProviderKind,
     PluginRuntimeHook, PluginTemplateDescriptor,
 };
 
@@ -73,6 +73,32 @@ pub struct OfficialPolicyContribution {
     pub enforcement_hook_registered: bool,
 }
 
+/// One resolved official check contribution.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct OfficialCheckContribution {
+    /// Immutable check descriptor.
+    pub descriptor: PluginCheckDescriptor,
+    /// Effective activation state for the owning plugin.
+    pub activation: PluginActivation,
+    /// Declared load boundary for the owning plugin.
+    pub load_boundary: re_plugin::PluginLoadBoundary,
+    /// Whether the owning plugin declares the matching runtime hook.
+    pub runtime_hook_registered: bool,
+}
+
+/// One resolved official provider contribution.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct OfficialProviderContribution {
+    /// Immutable provider descriptor.
+    pub descriptor: PluginProviderDescriptor,
+    /// Effective activation state for the owning plugin.
+    pub activation: PluginActivation,
+    /// Declared load boundary for the owning plugin.
+    pub load_boundary: re_plugin::PluginLoadBoundary,
+    /// Whether the owning plugin declares the matching runtime hook.
+    pub registration_hook_registered: bool,
+}
+
 /// Immutable owned snapshot of the official runtime catalog.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OfficialRuntimeSnapshot {
@@ -125,15 +151,20 @@ struct OfficialPluginBundle {
     templates: &'static [PluginTemplateDescriptor],
     prompts: &'static [PluginPromptDescriptor],
     agents: &'static [PluginAgentDescriptor],
+    checks: &'static [PluginCheckDescriptor],
+    providers: &'static [PluginProviderDescriptor],
     policies: &'static [PluginPolicyDescriptor],
     mcp_servers: &'static [McpServerDescriptor],
 }
 
+#[allow(clippy::too_many_arguments)]
 const fn official_plugin_bundle(
     descriptor: PluginDescriptor,
     templates: &'static [PluginTemplateDescriptor],
     prompts: &'static [PluginPromptDescriptor],
     agents: &'static [PluginAgentDescriptor],
+    checks: &'static [PluginCheckDescriptor],
+    providers: &'static [PluginProviderDescriptor],
     policies: &'static [PluginPolicyDescriptor],
     mcp_servers: &'static [McpServerDescriptor],
 ) -> OfficialPluginBundle {
@@ -142,8 +173,26 @@ const fn official_plugin_bundle(
         templates,
         prompts,
         agents,
+        checks,
+        providers,
         policies,
         mcp_servers,
+    }
+}
+
+const fn runtime_check_kind_for_descriptor(kind: PluginCheckKind) -> RuntimeCheckKind {
+    match kind {
+        PluginCheckKind::Prepare => RuntimeCheckKind::Prepare,
+        PluginCheckKind::Doctor => RuntimeCheckKind::Doctor,
+    }
+}
+
+const fn runtime_provider_kind_for_descriptor(kind: PluginProviderKind) -> RuntimeProviderKind {
+    match kind {
+        PluginProviderKind::DataSource => RuntimeProviderKind::DataSource,
+        PluginProviderKind::ContextProvider => RuntimeProviderKind::ContextProvider,
+        PluginProviderKind::ForgeProvider => RuntimeProviderKind::ForgeProvider,
+        PluginProviderKind::RemoteControl => RuntimeProviderKind::RemoteControl,
     }
 }
 
@@ -156,11 +205,15 @@ fn official_plugin_bundles() -> [OfficialPluginBundle; 8] {
             &[],
             &[],
             &[],
+            &[],
+            &[],
         ),
         official_plugin_bundle(
             re_plugin_bmad::descriptor(),
             re_plugin_bmad::templates(),
             re_plugin_bmad::prompts(),
+            &[],
+            re_plugin_bmad::checks(),
             &[],
             &[],
             &[],
@@ -171,6 +224,8 @@ fn official_plugin_bundles() -> [OfficialPluginBundle; 8] {
             &[],
             re_plugin_claude::agents(),
             &[],
+            &[],
+            &[],
             re_plugin_claude::mcp_servers(),
         ),
         official_plugin_bundle(
@@ -178,6 +233,8 @@ fn official_plugin_bundles() -> [OfficialPluginBundle; 8] {
             &[],
             &[],
             re_plugin_claudebox::agents(),
+            &[],
+            &[],
             &[],
             re_plugin_claudebox::mcp_servers(),
         ),
@@ -187,6 +244,8 @@ fn official_plugin_bundles() -> [OfficialPluginBundle; 8] {
             &[],
             re_plugin_codex::agents(),
             &[],
+            &[],
+            &[],
             re_plugin_codex::mcp_servers(),
         ),
         official_plugin_bundle(
@@ -195,12 +254,25 @@ fn official_plugin_bundles() -> [OfficialPluginBundle; 8] {
             &[],
             &[],
             &[],
+            re_plugin_github::providers(),
+            &[],
             re_plugin_github::mcp_servers(),
         ),
-        official_plugin_bundle(re_plugin_ssh::descriptor(), &[], &[], &[], &[], &[]),
+        official_plugin_bundle(
+            re_plugin_ssh::descriptor(),
+            &[],
+            &[],
+            &[],
+            &[],
+            re_plugin_ssh::providers(),
+            &[],
+            &[],
+        ),
         official_plugin_bundle(
             re_plugin_tdd_strict::descriptor(),
             re_plugin_tdd_strict::templates(),
+            &[],
+            &[],
             &[],
             &[],
             re_plugin_tdd_strict::policies(),
@@ -464,6 +536,54 @@ pub fn official_agent_contributions() -> Vec<OfficialAgentContribution> {
         .collect()
 }
 
+/// Returns the resolved check contributions for the official catalog.
+#[must_use]
+pub fn official_check_contributions() -> Vec<OfficialCheckContribution> {
+    official_runtime_plugins()
+        .into_iter()
+        .zip(official_plugin_bundles())
+        .flat_map(|(plugin, bundle)| {
+            bundle
+                .checks
+                .iter()
+                .copied()
+                .map(move |descriptor| OfficialCheckContribution {
+                    descriptor,
+                    activation: plugin.activation,
+                    load_boundary: plugin.descriptor.load_boundary,
+                    runtime_hook_registered: plugin.descriptor.runtime_hooks.contains(
+                        &runtime_hook_for_check(runtime_check_kind_for_descriptor(descriptor.kind)),
+                    ),
+                })
+        })
+        .collect()
+}
+
+/// Returns the resolved provider contributions for the official catalog.
+#[must_use]
+pub fn official_provider_contributions() -> Vec<OfficialProviderContribution> {
+    official_runtime_plugins()
+        .into_iter()
+        .zip(official_plugin_bundles())
+        .flat_map(|(plugin, bundle)| {
+            bundle
+                .providers
+                .iter()
+                .copied()
+                .map(move |descriptor| OfficialProviderContribution {
+                    descriptor,
+                    activation: plugin.activation,
+                    load_boundary: plugin.descriptor.load_boundary,
+                    registration_hook_registered: plugin.descriptor.runtime_hooks.contains(
+                        &runtime_hook_for_provider(runtime_provider_kind_for_descriptor(
+                            descriptor.kind,
+                        )),
+                    ),
+                })
+        })
+        .collect()
+}
+
 /// Returns the resolved runtime-hook registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_hooks() -> Vec<RuntimeHookRegistration> {
@@ -490,28 +610,16 @@ pub fn official_runtime_hooks() -> Vec<RuntimeHookRegistration> {
 /// Returns the resolved runtime check registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_checks() -> Vec<RuntimeCheckRegistration> {
-    official_runtime_plugins()
+    official_check_contributions()
         .into_iter()
-        .flat_map(|plugin| {
-            plugin
-                .descriptor
-                .capabilities
-                .iter()
-                .copied()
-                .filter_map(move |capability| {
-                    runtime_check_kind_for_capability(capability).map(|kind| {
-                        RuntimeCheckRegistration::new(
-                            kind,
-                            plugin.descriptor.id,
-                            plugin.activation,
-                            plugin.descriptor.load_boundary,
-                            plugin
-                                .descriptor
-                                .runtime_hooks
-                                .contains(&runtime_hook_for_check(kind)),
-                        )
-                    })
-                })
+        .map(|check| {
+            RuntimeCheckRegistration::new(
+                runtime_check_kind_for_descriptor(check.descriptor.kind),
+                check.descriptor.plugin_id,
+                check.activation,
+                check.load_boundary,
+                check.runtime_hook_registered,
+            )
         })
         .collect()
 }
@@ -519,28 +627,16 @@ pub fn official_runtime_checks() -> Vec<RuntimeCheckRegistration> {
 /// Returns the resolved runtime provider registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_providers() -> Vec<RuntimeProviderRegistration> {
-    official_runtime_plugins()
+    official_provider_contributions()
         .into_iter()
-        .flat_map(|plugin| {
-            plugin
-                .descriptor
-                .capabilities
-                .iter()
-                .copied()
-                .filter_map(move |capability| {
-                    runtime_provider_kind_for_capability(capability).map(|kind| {
-                        RuntimeProviderRegistration::new(
-                            kind,
-                            plugin.descriptor.id,
-                            plugin.activation,
-                            plugin.descriptor.load_boundary,
-                            plugin
-                                .descriptor
-                                .runtime_hooks
-                                .contains(&runtime_hook_for_provider(kind)),
-                        )
-                    })
-                })
+        .map(|provider| {
+            RuntimeProviderRegistration::new(
+                runtime_provider_kind_for_descriptor(provider.descriptor.kind),
+                provider.descriptor.plugin_id,
+                provider.activation,
+                provider.load_boundary,
+                provider.registration_hook_registered,
+            )
         })
         .collect()
 }
@@ -670,6 +766,24 @@ pub fn find_official_policy_contribution(policy_id: &str) -> Option<OfficialPoli
         .find(|policy| policy.descriptor.id == policy_id)
 }
 
+/// Returns one resolved check contribution by stable identifier.
+#[must_use]
+pub fn find_official_check_contribution(check_id: &str) -> Option<OfficialCheckContribution> {
+    official_check_contributions()
+        .into_iter()
+        .find(|check| check.descriptor.id == check_id)
+}
+
+/// Returns one resolved provider contribution by stable identifier.
+#[must_use]
+pub fn find_official_provider_contribution(
+    provider_id: &str,
+) -> Option<OfficialProviderContribution> {
+    official_provider_contributions()
+        .into_iter()
+        .find(|provider| provider.descriptor.id == provider_id)
+}
+
 /// Returns the resolved capability registrations for one reviewed capability.
 #[must_use]
 pub fn find_official_runtime_capabilities(
@@ -698,6 +812,15 @@ pub fn find_official_runtime_checks(kind: RuntimeCheckKind) -> Vec<RuntimeCheckR
     })
 }
 
+/// Returns the resolved check contributions for one typed kind.
+#[must_use]
+pub fn find_official_check_contributions(kind: RuntimeCheckKind) -> Vec<OfficialCheckContribution> {
+    official_check_contributions()
+        .into_iter()
+        .filter(|check| runtime_check_kind_for_descriptor(check.descriptor.kind) == kind)
+        .collect()
+}
+
 /// Returns the resolved runtime provider registrations for one typed kind.
 #[must_use]
 pub fn find_official_runtime_providers(
@@ -706,6 +829,17 @@ pub fn find_official_runtime_providers(
     registrations_for_key(official_runtime_providers(), kind, |registration| {
         registration.kind
     })
+}
+
+/// Returns the resolved provider contributions for one typed kind.
+#[must_use]
+pub fn find_official_provider_contributions(
+    kind: RuntimeProviderKind,
+) -> Vec<OfficialProviderContribution> {
+    official_provider_contributions()
+        .into_iter()
+        .filter(|provider| runtime_provider_kind_for_descriptor(provider.descriptor.kind) == kind)
+        .collect()
 }
 
 #[cfg(test)]
@@ -794,6 +928,14 @@ mod tests {
 
             for agent in bundle.agents {
                 assert_eq!(agent.plugin_id, bundle.descriptor.id);
+            }
+
+            for check in bundle.checks {
+                assert_eq!(check.plugin_id, bundle.descriptor.id);
+            }
+
+            for provider in bundle.providers {
+                assert_eq!(provider.plugin_id, bundle.descriptor.id);
             }
 
             for policy in bundle.policies {

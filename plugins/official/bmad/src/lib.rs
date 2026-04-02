@@ -3,10 +3,10 @@
 mod i18n;
 
 use re_plugin::{
-    DOCTOR_CHECKS, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginDescriptor, PluginKind,
-    PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginPromptAsset,
-    PluginPromptDescriptor, PluginRuntimeHook, PluginTemplateAsset, PluginTemplateDescriptor,
-    PluginTrustLevel, TEMPLATE,
+    DOCTOR_CHECKS, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCheckDescriptor, PluginCheckKind,
+    PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
+    PluginPromptAsset, PluginPromptDescriptor, PluginRuntimeHook, PluginTemplateAsset,
+    PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
 };
 
 /// Stable plugin identifier.
@@ -84,6 +84,26 @@ const PROMPTS: &[PluginPromptDescriptor] = &[PluginPromptDescriptor::new(
     i18n::localized_prompt_summaries(),
     PROMPT_ASSETS,
 )];
+const CHECKS: &[PluginCheckDescriptor] = &[
+    PluginCheckDescriptor::new(
+        "official.bmad.prepare",
+        PLUGIN_ID,
+        PluginCheckKind::Prepare,
+        i18n::default_prepare_check_name(),
+        i18n::localized_prepare_check_names(),
+        i18n::default_prepare_check_summary(),
+        i18n::localized_prepare_check_summaries(),
+    ),
+    PluginCheckDescriptor::new(
+        "official.bmad.doctor",
+        PLUGIN_ID,
+        PluginCheckKind::Doctor,
+        i18n::default_doctor_check_name(),
+        i18n::localized_doctor_check_names(),
+        i18n::default_doctor_check_summary(),
+        i18n::localized_doctor_check_summaries(),
+    ),
+];
 
 /// Declared capabilities for the official plugin foundation.
 #[must_use]
@@ -121,10 +141,16 @@ pub const fn prompts() -> &'static [PluginPromptDescriptor] {
     PROMPTS
 }
 
+/// Returns the immutable check contributions declared by the plugin.
+#[must_use]
+pub const fn checks() -> &'static [PluginCheckDescriptor] {
+    CHECKS
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, prompts,
+        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, checks, descriptor, i18n, lifecycle, prompts,
         runtime_hooks, templates,
     };
 
@@ -234,6 +260,25 @@ mod tests {
     }
 
     #[test]
+    fn plugin_declares_check_contributions() {
+        let checks = checks();
+
+        assert_eq!(checks.len(), 2);
+        assert_eq!(checks[0].id, "official.bmad.prepare");
+        assert_eq!(checks[0].kind.as_str(), "prepare");
+        assert_eq!(
+            checks[0].display_name_for_locale("pt-br"),
+            "Verificação de preparo BMAD"
+        );
+        assert_eq!(checks[1].id, "official.bmad.doctor");
+        assert_eq!(checks[1].kind.as_str(), "doctor");
+        assert_eq!(
+            checks[1].summary_for_locale("pt-br"),
+            "Executa validação tipada de diagnóstico para workflows BMAD."
+        );
+    }
+
+    #[test]
     fn plugin_manifest_matches_typed_contract_surface() {
         let manifest = manifest_document();
 
@@ -245,5 +290,7 @@ mod tests {
         assert!(manifest.contains("- doctor_checks"));
         assert!(manifest.contains("id: official.bmad.starter"));
         assert!(manifest.contains("id: official.bmad.workflow"));
+        assert!(manifest.contains("id: official.bmad.prepare"));
+        assert!(manifest.contains("id: official.bmad.doctor"));
     }
 }

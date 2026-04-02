@@ -492,6 +492,20 @@ fn binary_checks_show_succeeds() {
 }
 
 #[test]
+fn binary_checks_show_by_id_succeeds() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["checks", "show", "official.bmad.prepare"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Check: official.bmad.prepare"));
+    assert!(stdout.contains("Name: BMAD prepare check"));
+    assert!(stdout.contains("Kind: prepare"));
+}
+
+#[test]
 fn binary_policies_show_succeeds_in_pt_br() {
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
@@ -570,6 +584,20 @@ fn binary_providers_show_succeeds() {
     assert!(stdout.contains("Provider: data_source"));
     assert!(stdout.contains("official.github"));
     assert!(stdout.contains("registration_hook=true"));
+}
+
+#[test]
+fn binary_providers_show_by_id_succeeds() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["providers", "show", "official.github.data"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Provider: official.github.data"));
+    assert!(stdout.contains("Name: GitHub data source"));
+    assert!(stdout.contains("Kind: data_source"));
 }
 
 #[test]

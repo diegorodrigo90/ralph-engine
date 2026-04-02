@@ -56,7 +56,7 @@ pub(crate) fn render_grouped_surface_detail<T>(
     registrations: &[T],
     locale: &str,
     singular_label: fn(&str) -> &'static str,
-    line_of: fn(&T) -> String,
+    line_of: impl Fn(&T) -> String,
 ) -> String {
     let surface_label = singular_label(locale);
     let mut lines = vec![
