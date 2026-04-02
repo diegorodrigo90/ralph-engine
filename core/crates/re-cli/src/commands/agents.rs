@@ -26,10 +26,7 @@ fn show_agent(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError>
             i18n::plugin_id_entity_label(locale),
         ))
     })?;
-    let agents = catalog::official_runtime_agents()
-        .into_iter()
-        .filter(|registration| registration.plugin_id == plugin_id)
-        .collect::<Vec<_>>();
+    let agents = catalog::find_official_runtime_agents(plugin_id);
 
     if agents.is_empty() {
         return Err(CliError::new(i18n::unknown_entity(
