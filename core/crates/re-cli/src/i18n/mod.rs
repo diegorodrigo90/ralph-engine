@@ -55,8 +55,16 @@ pub(super) struct CliLocaleCatalog {
     pub missing_id: fn(&str, &str) -> String,
     pub unknown_entity: fn(&str, &str) -> String,
     pub missing_asset_path: fn(&str) -> String,
+    #[allow(dead_code)]
+    pub missing_output_directory: fn(&str) -> String,
+    #[allow(dead_code)]
+    pub invalid_embedded_asset_path: fn(&str) -> String,
+    #[allow(dead_code)]
+    pub failed_to_write_output: fn(&str, &str) -> String,
     pub unknown_template_asset: fn(&str) -> String,
     pub unknown_prompt_asset: fn(&str) -> String,
+    #[allow(dead_code)]
+    pub materialized_assets_heading: &'static str,
 }
 
 mod en;
@@ -208,6 +216,24 @@ pub fn missing_asset_path(locale: &str, command_group: &str) -> String {
 }
 
 #[must_use]
+#[allow(dead_code)]
+pub fn missing_output_directory(locale: &str, command_group: &str) -> String {
+    (locale_catalog(locale).missing_output_directory)(command_group)
+}
+
+#[must_use]
+#[allow(dead_code)]
+pub fn invalid_embedded_asset_path(locale: &str, value: &str) -> String {
+    (locale_catalog(locale).invalid_embedded_asset_path)(value)
+}
+
+#[must_use]
+#[allow(dead_code)]
+pub fn failed_to_write_output(locale: &str, path: &str, error: &str) -> String {
+    (locale_catalog(locale).failed_to_write_output)(path, error)
+}
+
+#[must_use]
 pub fn unknown_template_asset(locale: &str, value: &str) -> String {
     (locale_catalog(locale).unknown_template_asset)(value)
 }
@@ -238,6 +264,15 @@ pub fn detail_heading(locale: &str, label_en: &str, label_pt: &str, value: &str)
     } else {
         format!("{label_en}: {value}")
     }
+}
+
+#[must_use]
+#[allow(dead_code)]
+pub fn materialized_assets_heading(locale: &str, count: usize) -> String {
+    format!(
+        "{} ({count})",
+        locale_catalog(locale).materialized_assets_heading
+    )
 }
 
 catalog_str!(resolved_activation_label, resolved_activation_label);

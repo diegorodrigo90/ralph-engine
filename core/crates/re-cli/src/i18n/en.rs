@@ -50,8 +50,12 @@ pub(super) const LOCALE: CliLocaleCatalog = CliLocaleCatalog {
     missing_id,
     unknown_entity,
     missing_asset_path,
+    missing_output_directory,
+    invalid_embedded_asset_path,
+    failed_to_write_output,
     unknown_template_asset,
     unknown_prompt_asset,
+    materialized_assets_heading: "Materialized assets",
 };
 
 fn unknown_command(command_name: &str) -> String {
@@ -72,6 +76,18 @@ fn unknown_entity(entity_label: &str, value: &str) -> String {
 
 fn missing_asset_path(command_group: &str) -> String {
     format!("subcommand `{command_group}` requires an asset path")
+}
+
+fn missing_output_directory(command_group: &str) -> String {
+    format!("subcommand `{command_group}` requires an output directory")
+}
+
+fn invalid_embedded_asset_path(value: &str) -> String {
+    format!("invalid embedded asset path: {value}")
+}
+
+fn failed_to_write_output(path: &str, error: &str) -> String {
+    format!("failed to write output `{path}`: {error}")
 }
 
 fn unknown_template_asset(value: &str) -> String {

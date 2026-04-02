@@ -965,6 +965,34 @@ fn binary_runtime_check_plans_succeeds_in_pt_br() {
 }
 
 #[test]
+fn binary_runtime_policy_plans_succeeds() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["runtime", "policy-plans"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert_eq!(stdout.trim(), "Runtime policy enforcement plans (0)");
+}
+
+#[test]
+fn binary_runtime_policy_plans_succeeds_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["runtime", "policy-plans"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert_eq!(
+        stdout.trim(),
+        "Planos de enforcement de políticas do runtime (0)"
+    );
+}
+
+#[test]
 fn binary_runtime_mcp_plans_succeeds() {
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
     command.args(["runtime", "mcp-plans"]);

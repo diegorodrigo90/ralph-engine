@@ -12,6 +12,7 @@ pub(super) const LOCALE: RuntimeLocaleCatalog = RuntimeLocaleCatalog {
     runtime_agent_bootstrap_plans: "Planos de bootstrap de agentes do runtime",
     runtime_provider_registration_plans: "Planos de registro de providers do runtime",
     runtime_check_execution_plans: "Planos de execução de verificações do runtime",
+    runtime_policy_enforcement_plans: "Planos de enforcement de políticas do runtime",
     checks: "Verificações",
     providers: "Provedores",
     policies: "Políticas",
