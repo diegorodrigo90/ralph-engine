@@ -1616,20 +1616,28 @@ mod tests {
     const CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
     const LIFECYCLE: &[PluginLifecycleStage] = &[PluginLifecycleStage::Discover];
     const HOOKS: &[PluginRuntimeHook] = &[PluginRuntimeHook::Scaffold];
-    const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "Básico")];
+    const PRIMARY_PLUGIN_ID: &str = "test.foundation";
+    const PROMPT_PLUGIN_ID: &str = "test.prompts";
+    const AGENT_PLUGIN_ID: &str = "test.agents";
+    const PROVIDER_PLUGIN_ID: &str = "test.providers";
+    const POLICY_PLUGIN_ID: &str = "test.policies";
+    const MCP_PLUGIN_ID: &str = "test.mcp";
+    const MCP_SERVER_ID: &str = "test.mcp.session";
+    const LOCALIZED_NAMES: &[PluginLocalizedText] =
+        &[PluginLocalizedText::new("pt-br", "Fundação de teste")];
     const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
         "pt-br",
-        "Plugin base para templates iniciais.",
+        "Plugin base de teste para superfícies tipadas.",
     )];
 
     fn plugin_descriptor() -> PluginDescriptor {
         PluginDescriptor::new(
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginKind::Template,
-            PluginTrustLevel::Official,
-            "Basic",
+            PluginTrustLevel::Community,
+            "Test Foundation",
             LOCALIZED_NAMES,
-            "Foundation plugin for starter templates.",
+            "Test foundation plugin for typed runtime surfaces.",
             LOCALIZED_SUMMARIES,
             "0.2.0-alpha.1",
             CAPABILITIES,
@@ -1641,9 +1649,9 @@ mod tests {
 
     fn mcp_descriptor() -> McpServerDescriptor {
         McpServerDescriptor::new(
-            "official.codex.session",
-            "official.codex",
-            "Codex Session",
+            MCP_SERVER_ID,
+            MCP_PLUGIN_ID,
+            "Test MCP Session",
             &[],
             McpTransport::Stdio,
             McpLaunchPolicy::PluginRuntime,
@@ -1654,7 +1662,7 @@ mod tests {
     fn capability_registration() -> RuntimeCapabilityRegistration {
         RuntimeCapabilityRegistration::new(
             PluginCapability::new("template"),
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
         )
@@ -1662,7 +1670,7 @@ mod tests {
 
     fn template_registration() -> RuntimeTemplateRegistration {
         RuntimeTemplateRegistration::new(
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
             true,
@@ -1671,7 +1679,7 @@ mod tests {
 
     fn prompt_registration() -> RuntimePromptRegistration {
         RuntimePromptRegistration::new(
-            "official.bmad",
+            PROMPT_PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
             true,
@@ -1680,7 +1688,7 @@ mod tests {
 
     fn agent_registration() -> RuntimeAgentRegistration {
         RuntimeAgentRegistration::new(
-            "official.codex",
+            AGENT_PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
             true,
@@ -1690,7 +1698,7 @@ mod tests {
     fn hook_registration() -> RuntimeHookRegistration {
         RuntimeHookRegistration::new(
             PluginRuntimeHook::Scaffold,
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
         )
@@ -1698,8 +1706,8 @@ mod tests {
 
     fn policy_registration() -> RuntimePolicyRegistration {
         RuntimePolicyRegistration::new(
-            "official.basic",
-            "official.basic",
+            POLICY_PLUGIN_ID,
+            POLICY_PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
             true,
@@ -1709,7 +1717,7 @@ mod tests {
     fn provider_registration() -> RuntimeProviderRegistration {
         RuntimeProviderRegistration::new(
             RuntimeProviderKind::DataSource,
-            "official.basic",
+            PROVIDER_PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
             true,
@@ -1719,7 +1727,7 @@ mod tests {
     fn check_registration() -> RuntimeCheckRegistration {
         RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
-            "official.bmad",
+            PROMPT_PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
             true,
@@ -2163,43 +2171,45 @@ mod tests {
         assert!(rendered.contains("Runtime phase: ready"));
         assert!(rendered.contains("Locale: en"));
         assert!(rendered.contains("Plugins (1)"));
-        assert!(rendered.contains(
-            "- official.basic | activation=enabled | scope=built_in_defaults | boundary=in_process"
-        ));
+        assert!(rendered.contains(&format!(
+            "- {PRIMARY_PLUGIN_ID} | activation=enabled | scope=built_in_defaults | boundary=in_process"
+        )));
         assert!(rendered.contains("Capabilities (1)"));
-        assert!(rendered.contains(
-            "- template | plugin=official.basic | activation=enabled | boundary=in_process"
-        ));
+        assert!(rendered.contains(&format!(
+            "- template | plugin={PRIMARY_PLUGIN_ID} | activation=enabled | boundary=in_process"
+        )));
         assert!(rendered.contains("Templates (1)"));
-        assert!(rendered.contains(
-            "- official.basic | activation=enabled | boundary=in_process | scaffold_hook=true"
-        ));
+        assert!(rendered.contains(&format!(
+            "- {PRIMARY_PLUGIN_ID} | activation=enabled | boundary=in_process | scaffold_hook=true"
+        )));
         assert!(rendered.contains("Prompts (1)"));
-        assert!(rendered.contains(
-            "- official.bmad | activation=enabled | boundary=in_process | prompt_hook=true"
-        ));
+        assert!(rendered.contains(&format!(
+            "- {PROMPT_PLUGIN_ID} | activation=enabled | boundary=in_process | prompt_hook=true"
+        )));
         assert!(rendered.contains("Agent runtimes (1)"));
-        assert!(rendered.contains(
-            "- official.codex | activation=enabled | boundary=in_process | bootstrap_hook=true"
-        ));
+        assert!(rendered.contains(&format!(
+            "- {AGENT_PLUGIN_ID} | activation=enabled | boundary=in_process | bootstrap_hook=true"
+        )));
         assert!(rendered.contains("Checks (1)"));
-        assert!(rendered.contains(
-            "- prepare | plugin=official.bmad | activation=enabled | boundary=in_process | runtime_hook=true"
-        ));
+        assert!(rendered.contains(&format!(
+            "- prepare | plugin={PROMPT_PLUGIN_ID} | activation=enabled | boundary=in_process | runtime_hook=true"
+        )));
         assert!(rendered.contains("Providers (1)"));
-        assert!(rendered.contains(
-            "- data_source | plugin=official.basic | activation=enabled | boundary=in_process | registration_hook=true"
-        ));
+        assert!(rendered.contains(&format!(
+            "- data_source | plugin={PROVIDER_PLUGIN_ID} | activation=enabled | boundary=in_process | registration_hook=true"
+        )));
         assert!(rendered.contains("Policies (1)"));
-        assert!(rendered.contains(
-            "- official.basic | plugin=official.basic | activation=enabled | boundary=in_process | enforcement_hook=true"
-        ));
+        assert!(rendered.contains(&format!(
+            "- {POLICY_PLUGIN_ID} | plugin={POLICY_PLUGIN_ID} | activation=enabled | boundary=in_process | enforcement_hook=true"
+        )));
         assert!(rendered.contains("Runtime hooks (1)"));
-        assert!(rendered.contains(
-            "- scaffold | plugin=official.basic | activation=enabled | boundary=in_process"
-        ));
+        assert!(rendered.contains(&format!(
+            "- scaffold | plugin={PRIMARY_PLUGIN_ID} | activation=enabled | boundary=in_process"
+        )));
         assert!(rendered.contains("MCP servers (1)"));
-        assert!(rendered.contains("- official.codex.session | enabled=true | process=plugin_managed | availability=on_demand"));
+        assert!(rendered.contains(&format!(
+            "- {MCP_SERVER_ID} | enabled=true | process=plugin_managed | availability=on_demand"
+        )));
     }
 
     #[test]
@@ -2271,52 +2281,52 @@ mod tests {
         )];
         let capabilities = [RuntimeCapabilityRegistration::new(
             PluginCapability::new("template"),
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
         let templates = [RuntimeTemplateRegistration::new(
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let prompts = [RuntimePromptRegistration::new(
-            "official.bmad",
+            PROMPT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let checks = [RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
-            "official.bmad",
+            PROMPT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let agents = [RuntimeAgentRegistration::new(
-            "official.codex",
+            AGENT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let providers = [RuntimeProviderRegistration::new(
             RuntimeProviderKind::DataSource,
-            "official.basic",
+            PROVIDER_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let policies = [RuntimePolicyRegistration::new(
-            "official.basic",
-            "official.basic",
+            POLICY_PLUGIN_ID,
+            POLICY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let hooks = [RuntimeHookRegistration::new(
             PluginRuntimeHook::Scaffold,
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
@@ -2476,52 +2486,52 @@ mod tests {
         )];
         let capabilities = [RuntimeCapabilityRegistration::new(
             PluginCapability::new("template"),
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
         let templates = [RuntimeTemplateRegistration::new(
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let prompts = [RuntimePromptRegistration::new(
-            "official.bmad",
+            PROMPT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let checks = [RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
-            "official.bmad",
+            PROMPT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let agents = [RuntimeAgentRegistration::new(
-            "official.codex",
+            AGENT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let providers = [RuntimeProviderRegistration::new(
             RuntimeProviderKind::DataSource,
-            "official.basic",
+            PROVIDER_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let policies = [RuntimePolicyRegistration::new(
-            "official.basic",
-            "official.basic",
+            POLICY_PLUGIN_ID,
+            POLICY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let hooks = [RuntimeHookRegistration::new(
             PluginRuntimeHook::Scaffold,
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
@@ -2550,7 +2560,7 @@ mod tests {
             vec![
                 RuntimeIssue::new(
                     RuntimeIssueKind::PluginDisabled,
-                    "official.basic",
+                    PRIMARY_PLUGIN_ID,
                     "enable the plugin in typed project configuration",
                 ),
                 RuntimeIssue::new(
@@ -2560,17 +2570,17 @@ mod tests {
                 ),
                 RuntimeIssue::new(
                     RuntimeIssueKind::TemplateDisabled,
-                    "official.basic",
+                    PRIMARY_PLUGIN_ID,
                     "enable the provider plugin that owns this template surface",
                 ),
                 RuntimeIssue::new(
                     RuntimeIssueKind::PromptProviderDisabled,
-                    "official.bmad",
+                    PROMPT_PLUGIN_ID,
                     "enable the provider plugin that owns this prompt surface",
                 ),
                 RuntimeIssue::new(
                     RuntimeIssueKind::AgentRuntimeDisabled,
-                    "official.codex",
+                    AGENT_PLUGIN_ID,
                     "enable the provider plugin that owns this agent runtime",
                 ),
                 RuntimeIssue::new(
@@ -2585,7 +2595,7 @@ mod tests {
                 ),
                 RuntimeIssue::new(
                     RuntimeIssueKind::PolicyDisabled,
-                    "official.basic",
+                    POLICY_PLUGIN_ID,
                     "enable the provider plugin that owns this policy",
                 ),
                 RuntimeIssue::new(
@@ -2595,7 +2605,7 @@ mod tests {
                 ),
                 RuntimeIssue::new(
                     RuntimeIssueKind::McpServerDisabled,
-                    "official.codex.session",
+                    MCP_SERVER_ID,
                     "enable the owning plugin or opt in to the MCP server",
                 ),
             ]
@@ -2658,7 +2668,7 @@ mod tests {
         // Arrange
         let issues = [RuntimeIssue::new(
             RuntimeIssueKind::PluginDisabled,
-            "official.github",
+            PROVIDER_PLUGIN_ID,
             "enable the plugin in typed project configuration",
         )];
 
@@ -2667,9 +2677,9 @@ mod tests {
 
         // Assert
         assert!(rendered.contains("Runtime issues (1)"));
-        assert!(rendered.contains(
-            "- plugin_disabled | subject=official.github | action=enable the plugin in typed project configuration"
-        ));
+        assert!(rendered.contains(&format!(
+            "- plugin_disabled | subject={PROVIDER_PLUGIN_ID} | action=enable the plugin in typed project configuration"
+        )));
     }
 
     #[test]
@@ -2682,52 +2692,52 @@ mod tests {
         )];
         let capabilities = [RuntimeCapabilityRegistration::new(
             PluginCapability::new("template"),
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
         let templates = [RuntimeTemplateRegistration::new(
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let prompts = [RuntimePromptRegistration::new(
-            "official.bmad",
+            PROMPT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let checks = [RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
-            "official.bmad",
+            PROMPT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let agents = [RuntimeAgentRegistration::new(
-            "official.codex",
+            AGENT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let providers = [RuntimeProviderRegistration::new(
             RuntimeProviderKind::DataSource,
-            "official.basic",
+            PROVIDER_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let policies = [RuntimePolicyRegistration::new(
-            "official.basic",
-            "official.basic",
+            POLICY_PLUGIN_ID,
+            POLICY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let hooks = [RuntimeHookRegistration::new(
             PluginRuntimeHook::Scaffold,
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
@@ -2756,52 +2766,52 @@ mod tests {
             vec![
                 RuntimeAction::new(
                     RuntimeActionKind::EnablePlugin,
-                    "official.basic",
+                    PRIMARY_PLUGIN_ID,
                     "the plugin is registered but disabled",
                 ),
                 RuntimeAction::new(
                     RuntimeActionKind::EnableCapabilityProvider,
-                    "official.basic",
+                    PRIMARY_PLUGIN_ID,
                     "the provider still disables capability template",
                 ),
                 RuntimeAction::new(
                     RuntimeActionKind::EnableTemplateProvider,
-                    "official.basic",
+                    PRIMARY_PLUGIN_ID,
                     "the provider still disables the template surface",
                 ),
                 RuntimeAction::new(
                     RuntimeActionKind::EnablePromptProvider,
-                    "official.bmad",
+                    PROMPT_PLUGIN_ID,
                     "the provider still disables the prompt surface",
                 ),
                 RuntimeAction::new(
                     RuntimeActionKind::EnableAgentRuntimeProvider,
-                    "official.codex",
+                    AGENT_PLUGIN_ID,
                     "the provider still disables the agent runtime",
                 ),
                 RuntimeAction::new(
                     RuntimeActionKind::EnableCheckProvider,
-                    "official.bmad",
+                    PROMPT_PLUGIN_ID,
                     "the provider still disables runtime check prepare",
                 ),
                 RuntimeAction::new(
                     RuntimeActionKind::EnableProvider,
-                    "official.basic",
+                    PROVIDER_PLUGIN_ID,
                     "the provider still disables contribution data_source",
                 ),
                 RuntimeAction::new(
                     RuntimeActionKind::EnablePolicyProvider,
-                    "official.basic",
-                    "the provider still disables policy official.basic",
+                    POLICY_PLUGIN_ID,
+                    "the provider still disables policy test.policies",
                 ),
                 RuntimeAction::new(
                     RuntimeActionKind::EnableHookProvider,
-                    "official.basic",
+                    PRIMARY_PLUGIN_ID,
                     "the provider still disables runtime hook scaffold",
                 ),
                 RuntimeAction::new(
                     RuntimeActionKind::EnableMcpServer,
-                    "official.codex.session",
+                    MCP_SERVER_ID,
                     "the MCP contribution is registered but disabled",
                 ),
             ]
