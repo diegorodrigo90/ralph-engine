@@ -161,9 +161,11 @@ function assertOfficialManifestsStayLocalizedAndVersioned(
       fail(`official manifest publisher drift detected in ${manifestFile}: ${manifest.publisher}`);
     }
 
-    if (manifest.version !== workspaceVersion) {
+    const manifestVersion = manifest.plugin_version ?? manifest.version;
+
+    if (manifestVersion !== workspaceVersion) {
       fail(
-        `official manifest version drift detected in ${manifestFile}.\nexpected: ${workspaceVersion}\nactual: ${manifest.version}`,
+        `official manifest version drift detected in ${manifestFile}.\nexpected: ${workspaceVersion}\nactual: ${manifestVersion}`,
       );
     }
 

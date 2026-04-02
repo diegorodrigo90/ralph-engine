@@ -6,7 +6,7 @@ display_name_locales:
 summary: Claude agent runtime and MCP session integration.
 summary_locales:
   pt-br: Integração do runtime de agente Claude com sessão MCP.
-publisher: official
+publisher: ralph-engine
 trust_level: official
 plugin_version: 0.2.0-alpha.1
 plugin_api_version: 1.0.0

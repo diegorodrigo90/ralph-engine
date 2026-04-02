@@ -2,23 +2,29 @@
 
 use re_config::{
     CANONICAL_CONFIG_LAYERS, CANONICAL_SUPPORTED_LOCALES, ConfigScope, DEFAULT_LOCALE, McpConfig,
-    McpDiscovery, PluginActivation, PluginConfig, ProjectConfig, ProjectConfigLayer,
-    ResolvedPluginConfig, RuntimeBudgetConfig, SupportedLocale, canonical_config_layers,
-    default_project_config, default_project_config_layer, find_locale_descriptor,
-    find_plugin_config, parse_supported_locale, render_config_layers_yaml,
-    render_default_locale_yaml, render_locale_descriptor_yaml, render_project_config_yaml,
+    McpDiscovery, McpServerConfig, PluginActivation, PluginConfig, ProjectConfig,
+    ProjectConfigLayer, ResolvedMcpServerConfig, ResolvedPluginConfig, RuntimeBudgetConfig,
+    SupportedLocale, canonical_config_layers, default_project_config, default_project_config_layer,
+    find_locale_descriptor, find_mcp_server_config, find_plugin_config, parse_supported_locale,
+    render_config_layers_yaml, render_default_locale_yaml, render_locale_descriptor_yaml,
+    render_project_config_yaml, render_resolved_mcp_server_config_yaml,
     render_resolved_plugin_config_yaml, render_runtime_budgets_yaml, render_supported_locales_yaml,
-    resolve_locale_or_default, resolve_plugin_config, resolve_supported_locale_or_default,
-    supported_locales,
+    resolve_locale_or_default, resolve_mcp_server_config, resolve_plugin_config,
+    resolve_supported_locale_or_default, supported_locales,
 };
 
 const TEST_DEFAULT_PLUGIN_ID: &str = "test.defaults";
 const TEST_OVERRIDE_PLUGIN_ID: &str = "test.override";
 const TEST_UNKNOWN_PLUGIN_ID: &str = "test.unknown";
+const TEST_DEFAULT_MCP_SERVER_ID: &str = "test.mcp.default";
+const TEST_OVERRIDE_MCP_SERVER_ID: &str = "test.mcp.override";
+const TEST_UNKNOWN_MCP_SERVER_ID: &str = "test.mcp.unknown";
 const TEST_DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
     TEST_DEFAULT_PLUGIN_ID,
     PluginActivation::Enabled,
 )];
+const TEST_DEFAULT_MCP_SERVERS: &[McpServerConfig] =
+    &[McpServerConfig::new(TEST_DEFAULT_MCP_SERVER_ID, true)];
 
 #[test]
 fn default_project_config_uses_stable_schema_defaults() {
@@ -29,6 +35,7 @@ fn default_project_config_uses_stable_schema_defaults() {
     let is_expected = config.schema_version == 1
         && config.default_locale == DEFAULT_LOCALE
         && config.mcp.discovery == McpDiscovery::OfficialOnly
+        && config.mcp.servers.is_empty()
         && config.budgets.prompt_tokens == 8_192
         && config.budgets.context_tokens == 32_768;
 
@@ -68,6 +75,7 @@ fn render_project_config_yaml_is_human_readable() {
     assert!(yaml.contains("    activation: enabled"));
     assert!(yaml.contains("mcp:"));
     assert!(yaml.contains("  discovery: official_only"));
+    assert!(yaml.contains("  servers:"));
     assert!(yaml.contains("budgets:"));
     assert!(yaml.contains("  prompt_tokens: 8192"));
     assert!(yaml.contains("  context_tokens: 32768"));
@@ -226,7 +234,11 @@ fn find_plugin_config_returns_matching_entry() {
         schema_version: config.schema_version,
         default_locale: config.default_locale,
         plugins: TEST_DEFAULT_PLUGINS,
-        mcp: config.mcp,
+        mcp: McpConfig {
+            enabled: config.mcp.enabled,
+            discovery: config.mcp.discovery,
+            servers: config.mcp.servers,
+        },
         budgets: config.budgets,
     };
 
@@ -250,6 +262,40 @@ fn find_plugin_config_returns_none_for_unknown_plugin() {
 
     // Assert
     assert!(plugin.is_none());
+}
+
+#[test]
+fn find_mcp_server_config_returns_matching_entry() {
+    let config = ProjectConfig {
+        schema_version: 1,
+        default_locale: DEFAULT_LOCALE,
+        plugins: TEST_DEFAULT_PLUGINS,
+        mcp: McpConfig {
+            enabled: true,
+            discovery: McpDiscovery::OfficialOnly,
+            servers: TEST_DEFAULT_MCP_SERVERS,
+        },
+        budgets: RuntimeBudgetConfig {
+            prompt_tokens: 8_192,
+            context_tokens: 32_768,
+        },
+    };
+
+    let server = find_mcp_server_config(&config, TEST_DEFAULT_MCP_SERVER_ID);
+
+    assert_eq!(
+        server,
+        Some(McpServerConfig::new(TEST_DEFAULT_MCP_SERVER_ID, true))
+    );
+}
+
+#[test]
+fn find_mcp_server_config_returns_none_for_unknown_server() {
+    let config = default_project_config();
+
+    let server = find_mcp_server_config(&config, TEST_UNKNOWN_MCP_SERVER_ID);
+
+    assert!(server.is_none());
 }
 
 #[test]
@@ -299,6 +345,7 @@ fn resolve_plugin_config_returns_effective_entry_from_highest_precedence_layer()
                 mcp: McpConfig {
                     enabled: true,
                     discovery: McpDiscovery::OfficialOnly,
+                    servers: &[],
                 },
                 budgets: RuntimeBudgetConfig {
                     prompt_tokens: 8_192,
@@ -315,6 +362,7 @@ fn resolve_plugin_config_returns_effective_entry_from_highest_precedence_layer()
                 mcp: McpConfig {
                     enabled: true,
                     discovery: McpDiscovery::OfficialOnly,
+                    servers: &[],
                 },
                 budgets: RuntimeBudgetConfig {
                     prompt_tokens: 8_192,
@@ -351,6 +399,70 @@ fn resolve_plugin_config_returns_none_for_unknown_plugin() {
 }
 
 #[test]
+fn resolve_mcp_server_config_returns_effective_entry_from_highest_precedence_layer() {
+    const DEFAULT_MCP_SERVERS: &[McpServerConfig] =
+        &[McpServerConfig::new(TEST_OVERRIDE_MCP_SERVER_ID, false)];
+    const USER_MCP_SERVERS: &[McpServerConfig] =
+        &[McpServerConfig::new(TEST_OVERRIDE_MCP_SERVER_ID, true)];
+    let layers = [
+        ProjectConfigLayer::new(
+            ConfigScope::BuiltInDefaults,
+            ProjectConfig {
+                schema_version: 1,
+                default_locale: DEFAULT_LOCALE,
+                plugins: TEST_DEFAULT_PLUGINS,
+                mcp: McpConfig {
+                    enabled: true,
+                    discovery: McpDiscovery::OfficialOnly,
+                    servers: DEFAULT_MCP_SERVERS,
+                },
+                budgets: RuntimeBudgetConfig {
+                    prompt_tokens: 8_192,
+                    context_tokens: 32_768,
+                },
+            },
+        ),
+        ProjectConfigLayer::new(
+            ConfigScope::User,
+            ProjectConfig {
+                schema_version: 1,
+                default_locale: DEFAULT_LOCALE,
+                plugins: TEST_DEFAULT_PLUGINS,
+                mcp: McpConfig {
+                    enabled: true,
+                    discovery: McpDiscovery::OfficialOnly,
+                    servers: USER_MCP_SERVERS,
+                },
+                budgets: RuntimeBudgetConfig {
+                    prompt_tokens: 8_192,
+                    context_tokens: 32_768,
+                },
+            },
+        ),
+    ];
+
+    let resolved = resolve_mcp_server_config(&layers, TEST_OVERRIDE_MCP_SERVER_ID);
+
+    assert_eq!(
+        resolved,
+        Some(ResolvedMcpServerConfig::new(
+            TEST_OVERRIDE_MCP_SERVER_ID,
+            true,
+            ConfigScope::User,
+        ))
+    );
+}
+
+#[test]
+fn resolve_mcp_server_config_returns_none_for_unknown_server() {
+    let layers = [default_project_config_layer()];
+
+    let resolved = resolve_mcp_server_config(&layers, TEST_UNKNOWN_MCP_SERVER_ID);
+
+    assert!(resolved.is_none());
+}
+
+#[test]
 fn plugin_config_is_enabled_reflects_enabled_state() {
     // Arrange
     let plugin = PluginConfig::new(TEST_DEFAULT_PLUGIN_ID, PluginActivation::Enabled);
@@ -372,6 +484,7 @@ fn render_project_config_yaml_handles_empty_plugin_sets() {
         mcp: McpConfig {
             enabled: true,
             discovery: McpDiscovery::OfficialOnly,
+            servers: TEST_DEFAULT_MCP_SERVERS,
         },
         budgets: RuntimeBudgetConfig {
             prompt_tokens: 8_192,
@@ -384,9 +497,10 @@ fn render_project_config_yaml_handles_empty_plugin_sets() {
 
     // Assert
     assert!(yaml.contains("plugins:"));
-    assert!(!yaml.contains("  - id:"));
+    assert!(!yaml.contains("  - id: official.basic"));
     assert!(!yaml.contains("    activation:"));
     assert!(yaml.contains("  discovery: official_only"));
+    assert!(yaml.contains("  servers:"));
 }
 
 #[test]
@@ -408,6 +522,21 @@ fn render_resolved_plugin_config_yaml_is_human_readable() {
 }
 
 #[test]
+fn render_resolved_mcp_server_config_yaml_is_human_readable() {
+    let resolved = ResolvedMcpServerConfig::new(
+        TEST_DEFAULT_MCP_SERVER_ID,
+        true,
+        ConfigScope::BuiltInDefaults,
+    );
+
+    let yaml = render_resolved_mcp_server_config_yaml(&resolved);
+
+    assert!(yaml.contains("id: test.mcp.default"));
+    assert!(yaml.contains("enabled: true"));
+    assert!(yaml.contains("resolved_from: built_in_defaults"));
+}
+
+#[test]
 fn render_config_layers_yaml_is_human_readable() {
     // Arrange
     let layers = canonical_config_layers();
@@ -421,6 +550,7 @@ fn render_config_layers_yaml_is_human_readable() {
     assert!(yaml.contains("schema_version: 1"));
     assert!(yaml.contains("plugin_count: 1"));
     assert!(yaml.contains("mcp_enabled: true"));
+    assert!(yaml.contains("mcp_server_count: 0"));
     assert!(yaml.contains("prompt_tokens: 8192"));
     assert!(yaml.contains("context_tokens: 32768"));
 }

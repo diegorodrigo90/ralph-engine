@@ -1084,6 +1084,19 @@ mod tests {
     }
 
     #[test]
+    fn execute_runtime_patch_returns_typed_config_patch() {
+        let command = args(&["ralph-engine", "runtime", "patch"]);
+
+        let output = execute(command).expect("runtime patch should succeed");
+
+        assert!(output.contains("plugins:"));
+        assert!(output.contains("- id: official.github"));
+        assert!(output.contains("activation: enabled"));
+        assert!(output.contains("mcp:"));
+        assert!(output.contains("servers:"));
+    }
+
+    #[test]
     fn execute_runtime_without_subcommand_returns_resolved_topology() {
         // Arrange
         let command = args(&["ralph-engine", "runtime"]);
@@ -1093,6 +1106,22 @@ mod tests {
 
         // Assert
         assert!(output.contains("Runtime phase: ready"));
+    }
+
+    #[test]
+    fn execute_config_show_mcp_server_returns_resolved_server_config() {
+        let command = args(&[
+            "ralph-engine",
+            "config",
+            "show-mcp-server",
+            "official.github.repository",
+        ]);
+
+        let output = execute(command).expect("config show-mcp-server should succeed");
+
+        assert!(output.contains("id: official.github.repository"));
+        assert!(output.contains("enabled: false"));
+        assert!(output.contains("resolved_from: built_in_defaults"));
     }
 
     #[test]

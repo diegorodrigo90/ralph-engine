@@ -1,9 +1,10 @@
 //! Configuration command handlers.
 
 use re_config::{
-    ConfigScope, PluginActivation, ResolvedPluginConfig, canonical_config_layers,
-    default_project_config, render_config_layers_yaml, render_default_locale_yaml,
-    render_project_config_yaml, render_resolved_plugin_config_yaml, render_runtime_budgets_yaml,
+    ConfigScope, PluginActivation, ResolvedMcpServerConfig, ResolvedPluginConfig,
+    canonical_config_layers, default_project_config, render_config_layers_yaml,
+    render_default_locale_yaml, render_project_config_yaml, render_resolved_mcp_server_config_yaml,
+    render_resolved_plugin_config_yaml, render_runtime_budgets_yaml, resolve_mcp_server_config,
     resolve_plugin_config,
 };
 
@@ -22,6 +23,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         Some("layers") | Some("show-layers") => {
             Ok(render_config_layers_yaml(canonical_config_layers()))
         }
+        Some("show-mcp-server") => show_mcp_server(args.get(1).map(String::as_str), locale),
         Some("show-plugin") => show_plugin(args.get(1).map(String::as_str), locale),
         Some(other) => Err(CliError::new(i18n::unknown_subcommand(
             locale, "config", other,
@@ -53,4 +55,27 @@ fn show_plugin(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError
     );
 
     Ok(render_resolved_plugin_config_yaml(&resolved))
+}
+
+fn show_mcp_server(server_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let server_id = server_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "config",
+            i18n::mcp_server_id_entity_label(locale),
+        ))
+    })?;
+    let server = catalog::find_official_mcp_server(server_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::mcp_server_entity_label(locale),
+            server_id,
+        ))
+    })?;
+    let default_enabled = matches!(server.availability, re_mcp::McpAvailability::OnDemand);
+    let resolved = resolve_mcp_server_config(canonical_config_layers(), server.id).unwrap_or(
+        ResolvedMcpServerConfig::new(server.id, default_enabled, ConfigScope::BuiltInDefaults),
+    );
+
+    Ok(render_resolved_mcp_server_config_yaml(&resolved))
 }

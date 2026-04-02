@@ -6,7 +6,7 @@ display_name_locales:
 summary: Strict TDD policy and template guardrails.
 summary_locales:
   pt-br: Política estrita de TDD com guardrails de template.
-publisher: official
+publisher: ralph-engine
 trust_level: official
 plugin_version: 0.2.0-alpha.1
 plugin_api_version: 1.0.0

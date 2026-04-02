@@ -32,6 +32,7 @@ ralph-engine config show-budgets
 ralph-engine config show-defaults
 ralph-engine config show-layers
 ralph-engine config show-locale
+ralph-engine config show-mcp-server <server-id>
 ralph-engine config show-plugin <plugin-id>
 ```
 
@@ -46,5 +47,7 @@ O comando `config budgets` renderiza o contrato tipado canônico de limites de p
 O comando `config layers` renderiza a pilha canônica tipada de configuração na ordem de resolução, para que defaults, futuras configurações de workspace, configuração de projeto e overrides de usuário continuem explícitos no contrato do runtime.
 
 O comando `config show-plugin` agora renderiza a ativação efetiva do plugin junto com o escopo que forneceu esse resultado.
+
+O comando `config show-mcp-server` renderiza a ativação tipada efetiva de um servidor MCP junto com o escopo que forneceu esse resultado, para que o opt-in por servidor permaneça explícito em vez de ser inferido apenas a partir da ativação do plugin.
 
 Esses contratos continuarão a evoluir sobre o novo core em Rust, guiados por TDD.

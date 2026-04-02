@@ -38,6 +38,7 @@ ralph-engine config show-budgets
 ralph-engine config show-defaults
 ralph-engine config show-layers
 ralph-engine config show-locale
+ralph-engine config show-mcp-server <server-id>
 ralph-engine config show-plugin <plugin-id>
 ralph-engine plugins
 ralph-engine plugins list
@@ -47,6 +48,7 @@ ralph-engine runtime show
 ralph-engine runtime status
 ralph-engine runtime issues
 ralph-engine runtime plan
+ralph-engine runtime patch
 ralph-engine prompts
 ralph-engine prompts list
 ralph-engine prompts show <plugin-id>
@@ -93,3 +95,5 @@ O comando `runtime status` imprime o resumo tipado de health do runtime, incluin
 O comando `runtime issues` imprime a lista tipada de issues pendentes do runtime e as ações recomendadas, incluindo templates, prompts, agent runtimes tipados, checks tipados, providers tipados, providers de policy e providers de runtime hook desabilitados, em vez de depender de heurísticas locais em cada comando.
 
 O comando `runtime plan` imprime o plano tipado de remediação derivado da topologia resolvida, incluindo enablement de templates, de prompts, de agent runtimes tipados, de checks tipados, de providers tipados, de policy e de hook, para que o próximo passo de enablement permaneça explícito e modular em vez de ser inferido ad hoc na CLI.
+
+O comando `runtime patch` renderiza o patch tipado de configuração que remedia a topologia degradada atual, incluindo ativações de plugin e enablement por servidor MCP, para que a recuperação do runtime permaneça explícita e reutilizável em vez de ficar apenas como plano textual.

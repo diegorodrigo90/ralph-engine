@@ -143,6 +143,38 @@ pub struct ResolvedPluginConfig {
     pub resolved_from: ConfigScope,
 }
 
+/// Typed MCP server configuration entry.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct McpServerConfig {
+    /// Stable MCP server identifier.
+    pub id: &'static str,
+    /// Whether the server is enabled in the effective configuration.
+    pub enabled: bool,
+}
+
+/// Resolved MCP server configuration entry with source scope metadata.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ResolvedMcpServerConfig {
+    /// Stable MCP server identifier.
+    pub id: &'static str,
+    /// Effective enabled state after typed resolution.
+    pub enabled: bool,
+    /// Scope that supplied the effective configuration.
+    pub resolved_from: ConfigScope,
+}
+
+impl ResolvedMcpServerConfig {
+    /// Creates a new immutable resolved MCP server config entry.
+    #[must_use]
+    pub const fn new(id: &'static str, enabled: bool, resolved_from: ConfigScope) -> Self {
+        Self {
+            id,
+            enabled,
+            resolved_from,
+        }
+    }
+}
+
 impl ResolvedPluginConfig {
     /// Creates a new immutable resolved plugin config entry.
     #[must_use]
@@ -173,6 +205,14 @@ impl PluginConfig {
     }
 }
 
+impl McpServerConfig {
+    /// Creates a new immutable MCP server config entry.
+    #[must_use]
+    pub const fn new(id: &'static str, enabled: bool) -> Self {
+        Self { id, enabled }
+    }
+}
+
 /// Typed plugin activation states.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PluginActivation {
@@ -200,6 +240,8 @@ pub struct McpConfig {
     pub enabled: bool,
     /// Discovery policy for built-in MCP contributions.
     pub discovery: McpDiscovery,
+    /// Per-server activation entries.
+    pub servers: &'static [McpServerConfig],
 }
 
 /// Supported MCP discovery policies.
@@ -226,9 +268,11 @@ const SUPPORTED_LOCALES: &[LocaleDescriptor] = &[
     SupportedLocale::En.descriptor(),
     SupportedLocale::PtBr.descriptor(),
 ];
+const DEFAULT_MCP_SERVERS: &[McpServerConfig] = &[];
 const DEFAULT_MCP: McpConfig = McpConfig {
     enabled: true,
     discovery: McpDiscovery::OfficialOnly,
+    servers: DEFAULT_MCP_SERVERS,
 };
 const DEFAULT_BUDGETS: RuntimeBudgetConfig = RuntimeBudgetConfig {
     prompt_tokens: 8_192,
@@ -321,6 +365,17 @@ pub fn find_plugin_config(config: &ProjectConfig, plugin_id: &str) -> Option<Plu
         .copied()
 }
 
+/// Returns one immutable MCP server config entry by identifier.
+#[must_use]
+pub fn find_mcp_server_config(config: &ProjectConfig, server_id: &str) -> Option<McpServerConfig> {
+    config
+        .mcp
+        .servers
+        .iter()
+        .find(|server| server.id == server_id)
+        .copied()
+}
+
 /// Resolves one plugin config entry from ordered layers.
 ///
 /// Layers SHALL be passed from lowest precedence to highest precedence.
@@ -332,6 +387,20 @@ pub fn resolve_plugin_config(
     layers.iter().rev().find_map(|layer| {
         find_plugin_config(&layer.config, plugin_id)
             .map(|entry| ResolvedPluginConfig::new(entry.id, entry.activation, layer.scope))
+    })
+}
+
+/// Resolves one MCP server config entry from ordered layers.
+///
+/// Layers SHALL be passed from lowest precedence to highest precedence.
+#[must_use]
+pub fn resolve_mcp_server_config(
+    layers: &[ProjectConfigLayer],
+    server_id: &str,
+) -> Option<ResolvedMcpServerConfig> {
+    layers.iter().rev().find_map(|layer| {
+        find_mcp_server_config(&layer.config, server_id)
+            .map(|entry| ResolvedMcpServerConfig::new(entry.id, entry.enabled, layer.scope))
     })
 }
 
@@ -357,6 +426,12 @@ pub fn render_project_config_yaml(config: &ProjectConfig) -> String {
             McpDiscovery::OfficialOnly => "official_only",
         }
     ));
+    lines.push("  servers:".to_owned());
+
+    for server in config.mcp.servers {
+        lines.push(format!("    - id: {}", server.id));
+        lines.push(format!("      enabled: {}", server.enabled));
+    }
     lines.push("budgets:".to_owned());
     lines.push(format!("  prompt_tokens: {}", config.budgets.prompt_tokens));
     lines.push(format!(
@@ -414,6 +489,17 @@ pub fn render_resolved_plugin_config_yaml(config: &ResolvedPluginConfig) -> Stri
     .join("\n")
 }
 
+/// Renders one resolved MCP server configuration block as YAML.
+#[must_use]
+pub fn render_resolved_mcp_server_config_yaml(config: &ResolvedMcpServerConfig) -> String {
+    [
+        format!("id: {}", config.id),
+        format!("enabled: {}", config.enabled),
+        format!("resolved_from: {}", config.resolved_from.as_str()),
+    ]
+    .join("\n")
+}
+
 /// Renders typed configuration layers in resolution order as YAML.
 #[must_use]
 pub fn render_config_layers_yaml(layers: &[ProjectConfigLayer]) -> String {
@@ -431,6 +517,10 @@ pub fn render_config_layers_yaml(layers: &[ProjectConfigLayer]) -> String {
         ));
         lines.push(format!("    plugin_count: {}", layer.config.plugins.len()));
         lines.push(format!("    mcp_enabled: {}", layer.config.mcp.enabled));
+        lines.push(format!(
+            "    mcp_server_count: {}",
+            layer.config.mcp.servers.len()
+        ));
         lines.push(format!(
             "    prompt_tokens: {}",
             layer.config.budgets.prompt_tokens
