@@ -6,7 +6,7 @@ display_name_locales:
 summary: Workflow plugin for BMAD scaffolding and prompts.
 summary_locales:
   pt-br: Plugin de workflow para scaffolding e prompts do BMAD.
-publisher: ralph-engine
+publisher: official
 trust_level: official
 plugin_version: 0.2.0-alpha.1
 plugin_api_version: 1.0.0

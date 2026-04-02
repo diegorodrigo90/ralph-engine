@@ -6,7 +6,7 @@ display_name_locales:
 summary: Codex runtime and MCP session integration.
 summary_locales:
   pt-br: Integração do runtime Codex com sessão MCP.
-publisher: ralph-engine
+publisher: official
 trust_level: official
 plugin_version: 0.2.0-alpha.1
 plugin_api_version: 1.0.0

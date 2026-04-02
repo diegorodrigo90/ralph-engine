@@ -157,7 +157,7 @@ function assertOfficialManifestsStayLocalizedAndVersioned(
   for (const manifestFile of manifestFiles) {
     const manifest = parseManifestDocument(readUtf8(manifestFile), manifestFile);
 
-    if (manifest.publisher !== "ralph-engine") {
+    if (manifest.publisher !== "official") {
       fail(`official manifest publisher drift detected in ${manifestFile}: ${manifest.publisher}`);
     }
 
