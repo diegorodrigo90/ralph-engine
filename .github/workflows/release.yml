@@ -108,10 +108,12 @@ jobs:
         run: |
           node --check ./scripts/prepare-npm-release.mjs
           node --check ./scripts/verify-npm-release.mjs
+          node --check ./scripts/verify-npm-install.mjs
           node --check ./scripts/render-homebrew-formula.mjs
           bash -n ./scripts/verify-release-channel-contract.sh
           bash -n ./scripts/verify-dist-workspace.sh
           bash -n ./scripts/verify-release-assets.sh
+          bash -n ./scripts/verify-homebrew-formula.sh
       - name: Verify cargo-dist workspace contract
         shell: bash
         run: ./scripts/verify-dist-workspace.sh
@@ -266,6 +268,13 @@ jobs:
           node ./scripts/verify-npm-release.mjs \
             --package-dir .release/npm/ralph-engine \
             --package-dir .release/npm/create-ralph-engine-plugin
+      - name: Smoke-test staged npm package install flows
+        if: inputs.publish_npm
+        shell: bash
+        run: |
+          node ./scripts/verify-npm-install.mjs \
+            --package-dir .release/npm/ralph-engine \
+            --package-dir .release/npm/create-ralph-engine-plugin
       - name: Publish npm packages
         if: inputs.publish_npm
         env:
@@ -291,8 +300,69 @@ jobs:
           VERSION="${{ inputs.tag }}"
           VERSION="${VERSION#v}"
           node ./scripts/render-homebrew-formula.mjs --version "$VERSION" --dist-dir .release/assets --output .release/homebrew/ralph-engine.rb
-      - name: Publish Homebrew tap update
+      - name: Upload staged Homebrew formula
         if: inputs.publish_homebrew
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        with:
+          name: staged-homebrew-formula
+          path: .release/homebrew/ralph-engine.rb
+          if-no-files-found: error
+          retention-days: 3
+
+  validate-homebrew-formula:
+    name: Validate Homebrew formula on macOS
+    if: inputs.publish_homebrew
+    needs: publish
+    runs-on: macos-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Download staged Homebrew formula
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: staged-homebrew-formula
+          path: .release/homebrew
+      - name: Validate Homebrew formula and install flow
+        shell: bash
+        run: |
+          VERSION="${{ inputs.tag }}"
+          VERSION="${VERSION#v}"
+          bash ./scripts/verify-homebrew-formula.sh .release/homebrew/ralph-engine.rb "$VERSION"
+
+  publish-homebrew:
+    name: Publish Homebrew tap update
+    if: inputs.publish_homebrew
+    needs: validate-homebrew-formula
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Download staged Homebrew formula
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: staged-homebrew-formula
+          path: .release/homebrew
+      - name: Publish Homebrew tap update
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         shell: bash

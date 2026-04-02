@@ -13,5 +13,6 @@ to Rust artifacts once the hardened publish workflow is enabled.
 Current status:
 
 - GitHub release artifacts are built with `cargo-dist`.
-- Homebrew publication is not automated yet.
+- Homebrew publication remains manual and gated behind the hardened release workflow inputs.
+- The release workflow now renders the formula from approved assets and validates it with `brew audit`, `brew install`, and `brew test` on macOS before the tap can be updated.
 - Formula updates SHALL be derived from the same release assets and checksums used by npm.

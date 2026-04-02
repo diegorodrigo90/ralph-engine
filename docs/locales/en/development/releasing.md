@@ -27,9 +27,11 @@ The `tag` input SHALL include the leading `v`, for example `v0.2.0-alpha.1`. The
 Before it publishes anything, the workflow verifies that the selected SHA is the current `origin/main` head and that the canonical `CI` workflow has already completed successfully for that exact push.
 The workflow also rejects `publish_npm=true` or `publish_homebrew=true` unless `publish_github_release=true`, because both downstream channels depend on the reviewed GitHub Release asset set for the selected tag.
 When `publish_npm=true`, the workflow also dry-runs `npm pack --json --dry-run` against the staged `ralph-engine` and `create-ralph-engine-plugin` payloads and rejects the publish if required entries, `bin` wiring, scripts, package names, or rewritten versions are wrong.
+When `publish_npm=true`, the workflow also installs those staged tarballs into a throwaway consumer project and executes their public binaries before publish, so npm channel usability is proved instead of inferred only from tarball shape.
 That same `CI` workflow builds cross-platform release candidates in parallel with the quality gates and publishes reusable approved release artifacts for the SHA only after `Quality`, `Security`, and `SonarCloud` have all passed.
 Both the reviewed `dist-workspace.toml` contract and the generated release assets are validated explicitly before artifacts are approved or promoted.
 The SonarCloud quality gate is also the hard release stop for coverage: if it falls below the configured `100%` target for analyzed code, the SHA is not approved for artifact publication or release promotion.
+When `publish_homebrew=true`, the workflow renders the formula from the approved release assets, validates it on macOS with `brew audit`, `brew install`, and `brew test`, and only then updates the tap repository.
 
 ## Rules
 
@@ -42,11 +44,13 @@ The SonarCloud quality gate is also the hard release stop for coverage: if it fa
 - The release workflow SHALL reject downstream channel publication when `publish_github_release=false`.
 - The release workflow SHALL verify that the GitHub Release for the selected tag exists before npm or Homebrew publication starts.
 - The release workflow SHALL verify staged npm tarballs before publishing npm channels.
+- The release workflow SHALL smoke-test staged npm install flows before publishing npm channels.
 - The canonical `CI` workflow SHALL build cross-platform release candidates for the target `main` SHA in parallel with the quality gates.
 - The canonical `CI` workflow SHALL publish reusable approved release artifacts for that SHA only after `Quality`, `Security`, and `SonarCloud` have all passed.
 - The release workflow SHALL download and publish that approved artifact set instead of rebuilding it.
 - `scripts/verify-dist-workspace.sh` SHALL validate the reviewed `cargo-dist` workspace contract before release-candidate or publish steps depend on it.
 - `scripts/verify-release-assets.sh` SHALL validate candidate and assembled release assets, checksums, and target completeness before approval or publication.
+- `scripts/verify-homebrew-formula.sh` SHALL validate the rendered Homebrew formula with `brew audit`, `brew install`, and `brew test` before the tap is updated.
 - Pages SHALL publish from published releases and build from the release tag so the public site and docs stay aligned with published versions.
 - `cargo-dist` SHALL be the Rust artifact builder for release distribution.
 - `Quality`, `Security`, and `SonarCloud` SHALL all pass before a release tag is created.

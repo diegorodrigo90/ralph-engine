@@ -19,6 +19,7 @@ Current contract:
 - the package remains private during the Rust-first reboot
 - `postinstall` downloads the reviewed `cargo-dist` release asset for the current platform
 - downloaded archives are verified against the published `.sha256` asset before extraction
+- the release workflow installs the staged package into a throwaway consumer project and executes the public binary before publish
 - automatic publication remains disabled until GitHub Releases, npm provenance, and Homebrew are wired together
 
 ## Packaging Model
