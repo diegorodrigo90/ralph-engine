@@ -9,15 +9,8 @@ dependencies = [
  "re-config",
  "re-core",
  "re-mcp",
+ "re-official",
  "re-plugin",
- "re-plugin-basic",
- "re-plugin-bmad",
- "re-plugin-claude",
- "re-plugin-claudebox",
- "re-plugin-codex",
- "re-plugin-github",
- "re-plugin-ssh",
- "re-plugin-tdd-strict",
 ]
 
 [[package]]
@@ -38,6 +31,24 @@ name = "re-mcp"
 version = "0.2.0-alpha.1"
 dependencies = [
  "re-config",
+]
+
+[[package]]
+name = "re-official"
+version = "0.2.0-alpha.1"
+dependencies = [
+ "re-config",
+ "re-core",
+ "re-mcp",
+ "re-plugin",
+ "re-plugin-basic",
+ "re-plugin-bmad",
+ "re-plugin-claude",
+ "re-plugin-claudebox",
+ "re-plugin-codex",
+ "re-plugin-github",
+ "re-plugin-ssh",
+ "re-plugin-tdd-strict",
 ]
 
 [[package]]
