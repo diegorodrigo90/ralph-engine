@@ -438,6 +438,18 @@ pub fn find_official_runtime_agents(plugin_id: &str) -> Vec<RuntimeAgentRegistra
     })
 }
 
+/// Returns the resolved capability registrations for one reviewed capability.
+#[must_use]
+pub fn find_official_runtime_capabilities(
+    capability: re_plugin::PluginCapability,
+) -> Vec<RuntimeCapabilityRegistration> {
+    registrations_for_key(
+        official_runtime_capabilities(),
+        capability,
+        |registration| registration.capability,
+    )
+}
+
 /// Returns the resolved runtime-hook registrations for one typed hook.
 #[must_use]
 pub fn find_official_runtime_hooks(hook: PluginRuntimeHook) -> Vec<RuntimeHookRegistration> {
@@ -464,11 +476,20 @@ pub fn find_official_runtime_providers(
     })
 }
 
+/// Returns one resolved runtime policy registration by policy identifier.
+#[must_use]
+pub fn find_official_runtime_policy(policy_id: &str) -> Option<RuntimePolicyRegistration> {
+    official_runtime_policies()
+        .into_iter()
+        .find(|registration| registration.policy_id == policy_id)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         find_official_mcp_server, find_official_plugin, find_official_runtime_agents,
-        find_official_runtime_checks, find_official_runtime_hooks, find_official_runtime_prompts,
+        find_official_runtime_capabilities, find_official_runtime_checks,
+        find_official_runtime_hooks, find_official_runtime_policy, find_official_runtime_prompts,
         find_official_runtime_providers, find_official_runtime_templates, official_plugins,
         official_runtime_agents, official_runtime_checks, official_runtime_mcp_registrations,
         official_runtime_policies, official_runtime_prompts, official_runtime_providers,
@@ -572,10 +593,17 @@ mod tests {
 
     #[test]
     fn grouped_surface_helpers_filter_typed_keys() {
+        let capabilities = find_official_runtime_capabilities(PluginCapability::new("template"));
         let hooks = find_official_runtime_hooks(PluginRuntimeHook::Scaffold);
         let checks = find_official_runtime_checks(RuntimeCheckKind::Doctor);
         let providers = find_official_runtime_providers(RuntimeProviderKind::RemoteControl);
 
+        assert!(!capabilities.is_empty());
+        assert!(
+            capabilities
+                .iter()
+                .all(|registration| registration.capability == PluginCapability::new("template"))
+        );
         assert!(!hooks.is_empty());
         assert!(
             hooks
@@ -594,5 +622,7 @@ mod tests {
                 .iter()
                 .all(|registration| registration.kind == RuntimeProviderKind::RemoteControl)
         );
+        assert!(find_official_runtime_policy("official.tdd-strict").is_some());
+        assert!(find_official_runtime_policy("official.missing").is_none());
     }
 }

@@ -3,7 +3,11 @@
 use re_core::RuntimeCapabilityRegistration;
 use re_plugin::parse_reviewed_plugin_capability;
 
-use crate::{CliError, catalog, i18n};
+use crate::{
+    CliError, catalog,
+    commands::grouped_surfaces::{render_grouped_surface_detail, render_grouped_surface_listing},
+    i18n,
+};
 
 /// Executes the capabilities command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
@@ -36,10 +40,7 @@ fn show_capability(capability_id: Option<&str>, locale: &str) -> Result<String, 
             capability_id,
         ))
     })?;
-    let providers = catalog::official_runtime_capabilities()
-        .into_iter()
-        .filter(|registration| registration.capability == capability)
-        .collect::<Vec<_>>();
+    let providers = catalog::find_official_runtime_capabilities(capability);
 
     Ok(render_capability_detail(capability_id, &providers, locale))
 }
@@ -48,54 +49,13 @@ fn render_capability_listing(
     registrations: &[RuntimeCapabilityRegistration],
     locale: &str,
 ) -> String {
-    let mut seen = Vec::new();
-    let mut lines = Vec::new();
-
-    for registration in registrations {
-        let capability = registration.capability.as_str();
-
-        if seen.contains(&capability) {
-            continue;
-        }
-
-        seen.push(capability);
-
-        let providers = registrations
-            .iter()
-            .filter(|candidate| candidate.capability == registration.capability)
-            .collect::<Vec<_>>();
-        let enabled_providers = providers
-            .iter()
-            .filter(|provider| provider.is_enabled())
-            .count();
-
-        lines.push(format!(
-            "- {} | providers={} | enabled={}",
-            capability,
-            providers.len(),
-            enabled_providers
-        ));
-    }
-
-    if lines.is_empty() {
-        i18n::list_heading(
-            locale,
-            i18n::capabilities_label(locale),
-            i18n::capabilities_label(locale),
-            0,
-        )
-    } else {
-        format!(
-            "{}\n{}",
-            i18n::list_heading(
-                locale,
-                i18n::capabilities_label(locale),
-                i18n::capabilities_label(locale),
-                lines.len(),
-            ),
-            lines.join("\n")
-        )
-    }
+    render_grouped_surface_listing(
+        registrations,
+        locale,
+        i18n::capabilities_label,
+        |registration| registration.capability.as_str(),
+        |registration| registration.is_enabled(),
+    )
 }
 
 fn render_capability_detail(
@@ -103,26 +63,20 @@ fn render_capability_detail(
     providers: &[RuntimeCapabilityRegistration],
     locale: &str,
 ) -> String {
-    let mut lines = vec![
-        i18n::detail_heading(
-            locale,
-            i18n::capability_label(locale),
-            i18n::capability_label(locale),
-            capability_id,
-        ),
-        i18n::providers_heading(locale, providers.len()),
-    ];
-
-    for provider in providers {
-        lines.push(format!(
-            "- {} | activation={} | boundary={}",
-            provider.plugin_id,
-            provider.activation.as_str(),
-            provider.load_boundary.as_str()
-        ));
-    }
-
-    lines.join("\n")
+    render_grouped_surface_detail(
+        capability_id,
+        providers,
+        locale,
+        i18n::capability_label,
+        |provider| {
+            format!(
+                "- {} | activation={} | boundary={}",
+                provider.plugin_id,
+                provider.activation.as_str(),
+                provider.load_boundary.as_str()
+            )
+        },
+    )
 }
 
 #[cfg(test)]
