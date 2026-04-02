@@ -26,16 +26,13 @@ fn show_policy(policy_id: Option<&str>, locale: &str) -> Result<String, CliError
             i18n::policy_id_entity_label(locale),
         ))
     })?;
-    let registration = catalog::official_runtime_policies()
-        .into_iter()
-        .find(|registration| registration.policy_id == policy_id)
-        .ok_or_else(|| {
-            CliError::new(i18n::unknown_entity(
-                locale,
-                i18n::policy_entity_label(locale),
-                policy_id,
-            ))
-        })?;
+    let registration = catalog::find_official_runtime_policy(policy_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::policy_entity_label(locale),
+            policy_id,
+        ))
+    })?;
 
     Ok(render_policy_detail(&registration, locale))
 }
