@@ -11,9 +11,9 @@ use re_core::{
     render_runtime_topology_for_locale,
 };
 
-use super::embedded_assets::write_text_output;
 use super::runtime_state::{
-    render_official_runtime_patched_config, with_official_runtime_snapshot,
+    apply_official_runtime_patched_config, render_official_runtime_patched_config,
+    with_official_runtime_snapshot,
 };
 use crate::{CliError, i18n};
 
@@ -24,6 +24,9 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         Some("issues") => Ok(show_runtime_issues(locale)),
         Some("patch") => Ok(show_runtime_config_patch()),
         Some("patched-config") => Ok(show_runtime_patched_config()),
+        Some("apply-config") => {
+            apply_runtime_patched_config(args.get(1).map(String::as_str), locale)
+        }
         Some("write-patched-config") => {
             write_runtime_patched_config(args.get(1).map(String::as_str), locale)
         }
@@ -114,16 +117,23 @@ fn write_runtime_patched_config(
     output_path: Option<&str>,
     locale: &str,
 ) -> Result<String, CliError> {
-    let output_path = output_path.ok_or_else(|| {
-        CliError::new(i18n::missing_output_path(
-            locale,
-            "runtime write-patched-config",
-        ))
-    })?;
+    persist_runtime_patched_config(output_path, locale, "runtime write-patched-config")
+}
 
-    write_text_output(
-        Path::new(output_path),
-        &render_official_runtime_patched_config(),
-        locale,
-    )
+fn apply_runtime_patched_config(
+    output_path: Option<&str>,
+    locale: &str,
+) -> Result<String, CliError> {
+    persist_runtime_patched_config(output_path, locale, "runtime apply-config")
+}
+
+fn persist_runtime_patched_config(
+    output_path: Option<&str>,
+    locale: &str,
+    command_path: &str,
+) -> Result<String, CliError> {
+    let output_path = output_path
+        .ok_or_else(|| CliError::new(i18n::missing_output_path(locale, command_path)))?;
+
+    apply_official_runtime_patched_config(Path::new(output_path), locale, command_path)
 }

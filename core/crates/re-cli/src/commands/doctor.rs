@@ -4,9 +4,9 @@ use std::path::Path;
 
 use re_core::render_runtime_doctor_report_for_locale;
 
-use super::embedded_assets::write_text_output;
 use super::runtime_state::{
-    render_official_runtime_patched_config, with_official_runtime_snapshot,
+    apply_official_runtime_patched_config, render_official_runtime_patched_config,
+    with_official_runtime_snapshot,
 };
 use crate::{CliError, i18n};
 
@@ -15,9 +15,16 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
         None | Some("runtime") => Ok(show_runtime_doctor(locale)),
         Some("config") => Ok(show_runtime_patched_config()),
-        Some("write-config") => {
-            write_runtime_patched_config(args.get(1).map(String::as_str), locale)
-        }
+        Some("apply-config") => apply_runtime_patched_config(
+            args.get(1).map(String::as_str),
+            locale,
+            "doctor apply-config",
+        ),
+        Some("write-config") => apply_runtime_patched_config(
+            args.get(1).map(String::as_str),
+            locale,
+            "doctor write-config",
+        ),
         Some(other) => Err(CliError::new(i18n::unknown_subcommand(
             locale, "doctor", other,
         ))),
@@ -36,16 +43,13 @@ fn show_runtime_patched_config() -> String {
     render_official_runtime_patched_config()
 }
 
-fn write_runtime_patched_config(
+fn apply_runtime_patched_config(
     output_path: Option<&str>,
     locale: &str,
+    command_path: &str,
 ) -> Result<String, CliError> {
     let output_path = output_path
-        .ok_or_else(|| CliError::new(i18n::missing_output_path(locale, "doctor write-config")))?;
+        .ok_or_else(|| CliError::new(i18n::missing_output_path(locale, command_path)))?;
 
-    write_text_output(
-        Path::new(output_path),
-        &render_official_runtime_patched_config(),
-        locale,
-    )
+    apply_official_runtime_patched_config(Path::new(output_path), locale, command_path)
 }
