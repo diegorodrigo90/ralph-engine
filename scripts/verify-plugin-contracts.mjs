@@ -29,6 +29,21 @@ const MANIFEST_CONTRACT_PATH = path.join(
   "lib",
   "manifest-contract.js",
 );
+const RUNTIME_SURFACES_PATH = path.join(
+  ROOT_DIR,
+  "tools",
+  "create-ralph-engine",
+  "lib",
+  "runtime-surfaces.js",
+);
+const SCAFFOLDER_I18N_INDEX_PATH = path.join(
+  ROOT_DIR,
+  "tools",
+  "create-ralph-engine",
+  "lib",
+  "i18n",
+  "index.js",
+);
 
 function fail(message) {
   process.stderr.write(`${message}\n`);
@@ -65,6 +80,54 @@ function parseRustPluginTrustLevels(source) {
 
   return new Set(
     [...trustImplMatch[1].matchAll(/Self::[A-Za-z]+ => "([^"]+)"/g)].map(
+      (match) => match[1],
+    ),
+  );
+}
+
+function parseRustRuntimeSurfaces(source) {
+  const surfaceImplMatch = source.match(/impl PluginRuntimeSurface \{([\s\S]*?)\n\}/);
+  if (!surfaceImplMatch) {
+    fail("could not find PluginRuntimeSurface implementation in Rust plugin contract");
+  }
+
+  return new Set(
+    [...surfaceImplMatch[1].matchAll(/Self::[A-Za-z]+ => "([^"]+)"/g)].map(
+      (match) => match[1],
+    ),
+  );
+}
+
+function parseRustRuntimeHooks(source) {
+  const hookImplMatch = source.match(/impl PluginRuntimeHook \{([\s\S]*?)\n\}/);
+  if (!hookImplMatch) {
+    fail("could not find PluginRuntimeHook implementation in Rust plugin contract");
+  }
+
+  return new Set(
+    [...hookImplMatch[1].matchAll(/Self::[A-Za-z]+ => "([^"]+)"/g)].map(
+      (match) => match[1],
+    ),
+  );
+}
+
+function parseRustDefaultLocale(source) {
+  const match = source.match(/pub const DEFAULT_LOCALE: &str = "([^"]+)";/);
+  if (!match) {
+    fail("could not find DEFAULT_LOCALE in Rust config contract");
+  }
+
+  return match[1];
+}
+
+function parseRustSupportedLocales(source) {
+  const localeImplMatch = source.match(/impl SupportedLocale \{([\s\S]*?)\n\}/);
+  if (!localeImplMatch) {
+    fail("could not find SupportedLocale implementation in Rust config contract");
+  }
+
+  return new Set(
+    [...localeImplMatch[1].matchAll(/Self::[A-Za-z]+ => "([^"]+)"/g)].map(
       (match) => match[1],
     ),
   );
@@ -131,13 +194,22 @@ function assertExactSet(actualSet, expectedSet, label) {
 }
 
 const rustPluginContract = readUtf8(RUST_PLUGIN_CONTRACT_PATH);
+const rustConfigContract = readUtf8(
+  path.join(ROOT_DIR, "core", "crates", "re-config", "src", "lib.rs"),
+);
 const scaffolderSource = readUtf8(SCAFFOLDER_PATH);
 const manifestContract = require(MANIFEST_CONTRACT_PATH);
+const runtimeSurfaces = require(RUNTIME_SURFACES_PATH);
+const scaffolderI18n = require(SCAFFOLDER_I18N_INDEX_PATH);
 const manifestSchema = manifestContract.loadManifestSchema();
 
 const rustCapabilities = parseRustCapabilityConstants(rustPluginContract);
 const rustKinds = parseRustPluginKinds(rustPluginContract);
 const rustTrustLevels = parseRustPluginTrustLevels(rustPluginContract);
+const rustRuntimeSurfaces = parseRustRuntimeSurfaces(rustPluginContract);
+const rustRuntimeHooks = parseRustRuntimeHooks(rustPluginContract);
+const rustDefaultLocale = parseRustDefaultLocale(rustConfigContract);
+const rustSupportedLocales = parseRustSupportedLocales(rustConfigContract);
 const supportedCapabilities = parseScaffolderSet(scaffolderSource, "SUPPORTED_CAPABILITIES");
 const supportedKinds = parseScaffolderSet(scaffolderSource, "SUPPORTED_KINDS");
 const manifestCapabilities = new Set(manifestSchema.properties.capabilities.items.enum);
@@ -145,6 +217,17 @@ const manifestKinds = new Set(manifestSchema.properties.kind.enum);
 const manifestTrustLevels = new Set(manifestSchema.properties.trust_level.enum);
 const defaultKind = parseDefaultKind(scaffolderSource);
 const defaultCapabilitiesByKind = parseDefaultCapabilitiesByKind(scaffolderSource);
+const scaffolderCapabilityImports = new Set(runtimeSurfaces.CAPABILITY_IMPORT_NAMES.keys());
+const scaffolderCapabilityHooks = new Set(runtimeSurfaces.CAPABILITY_RUNTIME_HOOKS.keys());
+const scaffolderRuntimeHooks = new Set(
+  [...runtimeSurfaces.CAPABILITY_RUNTIME_HOOKS.values()].map((hook) =>
+    hook.replace("PluginRuntimeHook::", "").replace(/[A-Z]/g, (letter, index) =>
+      index === 0 ? letter.toLowerCase() : `_${letter.toLowerCase()}`,
+    ),
+  ),
+);
+const scaffolderSupportedLocales = new Set(scaffolderI18n.SUPPORTED_LOCALES);
+const scaffolderDefaultLocale = scaffolderI18n.DEFAULT_LOCALE;
 
 assertExactSet(
   supportedCapabilities,
@@ -155,9 +238,40 @@ assertExactSet(supportedKinds, rustKinds, "scaffolder supported kinds");
 assertExactSet(manifestCapabilities, rustCapabilities, "manifest schema capabilities");
 assertExactSet(manifestKinds, rustKinds, "manifest schema kinds");
 assertSubset(manifestTrustLevels, rustTrustLevels, "manifest schema trust levels");
+assertExactSet(
+  scaffolderCapabilityImports,
+  rustCapabilities,
+  "scaffolder capability import catalog",
+);
+assertExactSet(
+  scaffolderCapabilityHooks,
+  rustCapabilities,
+  "scaffolder capability runtime-hook catalog",
+);
+assertSubset(
+  scaffolderRuntimeHooks,
+  rustRuntimeHooks,
+  "scaffolder runtime-hook catalog",
+);
+assertExactSet(
+  new Set(["templates", "prompts", "checks", "agents", "mcp", "providers", "policies"]),
+  rustRuntimeSurfaces,
+  "reviewed runtime surfaces",
+);
+assertExactSet(
+  scaffolderSupportedLocales,
+  rustSupportedLocales,
+  "supported locale catalog",
+);
 
 if (!supportedKinds.has(defaultKind)) {
   fail(`DEFAULT_KIND must stay inside SUPPORTED_KINDS: ${defaultKind}`);
+}
+
+if (scaffolderDefaultLocale !== rustDefaultLocale) {
+  fail(
+    `default locale drift detected.\nrust: ${rustDefaultLocale}\nscaffolder: ${scaffolderDefaultLocale}`,
+  );
 }
 
 for (const [kind, capabilities] of defaultCapabilitiesByKind.entries()) {

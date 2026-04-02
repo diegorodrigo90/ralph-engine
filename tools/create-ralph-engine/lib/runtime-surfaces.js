@@ -44,6 +44,8 @@ function runtimeHooksForCapabilities(capabilities) {
 }
 
 module.exports = {
+  CAPABILITY_IMPORT_NAMES,
+  CAPABILITY_RUNTIME_HOOKS,
   capabilityImportName,
   runtimeHooksForCapabilities,
 };
