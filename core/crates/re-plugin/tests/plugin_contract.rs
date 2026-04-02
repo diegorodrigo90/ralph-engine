@@ -6,8 +6,9 @@ use re_plugin::{
     DOCTOR_CHECKS, FORGE_PROVIDER, MCP_CONTRIBUTION, POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS,
     PluginCapability, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
     PluginLocalizedText, PluginRuntimeHook, PluginRuntimeSurface, PluginTrustLevel, REMOTE_CONTROL,
-    TEMPLATE, parse_plugin_runtime_hook, render_plugin_detail, render_plugin_detail_for_locale,
-    render_plugin_listing, render_plugin_listing_for_locale, runtime_surface_for_capability,
+    TEMPLATE, parse_plugin_runtime_hook, parse_reviewed_plugin_capability, render_plugin_detail,
+    render_plugin_detail_for_locale, render_plugin_listing, render_plugin_listing_for_locale,
+    runtime_surface_for_capability,
 };
 
 const BASIC_CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -150,6 +151,25 @@ fn exported_capability_constants_are_stable() {
             "policy",
         ]
     );
+}
+
+#[test]
+fn parse_reviewed_plugin_capability_supports_stable_identifiers() {
+    let parsed = ALL_PLUGIN_CAPABILITIES
+        .iter()
+        .copied()
+        .map(|capability| parse_reviewed_plugin_capability(capability.as_str()))
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        parsed,
+        ALL_PLUGIN_CAPABILITIES
+            .iter()
+            .copied()
+            .map(Some)
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(parse_reviewed_plugin_capability("unknown"), None);
 }
 
 #[test]
