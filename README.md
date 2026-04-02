@@ -43,6 +43,7 @@ cargo test --workspace --all-targets --all-features
 - Cross-language plugin contracts are verified explicitly so Rust capability contracts, manifest schema enums, and `create-ralph-engine-plugin` supported surfaces cannot drift silently
 - CLI output SHALL stay locale-aware for `en` and `pt-br` through modular locale catalogs, and plugin-facing metadata SHALL support locale-specific names and summaries with English fallback when a requested locale is missing
 - Official plugins and scaffolded plugins use per-locale catalog modules, so adding a new locale stays additive across runtime, plugin metadata, and generated manifests
+- `re-config` owns the shared typed locale contract and supported-locale catalog, so runtime crates do not need to invent locale parsing rules independently
 - Runtime diagnostics stay typed: doctor-style reporting is expected to compose status, unresolved issues, and remediation actions from one shared runtime snapshot instead of re-deriving them ad hoc in separate commands
 - The repository enforces `fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, docs build, and public-surface assembly from the same validation contract
 - SonarCloud is configured as the final coverage gate for analyzed code, and the release path is blocked unless that gate stays at `100%`

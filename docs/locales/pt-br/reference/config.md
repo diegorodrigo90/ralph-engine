@@ -37,6 +37,8 @@ ralph-engine config show-plugin <plugin-id>
 
 O comando `config locale` renderiza o contrato tipado do locale padrão atual, para que a localização da CLI permaneça visível e versionada em vez de ficar só como default interno.
 
+O `re-config` agora também é dono do contrato tipado compartilhado de locale usado por `re-cli`, `re-core`, `re-plugin` e `re-mcp`, para que a expansão de idiomas aconteça sobre uma fundação canônica em vez de reimplementar parsing de locale em cada crate.
+
 A família de comandos `locales` renderiza o catálogo canônico de locales suportados, incluindo o nome nativo de cada locale e se ele faz fallback para inglês. Isso mantém a expansão de idiomas explícita e versionada, em vez de espalhar essa regra pelo runtime.
 
 O comando `config budgets` renderiza o contrato tipado canônico de limites de prompt e contexto, para que os tetos de tokens permaneçam explícitos na configuração compartilhada do runtime em vez de serem inferidos mais tarde por defaults locais de cada provider.

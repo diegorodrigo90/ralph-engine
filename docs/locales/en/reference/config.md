@@ -37,6 +37,8 @@ ralph-engine config show-plugin <plugin-id>
 
 The `config locale` command renders the typed default locale contract so CLI localization stays visible and versioned instead of remaining only an internal default.
 
+`re-config` now also owns the shared typed locale contract used by `re-cli`, `re-core`, `re-plugin`, and `re-mcp`, so locale resolution grows by extending one canonical foundation instead of re-implementing locale parsing per crate.
+
 The `locales` command family renders the canonical supported locale catalog, including the native name of each locale and whether it falls back to English. This keeps locale expansion explicit and versioned instead of scattering support assumptions across the runtime.
 
 The `config budgets` command renders the canonical typed prompt and context budget contract so token ceilings stay explicit in the shared runtime configuration instead of being inferred later from provider-local defaults.
