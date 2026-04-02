@@ -150,15 +150,38 @@ fn resolve_cli_invocation_from_env_result(
 fn resolve_cli_locale_from_env_result(
     env_result: Result<String, env::VarError>,
 ) -> Result<&'static str, CliError> {
+    let os_values: Vec<Option<String>> = ["LC_ALL", "LC_MESSAGES", "LANG"]
+        .iter()
+        .map(|key| env::var(key).ok())
+        .collect();
+
+    resolve_cli_locale_from_env_and_os(env_result, &os_values)
+}
+
+fn resolve_cli_locale_from_env_and_os(
+    env_result: Result<String, env::VarError>,
+    os_values: &[Option<String>],
+) -> Result<&'static str, CliError> {
     match env_result {
         Ok(value) => normalize_cli_locale(&value),
-        Err(env::VarError::NotPresent) => {
-            normalize_cli_locale(re_config::default_project_config().default_locale)
-        }
+        Err(env::VarError::NotPresent) => resolve_locale_from_os_values(os_values),
         Err(error) => Err(CliError::new(format!(
             "failed to read {LOCALE_ENV_KEY}: {error}"
         ))),
     }
+}
+
+/// Pure function that resolves a locale from a list of OS locale values.
+/// Checks each value in priority order and returns the first match.
+fn resolve_locale_from_os_values(os_values: &[Option<String>]) -> Result<&'static str, CliError> {
+    for value in os_values.iter().flatten() {
+        if let Some(locale) = re_config::parse_os_locale(value) {
+            return Ok(locale.as_str());
+        }
+    }
+
+    // No OS locale matched — use the project config default (English)
+    normalize_cli_locale(re_config::default_project_config().default_locale)
 }
 
 fn normalize_cli_locale(value: &str) -> Result<&'static str, CliError> {
@@ -362,8 +385,9 @@ mod tests {
     use super::{
         LOCALE_FLAG, activation_label, detail_heading, list_heading, load_boundary_label,
         missing_id, normalize_cli_locale, providers_heading, resolve_cli_invocation,
-        resolve_cli_invocation_from_env_result, resolve_cli_locale_from_env_result,
-        root_bootstrapped, unknown_command, unknown_entity, unknown_subcommand,
+        resolve_cli_invocation_from_env_result, resolve_cli_locale_from_env_and_os,
+        resolve_cli_locale_from_env_result, resolve_locale_from_os_values, root_bootstrapped,
+        unknown_command, unknown_entity, unknown_subcommand,
     };
 
     #[test]
@@ -457,11 +481,23 @@ mod tests {
     }
 
     #[test]
-    fn resolve_cli_locale_falls_back_to_default_locale_when_env_is_missing() {
-        assert!(matches!(
-            resolve_cli_locale_from_env_result(Err(env::VarError::NotPresent)),
-            Ok("en")
-        ));
+    fn resolve_cli_locale_uses_os_locale_when_env_is_missing() {
+        // When RALPH_ENGINE_LOCALE is not set, the CLI reads OS locale vars.
+        // Use the testable function with explicit OS values.
+        let os_values = vec![None, None, Some(String::from("pt_BR.UTF-8"))];
+
+        let result = resolve_cli_locale_from_env_and_os(Err(env::VarError::NotPresent), &os_values);
+
+        assert_eq!(result, Ok("pt-br"));
+    }
+
+    #[test]
+    fn resolve_cli_locale_falls_back_to_english_when_no_os_locale() {
+        let os_values: Vec<Option<String>> = vec![None, None, None];
+
+        let result = resolve_cli_locale_from_env_and_os(Err(env::VarError::NotPresent), &os_values);
+
+        assert_eq!(result, Ok("en"));
     }
 
     #[test]
@@ -519,6 +555,56 @@ mod tests {
             error,
             Err(CliError::new(format!("{LOCALE_FLAG} requires a locale id")))
         );
+    }
+
+    #[test]
+    fn resolve_locale_from_os_values_detects_pt_br() {
+        let os_values = vec![
+            None,                              // LC_ALL not set
+            None,                              // LC_MESSAGES not set
+            Some(String::from("pt_BR.UTF-8")), // LANG = pt_BR.UTF-8
+        ];
+
+        let result = resolve_locale_from_os_values(&os_values);
+
+        assert_eq!(result, Ok("pt-br"));
+    }
+
+    #[test]
+    fn resolve_locale_from_os_values_respects_priority_order() {
+        // LC_ALL takes priority over LANG
+        let os_values = vec![
+            Some(String::from("en_US.UTF-8")), // LC_ALL = en_US
+            None,                              // LC_MESSAGES not set
+            Some(String::from("pt_BR.UTF-8")), // LANG = pt_BR
+        ];
+
+        let result = resolve_locale_from_os_values(&os_values);
+
+        assert_eq!(result, Ok("en"));
+    }
+
+    #[test]
+    fn resolve_locale_from_os_values_falls_back_to_english_when_no_match() {
+        let os_values = vec![None, None, None];
+
+        let result = resolve_locale_from_os_values(&os_values);
+
+        assert_eq!(result, Ok("en"));
+    }
+
+    #[test]
+    fn resolve_locale_from_os_values_skips_unsupported_locales() {
+        // Japanese is not supported, should fall through to LANG
+        let os_values = vec![
+            Some(String::from("ja_JP.UTF-8")), // LC_ALL = Japanese (unsupported)
+            None,                              // LC_MESSAGES not set
+            Some(String::from("pt_BR.UTF-8")), // LANG = pt_BR (supported)
+        ];
+
+        let result = resolve_locale_from_os_values(&os_values);
+
+        assert_eq!(result, Ok("pt-br"));
     }
 
     #[cfg(unix)]

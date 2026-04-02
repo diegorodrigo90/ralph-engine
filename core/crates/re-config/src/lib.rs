@@ -381,6 +381,41 @@ pub fn resolve_supported_locale_or_default(locale_id: &str) -> SupportedLocale {
     parse_supported_locale(locale_id).unwrap_or(SupportedLocale::En)
 }
 
+/// Attempts to parse an OS locale string (e.g., `pt_BR.UTF-8`, `en_US`)
+/// into a supported Ralph Engine locale. Returns `None` when the OS locale
+/// does not map to any supported language.
+///
+/// The parser strips the encoding suffix (`.UTF-8`), replaces `_` with `-`,
+/// and tries both the full tag (`pt-br`) and the language-only prefix (`pt`).
+#[must_use]
+pub fn parse_os_locale(os_locale: &str) -> Option<SupportedLocale> {
+    let trimmed = os_locale.trim();
+    if trimmed.is_empty() || trimmed == "C" || trimmed == "POSIX" {
+        return None;
+    }
+
+    // Strip encoding suffix: "pt_BR.UTF-8" → "pt_BR"
+    let without_encoding = trimmed.split('.').next().unwrap_or(trimmed);
+
+    // Normalize separator: "pt_BR" → "pt-br"
+    let normalized = without_encoding.replace('_', "-").to_ascii_lowercase();
+
+    // Try full tag first: "pt-br"
+    if let Some(locale) = parse_supported_locale(&normalized) {
+        return Some(locale);
+    }
+
+    // Try language-only prefix: "pt-br" → "pt", then check if any
+    // supported locale starts with that prefix
+    let language_prefix = normalized.split('-').next().unwrap_or(&normalized);
+    supported_locales()
+        .iter()
+        .find(|descriptor| {
+            descriptor.id.split('-').next().unwrap_or(descriptor.id) == language_prefix
+        })
+        .and_then(|descriptor| parse_supported_locale(descriptor.id))
+}
+
 /// Returns one immutable plugin config entry by identifier.
 #[must_use]
 pub fn find_plugin_config(config: &ProjectConfig, plugin_id: &str) -> Option<PluginConfig> {
