@@ -1,12 +1,25 @@
 id: official.basic
-name: basic
+kind: template
 display_name: Basic
 display_name_locales:
   pt-br: Básico
 summary: Foundation plugin for starter templates.
 summary_locales:
   pt-br: Plugin base para templates iniciais.
-publisher: ralph-engine
-version: 0.2.0-alpha.1
+publisher: official
+trust_level: official
+plugin_version: 0.2.0-alpha.1
 capabilities:
   - template
+templates:
+  - id: official.basic.starter
+    display_name: Basic starter
+    display_name_locales:
+      pt-br: Starter básico
+    summary: Starter template for new Ralph Engine projects.
+    summary_locales:
+      pt-br: Template inicial para novos projetos Ralph Engine.
+project:
+  required_files:
+    - .ralph-engine/config.yaml
+    - .ralph-engine/prompt.md

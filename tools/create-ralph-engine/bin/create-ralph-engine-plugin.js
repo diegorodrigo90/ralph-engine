@@ -255,7 +255,73 @@ function renderManifest(scaffold) {
     lines.push("    - .ralph-engine/prompt.md");
   }
 
+  for (const section of buildManifestContributions(scaffold)) {
+    lines.push(...section);
+  }
+
   return `${lines.join("\n")}\n`;
+}
+
+function buildManifestContributions(scaffold) {
+  const sections = [];
+
+  if (scaffold.capabilities.includes("template")) {
+    sections.push(renderContributionSection("templates", [{
+      id: `${scaffold.id}.starter`,
+      displayName: `${humanize(scaffold.name)} Starter`,
+      displayNamePtBr: `Starter ${humanize(scaffold.name)}`,
+      summary: `Starter template for ${humanize(scaffold.name)} workflows.`,
+      summaryPtBr: `Template inicial para workflows ${humanize(scaffold.name)}.`,
+    }]));
+  }
+
+  if (scaffold.capabilities.includes("prompt_fragments")) {
+    sections.push(renderContributionSection("prompts", [{
+      id: `${scaffold.id}.workflow`,
+      displayName: `${humanize(scaffold.name)} workflow prompt`,
+      displayNamePtBr: `Prompt de workflow ${humanize(scaffold.name)}`,
+      summary: `Prompt bundle for ${humanize(scaffold.name)} workflow assembly.`,
+      summaryPtBr: `Pacote de prompts para montar workflows ${humanize(scaffold.name)}.`,
+    }]));
+  }
+
+  if (scaffold.capabilities.includes("agent_runtime")) {
+    sections.push(renderContributionSection("agents", [{
+      id: `${scaffold.id}.session`,
+      displayName: `${humanize(scaffold.name)} session`,
+      displayNamePtBr: `Sessão ${humanize(scaffold.name)}`,
+      summary: `${humanize(scaffold.name)} runtime session for Ralph Engine.`,
+      summaryPtBr: `Sessão de runtime do ${humanize(scaffold.name)} para o Ralph Engine.`,
+    }]));
+  }
+
+  if (scaffold.capabilities.includes("policy")) {
+    sections.push(renderContributionSection("policies", [{
+      id: `${scaffold.id}.guardrails`,
+      displayName: `${humanize(scaffold.name)} guardrails`,
+      displayNamePtBr: `Guardrails ${humanize(scaffold.name)}`,
+      summary: `Policy guardrails shipped by ${humanize(scaffold.name)}.`,
+      summaryPtBr: `Guardrails de política distribuídos por ${humanize(scaffold.name)}.`,
+    }]));
+  }
+
+  return sections;
+}
+
+function renderContributionSection(fieldName, entries) {
+  const lines = [fieldName + ":"];
+
+  for (const entry of entries) {
+    lines.push(`  - id: ${entry.id}`);
+    lines.push(`    display_name: ${entry.displayName}`);
+    lines.push("    display_name_locales:");
+    lines.push(`      pt-br: ${entry.displayNamePtBr}`);
+    lines.push(`    summary: ${entry.summary}`);
+    lines.push("    summary_locales:");
+    lines.push(`      pt-br: ${entry.summaryPtBr}`);
+  }
+
+  return lines;
 }
 
 function renderREADME(scaffold) {

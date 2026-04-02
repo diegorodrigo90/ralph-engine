@@ -61,6 +61,14 @@ const LOCALE = {
     `manifests de template devem exigir "${requiredFile}"`,
   manifestTemplateMustDeclareProjectFiles:
     "manifests de template devem declarar project.required_files",
+  manifestContributionIdPrefix: (field, id, prefix) =>
+    `a entrada "${id}" em ${field} deve começar com "${prefix}"`,
+  manifestContributionRepeatedId: (field, id) =>
+    `${field} não deve repetir o id de contribuição "${id}"`,
+  manifestContributionRequiresCapability: (field, capability) =>
+    `${field} só é válido quando a capability "${capability}" é declarada`,
+  manifestCapabilityRequiresContribution: (capability, field) =>
+    `a capability "${capability}" deve declarar ${field}`,
   manifestInvalid: (sourceLabel, errors) =>
     `${sourceLabel} é inválido:\n- ${errors.join("\n- ")}`,
 };
