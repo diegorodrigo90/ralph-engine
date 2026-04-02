@@ -152,3 +152,4 @@ CI cache design SHALL follow these rules:
 - `README.md`, `docs/`, and `llms.txt` SHALL be updated together when durable user-facing behavior changes.
 - `docs/development/roadmap.md` SHALL stay strategic and current.
 - `docs/development/backlog.md` SHALL stay tactical.
+- Public docs in this repository SHALL describe shipped behavior and reviewed public contracts. Internal handoffs, private progress notes, and process artifacts SHALL NOT be committed here.
