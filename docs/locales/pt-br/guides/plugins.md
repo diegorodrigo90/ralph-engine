@@ -13,3 +13,4 @@ O reboot mantém estas regras arquiteturais:
 - manifests de plugins de terceiros seguem um contrato versionado de `manifest.yaml` mantido em `tools/create-ralph-engine/`
 - metadados de exibição de plugins suportam nomes e resumos localizados, começando por `en` e `pt-br`
 - quando um locale de plugin não existir, as superfícies do runtime fazem fallback para o nome e o resumo em inglês em vez de falhar
+- crates que renderizam saída pública voltada a plugins devem manter strings de locale em módulos ou arquivos por idioma, para que adicionar um novo locale continue sendo uma mudança aditiva em vez de reescrever handlers de comando

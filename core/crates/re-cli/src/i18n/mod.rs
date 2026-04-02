@@ -132,6 +132,150 @@ pub fn detail_heading(locale: &str, label_en: &str, label_pt: &str, value: &str)
     }
 }
 
+#[must_use]
+pub fn resolved_activation_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::RESOLVED_ACTIVATION_LABEL,
+        CliLocale::PtBr => pt_br::RESOLVED_ACTIVATION_LABEL,
+    }
+}
+
+#[must_use]
+pub fn resolved_from_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::RESOLVED_FROM_LABEL,
+        CliLocale::PtBr => pt_br::RESOLVED_FROM_LABEL,
+    }
+}
+
+#[must_use]
+pub fn agent_runtime_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::AGENT_RUNTIME_LABEL,
+        CliLocale::PtBr => pt_br::AGENT_RUNTIME_LABEL,
+    }
+}
+
+#[must_use]
+pub fn agent_runtimes_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::AGENT_RUNTIMES_LABEL,
+        CliLocale::PtBr => pt_br::AGENT_RUNTIMES_LABEL,
+    }
+}
+
+#[must_use]
+pub fn template_provider_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::TEMPLATE_PROVIDER_LABEL,
+        CliLocale::PtBr => pt_br::TEMPLATE_PROVIDER_LABEL,
+    }
+}
+
+#[must_use]
+pub fn templates_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::TEMPLATES_LABEL,
+        CliLocale::PtBr => pt_br::TEMPLATES_LABEL,
+    }
+}
+
+#[must_use]
+pub fn prompt_provider_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::PROMPT_PROVIDER_LABEL,
+        CliLocale::PtBr => pt_br::PROMPT_PROVIDER_LABEL,
+    }
+}
+
+#[must_use]
+pub fn prompts_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::PROMPTS_LABEL,
+        CliLocale::PtBr => pt_br::PROMPTS_LABEL,
+    }
+}
+
+#[must_use]
+pub fn policy_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::POLICY_LABEL,
+        CliLocale::PtBr => pt_br::POLICY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn policies_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::POLICIES_LABEL,
+        CliLocale::PtBr => pt_br::POLICIES_LABEL,
+    }
+}
+
+#[must_use]
+pub fn policy_enforcement_hook_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::POLICY_ENFORCEMENT_HOOK_LABEL,
+        CliLocale::PtBr => pt_br::POLICY_ENFORCEMENT_HOOK_LABEL,
+    }
+}
+
+#[must_use]
+pub fn plugin_id_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::PLUGIN_ID_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::PLUGIN_ID_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn policy_id_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::POLICY_ID_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::POLICY_ID_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn plugin_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::PLUGIN_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::PLUGIN_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn agent_runtime_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::AGENT_RUNTIME_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::AGENT_RUNTIME_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn template_provider_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::TEMPLATE_PROVIDER_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::TEMPLATE_PROVIDER_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn prompt_provider_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::PROMPT_PROVIDER_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::PROMPT_PROVIDER_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn policy_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::POLICY_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::POLICY_ENTITY_LABEL,
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{env, ffi::OsString};

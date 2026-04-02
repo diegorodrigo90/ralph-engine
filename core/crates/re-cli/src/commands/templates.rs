@@ -21,8 +21,13 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 }
 
 fn show_template(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError> {
-    let plugin_id = plugin_id
-        .ok_or_else(|| CliError::new(i18n::missing_id(locale, "templates", "a plugin id")))?;
+    let plugin_id = plugin_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "templates",
+            i18n::plugin_id_entity_label(locale),
+        ))
+    })?;
     let templates = catalog::official_runtime_templates()
         .into_iter()
         .filter(|registration| registration.plugin_id == plugin_id)
@@ -31,11 +36,7 @@ fn show_template(plugin_id: Option<&str>, locale: &str) -> Result<String, CliErr
     if templates.is_empty() {
         return Err(CliError::new(i18n::unknown_entity(
             locale,
-            if i18n::is_pt_br(locale) {
-                "provedor de template"
-            } else {
-                "template provider"
-            },
+            i18n::template_provider_entity_label(locale),
             plugin_id,
         )));
     }
@@ -45,7 +46,12 @@ fn show_template(plugin_id: Option<&str>, locale: &str) -> Result<String, CliErr
 
 fn render_template_listing(registrations: &[RuntimeTemplateRegistration], locale: &str) -> String {
     if registrations.is_empty() {
-        return i18n::list_heading(locale, "Templates", "Templates", 0);
+        return i18n::list_heading(
+            locale,
+            i18n::templates_label(locale),
+            i18n::templates_label(locale),
+            0,
+        );
     }
 
     let lines = registrations
@@ -63,7 +69,12 @@ fn render_template_listing(registrations: &[RuntimeTemplateRegistration], locale
 
     format!(
         "{}\n{}",
-        i18n::list_heading(locale, "Templates", "Templates", lines.len()),
+        i18n::list_heading(
+            locale,
+            i18n::templates_label(locale),
+            i18n::templates_label(locale),
+            lines.len()
+        ),
         lines.join("\n")
     )
 }
@@ -76,8 +87,8 @@ fn render_template_detail(
     let mut lines = vec![
         i18n::detail_heading(
             locale,
-            "Template provider",
-            "Provedor de template",
+            i18n::template_provider_label(locale),
+            i18n::template_provider_label(locale),
             plugin_id,
         ),
         i18n::providers_heading(locale, templates.len()),

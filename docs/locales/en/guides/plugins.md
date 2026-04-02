@@ -13,3 +13,4 @@ The reboot keeps these architectural rules:
 - third-party plugin manifests follow a versioned `manifest.yaml` contract owned by `tools/create-ralph-engine/`
 - plugin display metadata supports localized names and summaries, starting with `en` and `pt-br`
 - when a plugin locale is missing, runtime-facing surfaces fall back to the English name and summary instead of failing closed
+- crates that render public plugin-facing output should keep locale strings in per-locale modules or files, so adding a new locale stays additive instead of rewriting command handlers

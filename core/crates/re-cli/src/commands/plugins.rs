@@ -23,10 +23,20 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 }
 
 fn show_plugin(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError> {
-    let plugin_id = plugin_id
-        .ok_or_else(|| CliError::new(i18n::missing_id(locale, "plugins", "a plugin id")))?;
-    let plugin = catalog::find_official_plugin(plugin_id)
-        .ok_or_else(|| CliError::new(i18n::unknown_entity(locale, "plugin", plugin_id)))?;
+    let plugin_id = plugin_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "plugins",
+            i18n::plugin_id_entity_label(locale),
+        ))
+    })?;
+    let plugin = catalog::find_official_plugin(plugin_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::plugin_entity_label(locale),
+            plugin_id,
+        ))
+    })?;
     let layers = [default_project_config_layer()];
     let resolved = resolve_plugin_config(&layers, plugin.id).unwrap_or(ResolvedPluginConfig::new(
         plugin.id,
@@ -36,20 +46,12 @@ fn show_plugin(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError
     let mut detail = render_plugin_detail_for_locale(&plugin, locale);
     detail.push_str(&format!(
         "\n{}: {}",
-        if i18n::is_pt_br(locale) {
-            "Ativação resolvida"
-        } else {
-            "Resolved activation"
-        },
+        i18n::resolved_activation_label(locale),
         resolved.activation.as_str()
     ));
     detail.push_str(&format!(
         "\n{}: {}",
-        if i18n::is_pt_br(locale) {
-            "Resolvido de"
-        } else {
-            "Resolved from"
-        },
+        i18n::resolved_from_label(locale),
         resolved.resolved_from.as_str()
     ));
 

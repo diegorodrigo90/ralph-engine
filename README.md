@@ -41,7 +41,7 @@ cargo test --workspace --all-targets --all-features
 - Official and scaffolded plugin identifiers use the same dotted namespace contract, such as `official.basic` and `acme.jira-suite`
 - Third-party plugin manifests stay contract-driven: `tools/create-ralph-engine/` owns a versioned `manifest.yaml` schema plus validation helpers so language-agnostic plugin metadata cannot drift away from the typed runtime contracts
 - Cross-language plugin contracts are verified explicitly so Rust capability contracts, manifest schema enums, and `create-ralph-engine-plugin` supported surfaces cannot drift silently
-- CLI output SHALL stay locale-aware for `en` and `pt-br`, and plugin-facing metadata SHALL support locale-specific names and summaries with English fallback when a requested locale is missing
+- CLI output SHALL stay locale-aware for `en` and `pt-br` through modular locale catalogs, and plugin-facing metadata SHALL support locale-specific names and summaries with English fallback when a requested locale is missing
 - Runtime diagnostics stay typed: doctor-style reporting is expected to compose status, unresolved issues, and remediation actions from one shared runtime snapshot instead of re-deriving them ad hoc in separate commands
 - The repository enforces `fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, docs build, and public-surface assembly from the same validation contract
 - SonarCloud is configured as the final coverage gate for analyzed code, and the release path is blocked unless that gate stays at `100%`
