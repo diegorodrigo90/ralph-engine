@@ -470,12 +470,29 @@ fn plugin_display_name_falls_back_to_english_for_unknown_locale() {
 }
 
 #[test]
+fn plugin_display_name_supports_canonical_locale_resolution() {
+    let plugin = basic_plugin();
+
+    assert_eq!(plugin.display_name_for_locale("pt-BR"), "Básico");
+}
+
+#[test]
 fn plugin_summary_falls_back_to_english_for_unknown_locale() {
     let plugin = basic_plugin();
 
     assert_eq!(
         plugin.summary_for_locale("es"),
         "Foundation plugin for starter templates."
+    );
+}
+
+#[test]
+fn plugin_summary_supports_canonical_locale_resolution() {
+    let plugin = basic_plugin();
+
+    assert_eq!(
+        plugin.summary_for_locale(" pt-BR "),
+        "Plugin base para templates iniciais."
     );
 }
 
