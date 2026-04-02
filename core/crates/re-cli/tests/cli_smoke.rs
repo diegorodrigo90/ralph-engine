@@ -543,6 +543,7 @@ fn binary_mcp_show_succeeds_in_pt_br() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
     assert!(stdout.contains("Servidor MCP: official.codex.session"));
+    assert!(stdout.contains("Nome: Sessão Codex"));
     assert!(stdout.contains("Política de execução: plugin_runtime"));
     assert!(stdout.contains("Comando: gerenciado pelo runtime do plugin"));
 }
@@ -560,6 +561,7 @@ fn binary_mcp_show_succeeds() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
     assert!(stdout.contains("MCP server: official.codex.session"));
+    assert!(stdout.contains("Name: Codex Session"));
     assert!(stdout.contains("Process model: plugin_managed"));
     assert!(stdout.contains("Launch policy: plugin_runtime"));
     assert!(stdout.contains("Availability: on_demand"));

@@ -1,4 +1,4 @@
-use super::{AgentLocaleCatalog, PluginLocaleCatalog};
+use super::{AgentLocaleCatalog, McpServerLocaleCatalog, PluginLocaleCatalog};
 
 pub const PLUGIN_LOCALE: PluginLocaleCatalog = PluginLocaleCatalog {
     plugin_name: "Codex",
@@ -8,4 +8,8 @@ pub const PLUGIN_LOCALE: PluginLocaleCatalog = PluginLocaleCatalog {
 pub const AGENT_LOCALE: AgentLocaleCatalog = AgentLocaleCatalog {
     name: "Sessão Codex",
     summary: "Sessão de runtime do Codex para o Ralph Engine.",
+};
+
+pub const MCP_SERVER_LOCALE: McpServerLocaleCatalog = McpServerLocaleCatalog {
+    name: "Sessão Codex",
 };
