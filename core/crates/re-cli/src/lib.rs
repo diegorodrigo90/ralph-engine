@@ -143,13 +143,13 @@ mod tests {
     #[test]
     fn execute_agents_show_rejects_unknown_agent() {
         // Arrange
-        let command = args(&["ralph-engine", "agents", "show", "official.unknown"]);
+        let command = args(&["ralph-engine", "agents", "show", "fixture.unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown agent runtime should fail");
 
         // Assert
-        assert_eq!(error.to_string(), "unknown agent runtime: official.unknown");
+        assert_eq!(error.to_string(), "unknown agent runtime: fixture.unknown");
     }
 
     #[test]
@@ -244,13 +244,13 @@ mod tests {
     #[test]
     fn execute_templates_show_rejects_unknown_template() {
         // Arrange
-        let command = args(&["ralph-engine", "templates", "show", "official.unknown"]);
+        let command = args(&["ralph-engine", "templates", "show", "fixture.unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown template should fail");
 
         // Assert
-        assert_eq!(error.to_string(), "unknown template: official.unknown");
+        assert_eq!(error.to_string(), "unknown template: fixture.unknown");
     }
 
     #[test]
@@ -305,13 +305,13 @@ mod tests {
     #[test]
     fn execute_prompts_show_rejects_unknown_prompt() {
         // Arrange
-        let command = args(&["ralph-engine", "prompts", "show", "official.unknown"]);
+        let command = args(&["ralph-engine", "prompts", "show", "fixture.unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown prompt should fail");
 
         // Assert
-        assert_eq!(error.to_string(), "unknown prompt: official.unknown");
+        assert_eq!(error.to_string(), "unknown prompt: fixture.unknown");
     }
 
     #[test]
@@ -539,13 +539,13 @@ mod tests {
     #[test]
     fn execute_policies_show_rejects_unknown_policy() {
         // Arrange
-        let command = args(&["ralph-engine", "policies", "show", "official.unknown"]);
+        let command = args(&["ralph-engine", "policies", "show", "fixture.unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown policy should fail");
 
         // Assert
-        assert_eq!(error.to_string(), "unknown policy: official.unknown");
+        assert_eq!(error.to_string(), "unknown policy: fixture.unknown");
     }
 
     #[test]
@@ -689,13 +689,13 @@ mod tests {
     #[test]
     fn execute_plugins_show_rejects_unknown_plugin() {
         // Arrange
-        let command = args(&["ralph-engine", "plugins", "show", "official.unknown"]);
+        let command = args(&["ralph-engine", "plugins", "show", "fixture.unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown plugin id should fail");
 
         // Assert
-        assert_eq!(error.to_string(), "unknown plugin: official.unknown");
+        assert_eq!(error.to_string(), "unknown plugin: fixture.unknown");
     }
 
     #[test]
@@ -838,13 +838,13 @@ mod tests {
     #[test]
     fn execute_config_show_plugin_rejects_unknown_plugin() {
         // Arrange
-        let command = args(&["ralph-engine", "config", "show-plugin", "official.unknown"]);
+        let command = args(&["ralph-engine", "config", "show-plugin", "fixture.unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown plugin id should fail");
 
         // Assert
-        assert_eq!(error.to_string(), "unknown plugin config: official.unknown");
+        assert_eq!(error.to_string(), "unknown plugin config: fixture.unknown");
     }
 
     #[test]
@@ -984,13 +984,13 @@ mod tests {
     #[test]
     fn execute_mcp_show_rejects_unknown_server() {
         // Arrange
-        let command = args(&["ralph-engine", "mcp", "show", "official.unknown"]);
+        let command = args(&["ralph-engine", "mcp", "show", "fixture.unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown server id should fail");
 
         // Assert
-        assert_eq!(error.to_string(), "unknown mcp server: official.unknown");
+        assert_eq!(error.to_string(), "unknown mcp server: fixture.unknown");
     }
 
     #[test]

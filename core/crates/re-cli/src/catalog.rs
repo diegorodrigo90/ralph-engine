@@ -1007,8 +1007,8 @@ mod tests {
 
     #[test]
     fn unknown_plugin_and_mcp_identifiers_are_rejected() {
-        assert_eq!(find_official_plugin("official.missing"), None);
-        assert_eq!(find_official_mcp_server("official.missing"), None);
+        assert_eq!(find_official_plugin("fixture.missing"), None);
+        assert_eq!(find_official_mcp_server("fixture.missing"), None);
     }
 
     #[test]
@@ -1030,13 +1030,10 @@ mod tests {
 
     #[test]
     fn contribution_helpers_reject_unknown_identifiers() {
-        assert_eq!(
-            find_official_template_contribution("official.missing"),
-            None
-        );
-        assert_eq!(find_official_prompt_contribution("official.missing"), None);
-        assert_eq!(find_official_agent_contribution("official.missing"), None);
-        assert_eq!(find_official_policy_contribution("official.missing"), None);
+        assert_eq!(find_official_template_contribution("fixture.missing"), None);
+        assert_eq!(find_official_prompt_contribution("fixture.missing"), None);
+        assert_eq!(find_official_agent_contribution("fixture.missing"), None);
+        assert_eq!(find_official_policy_contribution("fixture.missing"), None);
     }
 
     #[test]
@@ -1071,6 +1068,6 @@ mod tests {
                 .all(|registration| registration.kind == RuntimeProviderKind::RemoteControl)
         );
         assert!(find_official_policy_contribution("official.tdd-strict.guardrails").is_some());
-        assert_eq!(find_official_policy_contribution("official.missing"), None);
+        assert_eq!(find_official_policy_contribution("fixture.missing"), None);
     }
 }
