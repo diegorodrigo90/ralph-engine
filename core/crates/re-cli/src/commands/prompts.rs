@@ -12,6 +12,11 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
             locale,
         )),
         Some("show") => show_prompt(args.get(1).map(String::as_str), locale),
+        Some("asset") => show_prompt_asset(
+            args.get(1).map(String::as_str),
+            args.get(2).map(String::as_str),
+            locale,
+        ),
         Some(other) => Err(CliError::new(i18n::unknown_subcommand(
             locale, "prompts", other,
         ))),
@@ -35,6 +40,44 @@ fn show_prompt(prompt_id: Option<&str>, locale: &str) -> Result<String, CliError
     })?;
 
     Ok(render_prompt_detail(prompt, locale))
+}
+
+fn show_prompt_asset(
+    prompt_id: Option<&str>,
+    asset_path: Option<&str>,
+    locale: &str,
+) -> Result<String, CliError> {
+    let prompt_id = prompt_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "prompts asset",
+            i18n::prompt_id_entity_label(locale),
+        ))
+    })?;
+    let asset_path = asset_path.ok_or_else(|| {
+        CliError::new("subcommand `prompts asset` requires an asset path".to_owned())
+    })?;
+    let prompt = catalog::find_official_prompt_contribution(prompt_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::prompt_entity_label(locale),
+            prompt_id,
+        ))
+    })?;
+    let asset = prompt
+        .descriptor
+        .assets
+        .iter()
+        .find(|asset| asset.path == asset_path)
+        .ok_or_else(|| {
+            CliError::new(if i18n::is_pt_br(locale) {
+                format!("asset de prompt desconhecido: {asset_path}")
+            } else {
+                format!("unknown prompt asset: {asset_path}")
+            })
+        })?;
+
+    Ok(asset.contents.to_owned())
 }
 
 fn render_prompt_listing(registrations: &[OfficialPromptContribution], locale: &str) -> String {
@@ -114,7 +157,7 @@ mod tests {
         PluginLoadBoundary, PluginLocalizedText, PluginPromptAsset, PluginPromptDescriptor,
     };
 
-    use super::{OfficialPromptContribution, render_prompt_detail, render_prompt_listing};
+    use super::{OfficialPromptContribution, execute, render_prompt_detail, render_prompt_listing};
 
     const LOCALIZED_NAMES: &[PluginLocalizedText] =
         &[PluginLocalizedText::new("pt-br", "Prompt de workflow BMAD")];
@@ -194,5 +237,24 @@ mod tests {
         assert!(rendered.contains("Resumo: Pacote de prompts para montar workflows BMAD."));
         assert!(rendered.contains("Plugin: official.bmad"));
         assert!(rendered.contains("Assets: prompts/workflow.md"));
+    }
+
+    #[test]
+    fn execute_prompt_asset_returns_embedded_contents() {
+        let output = execute(
+            &[
+                "asset".to_owned(),
+                "official.bmad.workflow".to_owned(),
+                "prompts/workflow.md".to_owned(),
+            ],
+            "en",
+        );
+
+        assert!(output.is_ok());
+        assert!(
+            output
+                .unwrap_or_default()
+                .contains("# Ralph Engine — BMAD Template")
+        );
     }
 }
