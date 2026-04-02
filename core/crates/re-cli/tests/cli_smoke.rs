@@ -8,6 +8,14 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+/// Creates a Command with `RALPH_ENGINE_LOCALE=en` set so smoke tests
+/// produce predictable English output regardless of the host OS locale.
+fn english_command() -> Command {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "en");
+    command
+}
+
 fn unique_temp_dir(prefix: &str) -> PathBuf {
     let mut path = std::env::temp_dir();
     let nanos = SystemTime::now()
@@ -24,7 +32,7 @@ fn unique_temp_dir(prefix: &str) -> PathBuf {
 #[test]
 fn binary_without_args_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
 
     // Act
     let output = command.output().expect("binary should run");
@@ -38,7 +46,7 @@ fn binary_without_args_succeeds() {
 #[test]
 fn binary_without_args_succeeds_in_pt_br() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
 
     // Act
@@ -52,7 +60,7 @@ fn binary_without_args_succeeds_in_pt_br() {
 
 #[test]
 fn binary_without_args_accepts_global_locale_flag() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["--locale", "pt-br"]);
 
     let output = command.output().expect("binary should run");
@@ -64,7 +72,7 @@ fn binary_without_args_accepts_global_locale_flag() {
 
 #[test]
 fn binary_global_locale_flag_overrides_environment() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "en");
     command.args(["--locale", "pt-br", "plugins", "show", "official.basic"]);
 
@@ -79,7 +87,7 @@ fn binary_global_locale_flag_overrides_environment() {
 #[test]
 fn binary_rejects_unsupported_locale() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "es");
 
     // Act
@@ -94,7 +102,7 @@ fn binary_rejects_unsupported_locale() {
 #[test]
 fn binary_with_unknown_command_fails() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.arg("unknown");
 
     // Act
@@ -109,7 +117,7 @@ fn binary_with_unknown_command_fails() {
 #[test]
 fn binary_plugins_list_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["plugins", "list"]);
 
     // Act
@@ -125,7 +133,7 @@ fn binary_plugins_list_succeeds() {
 #[test]
 fn binary_plugins_show_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["plugins", "show", "official.github"]);
 
     // Act
@@ -148,7 +156,7 @@ fn binary_plugins_show_succeeds() {
 
 #[test]
 fn binary_plugins_show_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["plugins", "show", "official.basic"]);
 
@@ -165,7 +173,7 @@ fn binary_plugins_show_succeeds_in_pt_br() {
 #[test]
 fn binary_agents_list_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["agents", "list"]);
 
     // Act
@@ -181,7 +189,7 @@ fn binary_agents_list_succeeds() {
 
 #[test]
 fn binary_agents_list_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["agents", "list"]);
 
@@ -196,7 +204,7 @@ fn binary_agents_list_succeeds_in_pt_br() {
 #[test]
 fn binary_agents_show_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["agents", "show", "official.codex.session"]);
 
     // Act
@@ -211,7 +219,7 @@ fn binary_agents_show_succeeds() {
 
 #[test]
 fn binary_agents_show_rejects_unknown_plugin_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["agents", "show", "official.missing"]);
 
@@ -225,7 +233,7 @@ fn binary_agents_show_rejects_unknown_plugin_in_pt_br() {
 #[test]
 fn binary_templates_list_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["templates", "list"]);
 
     // Act
@@ -242,7 +250,7 @@ fn binary_templates_list_succeeds() {
 #[test]
 fn binary_templates_show_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["templates", "show", "official.basic.starter"]);
 
     // Act
@@ -258,7 +266,7 @@ fn binary_templates_show_succeeds() {
 
 #[test]
 fn binary_templates_show_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["templates", "show", "official.basic.starter"]);
 
@@ -272,7 +280,7 @@ fn binary_templates_show_succeeds_in_pt_br() {
 
 #[test]
 fn binary_templates_show_rejects_unknown_plugin_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["templates", "show", "official.missing"]);
 
@@ -285,7 +293,7 @@ fn binary_templates_show_rejects_unknown_plugin_in_pt_br() {
 
 #[test]
 fn binary_templates_asset_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args([
         "templates",
         "asset",
@@ -302,7 +310,7 @@ fn binary_templates_asset_succeeds() {
 
 #[test]
 fn binary_templates_asset_rejects_unknown_asset_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args([
         "templates",
@@ -323,7 +331,7 @@ fn binary_templates_materialize_writes_embedded_assets() {
     let output_dir = unique_temp_dir("templates-materialize");
     let output_dir_str = output_dir.to_string_lossy().into_owned();
 
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args([
         "templates",
         "materialize",
@@ -345,7 +353,7 @@ fn binary_templates_materialize_writes_embedded_assets() {
 #[test]
 fn binary_prompts_list_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["prompts", "list"]);
 
     // Act
@@ -361,7 +369,7 @@ fn binary_prompts_list_succeeds() {
 #[test]
 fn binary_prompts_show_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["prompts", "show", "official.bmad.workflow"]);
 
     // Act
@@ -377,7 +385,7 @@ fn binary_prompts_show_succeeds() {
 
 #[test]
 fn binary_prompts_show_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["prompts", "show", "official.bmad.workflow"]);
 
@@ -391,7 +399,7 @@ fn binary_prompts_show_succeeds_in_pt_br() {
 
 #[test]
 fn binary_prompts_show_rejects_unknown_plugin_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["prompts", "show", "official.missing"]);
 
@@ -404,7 +412,7 @@ fn binary_prompts_show_rejects_unknown_plugin_in_pt_br() {
 
 #[test]
 fn binary_prompts_asset_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args([
         "prompts",
         "asset",
@@ -421,7 +429,7 @@ fn binary_prompts_asset_succeeds() {
 
 #[test]
 fn binary_prompts_asset_rejects_unknown_asset_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args([
         "prompts",
@@ -442,7 +450,7 @@ fn binary_prompts_materialize_writes_embedded_assets() {
     let output_dir = unique_temp_dir("prompts-materialize");
     let output_dir_str = output_dir.to_string_lossy().into_owned();
 
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args([
         "prompts",
         "materialize",
@@ -463,7 +471,7 @@ fn binary_prompts_materialize_writes_embedded_assets() {
 #[test]
 fn binary_capabilities_list_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["capabilities", "list"]);
 
     // Act
@@ -478,7 +486,7 @@ fn binary_capabilities_list_succeeds() {
 
 #[test]
 fn binary_capabilities_show_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["capabilities", "show", "template"]);
 
@@ -492,7 +500,7 @@ fn binary_capabilities_show_succeeds_in_pt_br() {
 
 #[test]
 fn binary_capabilities_show_rejects_unknown_capability_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["capabilities", "show", "missing"]);
 
@@ -506,7 +514,7 @@ fn binary_capabilities_show_rejects_unknown_capability_in_pt_br() {
 #[test]
 fn binary_hooks_list_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["hooks", "list"]);
 
     // Act
@@ -521,7 +529,7 @@ fn binary_hooks_list_succeeds() {
 
 #[test]
 fn binary_hooks_list_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["hooks", "list"]);
 
@@ -536,7 +544,7 @@ fn binary_hooks_list_succeeds_in_pt_br() {
 #[test]
 fn binary_checks_list_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["checks", "list"]);
 
     // Act
@@ -552,7 +560,7 @@ fn binary_checks_list_succeeds() {
 
 #[test]
 fn binary_checks_show_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["checks", "show", "prepare"]);
 
@@ -567,7 +575,7 @@ fn binary_checks_show_succeeds_in_pt_br() {
 #[test]
 fn binary_checks_show_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["checks", "show", "prepare"]);
 
     // Act
@@ -583,7 +591,7 @@ fn binary_checks_show_succeeds() {
 
 #[test]
 fn binary_checks_show_by_id_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["checks", "show", "official.bmad.prepare"]);
 
     let output = command.output().expect("binary should run");
@@ -597,7 +605,7 @@ fn binary_checks_show_by_id_succeeds() {
 
 #[test]
 fn binary_checks_run_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["checks", "run", "prepare"]);
 
     let output = command.output().expect("binary should run");
@@ -611,7 +619,7 @@ fn binary_checks_run_succeeds() {
 
 #[test]
 fn binary_checks_run_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["checks", "run", "official.bmad.prepare"]);
 
@@ -626,7 +634,7 @@ fn binary_checks_run_succeeds_in_pt_br() {
 
 #[test]
 fn binary_policies_show_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["policies", "show", "official.tdd-strict.guardrails"]);
 
@@ -641,7 +649,7 @@ fn binary_policies_show_succeeds_in_pt_br() {
 #[test]
 fn binary_policies_list_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["policies", "list"]);
 
     // Act
@@ -657,7 +665,7 @@ fn binary_policies_list_succeeds() {
 #[test]
 fn binary_policies_show_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["policies", "show", "official.tdd-strict.guardrails"]);
 
     // Act
@@ -674,7 +682,7 @@ fn binary_policies_show_succeeds() {
 #[test]
 fn binary_providers_list_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["providers", "list"]);
 
     // Act
@@ -691,7 +699,7 @@ fn binary_providers_list_succeeds() {
 #[test]
 fn binary_providers_show_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["providers", "show", "data_source"]);
 
     // Act
@@ -707,7 +715,7 @@ fn binary_providers_show_succeeds() {
 
 #[test]
 fn binary_providers_show_by_id_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["providers", "show", "official.github.data"]);
 
     let output = command.output().expect("binary should run");
@@ -721,7 +729,7 @@ fn binary_providers_show_by_id_succeeds() {
 
 #[test]
 fn binary_providers_show_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["providers", "show", "data_source"]);
 
@@ -736,7 +744,7 @@ fn binary_providers_show_succeeds_in_pt_br() {
 #[test]
 fn binary_mcp_list_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["mcp", "list"]);
 
     // Act
@@ -751,7 +759,7 @@ fn binary_mcp_list_succeeds() {
 
 #[test]
 fn binary_mcp_show_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["mcp", "show", "official.codex.session"]);
 
@@ -768,7 +776,7 @@ fn binary_mcp_show_succeeds_in_pt_br() {
 #[test]
 fn binary_mcp_show_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["mcp", "show", "official.codex.session"]);
 
     // Act
@@ -787,7 +795,7 @@ fn binary_mcp_show_succeeds() {
 
 #[test]
 fn binary_mcp_plan_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["mcp", "plan", "official.codex.session"]);
 
     let output = command.output().expect("binary should run");
@@ -801,7 +809,7 @@ fn binary_mcp_plan_succeeds() {
 
 #[test]
 fn binary_mcp_plan_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["mcp", "plan", "official.codex.session"]);
 
@@ -816,7 +824,7 @@ fn binary_mcp_plan_succeeds_in_pt_br() {
 
 #[test]
 fn binary_mcp_status_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["mcp", "status"]);
 
     let output = command.output().expect("binary should run");
@@ -828,7 +836,7 @@ fn binary_mcp_status_succeeds() {
 
 #[test]
 fn binary_mcp_status_single_server_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["mcp", "status", "official.codex.session"]);
 
     let output = command.output().expect("binary should run");
@@ -842,7 +850,7 @@ fn binary_mcp_status_single_server_succeeds() {
 
 #[test]
 fn binary_mcp_status_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["mcp", "status"]);
 
@@ -855,7 +863,7 @@ fn binary_mcp_status_succeeds_in_pt_br() {
 
 #[test]
 fn binary_mcp_status_rejects_unknown_server() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["mcp", "status", "unknown.server"]);
 
     let output = command.output().expect("binary should run");
@@ -866,7 +874,7 @@ fn binary_mcp_status_rejects_unknown_server() {
 #[test]
 fn binary_runtime_show_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["runtime", "show"]);
 
     // Act
@@ -890,7 +898,7 @@ fn binary_runtime_show_succeeds() {
 
 #[test]
 fn binary_runtime_show_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["runtime", "show"]);
 
@@ -907,7 +915,7 @@ fn binary_runtime_show_succeeds_in_pt_br() {
 #[test]
 fn binary_runtime_status_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["runtime", "status"]);
 
     // Act
@@ -929,7 +937,7 @@ fn binary_runtime_status_succeeds() {
 
 #[test]
 fn binary_runtime_status_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["runtime", "status"]);
 
@@ -946,7 +954,7 @@ fn binary_runtime_status_succeeds_in_pt_br() {
 #[test]
 fn binary_runtime_issues_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["runtime", "issues"]);
 
     // Act
@@ -969,7 +977,7 @@ fn binary_runtime_issues_succeeds() {
 
 #[test]
 fn binary_runtime_issues_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["runtime", "issues"]);
 
@@ -985,7 +993,7 @@ fn binary_runtime_issues_succeeds_in_pt_br() {
 #[test]
 fn binary_runtime_plan_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["runtime", "plan"]);
 
     // Act
@@ -1009,7 +1017,7 @@ fn binary_runtime_plan_succeeds() {
 
 #[test]
 fn binary_runtime_plan_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["runtime", "plan"]);
 
@@ -1024,7 +1032,7 @@ fn binary_runtime_plan_succeeds_in_pt_br() {
 
 #[test]
 fn binary_runtime_agent_plans_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["runtime", "agent-plans"]);
 
     let output = command.output().expect("binary should run");
@@ -1036,7 +1044,7 @@ fn binary_runtime_agent_plans_succeeds() {
 
 #[test]
 fn binary_runtime_agent_plans_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["runtime", "agent-plans"]);
 
@@ -1052,7 +1060,7 @@ fn binary_runtime_agent_plans_succeeds_in_pt_br() {
 
 #[test]
 fn binary_runtime_provider_plans_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["runtime", "provider-plans"]);
 
     let output = command.output().expect("binary should run");
@@ -1064,7 +1072,7 @@ fn binary_runtime_provider_plans_succeeds() {
 
 #[test]
 fn binary_runtime_provider_plans_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["runtime", "provider-plans"]);
 
@@ -1080,7 +1088,7 @@ fn binary_runtime_provider_plans_succeeds_in_pt_br() {
 
 #[test]
 fn binary_runtime_check_plans_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["runtime", "check-plans"]);
 
     let output = command.output().expect("binary should run");
@@ -1092,7 +1100,7 @@ fn binary_runtime_check_plans_succeeds() {
 
 #[test]
 fn binary_runtime_check_plans_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["runtime", "check-plans"]);
 
@@ -1108,7 +1116,7 @@ fn binary_runtime_check_plans_succeeds_in_pt_br() {
 
 #[test]
 fn binary_runtime_policy_plans_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["runtime", "policy-plans"]);
 
     let output = command.output().expect("binary should run");
@@ -1120,7 +1128,7 @@ fn binary_runtime_policy_plans_succeeds() {
 
 #[test]
 fn binary_runtime_policy_plans_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["runtime", "policy-plans"]);
 
@@ -1136,7 +1144,7 @@ fn binary_runtime_policy_plans_succeeds_in_pt_br() {
 
 #[test]
 fn binary_runtime_mcp_plans_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["runtime", "mcp-plans"]);
 
     let output = command.output().expect("binary should run");
@@ -1148,7 +1156,7 @@ fn binary_runtime_mcp_plans_succeeds() {
 
 #[test]
 fn binary_runtime_mcp_plans_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["runtime", "mcp-plans"]);
 
@@ -1161,7 +1169,7 @@ fn binary_runtime_mcp_plans_succeeds_in_pt_br() {
 
 #[test]
 fn binary_runtime_patch_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["runtime", "patch"]);
 
     let output = command.output().expect("binary should run");
@@ -1179,7 +1187,7 @@ fn binary_runtime_patch_succeeds() {
 
 #[test]
 fn binary_runtime_patched_config_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["runtime", "patched-config"]);
 
     let output = command.output().expect("binary should run");
@@ -1201,7 +1209,7 @@ fn binary_runtime_write_patched_config_succeeds() {
     let output_path_str = output_path.to_string_lossy().into_owned();
     let _ = std::fs::remove_file(&output_path);
 
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["runtime", "write-patched-config", &output_path_str]);
 
     let output = command.output().expect("binary should run");
@@ -1219,7 +1227,7 @@ fn binary_runtime_write_patched_config_succeeds() {
 #[test]
 fn binary_config_show_defaults_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["config", "show-defaults"]);
 
     // Act
@@ -1235,7 +1243,7 @@ fn binary_config_show_defaults_succeeds() {
 #[test]
 fn binary_config_layers_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["config", "layers"]);
 
     // Act
@@ -1251,7 +1259,7 @@ fn binary_config_layers_succeeds() {
 
 #[test]
 fn binary_config_locale_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["config", "locale"]);
 
     let output = command.output().expect("binary should run");
@@ -1263,7 +1271,7 @@ fn binary_config_locale_succeeds() {
 
 #[test]
 fn binary_locales_list_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["locales", "list"]);
 
     let output = command.output().expect("binary should run");
@@ -1277,7 +1285,7 @@ fn binary_locales_list_succeeds() {
 
 #[test]
 fn binary_locales_show_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.args(["locales", "show", "pt-br"]);
 
@@ -1292,7 +1300,7 @@ fn binary_locales_show_succeeds_in_pt_br() {
 #[test]
 fn binary_config_budgets_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["config", "budgets"]);
 
     // Act
@@ -1309,7 +1317,7 @@ fn binary_config_budgets_succeeds() {
 #[test]
 fn binary_doctor_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.arg("doctor");
 
     // Act
@@ -1325,7 +1333,7 @@ fn binary_doctor_succeeds() {
 
 #[test]
 fn binary_doctor_succeeds_in_pt_br() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
     command.arg("doctor");
 
@@ -1341,7 +1349,7 @@ fn binary_doctor_succeeds_in_pt_br() {
 
 #[test]
 fn binary_doctor_config_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["doctor", "config"]);
 
     let output = command.output().expect("binary should run");
@@ -1360,7 +1368,7 @@ fn binary_doctor_write_config_succeeds() {
     let output_path_str = output_path.to_string_lossy().into_owned();
     let _ = std::fs::remove_file(&output_path);
 
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["doctor", "write-config", &output_path_str]);
 
     let output = command.output().expect("binary should run");
@@ -1378,7 +1386,7 @@ fn binary_doctor_write_config_succeeds() {
 #[test]
 fn binary_config_show_plugin_succeeds() {
     // Arrange
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["config", "show-plugin", "official.basic"]);
 
     // Act
@@ -1394,7 +1402,7 @@ fn binary_config_show_plugin_succeeds() {
 
 #[test]
 fn binary_config_show_mcp_server_succeeds() {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    let mut command = english_command();
     command.args(["config", "show-mcp-server", "official.github.repository"]);
 
     let output = command.output().expect("binary should run");

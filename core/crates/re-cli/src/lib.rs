@@ -26,6 +26,16 @@ mod tests {
         values.iter().map(|value| (*value).to_owned()).collect()
     }
 
+    /// Builds a command with `--locale en` injected after the binary name
+    /// so tests produce predictable English output regardless of the host OS.
+    fn args_en(values: &[&str]) -> Vec<String> {
+        let mut result = vec![values[0].to_owned(), "--locale".to_owned(), "en".to_owned()];
+        for value in &values[1..] {
+            result.push((*value).to_owned());
+        }
+        result
+    }
+
     fn sample_plugin_id() -> &'static str {
         catalog::official_plugins()[0].id
     }
@@ -69,7 +79,7 @@ mod tests {
     #[test]
     fn execute_without_subcommand_prints_foundation_banner() {
         // Arrange
-        let command = args(&["ralph-engine"]);
+        let command = args_en(&["ralph-engine"]);
 
         // Act
         let output = execute(command).expect("default command should succeed");
@@ -82,7 +92,7 @@ mod tests {
     #[test]
     fn execute_version_returns_package_version() {
         // Arrange
-        let command = args(&["ralph-engine", "--version"]);
+        let command = args_en(&["ralph-engine", "--version"]);
 
         // Act
         let output = execute(command).expect("version should succeed");
@@ -103,7 +113,7 @@ mod tests {
     #[test]
     fn execute_agents_lists_runtime_agents() {
         // Arrange
-        let command = args(&["ralph-engine", "agents", "list"]);
+        let command = args_en(&["ralph-engine", "agents", "list"]);
         let agents = catalog::official_agent_contributions();
 
         // Act
@@ -121,7 +131,7 @@ mod tests {
         // Arrange
         let agent = catalog::find_official_agent_contribution(sample_agent_id())
             .expect("sample agent should exist");
-        let command = args(&["ralph-engine", "agents", "show", agent.descriptor.id]);
+        let command = args_en(&["ralph-engine", "agents", "show", agent.descriptor.id]);
 
         // Act
         let output = execute(command).expect("agents show should succeed");
@@ -140,7 +150,7 @@ mod tests {
     #[test]
     fn execute_agents_show_requires_agent_id() {
         // Arrange
-        let command = args(&["ralph-engine", "agents", "show"]);
+        let command = args_en(&["ralph-engine", "agents", "show"]);
 
         // Act
         let error = execute(command).expect_err("missing agent id should fail");
@@ -152,7 +162,7 @@ mod tests {
     #[test]
     fn execute_agents_show_rejects_unknown_agent() {
         // Arrange
-        let command = args(&["ralph-engine", "agents", "show", "fixture.unknown"]);
+        let command = args_en(&["ralph-engine", "agents", "show", "fixture.unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown agent runtime should fail");
@@ -165,7 +175,7 @@ mod tests {
     fn execute_agents_plan_returns_bootstrap_plan() {
         let agent = catalog::find_official_agent_contribution(sample_agent_id())
             .expect("sample agent should exist");
-        let command = args(&["ralph-engine", "agents", "plan", agent.descriptor.id]);
+        let command = args_en(&["ralph-engine", "agents", "plan", agent.descriptor.id]);
 
         let output = execute(command).expect("agents plan should succeed");
 
@@ -175,7 +185,7 @@ mod tests {
 
     #[test]
     fn execute_locales_lists_supported_locale_catalog() {
-        let command = args(&["ralph-engine", "locales", "list"]);
+        let command = args_en(&["ralph-engine", "locales", "list"]);
 
         let output = execute(command).expect("locales list should succeed");
 
@@ -186,7 +196,7 @@ mod tests {
 
     #[test]
     fn execute_locales_show_returns_locale_detail() {
-        let command = args(&["ralph-engine", "locales", "show", "pt-br"]);
+        let command = args_en(&["ralph-engine", "locales", "show", "pt-br"]);
 
         let output = execute(command).expect("locales show should succeed");
 
@@ -197,7 +207,7 @@ mod tests {
 
     #[test]
     fn execute_locales_show_requires_locale_id() {
-        let command = args(&["ralph-engine", "locales", "show"]);
+        let command = args_en(&["ralph-engine", "locales", "show"]);
 
         let error = execute(command).expect_err("missing locale id should fail");
 
@@ -206,7 +216,7 @@ mod tests {
 
     #[test]
     fn execute_locales_show_rejects_unknown_locale() {
-        let command = args(&["ralph-engine", "locales", "show", "es"]);
+        let command = args_en(&["ralph-engine", "locales", "show", "es"]);
 
         let error = execute(command).expect_err("unknown locale should fail");
 
@@ -251,7 +261,7 @@ mod tests {
     #[test]
     fn execute_templates_list_runtime_templates() {
         // Arrange
-        let command = args(&["ralph-engine", "templates", "list"]);
+        let command = args_en(&["ralph-engine", "templates", "list"]);
         let templates = catalog::official_template_contributions();
 
         // Act
@@ -269,7 +279,7 @@ mod tests {
         // Arrange
         let template = catalog::find_official_template_contribution(sample_template_id())
             .expect("sample template should exist");
-        let command = args(&["ralph-engine", "templates", "show", template.descriptor.id]);
+        let command = args_en(&["ralph-engine", "templates", "show", template.descriptor.id]);
 
         // Act
         let output = execute(command).expect("templates show should succeed");
@@ -288,7 +298,7 @@ mod tests {
     #[test]
     fn execute_templates_show_requires_template_id() {
         // Arrange
-        let command = args(&["ralph-engine", "templates", "show"]);
+        let command = args_en(&["ralph-engine", "templates", "show"]);
 
         // Act
         let error = execute(command).expect_err("missing template id should fail");
@@ -300,7 +310,7 @@ mod tests {
     #[test]
     fn execute_templates_show_rejects_unknown_template() {
         // Arrange
-        let command = args(&["ralph-engine", "templates", "show", "fixture.unknown"]);
+        let command = args_en(&["ralph-engine", "templates", "show", "fixture.unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown template should fail");
@@ -312,7 +322,7 @@ mod tests {
     #[test]
     fn execute_prompts_list_runtime_prompts() {
         // Arrange
-        let command = args(&["ralph-engine", "prompts", "list"]);
+        let command = args_en(&["ralph-engine", "prompts", "list"]);
         let prompts = catalog::official_prompt_contributions();
 
         // Act
@@ -330,7 +340,7 @@ mod tests {
         // Arrange
         let prompt = catalog::find_official_prompt_contribution(sample_prompt_id())
             .expect("sample prompt should exist");
-        let command = args(&["ralph-engine", "prompts", "show", prompt.descriptor.id]);
+        let command = args_en(&["ralph-engine", "prompts", "show", prompt.descriptor.id]);
 
         // Act
         let output = execute(command).expect("prompts show should succeed");
@@ -349,7 +359,7 @@ mod tests {
     #[test]
     fn execute_prompts_show_requires_prompt_id() {
         // Arrange
-        let command = args(&["ralph-engine", "prompts", "show"]);
+        let command = args_en(&["ralph-engine", "prompts", "show"]);
 
         // Act
         let error = execute(command).expect_err("missing prompt id should fail");
@@ -361,7 +371,7 @@ mod tests {
     #[test]
     fn execute_prompts_show_rejects_unknown_prompt() {
         // Arrange
-        let command = args(&["ralph-engine", "prompts", "show", "fixture.unknown"]);
+        let command = args_en(&["ralph-engine", "prompts", "show", "fixture.unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown prompt should fail");
@@ -373,7 +383,7 @@ mod tests {
     #[test]
     fn execute_capabilities_lists_runtime_capabilities() {
         // Arrange
-        let command = args(&["ralph-engine", "capabilities", "list"]);
+        let command = args_en(&["ralph-engine", "capabilities", "list"]);
 
         // Act
         let output = execute(command).expect("capabilities list should succeed");
@@ -387,7 +397,7 @@ mod tests {
     #[test]
     fn execute_capabilities_show_returns_provider_detail() {
         // Arrange
-        let command = args(&["ralph-engine", "capabilities", "show", "mcp_contribution"]);
+        let command = args_en(&["ralph-engine", "capabilities", "show", "mcp_contribution"]);
 
         // Act
         let output = execute(command).expect("capabilities show should succeed");
@@ -402,7 +412,7 @@ mod tests {
     #[test]
     fn execute_capabilities_show_requires_capability_id() {
         // Arrange
-        let command = args(&["ralph-engine", "capabilities", "show"]);
+        let command = args_en(&["ralph-engine", "capabilities", "show"]);
 
         // Act
         let error = execute(command).expect_err("missing capability id should fail");
@@ -417,7 +427,7 @@ mod tests {
     #[test]
     fn execute_capabilities_show_rejects_unknown_capability() {
         // Arrange
-        let command = args(&["ralph-engine", "capabilities", "show", "unknown"]);
+        let command = args_en(&["ralph-engine", "capabilities", "show", "unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown capability should fail");
@@ -429,7 +439,7 @@ mod tests {
     #[test]
     fn execute_checks_lists_runtime_checks() {
         // Arrange
-        let command = args(&["ralph-engine", "checks", "list"]);
+        let command = args_en(&["ralph-engine", "checks", "list"]);
 
         // Act
         let output = execute(command).expect("checks list should succeed");
@@ -443,7 +453,7 @@ mod tests {
     #[test]
     fn execute_checks_show_returns_provider_detail() {
         // Arrange
-        let command = args(&["ralph-engine", "checks", "show", "prepare"]);
+        let command = args_en(&["ralph-engine", "checks", "show", "prepare"]);
 
         // Act
         let output = execute(command).expect("checks show should succeed");
@@ -458,7 +468,7 @@ mod tests {
 
     #[test]
     fn execute_checks_show_accepts_check_contribution_id() {
-        let command = args(&["ralph-engine", "checks", "show", "official.bmad.prepare"]);
+        let command = args_en(&["ralph-engine", "checks", "show", "official.bmad.prepare"]);
 
         let output = execute(command).expect("checks show by id should succeed");
 
@@ -469,7 +479,7 @@ mod tests {
 
     #[test]
     fn execute_checks_run_returns_typed_check_result() {
-        let command = args(&["ralph-engine", "checks", "run", "prepare"]);
+        let command = args_en(&["ralph-engine", "checks", "run", "prepare"]);
 
         let output = execute(command).expect("checks run should succeed");
 
@@ -481,7 +491,7 @@ mod tests {
 
     #[test]
     fn execute_checks_run_accepts_check_contribution_id() {
-        let command = args(&["ralph-engine", "checks", "run", "official.bmad.prepare"]);
+        let command = args_en(&["ralph-engine", "checks", "run", "official.bmad.prepare"]);
 
         let output = execute(command).expect("checks run by id should succeed");
 
@@ -491,7 +501,7 @@ mod tests {
     #[test]
     fn execute_checks_show_requires_check_id() {
         // Arrange
-        let command = args(&["ralph-engine", "checks", "show"]);
+        let command = args_en(&["ralph-engine", "checks", "show"]);
 
         // Act
         let error = execute(command).expect_err("missing check id should fail");
@@ -502,7 +512,7 @@ mod tests {
 
     #[test]
     fn execute_checks_run_requires_check_id() {
-        let command = args(&["ralph-engine", "checks", "run"]);
+        let command = args_en(&["ralph-engine", "checks", "run"]);
 
         let error = execute(command).expect_err("missing check id should fail");
 
@@ -511,7 +521,7 @@ mod tests {
 
     #[test]
     fn execute_checks_plan_returns_execution_plan() {
-        let command = args(&["ralph-engine", "checks", "plan", "official.bmad.prepare"]);
+        let command = args_en(&["ralph-engine", "checks", "plan", "official.bmad.prepare"]);
 
         let output = execute(command).expect("checks plan should succeed");
 
@@ -523,7 +533,7 @@ mod tests {
     #[test]
     fn execute_checks_show_rejects_unknown_check() {
         // Arrange
-        let command = args(&["ralph-engine", "checks", "show", "unknown"]);
+        let command = args_en(&["ralph-engine", "checks", "show", "unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown check should fail");
@@ -535,7 +545,7 @@ mod tests {
     #[test]
     fn execute_hooks_lists_runtime_hooks() {
         // Arrange
-        let command = args(&["ralph-engine", "hooks", "list"]);
+        let command = args_en(&["ralph-engine", "hooks", "list"]);
 
         // Act
         let output = execute(command).expect("hooks list should succeed");
@@ -549,7 +559,7 @@ mod tests {
     #[test]
     fn execute_hooks_show_returns_provider_detail() {
         // Arrange
-        let command = args(&["ralph-engine", "hooks", "show", "mcp_registration"]);
+        let command = args_en(&["ralph-engine", "hooks", "show", "mcp_registration"]);
 
         // Act
         let output = execute(command).expect("hooks show should succeed");
@@ -564,7 +574,7 @@ mod tests {
     #[test]
     fn execute_hooks_show_requires_hook_id() {
         // Arrange
-        let command = args(&["ralph-engine", "hooks", "show"]);
+        let command = args_en(&["ralph-engine", "hooks", "show"]);
 
         // Act
         let error = execute(command).expect_err("missing hook id should fail");
@@ -576,7 +586,7 @@ mod tests {
     #[test]
     fn execute_hooks_show_rejects_unknown_hook() {
         // Arrange
-        let command = args(&["ralph-engine", "hooks", "show", "unknown"]);
+        let command = args_en(&["ralph-engine", "hooks", "show", "unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown hook should fail");
@@ -587,7 +597,7 @@ mod tests {
 
     #[test]
     fn execute_hooks_plan_returns_owned_surface_map() {
-        let command = args(&["ralph-engine", "hooks", "plan", "agent_bootstrap"]);
+        let command = args_en(&["ralph-engine", "hooks", "plan", "agent_bootstrap"]);
 
         let output = execute(command).expect("hooks plan should succeed");
 
@@ -599,7 +609,7 @@ mod tests {
     #[test]
     fn execute_policies_lists_runtime_policies() {
         // Arrange
-        let command = args(&["ralph-engine", "policies", "list"]);
+        let command = args_en(&["ralph-engine", "policies", "list"]);
         let policies = catalog::official_policy_contributions();
 
         // Act
@@ -617,7 +627,7 @@ mod tests {
         // Arrange
         let policy = catalog::find_official_policy_contribution(sample_policy_id())
             .expect("sample policy should exist");
-        let command = args(&["ralph-engine", "policies", "show", policy.descriptor.id]);
+        let command = args_en(&["ralph-engine", "policies", "show", policy.descriptor.id]);
 
         // Act
         let output = execute(command).expect("policies show should succeed");
@@ -635,7 +645,7 @@ mod tests {
     #[test]
     fn execute_policies_show_requires_policy_id() {
         // Arrange
-        let command = args(&["ralph-engine", "policies", "show"]);
+        let command = args_en(&["ralph-engine", "policies", "show"]);
 
         // Act
         let error = execute(command).expect_err("missing policy id should fail");
@@ -647,7 +657,7 @@ mod tests {
     #[test]
     fn execute_policies_show_rejects_unknown_policy() {
         // Arrange
-        let command = args(&["ralph-engine", "policies", "show", "fixture.unknown"]);
+        let command = args_en(&["ralph-engine", "policies", "show", "fixture.unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown policy should fail");
@@ -660,7 +670,7 @@ mod tests {
     fn execute_policies_run_returns_typed_policy_result() {
         let policy = catalog::find_official_policy_contribution(sample_policy_id())
             .expect("sample policy should exist");
-        let command = args(&["ralph-engine", "policies", "run", policy.descriptor.id]);
+        let command = args_en(&["ralph-engine", "policies", "run", policy.descriptor.id]);
 
         let output = execute(command).expect("policies run should succeed");
 
@@ -672,7 +682,7 @@ mod tests {
 
     #[test]
     fn execute_policies_run_requires_policy_id() {
-        let command = args(&["ralph-engine", "policies", "run"]);
+        let command = args_en(&["ralph-engine", "policies", "run"]);
 
         let error = execute(command).expect_err("missing policy id should fail");
 
@@ -681,7 +691,7 @@ mod tests {
 
     #[test]
     fn execute_policies_plan_returns_enforcement_plan() {
-        let command = args(&[
+        let command = args_en(&[
             "ralph-engine",
             "policies",
             "plan",
@@ -698,7 +708,7 @@ mod tests {
     #[test]
     fn execute_providers_lists_runtime_providers() {
         // Arrange
-        let command = args(&["ralph-engine", "providers", "list"]);
+        let command = args_en(&["ralph-engine", "providers", "list"]);
 
         // Act
         let output = execute(command).expect("providers list should succeed");
@@ -712,7 +722,7 @@ mod tests {
     #[test]
     fn execute_providers_show_returns_provider_detail() {
         // Arrange
-        let command = args(&["ralph-engine", "providers", "show", "data_source"]);
+        let command = args_en(&["ralph-engine", "providers", "show", "data_source"]);
 
         // Act
         let output = execute(command).expect("providers show should succeed");
@@ -727,7 +737,7 @@ mod tests {
 
     #[test]
     fn execute_providers_show_accepts_provider_contribution_id() {
-        let command = args(&["ralph-engine", "providers", "show", "official.github.data"]);
+        let command = args_en(&["ralph-engine", "providers", "show", "official.github.data"]);
 
         let output = execute(command).expect("providers show by id should succeed");
 
@@ -739,7 +749,7 @@ mod tests {
     #[test]
     fn execute_providers_show_requires_provider_id() {
         // Arrange
-        let command = args(&["ralph-engine", "providers", "show"]);
+        let command = args_en(&["ralph-engine", "providers", "show"]);
 
         // Act
         let error = execute(command).expect_err("missing provider id should fail");
@@ -751,7 +761,7 @@ mod tests {
     #[test]
     fn execute_providers_show_rejects_unknown_provider() {
         // Arrange
-        let command = args(&["ralph-engine", "providers", "show", "unknown"]);
+        let command = args_en(&["ralph-engine", "providers", "show", "unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown provider should fail");
@@ -762,7 +772,7 @@ mod tests {
 
     #[test]
     fn execute_providers_plan_returns_registration_plan() {
-        let command = args(&["ralph-engine", "providers", "plan", "official.github.data"]);
+        let command = args_en(&["ralph-engine", "providers", "plan", "official.github.data"]);
 
         let output = execute(command).expect("providers plan should succeed");
 
@@ -774,7 +784,7 @@ mod tests {
     #[test]
     fn execute_plugins_lists_official_plugins() {
         // Arrange
-        let command = args(&["ralph-engine", "plugins", "list"]);
+        let command = args_en(&["ralph-engine", "plugins", "list"]);
         let plugins = catalog::official_plugins();
 
         // Act
@@ -792,7 +802,7 @@ mod tests {
         // Arrange
         let plugin = catalog::find_official_plugin(sample_disabled_plugin_id())
             .expect("sample plugin should exist");
-        let command = args(&["ralph-engine", "plugins", "show", plugin.id]);
+        let command = args_en(&["ralph-engine", "plugins", "show", plugin.id]);
 
         // Act
         let output = execute(command).expect("plugins show should succeed");
@@ -821,7 +831,7 @@ mod tests {
         // Arrange
         let plugin = catalog::find_official_plugin(sample_plugin_id())
             .expect("sample enabled plugin should exist");
-        let command = args(&["ralph-engine", "plugins", "show", plugin.id]);
+        let command = args_en(&["ralph-engine", "plugins", "show", plugin.id]);
 
         // Act
         let output = execute(command).expect("plugins show should succeed");
@@ -835,7 +845,7 @@ mod tests {
     #[test]
     fn execute_plugins_show_requires_plugin_id() {
         // Arrange
-        let command = args(&["ralph-engine", "plugins", "show"]);
+        let command = args_en(&["ralph-engine", "plugins", "show"]);
 
         // Act
         let error = execute(command).expect_err("missing plugin id should fail");
@@ -847,7 +857,7 @@ mod tests {
     #[test]
     fn execute_plugins_show_rejects_unknown_plugin() {
         // Arrange
-        let command = args(&["ralph-engine", "plugins", "show", "fixture.unknown"]);
+        let command = args_en(&["ralph-engine", "plugins", "show", "fixture.unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown plugin id should fail");
@@ -859,7 +869,7 @@ mod tests {
     #[test]
     fn execute_config_show_defaults_returns_yaml_contract() {
         // Arrange
-        let command = args(&["ralph-engine", "config", "show-defaults"]);
+        let command = args_en(&["ralph-engine", "config", "show-defaults"]);
 
         // Act
         let output = execute(command).expect("config show-defaults should succeed");
@@ -873,7 +883,7 @@ mod tests {
     #[test]
     fn execute_config_layers_returns_typed_resolution_stack() {
         // Arrange
-        let command = args(&["ralph-engine", "config", "layers"]);
+        let command = args_en(&["ralph-engine", "config", "layers"]);
 
         // Act
         let output = execute(command).expect("config layers should succeed");
@@ -891,7 +901,7 @@ mod tests {
     #[test]
     fn execute_config_locale_returns_default_locale_contract() {
         // Arrange
-        let command = args(&["ralph-engine", "config", "locale"]);
+        let command = args_en(&["ralph-engine", "config", "locale"]);
 
         // Act
         let output = execute(command).expect("config locale should succeed");
@@ -903,7 +913,7 @@ mod tests {
     #[test]
     fn execute_config_show_locale_alias_returns_default_locale_contract() {
         // Arrange
-        let command = args(&["ralph-engine", "config", "show-locale"]);
+        let command = args_en(&["ralph-engine", "config", "show-locale"]);
 
         // Act
         let output = execute(command).expect("config show-locale should succeed");
@@ -915,7 +925,7 @@ mod tests {
     #[test]
     fn execute_config_show_layers_alias_returns_typed_resolution_stack() {
         // Arrange
-        let command = args(&["ralph-engine", "config", "show-layers"]);
+        let command = args_en(&["ralph-engine", "config", "show-layers"]);
 
         // Act
         let output = execute(command).expect("config show-layers should succeed");
@@ -928,7 +938,7 @@ mod tests {
     #[test]
     fn execute_config_budgets_returns_typed_budget_contract() {
         // Arrange
-        let command = args(&["ralph-engine", "config", "budgets"]);
+        let command = args_en(&["ralph-engine", "config", "budgets"]);
 
         // Act
         let output = execute(command).expect("config budgets should succeed");
@@ -942,7 +952,7 @@ mod tests {
     #[test]
     fn execute_config_show_budgets_alias_returns_typed_budget_contract() {
         // Arrange
-        let command = args(&["ralph-engine", "config", "show-budgets"]);
+        let command = args_en(&["ralph-engine", "config", "show-budgets"]);
 
         // Act
         let output = execute(command).expect("config show-budgets should succeed");
@@ -955,7 +965,7 @@ mod tests {
     #[test]
     fn execute_config_show_plugin_returns_resolved_yaml() {
         // Arrange
-        let command = args(&["ralph-engine", "config", "show-plugin", sample_plugin_id()]);
+        let command = args_en(&["ralph-engine", "config", "show-plugin", sample_plugin_id()]);
 
         // Act
         let output = execute(command).expect("config show-plugin should succeed");
@@ -970,7 +980,7 @@ mod tests {
     fn execute_config_show_plugin_returns_disabled_built_in_default_for_known_plugin() {
         // Arrange
         let disabled_plugin_id = sample_disabled_plugin_id();
-        let command = args(&["ralph-engine", "config", "show-plugin", disabled_plugin_id]);
+        let command = args_en(&["ralph-engine", "config", "show-plugin", disabled_plugin_id]);
 
         // Act
         let output = execute(command).expect("config show-plugin should succeed");
@@ -984,7 +994,7 @@ mod tests {
     #[test]
     fn execute_config_show_plugin_requires_plugin_id() {
         // Arrange
-        let command = args(&["ralph-engine", "config", "show-plugin"]);
+        let command = args_en(&["ralph-engine", "config", "show-plugin"]);
 
         // Act
         let error = execute(command).expect_err("missing plugin id should fail");
@@ -996,7 +1006,7 @@ mod tests {
     #[test]
     fn execute_config_show_plugin_rejects_unknown_plugin() {
         // Arrange
-        let command = args(&["ralph-engine", "config", "show-plugin", "fixture.unknown"]);
+        let command = args_en(&["ralph-engine", "config", "show-plugin", "fixture.unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown plugin id should fail");
@@ -1008,7 +1018,7 @@ mod tests {
     #[test]
     fn execute_config_without_subcommand_returns_yaml_contract() {
         // Arrange
-        let command = args(&["ralph-engine", "config"]);
+        let command = args_en(&["ralph-engine", "config"]);
 
         // Act
         let output = execute(command).expect("config command should succeed");
@@ -1020,7 +1030,7 @@ mod tests {
     #[test]
     fn execute_doctor_returns_typed_runtime_report() {
         // Arrange
-        let command = args(&["ralph-engine", "doctor"]);
+        let command = args_en(&["ralph-engine", "doctor"]);
 
         // Act
         let output = execute(command).expect("doctor should succeed");
@@ -1035,7 +1045,7 @@ mod tests {
     #[test]
     fn execute_doctor_runtime_returns_typed_runtime_report() {
         // Arrange
-        let command = args(&["ralph-engine", "doctor", "runtime"]);
+        let command = args_en(&["ralph-engine", "doctor", "runtime"]);
 
         // Act
         let output = execute(command).expect("doctor runtime should succeed");
@@ -1047,7 +1057,7 @@ mod tests {
 
     #[test]
     fn execute_doctor_config_returns_merged_project_config() {
-        let command = args(&["ralph-engine", "doctor", "config"]);
+        let command = args_en(&["ralph-engine", "doctor", "config"]);
 
         let output = execute(command).expect("doctor config should succeed");
 
@@ -1067,7 +1077,7 @@ mod tests {
         let _ = std::fs::remove_file(&output_path);
         let output_path_str = output_path.display().to_string();
 
-        let command = args(&["ralph-engine", "doctor", "write-config", &output_path_str]);
+        let command = args_en(&["ralph-engine", "doctor", "write-config", &output_path_str]);
 
         let output = execute(command).expect("doctor write-config should succeed");
 
@@ -1088,7 +1098,7 @@ mod tests {
         let _ = std::fs::remove_file(&output_path);
         let output_path_str = output_path.display().to_string();
 
-        let command = args(&["ralph-engine", "doctor", "apply-config", &output_path_str]);
+        let command = args_en(&["ralph-engine", "doctor", "apply-config", &output_path_str]);
 
         let output = execute(command).expect("doctor apply-config should succeed");
 
@@ -1103,7 +1113,7 @@ mod tests {
     #[test]
     fn execute_unknown_doctor_subcommand_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "doctor", "plugins"]);
+        let command = args_en(&["ralph-engine", "doctor", "plugins"]);
 
         // Act
         let error = execute(command).expect_err("unknown doctor command should fail");
@@ -1115,7 +1125,7 @@ mod tests {
     #[test]
     fn execute_unknown_config_subcommand_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "config", "doctor"]);
+        let command = args_en(&["ralph-engine", "config", "doctor"]);
 
         // Act
         let error = execute(command).expect_err("unknown config command should fail");
@@ -1127,7 +1137,7 @@ mod tests {
     #[test]
     fn execute_mcp_lists_official_servers() {
         // Arrange
-        let command = args(&["ralph-engine", "mcp", "list"]);
+        let command = args_en(&["ralph-engine", "mcp", "list"]);
         let servers = catalog::official_mcp_servers();
 
         // Act
@@ -1145,7 +1155,7 @@ mod tests {
         // Arrange
         let server =
             catalog::find_official_mcp_server(sample_mcp_id()).expect("sample server should exist");
-        let command = args(&["ralph-engine", "mcp", "show", server.id]);
+        let command = args_en(&["ralph-engine", "mcp", "show", server.id]);
 
         // Act
         let output = execute(command).expect("mcp show should succeed");
@@ -1173,7 +1183,7 @@ mod tests {
     fn execute_mcp_plan_returns_launch_plan() {
         let server =
             catalog::find_official_mcp_server(sample_mcp_id()).expect("sample server should exist");
-        let command = args(&["ralph-engine", "mcp", "plan", server.id]);
+        let command = args_en(&["ralph-engine", "mcp", "plan", server.id]);
 
         let output = execute(command).expect("mcp plan should succeed");
 
@@ -1190,7 +1200,7 @@ mod tests {
     #[test]
     fn execute_mcp_show_requires_server_id() {
         // Arrange
-        let command = args(&["ralph-engine", "mcp", "show"]);
+        let command = args_en(&["ralph-engine", "mcp", "show"]);
 
         // Act
         let error = execute(command).expect_err("missing server id should fail");
@@ -1202,7 +1212,7 @@ mod tests {
     #[test]
     fn execute_mcp_show_rejects_unknown_server() {
         // Arrange
-        let command = args(&["ralph-engine", "mcp", "show", "fixture.unknown"]);
+        let command = args_en(&["ralph-engine", "mcp", "show", "fixture.unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown server id should fail");
@@ -1213,7 +1223,7 @@ mod tests {
 
     #[test]
     fn execute_mcp_plan_rejects_unknown_server() {
-        let command = args(&["ralph-engine", "mcp", "plan", "fixture.unknown"]);
+        let command = args_en(&["ralph-engine", "mcp", "plan", "fixture.unknown"]);
 
         let error = execute(command).expect_err("unknown mcp plan target should fail");
 
@@ -1223,7 +1233,7 @@ mod tests {
     #[test]
     fn execute_mcp_without_subcommand_lists_official_servers() {
         // Arrange
-        let command = args(&["ralph-engine", "mcp"]);
+        let command = args_en(&["ralph-engine", "mcp"]);
         let servers = catalog::official_mcp_servers();
 
         // Act
@@ -1236,7 +1246,7 @@ mod tests {
     #[test]
     fn execute_runtime_show_returns_resolved_topology() {
         // Arrange
-        let command = args(&["ralph-engine", "runtime", "show"]);
+        let command = args_en(&["ralph-engine", "runtime", "show"]);
 
         // Act
         let output = execute(command).expect("runtime show should succeed");
@@ -1260,7 +1270,7 @@ mod tests {
     #[test]
     fn execute_runtime_status_returns_runtime_health_summary() {
         // Arrange
-        let command = args(&["ralph-engine", "runtime", "status"]);
+        let command = args_en(&["ralph-engine", "runtime", "status"]);
 
         // Act
         let output = execute(command).expect("runtime status should succeed");
@@ -1283,7 +1293,7 @@ mod tests {
     #[test]
     fn execute_runtime_issues_returns_typed_issue_summary() {
         // Arrange
-        let command = args(&["ralph-engine", "runtime", "issues"]);
+        let command = args_en(&["ralph-engine", "runtime", "issues"]);
 
         // Act
         let output = execute(command).expect("runtime issues should succeed");
@@ -1304,7 +1314,7 @@ mod tests {
     #[test]
     fn execute_runtime_plan_returns_typed_action_plan() {
         // Arrange
-        let command = args(&["ralph-engine", "runtime", "plan"]);
+        let command = args_en(&["ralph-engine", "runtime", "plan"]);
 
         // Act
         let output = execute(command).expect("runtime plan should succeed");
@@ -1325,7 +1335,7 @@ mod tests {
 
     #[test]
     fn execute_runtime_agent_plans_returns_bootstrap_plans() {
-        let command = args(&["ralph-engine", "runtime", "agent-plans"]);
+        let command = args_en(&["ralph-engine", "runtime", "agent-plans"]);
 
         let output = execute(command).expect("runtime agent-plans should succeed");
 
@@ -1334,7 +1344,7 @@ mod tests {
 
     #[test]
     fn execute_runtime_provider_plans_returns_registration_plans() {
-        let command = args(&["ralph-engine", "runtime", "provider-plans"]);
+        let command = args_en(&["ralph-engine", "runtime", "provider-plans"]);
 
         let output = execute(command).expect("runtime provider-plans should succeed");
 
@@ -1343,7 +1353,7 @@ mod tests {
 
     #[test]
     fn execute_runtime_check_plans_returns_execution_plans() {
-        let command = args(&["ralph-engine", "runtime", "check-plans"]);
+        let command = args_en(&["ralph-engine", "runtime", "check-plans"]);
 
         let output = execute(command).expect("runtime check-plans should succeed");
 
@@ -1352,7 +1362,7 @@ mod tests {
 
     #[test]
     fn execute_runtime_policy_plans_returns_enforcement_plans() {
-        let command = args(&["ralph-engine", "runtime", "policy-plans"]);
+        let command = args_en(&["ralph-engine", "runtime", "policy-plans"]);
 
         let output = execute(command).expect("runtime policy-plans should succeed");
 
@@ -1361,7 +1371,7 @@ mod tests {
 
     #[test]
     fn execute_runtime_mcp_plans_returns_launch_plans() {
-        let command = args(&["ralph-engine", "runtime", "mcp-plans"]);
+        let command = args_en(&["ralph-engine", "runtime", "mcp-plans"]);
 
         let output = execute(command).expect("runtime mcp-plans should succeed");
 
@@ -1370,7 +1380,7 @@ mod tests {
 
     #[test]
     fn execute_runtime_patch_returns_typed_config_patch() {
-        let command = args(&["ralph-engine", "runtime", "patch"]);
+        let command = args_en(&["ralph-engine", "runtime", "patch"]);
 
         let output = execute(command).expect("runtime patch should succeed");
 
@@ -1383,7 +1393,7 @@ mod tests {
 
     #[test]
     fn execute_runtime_patched_config_returns_merged_project_config() {
-        let command = args(&["ralph-engine", "runtime", "patched-config"]);
+        let command = args_en(&["ralph-engine", "runtime", "patched-config"]);
 
         let output = execute(command).expect("runtime patched-config should succeed");
 
@@ -1406,7 +1416,7 @@ mod tests {
         let _ = std::fs::remove_file(&output_path);
         let output_path_str = output_path.display().to_string();
 
-        let command = args(&[
+        let command = args_en(&[
             "ralph-engine",
             "runtime",
             "write-patched-config",
@@ -1432,7 +1442,7 @@ mod tests {
         let _ = std::fs::remove_file(&output_path);
         let output_path_str = output_path.display().to_string();
 
-        let command = args(&["ralph-engine", "runtime", "apply-config", &output_path_str]);
+        let command = args_en(&["ralph-engine", "runtime", "apply-config", &output_path_str]);
 
         let output = execute(command).expect("runtime apply-config should succeed");
 
@@ -1447,7 +1457,7 @@ mod tests {
     #[test]
     fn execute_runtime_without_subcommand_returns_resolved_topology() {
         // Arrange
-        let command = args(&["ralph-engine", "runtime"]);
+        let command = args_en(&["ralph-engine", "runtime"]);
 
         // Act
         let output = execute(command).expect("runtime command should succeed");
@@ -1458,7 +1468,7 @@ mod tests {
 
     #[test]
     fn execute_config_show_mcp_server_returns_resolved_server_config() {
-        let command = args(&[
+        let command = args_en(&[
             "ralph-engine",
             "config",
             "show-mcp-server",
@@ -1475,7 +1485,7 @@ mod tests {
     #[test]
     fn execute_unknown_runtime_subcommand_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "runtime", "doctor"]);
+        let command = args_en(&["ralph-engine", "runtime", "doctor"]);
 
         // Act
         let error = execute(command).expect_err("unknown runtime command should fail");
@@ -1487,7 +1497,7 @@ mod tests {
     #[test]
     fn execute_capabilities_without_subcommand_lists_runtime_capabilities() {
         // Arrange
-        let command = args(&["ralph-engine", "capabilities"]);
+        let command = args_en(&["ralph-engine", "capabilities"]);
 
         // Act
         let output = execute(command).expect("capabilities command should succeed");
@@ -1499,7 +1509,7 @@ mod tests {
     #[test]
     fn execute_agents_without_subcommand_lists_runtime_agents() {
         // Arrange
-        let command = args(&["ralph-engine", "agents"]);
+        let command = args_en(&["ralph-engine", "agents"]);
 
         // Act
         let output = execute(command).expect("agents command should succeed");
@@ -1511,7 +1521,7 @@ mod tests {
     #[test]
     fn execute_templates_without_subcommand_lists_runtime_templates() {
         // Arrange
-        let command = args(&["ralph-engine", "templates"]);
+        let command = args_en(&["ralph-engine", "templates"]);
 
         // Act
         let output = execute(command).expect("templates command should succeed");
@@ -1523,7 +1533,7 @@ mod tests {
     #[test]
     fn execute_prompts_without_subcommand_lists_runtime_prompts() {
         // Arrange
-        let command = args(&["ralph-engine", "prompts"]);
+        let command = args_en(&["ralph-engine", "prompts"]);
 
         // Act
         let output = execute(command).expect("prompts command should succeed");
@@ -1535,7 +1545,7 @@ mod tests {
     #[test]
     fn execute_checks_without_subcommand_lists_runtime_checks() {
         // Arrange
-        let command = args(&["ralph-engine", "checks"]);
+        let command = args_en(&["ralph-engine", "checks"]);
 
         // Act
         let output = execute(command).expect("checks command should succeed");
@@ -1547,7 +1557,7 @@ mod tests {
     #[test]
     fn execute_hooks_without_subcommand_lists_runtime_hooks() {
         // Arrange
-        let command = args(&["ralph-engine", "hooks"]);
+        let command = args_en(&["ralph-engine", "hooks"]);
 
         // Act
         let output = execute(command).expect("hooks command should succeed");
@@ -1559,7 +1569,7 @@ mod tests {
     #[test]
     fn execute_policies_without_subcommand_lists_runtime_policies() {
         // Arrange
-        let command = args(&["ralph-engine", "policies"]);
+        let command = args_en(&["ralph-engine", "policies"]);
 
         // Act
         let output = execute(command).expect("policies command should succeed");
@@ -1571,7 +1581,7 @@ mod tests {
     #[test]
     fn execute_providers_without_subcommand_lists_runtime_providers() {
         // Arrange
-        let command = args(&["ralph-engine", "providers"]);
+        let command = args_en(&["ralph-engine", "providers"]);
 
         // Act
         let output = execute(command).expect("providers command should succeed");
@@ -1583,7 +1593,7 @@ mod tests {
     #[test]
     fn execute_unknown_capabilities_subcommand_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "capabilities", "doctor"]);
+        let command = args_en(&["ralph-engine", "capabilities", "doctor"]);
 
         // Act
         let error = execute(command).expect_err("unknown capabilities command should fail");
@@ -1595,7 +1605,7 @@ mod tests {
     #[test]
     fn execute_unknown_agents_subcommand_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "agents", "runtime"]);
+        let command = args_en(&["ralph-engine", "agents", "runtime"]);
 
         // Act
         let error = execute(command).expect_err("unknown agents command should fail");
@@ -1607,7 +1617,7 @@ mod tests {
     #[test]
     fn execute_unknown_templates_subcommand_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "templates", "runtime"]);
+        let command = args_en(&["ralph-engine", "templates", "runtime"]);
 
         // Act
         let error = execute(command).expect_err("unknown templates command should fail");
@@ -1619,7 +1629,7 @@ mod tests {
     #[test]
     fn execute_unknown_prompts_subcommand_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "prompts", "runtime"]);
+        let command = args_en(&["ralph-engine", "prompts", "runtime"]);
 
         // Act
         let error = execute(command).expect_err("unknown prompts command should fail");
@@ -1631,7 +1641,7 @@ mod tests {
     #[test]
     fn execute_unknown_checks_subcommand_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "checks", "runtime"]);
+        let command = args_en(&["ralph-engine", "checks", "runtime"]);
 
         // Act
         let error = execute(command).expect_err("unknown checks command should fail");
@@ -1643,7 +1653,7 @@ mod tests {
     #[test]
     fn execute_unknown_hooks_subcommand_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "hooks", "doctor"]);
+        let command = args_en(&["ralph-engine", "hooks", "doctor"]);
 
         // Act
         let error = execute(command).expect_err("unknown hooks command should fail");
@@ -1655,7 +1665,7 @@ mod tests {
     #[test]
     fn execute_unknown_policies_subcommand_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "policies", "doctor"]);
+        let command = args_en(&["ralph-engine", "policies", "doctor"]);
 
         // Act
         let error = execute(command).expect_err("unknown policies command should fail");
@@ -1667,7 +1677,7 @@ mod tests {
     #[test]
     fn execute_unknown_providers_subcommand_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "providers", "doctor"]);
+        let command = args_en(&["ralph-engine", "providers", "doctor"]);
 
         // Act
         let error = execute(command).expect_err("unknown providers command should fail");
@@ -1679,7 +1689,7 @@ mod tests {
     #[test]
     fn execute_unknown_mcp_subcommand_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "mcp", "doctor"]);
+        let command = args_en(&["ralph-engine", "mcp", "doctor"]);
 
         // Act
         let error = execute(command).expect_err("unknown mcp command should fail");
@@ -1691,7 +1701,7 @@ mod tests {
     #[test]
     fn execute_plugins_without_subcommand_lists_official_plugins() {
         // Arrange
-        let command = args(&["ralph-engine", "plugins"]);
+        let command = args_en(&["ralph-engine", "plugins"]);
 
         // Act
         let output = execute(command).expect("plugins command should succeed");
@@ -1703,7 +1713,7 @@ mod tests {
     #[test]
     fn execute_unknown_plugins_subcommand_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "plugins", "doctor"]);
+        let command = args_en(&["ralph-engine", "plugins", "doctor"]);
 
         // Act
         let error = execute(command).expect_err("unknown plugins command should fail");
@@ -1715,7 +1725,7 @@ mod tests {
     #[test]
     fn execute_unknown_command_fails() {
         // Arrange
-        let command = args(&["ralph-engine", "unknown"]);
+        let command = args_en(&["ralph-engine", "unknown"]);
 
         // Act
         let error = execute(command).expect_err("unknown command should fail");

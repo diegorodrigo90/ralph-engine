@@ -6,7 +6,7 @@ use re_config::{
     ProjectConfigLayer, ResolvedMcpServerConfig, ResolvedPluginConfig, RuntimeBudgetConfig,
     SupportedLocale, apply_project_config_patch, canonical_config_layers, default_project_config,
     default_project_config_layer, find_locale_descriptor, find_mcp_server_config,
-    find_plugin_config, materialize_project_config, parse_supported_locale,
+    find_plugin_config, materialize_project_config, parse_os_locale, parse_supported_locale,
     render_config_layers_yaml, render_default_locale_yaml, render_locale_descriptor_yaml,
     render_owned_project_config_yaml, render_project_config_yaml,
     render_resolved_mcp_server_config_yaml, render_resolved_plugin_config_yaml,
@@ -220,6 +220,42 @@ fn resolve_supported_locale_or_default_returns_typed_locale() {
     assert_eq!(
         resolve_supported_locale_or_default("es"),
         SupportedLocale::En
+    );
+}
+
+#[test]
+fn parse_os_locale_recognizes_common_formats() {
+    // Full OS locale with encoding
+    assert_eq!(parse_os_locale("pt_BR.UTF-8"), Some(SupportedLocale::PtBr));
+    assert_eq!(parse_os_locale("en_US.UTF-8"), Some(SupportedLocale::En));
+
+    // Without encoding suffix
+    assert_eq!(parse_os_locale("pt_BR"), Some(SupportedLocale::PtBr));
+    assert_eq!(parse_os_locale("en_US"), Some(SupportedLocale::En));
+
+    // Language-only prefix matches the first supported locale for that language
+    assert_eq!(parse_os_locale("pt"), Some(SupportedLocale::PtBr));
+    assert_eq!(parse_os_locale("en"), Some(SupportedLocale::En));
+
+    // Already in Ralph Engine format
+    assert_eq!(parse_os_locale("pt-br"), Some(SupportedLocale::PtBr));
+    assert_eq!(parse_os_locale("en"), Some(SupportedLocale::En));
+}
+
+#[test]
+fn parse_os_locale_returns_none_for_unsupported_or_empty_values() {
+    assert_eq!(parse_os_locale(""), None);
+    assert_eq!(parse_os_locale("C"), None);
+    assert_eq!(parse_os_locale("POSIX"), None);
+    assert_eq!(parse_os_locale("ja_JP.UTF-8"), None);
+    assert_eq!(parse_os_locale("es_ES"), None);
+}
+
+#[test]
+fn parse_os_locale_handles_whitespace() {
+    assert_eq!(
+        parse_os_locale("  pt_BR.UTF-8  "),
+        Some(SupportedLocale::PtBr)
     );
 }
 
