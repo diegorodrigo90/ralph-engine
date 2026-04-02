@@ -106,6 +106,8 @@ The `runtime issues` command prints the typed list of unresolved runtime issues 
 
 The `runtime plan` command prints the typed runtime remediation plan derived from the resolved topology, including template-provider, prompt-provider, agent-provider, check-provider, provider, policy-provider, and hook-provider enablement, so the next enablement step stays explicit and modular instead of being inferred ad hoc in the CLI.
 
+The `runtime mcp-plans` command prints the executable MCP launch plans that remain enabled in the resolved runtime snapshot, so operational launch steps stay visible next to topology, health, issues, and remediation.
+
 The `runtime patch` command renders the typed configuration patch that would remediate the current degraded topology, including plugin activation entries and per-server MCP enablement, so runtime recovery stays explicit and reusable instead of remaining only a textual plan.
 
 The `runtime patched-config` command renders the owned project configuration produced by applying the typed runtime patch to the current defaults, so operators can inspect the effective remediation result before persisting it elsewhere.

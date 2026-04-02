@@ -14,6 +14,7 @@ pub(super) const LOCALE: RuntimeLocaleCatalog = RuntimeLocaleCatalog {
     policies: "Policies",
     runtime_hooks: "Runtime hooks",
     mcp_servers: "MCP servers",
+    runtime_mcp_launch_plans: "Runtime MCP launch plans",
     runtime_issues: "Runtime issues",
     runtime_action_plan: "Runtime action plan",
     runtime_doctor: "Runtime doctor",

@@ -1168,6 +1168,15 @@ mod tests {
     }
 
     #[test]
+    fn execute_runtime_mcp_plans_returns_launch_plans() {
+        let command = args(&["ralph-engine", "runtime", "mcp-plans"]);
+
+        let output = execute(command).expect("runtime mcp-plans should succeed");
+
+        assert_eq!(output, "Runtime MCP launch plans (0)");
+    }
+
+    #[test]
     fn execute_runtime_patch_returns_typed_config_patch() {
         let command = args(&["ralph-engine", "runtime", "patch"]);
 
