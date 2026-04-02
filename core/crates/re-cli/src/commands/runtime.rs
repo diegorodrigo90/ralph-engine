@@ -1,15 +1,15 @@
 //! Runtime command handlers.
 
-use re_config::{
-    apply_project_config_patch, default_project_config, render_owned_project_config_yaml,
-};
 use re_core::{
-    build_runtime_snapshot, render_runtime_action_plan_for_locale,
-    render_runtime_config_patch_yaml, render_runtime_issues_for_locale,
-    render_runtime_status_for_locale, render_runtime_topology_for_locale,
+    render_runtime_action_plan_for_locale, render_runtime_config_patch_yaml,
+    render_runtime_issues_for_locale, render_runtime_status_for_locale,
+    render_runtime_topology_for_locale,
 };
 
-use crate::{CliError, catalog, i18n};
+use super::runtime_state::{
+    render_official_runtime_patched_config, with_official_runtime_snapshot,
+};
+use crate::{CliError, i18n};
 
 /// Executes the runtime command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
@@ -27,54 +27,35 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 }
 
 fn show_runtime(locale: &str) -> String {
-    let snapshot = catalog::official_runtime_snapshot();
-    let topology = snapshot.topology();
-    let runtime = build_runtime_snapshot(&topology);
-
-    render_runtime_topology_for_locale(&runtime.topology, locale)
+    with_official_runtime_snapshot(|runtime| {
+        render_runtime_topology_for_locale(&runtime.topology, locale)
+    })
 }
 
 fn show_runtime_status(locale: &str) -> String {
-    let snapshot = catalog::official_runtime_snapshot();
-    let topology = snapshot.topology();
-    let runtime = build_runtime_snapshot(&topology);
-
-    render_runtime_status_for_locale(&runtime.status, locale)
+    with_official_runtime_snapshot(|runtime| {
+        render_runtime_status_for_locale(&runtime.status, locale)
+    })
 }
 
 fn show_runtime_issues(locale: &str) -> String {
-    let snapshot = catalog::official_runtime_snapshot();
-    let topology = snapshot.topology();
-    let runtime = build_runtime_snapshot(&topology);
-
-    render_runtime_issues_for_locale(&runtime.issues, locale)
+    with_official_runtime_snapshot(|runtime| {
+        render_runtime_issues_for_locale(&runtime.issues, locale)
+    })
 }
 
 fn show_runtime_action_plan(locale: &str) -> String {
-    let snapshot = catalog::official_runtime_snapshot();
-    let topology = snapshot.topology();
-    let runtime = build_runtime_snapshot(&topology);
-
-    render_runtime_action_plan_for_locale(&runtime.actions, locale)
+    with_official_runtime_snapshot(|runtime| {
+        render_runtime_action_plan_for_locale(&runtime.actions, locale)
+    })
 }
 
 fn show_runtime_config_patch() -> String {
-    let snapshot = catalog::official_runtime_snapshot();
-    let topology = snapshot.topology();
-    let runtime = build_runtime_snapshot(&topology);
-
-    render_runtime_config_patch_yaml(&runtime.config_patch)
+    with_official_runtime_snapshot(|runtime| {
+        render_runtime_config_patch_yaml(&runtime.config_patch)
+    })
 }
 
 fn show_runtime_patched_config() -> String {
-    let snapshot = catalog::official_runtime_snapshot();
-    let topology = snapshot.topology();
-    let runtime = build_runtime_snapshot(&topology);
-    let config = apply_project_config_patch(
-        &default_project_config(),
-        &runtime.config_patch.plugins,
-        &runtime.config_patch.mcp_servers,
-    );
-
-    render_owned_project_config_yaml(&config)
+    render_official_runtime_patched_config()
 }
