@@ -1186,6 +1186,15 @@ mod tests {
     }
 
     #[test]
+    fn execute_runtime_check_plans_returns_execution_plans() {
+        let command = args(&["ralph-engine", "runtime", "check-plans"]);
+
+        let output = execute(command).expect("runtime check-plans should succeed");
+
+        assert_eq!(output, "Runtime check execution plans (0)");
+    }
+
+    #[test]
     fn execute_runtime_mcp_plans_returns_launch_plans() {
         let command = args(&["ralph-engine", "runtime", "mcp-plans"]);
 
