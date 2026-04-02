@@ -2,6 +2,8 @@
 
 use std::fmt;
 
+mod i18n;
+
 /// Supported MCP transport kinds.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum McpTransport {
@@ -305,11 +307,7 @@ pub fn render_mcp_server_listing_for_locale(
     let mut lines = Vec::with_capacity(servers.len() + 1);
     lines.push(format!(
         "{} ({})",
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Servidores MCP oficiais"
-        } else {
-            "Official MCP servers"
-        },
+        i18n::official_servers_label(locale),
         servers.len()
     ));
 
@@ -333,59 +331,23 @@ pub fn render_mcp_server_detail(server: &McpServerDescriptor) -> String {
 #[must_use]
 pub fn render_mcp_server_detail_for_locale(server: &McpServerDescriptor, locale: &str) -> String {
     let mut lines = vec![
+        format!("{}: {}", i18n::server_label(locale), server.id),
+        format!("{}: {}", i18n::name_label(locale), server.name),
+        format!("{}: {}", i18n::plugin_label(locale), server.plugin_id),
+        format!("{}: {}", i18n::transport_label(locale), server.transport),
         format!(
             "{}: {}",
-            if locale.eq_ignore_ascii_case("pt-br") {
-                "Servidor MCP"
-            } else {
-                "MCP server"
-            },
-            server.id
-        ),
-        format!(
-            "{}: {}",
-            if locale.eq_ignore_ascii_case("pt-br") {
-                "Nome"
-            } else {
-                "Name"
-            },
-            server.name
-        ),
-        format!("{}: {}", "Plugin", server.plugin_id),
-        format!(
-            "{}: {}",
-            if locale.eq_ignore_ascii_case("pt-br") {
-                "Transporte"
-            } else {
-                "Transport"
-            },
-            server.transport
-        ),
-        format!(
-            "{}: {}",
-            if locale.eq_ignore_ascii_case("pt-br") {
-                "Modelo de processo"
-            } else {
-                "Process model"
-            },
+            i18n::process_model_label(locale),
             server.process_model()
         ),
         format!(
             "{}: {}",
-            if locale.eq_ignore_ascii_case("pt-br") {
-                "Política de launch"
-            } else {
-                "Launch policy"
-            },
+            i18n::launch_policy_label(locale),
             server.launch_policy
         ),
         format!(
             "{}: {}",
-            if locale.eq_ignore_ascii_case("pt-br") {
-                "Disponibilidade"
-            } else {
-                "Availability"
-            },
+            i18n::availability_label(locale),
             server.availability
         ),
     ];
@@ -394,61 +356,33 @@ pub fn render_mcp_server_detail_for_locale(server: &McpServerDescriptor, locale:
         Some(command) => {
             lines.push(format!(
                 "{}: {}",
-                if locale.eq_ignore_ascii_case("pt-br") {
-                    "Comando"
-                } else {
-                    "Command"
-                },
+                i18n::command_label(locale),
                 command.render_invocation()
             ));
             lines.push(format!(
                 "{}: {}",
-                if locale.eq_ignore_ascii_case("pt-br") {
-                    "Diretório de trabalho"
-                } else {
-                    "Working directory"
-                },
+                i18n::working_directory_label(locale),
                 command.working_directory
             ));
             lines.push(format!(
                 "{}: {}",
-                if locale.eq_ignore_ascii_case("pt-br") {
-                    "Ambiente"
-                } else {
-                    "Environment"
-                },
+                i18n::environment_label(locale),
                 command.environment
             ));
         }
         None => {
             lines.push(format!(
                 "{}: {}",
-                if locale.eq_ignore_ascii_case("pt-br") {
-                    "Comando"
-                } else {
-                    "Command"
-                },
-                if locale.eq_ignore_ascii_case("pt-br") {
-                    "gerenciado pelo runtime do plugin"
-                } else {
-                    "managed by plugin runtime"
-                }
+                i18n::command_label(locale),
+                i18n::runtime_managed_command_label(locale)
             ));
             lines.push(format!(
                 "{}: runtime_managed",
-                if locale.eq_ignore_ascii_case("pt-br") {
-                    "Diretório de trabalho"
-                } else {
-                    "Working directory"
-                }
+                i18n::working_directory_label(locale)
             ));
             lines.push(format!(
                 "{}: minimal_runtime",
-                if locale.eq_ignore_ascii_case("pt-br") {
-                    "Ambiente"
-                } else {
-                    "Environment"
-                }
+                i18n::environment_label(locale)
             ));
         }
     }
