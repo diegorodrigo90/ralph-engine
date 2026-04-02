@@ -1,3 +1,17 @@
+pub(super) struct PluginLocaleCatalog {
+    pub official_plugins: &'static str,
+    pub plugin: &'static str,
+    pub kind: &'static str,
+    pub trust: &'static str,
+    pub name: &'static str,
+    pub version: &'static str,
+    pub summary: &'static str,
+    pub capabilities: &'static str,
+    pub lifecycle: &'static str,
+    pub load_boundary: &'static str,
+    pub runtime_hooks: &'static str,
+}
+
 mod en;
 mod pt_br;
 
@@ -17,79 +31,29 @@ impl PluginLocale {
     }
 }
 
-pub(crate) fn official_plugins_label(locale: &str) -> &'static str {
+fn locale_catalog(locale: &str) -> &'static PluginLocaleCatalog {
     match PluginLocale::resolve(locale) {
-        PluginLocale::En => en::OFFICIAL_PLUGINS,
-        PluginLocale::PtBr => pt_br::OFFICIAL_PLUGINS,
+        PluginLocale::En => &en::LOCALE,
+        PluginLocale::PtBr => &pt_br::LOCALE,
     }
 }
 
-pub(crate) fn plugin_label(locale: &str) -> &'static str {
-    match PluginLocale::resolve(locale) {
-        PluginLocale::En => en::PLUGIN,
-        PluginLocale::PtBr => pt_br::PLUGIN,
-    }
+macro_rules! locale_label {
+    ($fn_name:ident, $field:ident) => {
+        pub(crate) fn $fn_name(locale: &str) -> &'static str {
+            locale_catalog(locale).$field
+        }
+    };
 }
 
-pub(crate) fn kind_label(locale: &str) -> &'static str {
-    match PluginLocale::resolve(locale) {
-        PluginLocale::En => en::KIND,
-        PluginLocale::PtBr => pt_br::KIND,
-    }
-}
-
-pub(crate) fn trust_label(locale: &str) -> &'static str {
-    match PluginLocale::resolve(locale) {
-        PluginLocale::En => en::TRUST,
-        PluginLocale::PtBr => pt_br::TRUST,
-    }
-}
-
-pub(crate) fn name_label(locale: &str) -> &'static str {
-    match PluginLocale::resolve(locale) {
-        PluginLocale::En => en::NAME,
-        PluginLocale::PtBr => pt_br::NAME,
-    }
-}
-
-pub(crate) fn version_label(locale: &str) -> &'static str {
-    match PluginLocale::resolve(locale) {
-        PluginLocale::En => en::VERSION,
-        PluginLocale::PtBr => pt_br::VERSION,
-    }
-}
-
-pub(crate) fn summary_label(locale: &str) -> &'static str {
-    match PluginLocale::resolve(locale) {
-        PluginLocale::En => en::SUMMARY,
-        PluginLocale::PtBr => pt_br::SUMMARY,
-    }
-}
-
-pub(crate) fn capabilities_label(locale: &str) -> &'static str {
-    match PluginLocale::resolve(locale) {
-        PluginLocale::En => en::CAPABILITIES,
-        PluginLocale::PtBr => pt_br::CAPABILITIES,
-    }
-}
-
-pub(crate) fn lifecycle_label(locale: &str) -> &'static str {
-    match PluginLocale::resolve(locale) {
-        PluginLocale::En => en::LIFECYCLE,
-        PluginLocale::PtBr => pt_br::LIFECYCLE,
-    }
-}
-
-pub(crate) fn load_boundary_label(locale: &str) -> &'static str {
-    match PluginLocale::resolve(locale) {
-        PluginLocale::En => en::LOAD_BOUNDARY,
-        PluginLocale::PtBr => pt_br::LOAD_BOUNDARY,
-    }
-}
-
-pub(crate) fn runtime_hooks_label(locale: &str) -> &'static str {
-    match PluginLocale::resolve(locale) {
-        PluginLocale::En => en::RUNTIME_HOOKS,
-        PluginLocale::PtBr => pt_br::RUNTIME_HOOKS,
-    }
-}
+locale_label!(official_plugins_label, official_plugins);
+locale_label!(plugin_label, plugin);
+locale_label!(kind_label, kind);
+locale_label!(trust_label, trust);
+locale_label!(name_label, name);
+locale_label!(version_label, version);
+locale_label!(summary_label, summary);
+locale_label!(capabilities_label, capabilities);
+locale_label!(lifecycle_label, lifecycle);
+locale_label!(load_boundary_label, load_boundary);
+locale_label!(runtime_hooks_label, runtime_hooks);
