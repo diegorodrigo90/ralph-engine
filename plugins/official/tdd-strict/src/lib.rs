@@ -100,6 +100,10 @@ mod tests {
         runtime_hooks, templates,
     };
 
+    fn manifest_document() -> &'static str {
+        include_str!("../manifest.yaml")
+    }
+
     #[test]
     fn plugin_id_is_namespaced() {
         // Arrange
@@ -194,5 +198,17 @@ mod tests {
             policy.summary_for_locale("pt-br"),
             "Política oficial com guardrails estritos de TDD."
         );
+    }
+
+    #[test]
+    fn plugin_manifest_matches_typed_contract_surface() {
+        let manifest = manifest_document();
+
+        assert!(manifest.contains("id: official.tdd-strict"));
+        assert!(manifest.contains("kind: policy"));
+        assert!(manifest.contains("- template"));
+        assert!(manifest.contains("- policy"));
+        assert!(manifest.contains("id: official.tdd-strict.starter"));
+        assert!(manifest.contains("id: official.tdd-strict.guardrails"));
     }
 }

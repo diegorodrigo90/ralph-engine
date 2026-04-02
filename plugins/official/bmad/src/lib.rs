@@ -103,6 +103,10 @@ mod tests {
         runtime_hooks, templates,
     };
 
+    fn manifest_document() -> &'static str {
+        include_str!("../manifest.yaml")
+    }
+
     #[test]
     fn plugin_id_is_namespaced() {
         // Arrange
@@ -198,5 +202,19 @@ mod tests {
             prompt.summary_for_locale("es"),
             "Prompt bundle for BMAD workflow assembly."
         );
+    }
+
+    #[test]
+    fn plugin_manifest_matches_typed_contract_surface() {
+        let manifest = manifest_document();
+
+        assert!(manifest.contains("id: official.bmad"));
+        assert!(manifest.contains("kind: template"));
+        assert!(manifest.contains("- template"));
+        assert!(manifest.contains("- prompt_fragments"));
+        assert!(manifest.contains("- prepare_checks"));
+        assert!(manifest.contains("- doctor_checks"));
+        assert!(manifest.contains("id: official.bmad.starter"));
+        assert!(manifest.contains("id: official.bmad.workflow"));
     }
 }

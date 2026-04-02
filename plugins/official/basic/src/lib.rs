@@ -81,6 +81,10 @@ mod tests {
         templates,
     };
 
+    fn manifest_document() -> &'static str {
+        include_str!("../manifest.yaml")
+    }
+
     #[test]
     fn plugin_id_is_namespaced() {
         // Arrange
@@ -160,5 +164,16 @@ mod tests {
             template.summary_for_locale("es"),
             "Starter template for new Ralph Engine projects."
         );
+    }
+
+    #[test]
+    fn plugin_manifest_matches_typed_contract_surface() {
+        let manifest = manifest_document();
+
+        assert!(manifest.contains("id: official.basic"));
+        assert!(manifest.contains("kind: template"));
+        assert!(manifest.contains("trust_level: official"));
+        assert!(manifest.contains("- template"));
+        assert!(manifest.contains("id: official.basic.starter"));
     }
 }
