@@ -1,20 +1,14 @@
 //! Prompt provider command handlers.
 
-use re_core::RuntimePromptRegistration;
+use crate::{CliError, catalog, i18n};
 
-use crate::{
-    CliError, catalog,
-    commands::plugin_surfaces::{
-        render_plugin_owned_surface_detail, render_plugin_owned_surface_listing,
-    },
-    i18n,
-};
+use catalog::OfficialPromptContribution;
 
 /// Executes the prompts command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
         None | Some("list") => Ok(render_prompt_listing(
-            &catalog::official_runtime_prompts(),
+            &catalog::official_prompt_contributions(),
             locale,
         )),
         Some("show") => show_prompt(args.get(1).map(String::as_str), locale),
@@ -24,77 +18,113 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     }
 }
 
-fn show_prompt(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError> {
-    let plugin_id = plugin_id.ok_or_else(|| {
+fn show_prompt(prompt_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let prompt_id = prompt_id.ok_or_else(|| {
         CliError::new(i18n::missing_id(
             locale,
             "prompts",
-            i18n::plugin_id_entity_label(locale),
+            i18n::prompt_id_entity_label(locale),
         ))
     })?;
-    let prompts = catalog::find_official_runtime_prompts(plugin_id);
-
-    if prompts.is_empty() {
-        return Err(CliError::new(i18n::unknown_entity(
+    let prompt = catalog::find_official_prompt_contribution(prompt_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
             locale,
-            i18n::prompt_provider_entity_label(locale),
-            plugin_id,
-        )));
+            i18n::prompt_entity_label(locale),
+            prompt_id,
+        ))
+    })?;
+
+    Ok(render_prompt_detail(prompt, locale))
+}
+
+fn render_prompt_listing(registrations: &[OfficialPromptContribution], locale: &str) -> String {
+    let mut lines = Vec::with_capacity(registrations.len() + 1);
+    lines.push(i18n::list_heading(
+        locale,
+        "Prompts",
+        "Prompts",
+        registrations.len(),
+    ));
+
+    for registration in registrations {
+        lines.push(format!(
+            "- {} | {} | plugin={} | activation={}",
+            registration.descriptor.id,
+            registration.descriptor.display_name_for_locale(locale),
+            registration.descriptor.plugin_id,
+            registration.activation.as_str(),
+        ));
     }
 
-    Ok(render_prompt_detail(plugin_id, &prompts, locale))
+    lines.join("\n")
 }
 
-fn render_prompt_listing(registrations: &[RuntimePromptRegistration], locale: &str) -> String {
-    render_plugin_owned_surface_listing(
-        registrations,
-        locale,
-        i18n::prompts_label,
-        render_prompt_registration,
-    )
-}
+fn render_prompt_detail(prompt: OfficialPromptContribution, locale: &str) -> String {
+    let name_label = if i18n::is_pt_br(locale) {
+        "Nome"
+    } else {
+        "Name"
+    };
+    let summary_label = if i18n::is_pt_br(locale) {
+        "Resumo"
+    } else {
+        "Summary"
+    };
+    let hook_label = if i18n::is_pt_br(locale) {
+        "Hook de runtime"
+    } else {
+        "Runtime hook"
+    };
 
-fn render_prompt_detail(
-    plugin_id: &str,
-    prompts: &[RuntimePromptRegistration],
-    locale: &str,
-) -> String {
-    render_plugin_owned_surface_detail(
-        plugin_id,
-        prompts,
-        locale,
-        i18n::prompt_provider_label,
-        render_prompt_registration,
-    )
-}
-
-fn render_prompt_registration(registration: &RuntimePromptRegistration) -> String {
     format!(
-        "- {} | activation={} | boundary={} | prompt_hook={}",
-        registration.plugin_id,
-        registration.activation.as_str(),
-        registration.load_boundary.as_str(),
-        registration.prompt_hook_registered
+        "Prompt: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{}: {}\n{}: {}\n{hook_label}: {}",
+        prompt.descriptor.id,
+        prompt.descriptor.display_name_for_locale(locale),
+        prompt.descriptor.summary_for_locale(locale),
+        prompt.descriptor.plugin_id,
+        i18n::activation_label(locale),
+        prompt.activation.as_str(),
+        i18n::load_boundary_label(locale),
+        prompt.load_boundary.as_str(),
+        if prompt.prompt_hook_registered {
+            "prompt_assembly"
+        } else {
+            "missing"
+        },
     )
 }
 
 #[cfg(test)]
 mod tests {
     use re_config::PluginActivation;
-    use re_core::RuntimePromptRegistration;
-    use re_plugin::PluginLoadBoundary;
+    use re_plugin::{PluginLoadBoundary, PluginLocalizedText, PluginPromptDescriptor};
 
-    use super::{render_prompt_detail, render_prompt_listing};
+    use super::{OfficialPromptContribution, render_prompt_detail, render_prompt_listing};
+
+    const LOCALIZED_NAMES: &[PluginLocalizedText] =
+        &[PluginLocalizedText::new("pt-br", "Prompt de workflow BMAD")];
+    const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+        "pt-br",
+        "Pacote de prompts para montar workflows BMAD.",
+    )];
+
+    fn prompt_descriptor() -> PluginPromptDescriptor {
+        PluginPromptDescriptor::new(
+            "official.bmad.workflow",
+            "official.bmad",
+            "BMAD workflow prompt",
+            LOCALIZED_NAMES,
+            "Prompt bundle for BMAD workflow assembly.",
+            LOCALIZED_SUMMARIES,
+        )
+    }
 
     #[test]
     fn render_prompt_listing_handles_empty_sets() {
-        // Arrange
         let registrations = [];
 
-        // Act
         let rendered = render_prompt_listing(&registrations, "en");
 
-        // Assert
         assert_eq!(rendered, "Prompts (0)");
     }
 
@@ -109,37 +139,38 @@ mod tests {
 
     #[test]
     fn render_prompt_detail_is_human_readable() {
-        // Arrange
-        let prompts = [RuntimePromptRegistration::new(
-            "official.bmad",
-            PluginActivation::Disabled,
-            PluginLoadBoundary::InProcess,
-            true,
-        )];
+        let rendered = render_prompt_detail(
+            OfficialPromptContribution {
+                descriptor: prompt_descriptor(),
+                activation: PluginActivation::Disabled,
+                load_boundary: PluginLoadBoundary::InProcess,
+                prompt_hook_registered: true,
+            },
+            "en",
+        );
 
-        // Act
-        let rendered = render_prompt_detail("official.bmad", &prompts, "en");
-
-        // Assert
-        assert!(rendered.contains("Prompt provider: official.bmad"));
-        assert!(rendered.contains("Providers (1)"));
-        assert!(rendered.contains(
-            "- official.bmad | activation=disabled | boundary=in_process | prompt_hook=true"
-        ));
+        assert!(rendered.contains("Prompt: official.bmad.workflow"));
+        assert!(rendered.contains("Name: BMAD workflow prompt"));
+        assert!(rendered.contains("Plugin: official.bmad"));
+        assert!(rendered.contains("Activation: disabled"));
+        assert!(rendered.contains("Runtime hook: prompt_assembly"));
     }
 
     #[test]
     fn render_prompt_detail_supports_pt_br() {
-        let prompts = [RuntimePromptRegistration::new(
-            "official.bmad",
-            PluginActivation::Disabled,
-            PluginLoadBoundary::InProcess,
-            true,
-        )];
+        let rendered = render_prompt_detail(
+            OfficialPromptContribution {
+                descriptor: prompt_descriptor(),
+                activation: PluginActivation::Disabled,
+                load_boundary: PluginLoadBoundary::InProcess,
+                prompt_hook_registered: true,
+            },
+            "pt-br",
+        );
 
-        let rendered = render_prompt_detail("official.bmad", &prompts, "pt-br");
-
-        assert!(rendered.contains("Provedor de prompt: official.bmad"));
-        assert!(rendered.contains("Provedores (1)"));
+        assert!(rendered.contains("Prompt: official.bmad.workflow"));
+        assert!(rendered.contains("Nome: Prompt de workflow BMAD"));
+        assert!(rendered.contains("Resumo: Pacote de prompts para montar workflows BMAD."));
+        assert!(rendered.contains("Plugin: official.bmad"));
     }
 }

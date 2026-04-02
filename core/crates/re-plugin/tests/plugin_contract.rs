@@ -5,8 +5,9 @@ use re_plugin::{
     ALL_PLUGIN_RUNTIME_SURFACES, ALL_PLUGIN_TRUST_LEVELS, CONTEXT_PROVIDER, DATA_SOURCE,
     DOCTOR_CHECKS, FORGE_PROVIDER, MCP_CONTRIBUTION, POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS,
     PluginCapability, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
-    PluginLocalizedText, PluginRuntimeHook, PluginRuntimeSurface, PluginTrustLevel, REMOTE_CONTROL,
-    TEMPLATE, parse_plugin_runtime_hook, parse_reviewed_plugin_capability, render_plugin_detail,
+    PluginLocalizedText, PluginPromptDescriptor, PluginRuntimeHook, PluginRuntimeSurface,
+    PluginTemplateDescriptor, PluginTrustLevel, REMOTE_CONTROL, TEMPLATE,
+    parse_plugin_runtime_hook, parse_reviewed_plugin_capability, render_plugin_detail,
     render_plugin_detail_for_locale, render_plugin_listing, render_plugin_listing_for_locale,
     runtime_surface_for_capability,
 };
@@ -33,6 +34,18 @@ const BASIC_SUMMARY: &str = "Foundation plugin for starter templates.";
 const BASIC_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
     "pt-br",
     "Plugin base para templates iniciais.",
+)];
+const BASIC_TEMPLATE_LOCALIZED_NAMES: &[PluginLocalizedText] =
+    &[PluginLocalizedText::new("pt-br", "Starter básico")];
+const BASIC_TEMPLATE_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Template inicial para novos projetos Ralph Engine.",
+)];
+const BMAD_PROMPT_LOCALIZED_NAMES: &[PluginLocalizedText] =
+    &[PluginLocalizedText::new("pt-br", "Prompt de workflow BMAD")];
+const BMAD_PROMPT_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Pacote de prompts para montar workflows BMAD.",
 )];
 const GITHUB_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
     PluginRuntimeHook::McpRegistration,
@@ -109,6 +122,61 @@ fn localized_text_constructor_is_stable() {
 
     assert_eq!(entry.locale, "pt-br");
     assert_eq!(entry.value, "Básico");
+}
+
+#[test]
+fn template_descriptor_resolves_locales_with_english_fallback() {
+    let descriptor = PluginTemplateDescriptor::new(
+        "official.basic.starter",
+        "official.basic",
+        "Basic starter",
+        BASIC_TEMPLATE_LOCALIZED_NAMES,
+        "Starter template for new Ralph Engine projects.",
+        BASIC_TEMPLATE_LOCALIZED_SUMMARIES,
+    );
+
+    assert_eq!(
+        descriptor.display_name_for_locale("pt-br"),
+        "Starter básico"
+    );
+    assert_eq!(
+        descriptor.summary_for_locale("pt-br"),
+        "Template inicial para novos projetos Ralph Engine."
+    );
+    assert_eq!(descriptor.display_name_for_locale("es"), "Basic starter");
+    assert_eq!(
+        descriptor.summary_for_locale("es"),
+        "Starter template for new Ralph Engine projects."
+    );
+}
+
+#[test]
+fn prompt_descriptor_resolves_locales_with_english_fallback() {
+    let descriptor = PluginPromptDescriptor::new(
+        "official.bmad.workflow",
+        "official.bmad",
+        "BMAD workflow prompt",
+        BMAD_PROMPT_LOCALIZED_NAMES,
+        "Prompt bundle for BMAD workflow assembly.",
+        BMAD_PROMPT_LOCALIZED_SUMMARIES,
+    );
+
+    assert_eq!(
+        descriptor.display_name_for_locale("pt-br"),
+        "Prompt de workflow BMAD"
+    );
+    assert_eq!(
+        descriptor.summary_for_locale("pt-br"),
+        "Pacote de prompts para montar workflows BMAD."
+    );
+    assert_eq!(
+        descriptor.display_name_for_locale("fr"),
+        "BMAD workflow prompt"
+    );
+    assert_eq!(
+        descriptor.summary_for_locale("fr"),
+        "Prompt bundle for BMAD workflow assembly."
+    );
 }
 
 #[test]

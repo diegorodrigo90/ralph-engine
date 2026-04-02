@@ -4,7 +4,7 @@ mod i18n;
 
 use re_plugin::{
     PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
-    PluginRuntimeHook, PluginTrustLevel, TEMPLATE,
+    PluginRuntimeHook, PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
 };
 
 /// Stable plugin identifier.
@@ -35,6 +35,14 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PluginLoadBoundary::InProcess,
     RUNTIME_HOOKS,
 );
+const TEMPLATES: &[PluginTemplateDescriptor] = &[PluginTemplateDescriptor::new(
+    "official.basic.starter",
+    PLUGIN_ID,
+    i18n::default_template_name(),
+    i18n::localized_template_names(),
+    i18n::default_template_summary(),
+    i18n::localized_template_summaries(),
+)];
 
 /// Declared capabilities for the official plugin foundation.
 #[must_use]
@@ -60,10 +68,17 @@ pub const fn descriptor() -> PluginDescriptor {
     DESCRIPTOR
 }
 
+/// Returns the immutable template contributions declared by the plugin.
+#[must_use]
+pub const fn templates() -> &'static [PluginTemplateDescriptor] {
+    TEMPLATES
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, runtime_hooks,
+        templates,
     };
 
     #[test]
@@ -97,9 +112,9 @@ mod tests {
 
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == i18n::en::LOCALE.name
-            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::LOCALE.name
-            && plugin.summary_for_locale("pt-br") == i18n::pt_br::LOCALE.summary
+            && plugin.name == i18n::en::PLUGIN_LOCALE.plugin_name
+            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::PLUGIN_LOCALE.plugin_name
+            && plugin.summary_for_locale("pt-br") == i18n::pt_br::PLUGIN_LOCALE.plugin_summary
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert
@@ -128,5 +143,22 @@ mod tests {
 
         // Assert
         assert!(has_hooks);
+    }
+
+    #[test]
+    fn plugin_declares_template_contributions() {
+        let template = templates()[0];
+
+        assert_eq!(template.id, "official.basic.starter");
+        assert_eq!(template.plugin_id, PLUGIN_ID);
+        assert_eq!(template.display_name_for_locale("pt-br"), "Starter básico");
+        assert_eq!(
+            template.summary_for_locale("pt-br"),
+            "Template inicial para novos projetos Ralph Engine."
+        );
+        assert_eq!(
+            template.summary_for_locale("es"),
+            "Starter template for new Ralph Engine projects."
+        );
     }
 }

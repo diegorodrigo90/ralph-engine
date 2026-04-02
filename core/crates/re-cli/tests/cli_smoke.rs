@@ -192,15 +192,15 @@ fn binary_templates_list_succeeds() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
     assert!(stdout.contains("Templates (3)"));
-    assert!(stdout.contains("official.basic"));
-    assert!(stdout.contains("official.bmad"));
+    assert!(stdout.contains("official.basic.starter"));
+    assert!(stdout.contains("official.bmad.starter"));
 }
 
 #[test]
 fn binary_templates_show_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
-    command.args(["templates", "show", "official.basic"]);
+    command.args(["templates", "show", "official.basic.starter"]);
 
     // Act
     let output = command.output().expect("binary should run");
@@ -208,22 +208,23 @@ fn binary_templates_show_succeeds() {
     // Assert
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    assert!(stdout.contains("Template provider: official.basic"));
-    assert!(stdout.contains("scaffold_hook=true"));
+    assert!(stdout.contains("Template: official.basic.starter"));
+    assert!(stdout.contains("Plugin: official.basic"));
+    assert!(stdout.contains("Runtime hook: scaffold"));
 }
 
 #[test]
 fn binary_templates_show_succeeds_in_pt_br() {
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
-    command.args(["templates", "show", "official.basic"]);
+    command.args(["templates", "show", "official.basic.starter"]);
 
     let output = command.output().expect("binary should run");
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    assert!(stdout.contains("Provedor de template: official.basic"));
-    assert!(stdout.contains("Provedores (1)"));
+    assert!(stdout.contains("Template: official.basic.starter"));
+    assert!(stdout.contains("Nome: Starter básico"));
 }
 
 #[test]
@@ -236,7 +237,7 @@ fn binary_templates_show_rejects_unknown_plugin_in_pt_br() {
 
     assert_eq!(output.status.code(), Some(2));
     let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
-    assert!(stderr.contains("provedor de template desconhecido: official.missing"));
+    assert!(stderr.contains("template desconhecido: official.missing"));
 }
 
 #[test]
@@ -252,14 +253,14 @@ fn binary_prompts_list_succeeds() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
     assert!(stdout.contains("Prompts (1)"));
-    assert!(stdout.contains("official.bmad"));
+    assert!(stdout.contains("official.bmad.workflow"));
 }
 
 #[test]
 fn binary_prompts_show_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
-    command.args(["prompts", "show", "official.bmad"]);
+    command.args(["prompts", "show", "official.bmad.workflow"]);
 
     // Act
     let output = command.output().expect("binary should run");
@@ -267,22 +268,23 @@ fn binary_prompts_show_succeeds() {
     // Assert
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    assert!(stdout.contains("Prompt provider: official.bmad"));
-    assert!(stdout.contains("prompt_hook=true"));
+    assert!(stdout.contains("Prompt: official.bmad.workflow"));
+    assert!(stdout.contains("Plugin: official.bmad"));
+    assert!(stdout.contains("Runtime hook: prompt_assembly"));
 }
 
 #[test]
 fn binary_prompts_show_succeeds_in_pt_br() {
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
-    command.args(["prompts", "show", "official.bmad"]);
+    command.args(["prompts", "show", "official.bmad.workflow"]);
 
     let output = command.output().expect("binary should run");
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    assert!(stdout.contains("Provedor de prompt: official.bmad"));
-    assert!(stdout.contains("Provedores (1)"));
+    assert!(stdout.contains("Prompt: official.bmad.workflow"));
+    assert!(stdout.contains("Nome: Prompt de workflow BMAD"));
 }
 
 #[test]
@@ -295,7 +297,7 @@ fn binary_prompts_show_rejects_unknown_plugin_in_pt_br() {
 
     assert_eq!(output.status.code(), Some(2));
     let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
-    assert!(stderr.contains("provedor de prompt desconhecido: official.missing"));
+    assert!(stderr.contains("prompt desconhecido: official.missing"));
 }
 
 #[test]

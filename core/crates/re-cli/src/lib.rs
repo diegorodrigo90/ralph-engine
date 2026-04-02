@@ -154,51 +154,57 @@ mod tests {
 
         // Assert
         assert!(output.contains("Templates (3)"));
-        assert!(output.contains("- official.basic | activation=enabled"));
-        assert!(output.contains("- official.bmad | activation=disabled"));
+        assert!(output.contains(
+            "- official.basic.starter | Basic starter | plugin=official.basic | activation=enabled"
+        ));
+        assert!(output.contains(
+            "- official.bmad.starter | BMAD starter | plugin=official.bmad | activation=disabled"
+        ));
     }
 
     #[test]
-    fn execute_templates_show_returns_provider_detail() {
+    fn execute_templates_show_returns_template_detail() {
         // Arrange
-        let command = args(&["ralph-engine", "templates", "show", "official.basic"]);
+        let command = args(&[
+            "ralph-engine",
+            "templates",
+            "show",
+            "official.basic.starter",
+        ]);
 
         // Act
         let output = execute(command).expect("templates show should succeed");
 
         // Assert
-        assert!(output.contains("Template provider: official.basic"));
-        assert!(output.contains("Providers (1)"));
-        assert!(output.contains(
-            "- official.basic | activation=enabled | boundary=in_process | scaffold_hook=true"
-        ));
+        assert!(output.contains("Template: official.basic.starter"));
+        assert!(output.contains("Name: Basic starter"));
+        assert!(output.contains("Plugin: official.basic"));
+        assert!(output.contains("Activation: enabled"));
+        assert!(output.contains("Runtime hook: scaffold"));
     }
 
     #[test]
-    fn execute_templates_show_requires_plugin_id() {
+    fn execute_templates_show_requires_template_id() {
         // Arrange
         let command = args(&["ralph-engine", "templates", "show"]);
 
         // Act
-        let error = execute(command).expect_err("missing template plugin id should fail");
+        let error = execute(command).expect_err("missing template id should fail");
 
         // Assert
-        assert_eq!(error.to_string(), "templates show requires a plugin id");
+        assert_eq!(error.to_string(), "templates show requires a template id");
     }
 
     #[test]
-    fn execute_templates_show_rejects_unknown_plugin() {
+    fn execute_templates_show_rejects_unknown_template() {
         // Arrange
         let command = args(&["ralph-engine", "templates", "show", "official.unknown"]);
 
         // Act
-        let error = execute(command).expect_err("unknown template provider should fail");
+        let error = execute(command).expect_err("unknown template should fail");
 
         // Assert
-        assert_eq!(
-            error.to_string(),
-            "unknown template provider: official.unknown"
-        );
+        assert_eq!(error.to_string(), "unknown template: official.unknown");
     }
 
     #[test]
@@ -211,50 +217,47 @@ mod tests {
 
         // Assert
         assert!(output.contains("Prompts (1)"));
-        assert!(output.contains("- official.bmad | activation=disabled"));
+        assert!(output.contains("- official.bmad.workflow | BMAD workflow prompt | plugin=official.bmad | activation=disabled"));
     }
 
     #[test]
-    fn execute_prompts_show_returns_provider_detail() {
+    fn execute_prompts_show_returns_prompt_detail() {
         // Arrange
-        let command = args(&["ralph-engine", "prompts", "show", "official.bmad"]);
+        let command = args(&["ralph-engine", "prompts", "show", "official.bmad.workflow"]);
 
         // Act
         let output = execute(command).expect("prompts show should succeed");
 
         // Assert
-        assert!(output.contains("Prompt provider: official.bmad"));
-        assert!(output.contains("Providers (1)"));
-        assert!(output.contains(
-            "- official.bmad | activation=disabled | boundary=in_process | prompt_hook=true"
-        ));
+        assert!(output.contains("Prompt: official.bmad.workflow"));
+        assert!(output.contains("Name: BMAD workflow prompt"));
+        assert!(output.contains("Plugin: official.bmad"));
+        assert!(output.contains("Activation: disabled"));
+        assert!(output.contains("Runtime hook: prompt_assembly"));
     }
 
     #[test]
-    fn execute_prompts_show_requires_plugin_id() {
+    fn execute_prompts_show_requires_prompt_id() {
         // Arrange
         let command = args(&["ralph-engine", "prompts", "show"]);
 
         // Act
-        let error = execute(command).expect_err("missing prompt plugin id should fail");
+        let error = execute(command).expect_err("missing prompt id should fail");
 
         // Assert
-        assert_eq!(error.to_string(), "prompts show requires a plugin id");
+        assert_eq!(error.to_string(), "prompts show requires a prompt id");
     }
 
     #[test]
-    fn execute_prompts_show_rejects_unknown_plugin() {
+    fn execute_prompts_show_rejects_unknown_prompt() {
         // Arrange
         let command = args(&["ralph-engine", "prompts", "show", "official.unknown"]);
 
         // Act
-        let error = execute(command).expect_err("unknown prompt provider should fail");
+        let error = execute(command).expect_err("unknown prompt should fail");
 
         // Assert
-        assert_eq!(
-            error.to_string(),
-            "unknown prompt provider: official.unknown"
-        );
+        assert_eq!(error.to_string(), "unknown prompt: official.unknown");
     }
 
     #[test]
