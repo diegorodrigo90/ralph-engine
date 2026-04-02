@@ -3,8 +3,9 @@
 use std::path::Path;
 
 use re_core::{
-    RuntimeCheckKind, RuntimeCheckRegistration, build_runtime_check_result,
-    parse_runtime_check_kind, render_runtime_check_result_for_locale,
+    RuntimeCheckExecutionPlan, RuntimeCheckKind, RuntimeCheckRegistration,
+    build_runtime_check_result, parse_runtime_check_kind, render_runtime_check_result_for_locale,
+    runtime_hook_for_check,
 };
 
 use crate::{
@@ -33,6 +34,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
             args.get(2).map(String::as_str),
             locale,
         ),
+        Some("plan") => show_check_plan(args.get(1).map(String::as_str), locale),
         Some("run") => run_check(args.get(1).map(String::as_str), locale),
         Some(other) => Err(CliError::new(i18n::unknown_subcommand(
             locale, "checks", other,
@@ -137,6 +139,34 @@ fn run_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError>
     }))
 }
 
+fn show_check_plan(check_kind: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let check_id = check_kind.ok_or_else(|| {
+        CliError::new(i18n::missing_argument(
+            locale,
+            "checks plan",
+            i18n::check_id_entity_label(locale),
+        ))
+    })?;
+
+    let surface = catalog::find_official_check_surface(check_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::check_entity_label(locale),
+            check_id,
+        ))
+    })?;
+
+    let plan = RuntimeCheckExecutionPlan::new(
+        surface.registration.kind,
+        surface.registration.plugin_id,
+        surface.registration.load_boundary,
+        runtime_hook_for_check(surface.registration.kind),
+        surface.registration.runtime_hook_registered,
+    );
+
+    Ok(render_check_plan(surface.contribution, plan, locale))
+}
+
 fn show_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError> {
     let check_id = check_kind.ok_or_else(|| {
         CliError::new(i18n::missing_id(
@@ -239,6 +269,29 @@ fn render_check_contribution_detail(
         runtime_hook = registration.runtime_hook_registered,
         assets_label = i18n::assets_label(locale),
         assets = asset_paths,
+    )
+}
+
+fn render_check_plan(
+    contribution: catalog::OfficialCheckContribution,
+    plan: RuntimeCheckExecutionPlan,
+    locale: &str,
+) -> String {
+    format!(
+        "Runtime check plan: {}\n{name_label}: {}\nPlugin: {}\n{kind_label}: {kind}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {runtime_hook}\nregistered: {registered}",
+        contribution.descriptor.id,
+        contribution.descriptor.display_name_for_locale(locale),
+        contribution.descriptor.plugin_id,
+        name_label = i18n::name_label(locale),
+        kind_label = i18n::kind_label(locale),
+        kind = contribution.descriptor.kind.as_str(),
+        activation_label = i18n::activation_label(locale),
+        activation = contribution.activation.as_str(),
+        load_boundary_label = i18n::load_boundary_label(locale),
+        load_boundary = plan.load_boundary.as_str(),
+        hook_label = i18n::hook_label(locale),
+        runtime_hook = plan.runtime_hook.as_str(),
+        registered = plan.runtime_hook_registered,
     )
 }
 

@@ -2,7 +2,10 @@
 
 use std::path::Path;
 
-use re_core::{build_runtime_policy_result, render_runtime_policy_result_for_locale};
+use re_core::{
+    RuntimePolicyEnforcementPlan, build_runtime_policy_result, policy_runtime_hook,
+    render_runtime_policy_result_for_locale,
+};
 
 use crate::commands::embedded_assets::{MaterializedAsset, materialize_assets};
 use crate::commands::runtime_state::with_official_runtime_snapshot;
@@ -18,6 +21,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
             locale,
         )),
         Some("show") => show_policy(args.get(1).map(String::as_str), locale),
+        Some("plan") => show_policy_plan(args.get(1).map(String::as_str), locale),
         Some("run") => run_policy(args.get(1).map(String::as_str), locale),
         Some("asset") => show_policy_asset(
             args.get(1).map(String::as_str),
@@ -82,6 +86,33 @@ fn run_policy(policy_id: Option<&str>, locale: &str) -> Result<String, CliError>
 
         Ok(render_runtime_policy_result_for_locale(&result, locale))
     })
+}
+
+fn show_policy_plan(policy_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let policy_id = policy_id.ok_or_else(|| {
+        CliError::new(i18n::missing_argument(
+            locale,
+            "policies plan",
+            i18n::policy_id_entity_label(locale),
+        ))
+    })?;
+    let policy = catalog::find_official_policy_contribution(policy_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::policy_entity_label(locale),
+            policy_id,
+        ))
+    })?;
+
+    let plan = RuntimePolicyEnforcementPlan::new(
+        policy.descriptor.id,
+        policy.descriptor.plugin_id,
+        policy.load_boundary,
+        policy_runtime_hook(),
+        policy.enforcement_hook_registered,
+    );
+
+    Ok(render_policy_plan(policy, plan, locale))
 }
 
 fn show_policy_asset(
@@ -226,14 +257,38 @@ fn render_policy_detail(policy: OfficialPolicyContribution, locale: &str) -> Str
     )
 }
 
+fn render_policy_plan(
+    policy: OfficialPolicyContribution,
+    plan: RuntimePolicyEnforcementPlan,
+    locale: &str,
+) -> String {
+    format!(
+        "Policy enforcement plan: {}\n{name_label}: {}\nPlugin: {}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{policy_hook_label}: {policy_hook}\nregistered: {registered}",
+        policy.descriptor.id,
+        policy.descriptor.display_name_for_locale(locale),
+        policy.descriptor.plugin_id,
+        name_label = i18n::name_label(locale),
+        activation_label = i18n::activation_label(locale),
+        activation = policy.activation.as_str(),
+        load_boundary_label = i18n::load_boundary_label(locale),
+        load_boundary = plan.load_boundary.as_str(),
+        policy_hook_label = i18n::policy_enforcement_hook_label(locale),
+        policy_hook = plan.enforcement_hook.as_str(),
+        registered = plan.enforcement_hook_registered,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use re_config::PluginActivation;
+    use re_core::{RuntimePolicyEnforcementPlan, policy_runtime_hook};
     use re_plugin::{
         PluginLoadBoundary, PluginLocalizedText, PluginPolicyAsset, PluginPolicyDescriptor,
     };
 
-    use super::{OfficialPolicyContribution, render_policy_detail, render_policy_listing};
+    use super::{
+        OfficialPolicyContribution, render_policy_detail, render_policy_listing, render_policy_plan,
+    };
 
     const LOCALIZED_NAMES: &[PluginLocalizedText] =
         &[PluginLocalizedText::new("pt-br", "Guardrails TDD estrito")];
@@ -305,5 +360,29 @@ mod tests {
         assert!(rendered.contains("Nome: Guardrails TDD estrito"));
         assert!(rendered.contains("Provedor: fixture.strict"));
         assert!(rendered.contains("Hook de aplicação de política: policy_enforcement"));
+    }
+
+    #[test]
+    fn render_policy_plan_is_human_readable() {
+        let rendered = render_policy_plan(
+            OfficialPolicyContribution {
+                descriptor: policy_descriptor(),
+                activation: PluginActivation::Enabled,
+                load_boundary: PluginLoadBoundary::InProcess,
+                enforcement_hook_registered: true,
+            },
+            RuntimePolicyEnforcementPlan::new(
+                POLICY_ID,
+                PLUGIN_ID,
+                PluginLoadBoundary::InProcess,
+                policy_runtime_hook(),
+                true,
+            ),
+            "en",
+        );
+
+        assert!(rendered.contains("Policy enforcement plan: fixture.strict.guardrails"));
+        assert!(rendered.contains("Plugin: fixture.strict"));
+        assert!(rendered.contains("Policy enforcement hook: policy_enforcement"));
     }
 }
