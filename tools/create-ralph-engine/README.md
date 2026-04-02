@@ -10,6 +10,9 @@ The scaffolder only accepts plugin kinds and capabilities that already exist in
 the typed Ralph Engine contracts. Future surfaces stay rejected until the core
 runtime defines them explicitly.
 
+Scaffolded plugin identifiers use the same dotted namespace contract as the
+runtime and official manifests, for example `acme.jira-suite`.
+
 ## Usage
 
 ```bash

@@ -82,6 +82,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 - `tools/create-ralph-engine/` SHALL own plugin scaffolding for `npx create-ralph-engine-plugin`. Runtime catalog surfaces SHALL NOT turn scaffolding into a generic runtime responsibility.
 - `core/crates/re-plugin/` SHALL own typed plugin kind contracts for the runtime and tooling.
 - The plugin scaffolder SHALL only accept kinds and capabilities that already exist in the typed runtime and plugin contracts. Future surfaces SHALL stay rejected until the core defines them explicitly.
+- Scaffolded and official plugin identifiers SHALL use the same dotted namespace contract, such as `official.basic` or `acme.jira-suite`.
 - Cross-language plugin contracts SHALL stay verified. Changes to reviewed Rust capabilities, official plugin descriptors, or scaffolder-supported surfaces SHALL update the explicit contract checks rather than relying on drift-prone manual synchronization.
 - `scripts/` SHALL own shared bootstrap, install, validation, and release scripts.
 
