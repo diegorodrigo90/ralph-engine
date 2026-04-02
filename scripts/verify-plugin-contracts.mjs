@@ -44,6 +44,8 @@ const SCAFFOLDER_I18N_INDEX_PATH = path.join(
   "i18n",
   "index.js",
 );
+const WORKSPACE_CARGO_TOML_PATH = path.join(ROOT_DIR, "Cargo.toml");
+const OFFICIAL_PLUGIN_DIR = path.join(ROOT_DIR, "plugins", "official");
 
 function fail(message) {
   process.stderr.write(`${message}\n`);
@@ -133,6 +135,73 @@ function parseRustSupportedLocales(source) {
   );
 }
 
+function parseWorkspaceVersion(source) {
+  const workspacePackageMatch = source.match(/\[workspace\.package\]([\s\S]*?)\n\[/);
+  const section = workspacePackageMatch ? workspacePackageMatch[1] : source;
+  const versionMatch = section.match(/version = "([^"]+)"/);
+  if (!versionMatch) {
+    fail("could not find workspace package version in Cargo.toml");
+  }
+
+  return versionMatch[1];
+}
+
+function assertOfficialManifestsStayLocalizedAndVersioned(
+  parseManifestDocument,
+  supportedLocales,
+  workspaceVersion,
+) {
+  const manifestFiles = fs.readdirSync(OFFICIAL_PLUGIN_DIR)
+    .map((pluginDir) => path.join(OFFICIAL_PLUGIN_DIR, pluginDir, "manifest.yaml"));
+
+  for (const manifestFile of manifestFiles) {
+    const manifest = parseManifestDocument(readUtf8(manifestFile), manifestFile);
+
+    if (manifest.publisher !== "ralph-engine") {
+      fail(`official manifest publisher drift detected in ${manifestFile}: ${manifest.publisher}`);
+    }
+
+    if (manifest.version !== workspaceVersion) {
+      fail(
+        `official manifest version drift detected in ${manifestFile}.\nexpected: ${workspaceVersion}\nactual: ${manifest.version}`,
+      );
+    }
+
+    if (typeof manifest.display_name !== "string" || manifest.display_name.trim().length === 0) {
+      fail(`official manifest ${manifestFile} must declare a non-empty display_name`);
+    }
+
+    if (typeof manifest.summary !== "string" || manifest.summary.trim().length === 0) {
+      fail(`official manifest ${manifestFile} must declare a non-empty summary`);
+    }
+
+    if (!manifest.display_name_locales || typeof manifest.display_name_locales !== "object") {
+      fail(`official manifest ${manifestFile} must declare display_name_locales`);
+    }
+
+    if (!manifest.summary_locales || typeof manifest.summary_locales !== "object") {
+      fail(`official manifest ${manifestFile} must declare summary_locales`);
+    }
+
+    for (const locale of supportedLocales) {
+      if (locale === "en") {
+        continue;
+      }
+
+      const localizedName = manifest.display_name_locales[locale];
+      const localizedSummary = manifest.summary_locales[locale];
+
+      if (typeof localizedName !== "string" || localizedName.trim().length === 0) {
+        fail(`official manifest ${manifestFile} must declare display_name_locales.${locale}`);
+      }
+
+      if (typeof localizedSummary !== "string" || localizedSummary.trim().length === 0) {
+        fail(`official manifest ${manifestFile} must declare summary_locales.${locale}`);
+      }
+    }
+  }
+}
+
 function parseScaffolderSet(source, setName) {
   const regex = new RegExp(
     `const ${setName} = new Set\\(\\[([\\s\\S]*?)\\]\\);`,
@@ -197,6 +266,7 @@ const rustPluginContract = readUtf8(RUST_PLUGIN_CONTRACT_PATH);
 const rustConfigContract = readUtf8(
   path.join(ROOT_DIR, "core", "crates", "re-config", "src", "lib.rs"),
 );
+const workspaceCargoToml = readUtf8(WORKSPACE_CARGO_TOML_PATH);
 const scaffolderSource = readUtf8(SCAFFOLDER_PATH);
 const manifestContract = require(MANIFEST_CONTRACT_PATH);
 const runtimeSurfaces = require(RUNTIME_SURFACES_PATH);
@@ -210,6 +280,7 @@ const rustRuntimeSurfaces = parseRustRuntimeSurfaces(rustPluginContract);
 const rustRuntimeHooks = parseRustRuntimeHooks(rustPluginContract);
 const rustDefaultLocale = parseRustDefaultLocale(rustConfigContract);
 const rustSupportedLocales = parseRustSupportedLocales(rustConfigContract);
+const workspaceVersion = parseWorkspaceVersion(workspaceCargoToml);
 const supportedCapabilities = parseScaffolderSet(scaffolderSource, "SUPPORTED_CAPABILITIES");
 const supportedKinds = parseScaffolderSet(scaffolderSource, "SUPPORTED_KINDS");
 const manifestCapabilities = new Set(manifestSchema.properties.capabilities.items.enum);
@@ -285,5 +356,11 @@ for (const [kind, capabilities] of defaultCapabilitiesByKind.entries()) {
     `defaultCapabilitiesForKind(${kind})`,
   );
 }
+
+assertOfficialManifestsStayLocalizedAndVersioned(
+  manifestContract.parseManifestDocument,
+  rustSupportedLocales,
+  workspaceVersion,
+);
 
 process.stdout.write("Plugin contracts verified.\n");
