@@ -82,6 +82,8 @@ ralph-engine mcp
 ralph-engine mcp list
 ralph-engine mcp show <server-id>
 ralph-engine mcp plan <server-id>
+ralph-engine mcp status
+ralph-engine mcp status <server-id>
 ```
 
 The CLI also accepts the global `--locale <locale-id>` or `-L <locale-id>` flag so one invocation can switch language explicitly without depending on environment state. When no explicit flag is passed, the CLI still falls back to `RALPH_ENGINE_LOCALE` and then to the typed default locale contract.
@@ -137,6 +139,8 @@ The `providers plan` command prints the executable registration plan for one typ
 The `mcp show` command prints the typed MCP launch contract, including process model, launch policy, command boundaries, working-directory policy, environment policy, and availability.
 
 The `mcp plan` command prints the typed MCP launch plan derived from that contract, so plugin-managed bootstrap and spawn-process execution stay reusable outside command-local formatting.
+
+The `mcp status` command evaluates launch readiness for all registered MCP servers and reports readiness, health, enabled state, transport, issues, and recommended actions. When a server ID is provided, it shows the detailed status for that specific server.
 
 The `runtime show` command prints the resolved runtime topology, including effective plugin activation, capability registration, template registration, prompt registration, agent registration, check registration, provider registration, policy registration, runtime-hook registration, and MCP enablement.
 
