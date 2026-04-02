@@ -66,6 +66,7 @@
     "trust_level": {
       "type": "string",
       "enum": [
+        "official",
         "community"
       ]
     },
@@ -116,6 +117,66 @@
             "minLength": 1
           }
         }
+      }
+    },
+    "templates": {
+      "$ref": "#/$defs/contributions"
+    },
+    "prompts": {
+      "$ref": "#/$defs/contributions"
+    },
+    "agents": {
+      "$ref": "#/$defs/contributions"
+    },
+    "policies": {
+      "$ref": "#/$defs/contributions"
+    }
+  },
+  "$defs": {
+    "localizedTextMap": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z]{2}(?:-[a-z0-9]+)*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "contribution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "display_name",
+        "summary"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "display_name_locales": {
+          "$ref": "#/$defs/localizedTextMap"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary_locales": {
+          "$ref": "#/$defs/localizedTextMap"
+        }
+      }
+    },
+    "contributions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/contribution"
       }
     }
   }

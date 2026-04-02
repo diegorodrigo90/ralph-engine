@@ -1,13 +1,24 @@
 id: official.claude
-name: claude
+kind: agent_runtime
 display_name: Claude
 display_name_locales:
   pt-br: Claude
 summary: Claude agent runtime and MCP session integration.
 summary_locales:
   pt-br: Integração do runtime de agente Claude com sessão MCP.
-publisher: ralph-engine
-version: 0.2.0-alpha.1
+publisher: official
+trust_level: official
+plugin_version: 0.2.0-alpha.1
+plugin_api_version: 1.0.0
+engine_version: ">=0.2.0-alpha.1"
 capabilities:
   - agent_runtime
   - mcp_contribution
+agents:
+  - id: official.claude.session
+    display_name: Claude session
+    display_name_locales:
+      pt-br: Sessão Claude
+    summary: Claude runtime session for Ralph Engine.
+    summary_locales:
+      pt-br: Sessão de runtime do Claude para o Ralph Engine.

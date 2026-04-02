@@ -18,6 +18,12 @@ const KIND_CAPABILITY_REQUIREMENTS = new Map([
   ["mcp_contribution", "mcp_contribution"],
   ["policy", "policy"],
 ]);
+const CONTRIBUTION_CAPABILITY_REQUIREMENTS = new Map([
+  ["templates", "template"],
+  ["prompts", "prompt_fragments"],
+  ["agents", "agent_runtime"],
+  ["policies", "policy"],
+]);
 
 function loadManifestSchema() {
   return JSON.parse(fs.readFileSync(SCHEMA_PATH, "utf8"));
@@ -145,6 +151,20 @@ function validateManifestObject(manifest, sourceLabel = "manifest.yaml") {
     }
   }
 
+  function validateLocalizedTextMap(value, fieldName) {
+    const localizedValues = requireObject(value, fieldName, errors);
+    const localePattern = schema.$defs.localizedTextMap.propertyNames.pattern;
+
+    for (const [locale, entryValue] of Object.entries(localizedValues)) {
+      if (!validatePattern(locale, localePattern)) {
+        errors.push(t.manifestLocaleKeyPattern(fieldName, locale));
+      }
+      if (typeof entryValue !== "string" || entryValue.trim().length === 0) {
+        errors.push(t.manifestLocaleValueNonEmpty(fieldName, locale));
+      }
+    }
+  }
+
   if ("kind" in manifest && !schema.properties.kind.enum.includes(manifest.kind)) {
     errors.push(t.manifestKindEnum);
   }
@@ -245,6 +265,62 @@ function validateManifestObject(manifest, sourceLabel = "manifest.yaml") {
     }
   } else if (seenCapabilities.has("template")) {
     errors.push(t.manifestTemplateMustDeclareProjectFiles);
+  }
+
+  for (const [fieldName, capability] of CONTRIBUTION_CAPABILITY_REQUIREMENTS) {
+    const entries = manifest[fieldName];
+
+    if (entries !== undefined && !seenCapabilities.has(capability)) {
+      errors.push(t.manifestContributionRequiresCapability(fieldName, capability));
+      continue;
+    }
+
+    if (seenCapabilities.has(capability) && entries === undefined) {
+      errors.push(t.manifestCapabilityRequiresContribution(capability, fieldName));
+      continue;
+    }
+
+    if (entries === undefined) {
+      continue;
+    }
+
+    const contributionEntries = requireArray(entries, fieldName, errors);
+    const seenContributionIds = new Set();
+    const prefix = `${manifest.id}.`;
+
+    for (const entry of contributionEntries) {
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        errors.push(t.manifestMappingObject(fieldName));
+        continue;
+      }
+
+      if (typeof entry.id !== "string" || entry.id.trim().length === 0) {
+        errors.push(t.manifestNonEmptyString(`${fieldName}.id`));
+      } else {
+        if (!entry.id.startsWith(prefix)) {
+          errors.push(t.manifestContributionIdPrefix(fieldName, entry.id, prefix));
+        }
+        if (seenContributionIds.has(entry.id)) {
+          errors.push(t.manifestContributionRepeatedId(fieldName, entry.id));
+        }
+        seenContributionIds.add(entry.id);
+      }
+
+      if (typeof entry.display_name !== "string" || entry.display_name.trim().length === 0) {
+        errors.push(t.manifestNonEmptyString(`${fieldName}.display_name`));
+      }
+      if (typeof entry.summary !== "string" || entry.summary.trim().length === 0) {
+        errors.push(t.manifestNonEmptyString(`${fieldName}.summary`));
+      }
+
+      if ("display_name_locales" in entry) {
+        validateLocalizedTextMap(entry.display_name_locales, `${fieldName}.display_name_locales`);
+      }
+
+      if ("summary_locales" in entry) {
+        validateLocalizedTextMap(entry.summary_locales, `${fieldName}.summary_locales`);
+      }
+    }
   }
 
   if (errors.length > 0) {

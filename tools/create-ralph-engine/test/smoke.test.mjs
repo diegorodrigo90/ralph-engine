@@ -130,8 +130,38 @@ test("creates template assets when template capability is present", () => {
   assert.equal(fs.existsSync(path.join(targetDir, "template", "config.yaml")), true);
   assert.equal(fs.existsSync(path.join(targetDir, "template", "hooks.yaml")), true);
   assert.equal(fs.existsSync(path.join(targetDir, "template", "prompt.md")), true);
+  assert.match(manifest, /templates:\n  - id: community\.bmad-pack\.starter/);
   assert.match(rustLib, /PluginRuntimeHook::Scaffold/);
   assert.match(rustI18nMod, /localized_summaries/);
+});
+
+test("creates typed contribution sections for runtime-facing capabilities", () => {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-ralph-engine-plugin-"));
+  const targetDir = path.join(tempDir, "codex-suite");
+
+  const result = spawnSync(process.execPath, [
+    binPath,
+    "plugin",
+    "codex-suite",
+    "--publisher",
+    "acme",
+    "--kind",
+    "agent_runtime",
+    "--capability",
+    "prompt_fragments",
+    "--capability",
+    "policy",
+  ], {
+    cwd: tempDir,
+    encoding: "utf8",
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  const manifest = fs.readFileSync(path.join(targetDir, "manifest.yaml"), "utf8");
+  validateManifestDocument(manifest);
+  assert.match(manifest, /agents:\n  - id: acme\.codex-suite\.session/);
+  assert.match(manifest, /prompts:\n  - id: acme\.codex-suite\.workflow/);
+  assert.match(manifest, /policies:\n  - id: acme\.codex-suite\.guardrails/);
 });
 
 test("rejects manifests that drift from the typed contract", () => {
@@ -285,20 +315,23 @@ capabilities:
   );
 });
 
-test("official manifests keep localized display metadata aligned with plugin metadata", () => {
+test("official manifests satisfy the typed manifest contract", () => {
   const officialPluginDir = path.resolve(rootDir, "..", "..", "plugins", "official");
   const manifestFiles = fs.readdirSync(officialPluginDir)
     .map((pluginDir) => path.join(officialPluginDir, pluginDir, "manifest.yaml"));
 
   for (const manifestFile of manifestFiles) {
-    const manifest = parseManifestDocument(fs.readFileSync(manifestFile, "utf8"), manifestFile);
+    const document = fs.readFileSync(manifestFile, "utf8");
+    validateManifestDocument(document, manifestFile);
+    const manifest = parseManifestDocument(document, manifestFile);
 
     assert.equal(typeof manifest.id, "string");
-    assert.equal(typeof manifest.name, "string");
     assert.equal(typeof manifest.display_name, "string");
     assert.equal(manifest.display_name.length > 0, true);
     assert.equal(typeof manifest.summary, "string");
     assert.equal(manifest.summary.length > 0, true);
+    assert.equal(typeof manifest.trust_level, "string");
+    assert.equal(typeof manifest.plugin_version, "string");
 
     assert.equal(typeof manifest.display_name_locales, "object");
     assert.equal(typeof manifest.summary_locales, "object");

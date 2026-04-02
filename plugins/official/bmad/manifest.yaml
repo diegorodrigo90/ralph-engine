@@ -1,15 +1,38 @@
 id: official.bmad
-name: bmad
+kind: template
 display_name: BMAD
 display_name_locales:
   pt-br: BMAD
 summary: Workflow plugin for BMAD scaffolding and prompts.
 summary_locales:
   pt-br: Plugin de workflow para scaffolding e prompts do BMAD.
-publisher: ralph-engine
-version: 0.2.0-alpha.1
+publisher: official
+trust_level: official
+plugin_version: 0.2.0-alpha.1
+plugin_api_version: 1.0.0
+engine_version: ">=0.2.0-alpha.1"
 capabilities:
   - template
   - prompt_fragments
   - prepare_checks
   - doctor_checks
+templates:
+  - id: official.bmad.starter
+    display_name: BMAD starter
+    display_name_locales:
+      pt-br: Starter BMAD
+    summary: Starter template for BMAD-guided Ralph Engine projects.
+    summary_locales:
+      pt-br: Template inicial para projetos Ralph Engine guiados por BMAD.
+prompts:
+  - id: official.bmad.workflow
+    display_name: BMAD workflow prompt
+    display_name_locales:
+      pt-br: Prompt de workflow BMAD
+    summary: Prompt bundle for BMAD workflow assembly.
+    summary_locales:
+      pt-br: Pacote de prompts para montar workflows BMAD.
+project:
+  required_files:
+    - .ralph-engine/config.yaml
+    - .ralph-engine/prompt.md

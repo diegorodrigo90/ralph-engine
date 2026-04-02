@@ -60,6 +60,14 @@ const LOCALE = {
     `template manifests must require "${requiredFile}"`,
   manifestTemplateMustDeclareProjectFiles:
     "template manifests must declare project.required_files",
+  manifestContributionIdPrefix: (field, id, prefix) =>
+    `${field} entry "${id}" must start with "${prefix}"`,
+  manifestContributionRepeatedId: (field, id) =>
+    `${field} must not repeat contribution id "${id}"`,
+  manifestContributionRequiresCapability: (field, capability) =>
+    `${field} is only valid when capability "${capability}" is declared`,
+  manifestCapabilityRequiresContribution: (capability, field) =>
+    `capability "${capability}" must declare ${field}`,
   manifestInvalid: (sourceLabel, errors) => `${sourceLabel} is invalid:\n- ${errors.join("\n- ")}`,
 };
 
