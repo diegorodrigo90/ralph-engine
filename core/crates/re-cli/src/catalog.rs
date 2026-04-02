@@ -12,9 +12,9 @@ use re_core::{
 };
 use re_mcp::McpServerDescriptor;
 use re_plugin::{
-    AGENT_RUNTIME, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, MCP_CONTRIBUTION,
-    POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCapability, PluginDescriptor,
-    PluginRuntimeHook, REMOTE_CONTROL, TEMPLATE,
+    AGENT_RUNTIME, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, POLICY,
+    PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCapability, PluginDescriptor, PluginRuntimeHook,
+    REMOTE_CONTROL, TEMPLATE,
 };
 
 /// Immutable owned snapshot of the official runtime catalog.
@@ -264,24 +264,6 @@ fn check_kind_for_capability(capability: PluginCapability) -> Option<RuntimeChec
     }
 }
 
-/// Returns the dedicated runtime surface that owns one reviewed capability.
-#[must_use]
-#[cfg_attr(not(test), allow(dead_code))]
-pub fn dedicated_runtime_surface_for_capability(
-    capability: PluginCapability,
-) -> Option<&'static str> {
-    match capability {
-        TEMPLATE => Some("templates"),
-        PROMPT_FRAGMENTS => Some("prompts"),
-        PREPARE_CHECKS | DOCTOR_CHECKS => Some("checks"),
-        AGENT_RUNTIME => Some("agents"),
-        MCP_CONTRIBUTION => Some("mcp"),
-        DATA_SOURCE | CONTEXT_PROVIDER | FORGE_PROVIDER | REMOTE_CONTROL => Some("providers"),
-        POLICY => Some("policies"),
-        _ => None,
-    }
-}
-
 fn runtime_hook_for_check(kind: RuntimeCheckKind) -> PluginRuntimeHook {
     match kind {
         RuntimeCheckKind::Prepare => PluginRuntimeHook::Prepare,
@@ -418,12 +400,12 @@ pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
 #[cfg(test)]
 mod tests {
     use super::{
-        dedicated_runtime_surface_for_capability, find_official_mcp_server, find_official_plugin,
-        official_plugins, official_runtime_agents, official_runtime_checks,
-        official_runtime_mcp_registrations, official_runtime_policies, official_runtime_prompts,
-        official_runtime_providers, official_runtime_snapshot, official_runtime_templates,
+        find_official_mcp_server, find_official_plugin, official_plugins, official_runtime_agents,
+        official_runtime_checks, official_runtime_mcp_registrations, official_runtime_policies,
+        official_runtime_prompts, official_runtime_providers, official_runtime_snapshot,
+        official_runtime_templates,
     };
-    use re_plugin::{ALL_PLUGIN_CAPABILITIES, PluginCapability};
+    use re_plugin::{ALL_PLUGIN_CAPABILITIES, PluginCapability, runtime_surface_for_capability};
 
     fn capability_names(capabilities: &[PluginCapability]) -> Vec<&'static str> {
         capabilities
@@ -437,7 +419,8 @@ mod tests {
         let uncovered = capability_names(ALL_PLUGIN_CAPABILITIES)
             .into_iter()
             .filter(|capability| {
-                dedicated_runtime_surface_for_capability(PluginCapability::new(capability))
+                runtime_surface_for_capability(PluginCapability::new(capability))
+                    .map(|surface| surface.as_str())
                     .is_none()
             })
             .collect::<Vec<_>>();
@@ -449,7 +432,7 @@ mod tests {
     fn official_plugin_capabilities_are_covered_by_runtime_surfaces() {
         for plugin in official_plugins() {
             for capability in plugin.capabilities {
-                assert!(dedicated_runtime_surface_for_capability(*capability).is_some());
+                assert!(runtime_surface_for_capability(*capability).is_some());
             }
         }
     }
@@ -476,7 +459,7 @@ mod tests {
     fn unknown_capabilities_do_not_map_to_runtime_surfaces() {
         let unknown = PluginCapability::new("unknown_surface");
 
-        assert_eq!(dedicated_runtime_surface_for_capability(unknown), None);
+        assert_eq!(runtime_surface_for_capability(unknown), None);
         assert_eq!(super::check_kind_for_capability(unknown), None);
         assert_eq!(super::provider_kind_for_capability(unknown), None);
     }

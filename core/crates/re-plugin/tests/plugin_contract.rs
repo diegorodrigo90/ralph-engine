@@ -1,12 +1,13 @@
 //! Integration tests for the shared Ralph Engine plugin contract.
 
 use re_plugin::{
-    AGENT_RUNTIME, ALL_PLUGIN_KINDS, ALL_PLUGIN_TRUST_LEVELS, CONTEXT_PROVIDER, DATA_SOURCE,
-    DOCTOR_CHECKS, FORGE_PROVIDER, MCP_CONTRIBUTION, POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS,
-    PluginCapability, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
-    PluginLocalizedText, PluginRuntimeHook, PluginTrustLevel, REMOTE_CONTROL, TEMPLATE,
-    render_plugin_detail, render_plugin_detail_for_locale, render_plugin_listing,
-    render_plugin_listing_for_locale,
+    AGENT_RUNTIME, ALL_PLUGIN_CAPABILITIES, ALL_PLUGIN_KINDS, ALL_PLUGIN_RUNTIME_SURFACES,
+    ALL_PLUGIN_TRUST_LEVELS, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER,
+    MCP_CONTRIBUTION, POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCapability, PluginDescriptor,
+    PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginRuntimeHook,
+    PluginRuntimeSurface, PluginTrustLevel, REMOTE_CONTROL, TEMPLATE, render_plugin_detail,
+    render_plugin_detail_for_locale, render_plugin_listing, render_plugin_listing_for_locale,
+    runtime_surface_for_capability,
 };
 
 const BASIC_CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -148,6 +149,92 @@ fn exported_capability_constants_are_stable() {
             "remote_control",
             "policy",
         ]
+    );
+}
+
+#[test]
+fn runtime_surface_mapping_covers_all_reviewed_capabilities() {
+    let uncovered = ALL_PLUGIN_CAPABILITIES
+        .iter()
+        .copied()
+        .filter(|capability| runtime_surface_for_capability(*capability).is_none())
+        .map(PluginCapability::as_str)
+        .collect::<Vec<_>>();
+
+    assert_eq!(uncovered, Vec::<&'static str>::new());
+}
+
+#[test]
+fn exported_runtime_surfaces_are_stable() {
+    let rendered = ALL_PLUGIN_RUNTIME_SURFACES
+        .iter()
+        .copied()
+        .map(PluginRuntimeSurface::as_str)
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        rendered,
+        vec![
+            "templates",
+            "prompts",
+            "checks",
+            "agents",
+            "mcp",
+            "providers",
+            "policies",
+        ]
+    );
+}
+
+#[test]
+fn runtime_surface_mapping_groups_reviewed_capabilities() {
+    assert_eq!(
+        runtime_surface_for_capability(TEMPLATE),
+        Some(PluginRuntimeSurface::Templates)
+    );
+    assert_eq!(
+        runtime_surface_for_capability(PROMPT_FRAGMENTS),
+        Some(PluginRuntimeSurface::Prompts)
+    );
+    assert_eq!(
+        runtime_surface_for_capability(PREPARE_CHECKS),
+        Some(PluginRuntimeSurface::Checks)
+    );
+    assert_eq!(
+        runtime_surface_for_capability(DOCTOR_CHECKS),
+        Some(PluginRuntimeSurface::Checks)
+    );
+    assert_eq!(
+        runtime_surface_for_capability(AGENT_RUNTIME),
+        Some(PluginRuntimeSurface::Agents)
+    );
+    assert_eq!(
+        runtime_surface_for_capability(MCP_CONTRIBUTION),
+        Some(PluginRuntimeSurface::Mcp)
+    );
+    assert_eq!(
+        runtime_surface_for_capability(DATA_SOURCE),
+        Some(PluginRuntimeSurface::Providers)
+    );
+    assert_eq!(
+        runtime_surface_for_capability(CONTEXT_PROVIDER),
+        Some(PluginRuntimeSurface::Providers)
+    );
+    assert_eq!(
+        runtime_surface_for_capability(FORGE_PROVIDER),
+        Some(PluginRuntimeSurface::Providers)
+    );
+    assert_eq!(
+        runtime_surface_for_capability(REMOTE_CONTROL),
+        Some(PluginRuntimeSurface::Providers)
+    );
+    assert_eq!(
+        runtime_surface_for_capability(POLICY),
+        Some(PluginRuntimeSurface::Policies)
+    );
+    assert_eq!(
+        runtime_surface_for_capability(PluginCapability::new("unknown_surface")),
+        None
     );
 }
 
