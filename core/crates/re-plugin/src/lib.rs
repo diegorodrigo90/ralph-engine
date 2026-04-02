@@ -259,6 +259,121 @@ impl PluginLocalizedText {
     }
 }
 
+fn resolve_localized_text<'a>(
+    localized_values: &'a [PluginLocalizedText],
+    locale: &str,
+    fallback: &'a str,
+) -> &'a str {
+    let locale = re_config::resolve_supported_locale_or_default(locale.trim()).as_str();
+
+    localized_values
+        .iter()
+        .find(|entry| entry.locale == locale)
+        .map_or(fallback, |entry| entry.value)
+}
+
+/// Immutable template contribution owned by one plugin.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PluginTemplateDescriptor {
+    /// Stable template identifier.
+    pub id: &'static str,
+    /// Plugin that owns the template.
+    pub plugin_id: &'static str,
+    /// Human-readable template name.
+    pub name: &'static str,
+    /// Optional localized template names keyed by locale.
+    pub localized_names: &'static [PluginLocalizedText],
+    /// Human-readable English summary.
+    pub summary: &'static str,
+    /// Optional localized template summaries keyed by locale.
+    pub localized_summaries: &'static [PluginLocalizedText],
+}
+
+impl PluginTemplateDescriptor {
+    /// Creates a new immutable template descriptor.
+    #[must_use]
+    pub const fn new(
+        id: &'static str,
+        plugin_id: &'static str,
+        name: &'static str,
+        localized_names: &'static [PluginLocalizedText],
+        summary: &'static str,
+        localized_summaries: &'static [PluginLocalizedText],
+    ) -> Self {
+        Self {
+            id,
+            plugin_id,
+            name,
+            localized_names,
+            summary,
+            localized_summaries,
+        }
+    }
+
+    /// Resolves the display name for a locale with English fallback.
+    #[must_use]
+    pub fn display_name_for_locale(&self, locale: &str) -> &'static str {
+        resolve_localized_text(self.localized_names, locale, self.name)
+    }
+
+    /// Resolves the summary for a locale with English fallback.
+    #[must_use]
+    pub fn summary_for_locale(&self, locale: &str) -> &'static str {
+        resolve_localized_text(self.localized_summaries, locale, self.summary)
+    }
+}
+
+/// Immutable prompt contribution owned by one plugin.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PluginPromptDescriptor {
+    /// Stable prompt identifier.
+    pub id: &'static str,
+    /// Plugin that owns the prompt.
+    pub plugin_id: &'static str,
+    /// Human-readable prompt name.
+    pub name: &'static str,
+    /// Optional localized prompt names keyed by locale.
+    pub localized_names: &'static [PluginLocalizedText],
+    /// Human-readable English summary.
+    pub summary: &'static str,
+    /// Optional localized prompt summaries keyed by locale.
+    pub localized_summaries: &'static [PluginLocalizedText],
+}
+
+impl PluginPromptDescriptor {
+    /// Creates a new immutable prompt descriptor.
+    #[must_use]
+    pub const fn new(
+        id: &'static str,
+        plugin_id: &'static str,
+        name: &'static str,
+        localized_names: &'static [PluginLocalizedText],
+        summary: &'static str,
+        localized_summaries: &'static [PluginLocalizedText],
+    ) -> Self {
+        Self {
+            id,
+            plugin_id,
+            name,
+            localized_names,
+            summary,
+            localized_summaries,
+        }
+    }
+
+    /// Resolves the display name for a locale with English fallback.
+    #[must_use]
+    pub fn display_name_for_locale(&self, locale: &str) -> &'static str {
+        resolve_localized_text(self.localized_names, locale, self.name)
+    }
+
+    /// Resolves the summary for a locale with English fallback.
+    #[must_use]
+    pub fn summary_for_locale(&self, locale: &str) -> &'static str {
+        resolve_localized_text(self.localized_summaries, locale, self.summary)
+    }
+}
+
 /// Typed plugin lifecycle stage identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PluginLifecycleStage {
@@ -497,23 +612,13 @@ impl PluginDescriptor {
     /// Resolves the display name for a locale with English fallback.
     #[must_use]
     pub fn display_name_for_locale(&self, locale: &str) -> &'static str {
-        let locale = re_config::resolve_supported_locale_or_default(locale.trim()).as_str();
-
-        self.localized_names
-            .iter()
-            .find(|entry| entry.locale == locale)
-            .map_or(self.name, |entry| entry.value)
+        resolve_localized_text(self.localized_names, locale, self.name)
     }
 
     /// Resolves the plugin summary for a locale with English fallback.
     #[must_use]
     pub fn summary_for_locale(&self, locale: &str) -> &'static str {
-        let locale = re_config::resolve_supported_locale_or_default(locale.trim()).as_str();
-
-        self.localized_summaries
-            .iter()
-            .find(|entry| entry.locale == locale)
-            .map_or(self.summary, |entry| entry.value)
+        resolve_localized_text(self.localized_summaries, locale, self.summary)
     }
 }
 

@@ -14,10 +14,6 @@ pub(super) struct CliLocaleCatalog {
     pub load_boundary_label: &'static str,
     pub agent_runtime_label: &'static str,
     pub agent_runtimes_label: &'static str,
-    pub template_provider_label: &'static str,
-    pub templates_label: &'static str,
-    pub prompt_provider_label: &'static str,
-    pub prompts_label: &'static str,
     pub policy_label: &'static str,
     pub policies_label: &'static str,
     pub policy_enforcement_hook_label: &'static str,
@@ -32,6 +28,8 @@ pub(super) struct CliLocaleCatalog {
     pub mcp_server_id_entity_label: &'static str,
     pub plugin_config_entity_label: &'static str,
     pub plugin_id_entity_label: &'static str,
+    pub template_id_entity_label: &'static str,
+    pub prompt_id_entity_label: &'static str,
     pub policy_id_entity_label: &'static str,
     pub capability_id_entity_label: &'static str,
     pub check_id_entity_label: &'static str,
@@ -39,8 +37,8 @@ pub(super) struct CliLocaleCatalog {
     pub provider_id_entity_label: &'static str,
     pub plugin_entity_label: &'static str,
     pub agent_runtime_entity_label: &'static str,
-    pub template_provider_entity_label: &'static str,
-    pub prompt_provider_entity_label: &'static str,
+    pub template_entity_label: &'static str,
+    pub prompt_entity_label: &'static str,
     pub policy_entity_label: &'static str,
     pub capability_entity_label: &'static str,
     pub check_entity_label: &'static str,
@@ -196,10 +194,6 @@ catalog_str!(activation_label, activation_label);
 catalog_str!(load_boundary_label, load_boundary_label);
 catalog_str!(agent_runtime_label, agent_runtime_label);
 catalog_str!(agent_runtimes_label, agent_runtimes_label);
-catalog_str!(template_provider_label, template_provider_label);
-catalog_str!(templates_label, templates_label);
-catalog_str!(prompt_provider_label, prompt_provider_label);
-catalog_str!(prompts_label, prompts_label);
 catalog_str!(policy_label, policy_label);
 catalog_str!(policies_label, policies_label);
 catalog_str!(policy_enforcement_hook_label, policy_enforcement_hook_label);
@@ -220,6 +214,8 @@ catalog_str!(provider_id_entity_label, provider_id_entity_label);
 catalog_str!(locale_id_entity_label, locale_id_entity_label);
 catalog_str!(mcp_server_id_entity_label, mcp_server_id_entity_label);
 catalog_str!(plugin_config_entity_label, plugin_config_entity_label);
+catalog_str!(template_id_entity_label, template_id_entity_label);
+catalog_str!(prompt_id_entity_label, prompt_id_entity_label);
 catalog_str!(plugin_entity_label, plugin_entity_label);
 catalog_str!(mcp_server_entity_label, mcp_server_entity_label);
 catalog_str!(capability_entity_label, capability_entity_label);
@@ -228,11 +224,8 @@ catalog_str!(hook_entity_label, hook_entity_label);
 catalog_str!(provider_entity_label, provider_entity_label);
 catalog_str!(locale_entity_label, locale_entity_label);
 catalog_str!(agent_runtime_entity_label, agent_runtime_entity_label);
-catalog_str!(
-    template_provider_entity_label,
-    template_provider_entity_label
-);
-catalog_str!(prompt_provider_entity_label, prompt_provider_entity_label);
+catalog_str!(template_entity_label, template_entity_label);
+catalog_str!(prompt_entity_label, prompt_entity_label);
 catalog_str!(policy_entity_label, policy_entity_label);
 
 #[cfg(test)]

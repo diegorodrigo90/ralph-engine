@@ -16,7 +16,35 @@ use re_core::{
     template_runtime_hook,
 };
 use re_mcp::McpServerDescriptor;
-use re_plugin::{PluginDescriptor, PluginRuntimeHook};
+use re_plugin::{
+    PluginDescriptor, PluginPromptDescriptor, PluginRuntimeHook, PluginTemplateDescriptor,
+};
+
+/// One resolved official template contribution.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct OfficialTemplateContribution {
+    /// Immutable template descriptor.
+    pub descriptor: PluginTemplateDescriptor,
+    /// Effective activation state for the owning plugin.
+    pub activation: PluginActivation,
+    /// Declared load boundary for the owning plugin.
+    pub load_boundary: re_plugin::PluginLoadBoundary,
+    /// Whether the owning plugin declares the scaffold hook.
+    pub scaffold_hook_registered: bool,
+}
+
+/// One resolved official prompt contribution.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct OfficialPromptContribution {
+    /// Immutable prompt descriptor.
+    pub descriptor: PluginPromptDescriptor,
+    /// Effective activation state for the owning plugin.
+    pub activation: PluginActivation,
+    /// Declared load boundary for the owning plugin.
+    pub load_boundary: re_plugin::PluginLoadBoundary,
+    /// Whether the owning plugin declares the prompt-assembly hook.
+    pub prompt_hook_registered: bool,
+}
 
 /// Immutable owned snapshot of the official runtime catalog.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -201,6 +229,35 @@ pub fn official_runtime_templates() -> Vec<RuntimeTemplateRegistration> {
         .collect()
 }
 
+/// Returns the resolved template contributions for the official catalog.
+#[must_use]
+pub fn official_template_contributions() -> Vec<OfficialTemplateContribution> {
+    official_runtime_plugins()
+        .into_iter()
+        .flat_map(|plugin| {
+            let templates: &'static [PluginTemplateDescriptor] = match plugin.descriptor.id {
+                re_plugin_basic::PLUGIN_ID => re_plugin_basic::templates(),
+                re_plugin_bmad::PLUGIN_ID => re_plugin_bmad::templates(),
+                re_plugin_tdd_strict::PLUGIN_ID => re_plugin_tdd_strict::templates(),
+                _ => &[],
+            };
+
+            templates
+                .iter()
+                .copied()
+                .map(move |descriptor| OfficialTemplateContribution {
+                    descriptor,
+                    activation: plugin.activation,
+                    load_boundary: plugin.descriptor.load_boundary,
+                    scaffold_hook_registered: plugin
+                        .descriptor
+                        .runtime_hooks
+                        .contains(&template_runtime_hook()),
+                })
+        })
+        .collect()
+}
+
 /// Returns the resolved prompt registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_prompts() -> Vec<RuntimePromptRegistration> {
@@ -224,6 +281,33 @@ pub fn official_runtime_prompts() -> Vec<RuntimePromptRegistration> {
                     .runtime_hooks
                     .contains(&prompt_runtime_hook()),
             )
+        })
+        .collect()
+}
+
+/// Returns the resolved prompt contributions for the official catalog.
+#[must_use]
+pub fn official_prompt_contributions() -> Vec<OfficialPromptContribution> {
+    official_runtime_plugins()
+        .into_iter()
+        .flat_map(|plugin| {
+            let prompts: &'static [PluginPromptDescriptor] = match plugin.descriptor.id {
+                re_plugin_bmad::PLUGIN_ID => re_plugin_bmad::prompts(),
+                _ => &[],
+            };
+
+            prompts
+                .iter()
+                .copied()
+                .map(move |descriptor| OfficialPromptContribution {
+                    descriptor,
+                    activation: plugin.activation,
+                    load_boundary: plugin.descriptor.load_boundary,
+                    prompt_hook_registered: plugin
+                        .descriptor
+                        .runtime_hooks
+                        .contains(&prompt_runtime_hook()),
+                })
         })
         .collect()
 }
@@ -414,20 +498,22 @@ fn registrations_for_key<T: Copy, K: Copy + Eq>(
         .collect()
 }
 
-/// Returns the resolved template registrations for one official plugin identifier.
+/// Returns one resolved template contribution by stable identifier.
 #[must_use]
-pub fn find_official_runtime_templates(plugin_id: &str) -> Vec<RuntimeTemplateRegistration> {
-    registrations_for_plugin(official_runtime_templates(), plugin_id, |registration| {
-        registration.plugin_id
-    })
+pub fn find_official_template_contribution(
+    template_id: &str,
+) -> Option<OfficialTemplateContribution> {
+    official_template_contributions()
+        .into_iter()
+        .find(|template| template.descriptor.id == template_id)
 }
 
-/// Returns the resolved prompt registrations for one official plugin identifier.
+/// Returns one resolved prompt contribution by stable identifier.
 #[must_use]
-pub fn find_official_runtime_prompts(plugin_id: &str) -> Vec<RuntimePromptRegistration> {
-    registrations_for_plugin(official_runtime_prompts(), plugin_id, |registration| {
-        registration.plugin_id
-    })
+pub fn find_official_prompt_contribution(prompt_id: &str) -> Option<OfficialPromptContribution> {
+    official_prompt_contributions()
+        .into_iter()
+        .find(|prompt| prompt.descriptor.id == prompt_id)
 }
 
 /// Returns the resolved agent registrations for one official plugin identifier.
@@ -487,10 +573,10 @@ pub fn find_official_runtime_policy(policy_id: &str) -> Option<RuntimePolicyRegi
 #[cfg(test)]
 mod tests {
     use super::{
-        find_official_mcp_server, find_official_plugin, find_official_runtime_agents,
-        find_official_runtime_capabilities, find_official_runtime_checks,
-        find_official_runtime_hooks, find_official_runtime_policy, find_official_runtime_prompts,
-        find_official_runtime_providers, find_official_runtime_templates, official_plugins,
+        find_official_mcp_server, find_official_plugin, find_official_prompt_contribution,
+        find_official_runtime_agents, find_official_runtime_capabilities,
+        find_official_runtime_checks, find_official_runtime_hooks, find_official_runtime_policy,
+        find_official_runtime_providers, find_official_template_contribution, official_plugins,
         official_runtime_agents, official_runtime_checks, official_runtime_mcp_registrations,
         official_runtime_policies, official_runtime_prompts, official_runtime_providers,
         official_runtime_snapshot, official_runtime_templates,
@@ -585,9 +671,12 @@ mod tests {
     }
 
     #[test]
-    fn plugin_owned_surface_helpers_reject_unknown_plugins() {
-        assert!(find_official_runtime_templates("official.missing").is_empty());
-        assert!(find_official_runtime_prompts("official.missing").is_empty());
+    fn plugin_owned_surface_helpers_reject_unknown_identifiers() {
+        assert_eq!(
+            find_official_template_contribution("official.missing"),
+            None
+        );
+        assert_eq!(find_official_prompt_contribution("official.missing"), None);
         assert!(find_official_runtime_agents("official.missing").is_empty());
     }
 

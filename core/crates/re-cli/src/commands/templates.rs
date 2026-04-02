@@ -1,20 +1,14 @@
 //! Template command handlers.
 
-use re_core::RuntimeTemplateRegistration;
+use crate::{CliError, catalog, i18n};
 
-use crate::{
-    CliError, catalog,
-    commands::plugin_surfaces::{
-        render_plugin_owned_surface_detail, render_plugin_owned_surface_listing,
-    },
-    i18n,
-};
+use catalog::OfficialTemplateContribution;
 
 /// Executes the templates command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
         None | Some("list") => Ok(render_template_listing(
-            &catalog::official_runtime_templates(),
+            &catalog::official_template_contributions(),
             locale,
         )),
         Some("show") => show_template(args.get(1).map(String::as_str), locale),
@@ -26,77 +20,113 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     }
 }
 
-fn show_template(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError> {
-    let plugin_id = plugin_id.ok_or_else(|| {
+fn show_template(template_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let template_id = template_id.ok_or_else(|| {
         CliError::new(i18n::missing_id(
             locale,
             "templates",
-            i18n::plugin_id_entity_label(locale),
+            i18n::template_id_entity_label(locale),
         ))
     })?;
-    let templates = catalog::find_official_runtime_templates(plugin_id);
-
-    if templates.is_empty() {
-        return Err(CliError::new(i18n::unknown_entity(
+    let template = catalog::find_official_template_contribution(template_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
             locale,
-            i18n::template_provider_entity_label(locale),
-            plugin_id,
-        )));
+            i18n::template_entity_label(locale),
+            template_id,
+        ))
+    })?;
+
+    Ok(render_template_detail(template, locale))
+}
+
+fn render_template_listing(registrations: &[OfficialTemplateContribution], locale: &str) -> String {
+    let mut lines = Vec::with_capacity(registrations.len() + 1);
+    lines.push(i18n::list_heading(
+        locale,
+        "Templates",
+        "Templates",
+        registrations.len(),
+    ));
+
+    for registration in registrations {
+        lines.push(format!(
+            "- {} | {} | plugin={} | activation={}",
+            registration.descriptor.id,
+            registration.descriptor.display_name_for_locale(locale),
+            registration.descriptor.plugin_id,
+            registration.activation.as_str(),
+        ));
     }
 
-    Ok(render_template_detail(plugin_id, &templates, locale))
+    lines.join("\n")
 }
 
-fn render_template_listing(registrations: &[RuntimeTemplateRegistration], locale: &str) -> String {
-    render_plugin_owned_surface_listing(
-        registrations,
-        locale,
-        i18n::templates_label,
-        render_template_registration,
-    )
-}
+fn render_template_detail(template: OfficialTemplateContribution, locale: &str) -> String {
+    let name_label = if i18n::is_pt_br(locale) {
+        "Nome"
+    } else {
+        "Name"
+    };
+    let summary_label = if i18n::is_pt_br(locale) {
+        "Resumo"
+    } else {
+        "Summary"
+    };
+    let hook_label = if i18n::is_pt_br(locale) {
+        "Hook de runtime"
+    } else {
+        "Runtime hook"
+    };
 
-fn render_template_detail(
-    plugin_id: &str,
-    templates: &[RuntimeTemplateRegistration],
-    locale: &str,
-) -> String {
-    render_plugin_owned_surface_detail(
-        plugin_id,
-        templates,
-        locale,
-        i18n::template_provider_label,
-        render_template_registration,
-    )
-}
-
-fn render_template_registration(registration: &RuntimeTemplateRegistration) -> String {
     format!(
-        "- {} | activation={} | boundary={} | scaffold_hook={}",
-        registration.plugin_id,
-        registration.activation.as_str(),
-        registration.load_boundary.as_str(),
-        registration.scaffold_hook_registered
+        "Template: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{}: {}\n{}: {}\n{hook_label}: {}",
+        template.descriptor.id,
+        template.descriptor.display_name_for_locale(locale),
+        template.descriptor.summary_for_locale(locale),
+        template.descriptor.plugin_id,
+        i18n::activation_label(locale),
+        template.activation.as_str(),
+        i18n::load_boundary_label(locale),
+        template.load_boundary.as_str(),
+        if template.scaffold_hook_registered {
+            "scaffold"
+        } else {
+            "missing"
+        },
     )
 }
 
 #[cfg(test)]
 mod tests {
     use re_config::PluginActivation;
-    use re_core::RuntimeTemplateRegistration;
-    use re_plugin::PluginLoadBoundary;
+    use re_plugin::{PluginLoadBoundary, PluginLocalizedText, PluginTemplateDescriptor};
 
-    use super::{render_template_detail, render_template_listing};
+    use super::{OfficialTemplateContribution, render_template_detail, render_template_listing};
+
+    const LOCALIZED_NAMES: &[PluginLocalizedText] =
+        &[PluginLocalizedText::new("pt-br", "Starter básico")];
+    const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+        "pt-br",
+        "Template inicial para novos projetos Ralph Engine.",
+    )];
+
+    fn template_descriptor() -> PluginTemplateDescriptor {
+        PluginTemplateDescriptor::new(
+            "official.basic.starter",
+            "official.basic",
+            "Basic starter",
+            LOCALIZED_NAMES,
+            "Starter template for new Ralph Engine projects.",
+            LOCALIZED_SUMMARIES,
+        )
+    }
 
     #[test]
     fn render_template_listing_handles_empty_sets() {
-        // Arrange
         let registrations = [];
 
-        // Act
         let rendered = render_template_listing(&registrations, "en");
 
-        // Assert
         assert_eq!(rendered, "Templates (0)");
     }
 
@@ -111,37 +141,38 @@ mod tests {
 
     #[test]
     fn render_template_detail_is_human_readable() {
-        // Arrange
-        let templates = [RuntimeTemplateRegistration::new(
-            "official.basic",
-            PluginActivation::Enabled,
-            PluginLoadBoundary::InProcess,
-            true,
-        )];
+        let rendered = render_template_detail(
+            OfficialTemplateContribution {
+                descriptor: template_descriptor(),
+                activation: PluginActivation::Enabled,
+                load_boundary: PluginLoadBoundary::InProcess,
+                scaffold_hook_registered: true,
+            },
+            "en",
+        );
 
-        // Act
-        let rendered = render_template_detail("official.basic", &templates, "en");
-
-        // Assert
-        assert!(rendered.contains("Template provider: official.basic"));
-        assert!(rendered.contains("Providers (1)"));
-        assert!(rendered.contains(
-            "- official.basic | activation=enabled | boundary=in_process | scaffold_hook=true"
-        ));
+        assert!(rendered.contains("Template: official.basic.starter"));
+        assert!(rendered.contains("Name: Basic starter"));
+        assert!(rendered.contains("Plugin: official.basic"));
+        assert!(rendered.contains("Activation: enabled"));
+        assert!(rendered.contains("Runtime hook: scaffold"));
     }
 
     #[test]
     fn render_template_detail_supports_pt_br() {
-        let templates = [RuntimeTemplateRegistration::new(
-            "official.basic",
-            PluginActivation::Enabled,
-            PluginLoadBoundary::InProcess,
-            true,
-        )];
+        let rendered = render_template_detail(
+            OfficialTemplateContribution {
+                descriptor: template_descriptor(),
+                activation: PluginActivation::Enabled,
+                load_boundary: PluginLoadBoundary::InProcess,
+                scaffold_hook_registered: true,
+            },
+            "pt-br",
+        );
 
-        let rendered = render_template_detail("official.basic", &templates, "pt-br");
-
-        assert!(rendered.contains("Provedor de template: official.basic"));
-        assert!(rendered.contains("Provedores (1)"));
+        assert!(rendered.contains("Template: official.basic.starter"));
+        assert!(rendered.contains("Nome: Starter básico"));
+        assert!(rendered.contains("Resumo: Template inicial para novos projetos Ralph Engine."));
+        assert!(rendered.contains("Plugin: official.basic"));
     }
 }
