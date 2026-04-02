@@ -1,5 +1,7 @@
 //! Shared product metadata for Ralph Engine.
 
+mod i18n;
+
 use re_config::{ConfigScope, PluginActivation};
 use re_mcp::McpServerDescriptor;
 use re_plugin::{PluginCapability, PluginDescriptor, PluginLoadBoundary, PluginRuntimeHook};
@@ -721,15 +723,15 @@ pub fn render_runtime_topology_for_locale(topology: &RuntimeTopology<'_>, locale
     let mut lines = vec![
         format!(
             "{}: {}",
-            if locale.eq_ignore_ascii_case("pt-br") {
-                "Fase do runtime"
-            } else {
-                "Runtime phase"
-            },
+            i18n::runtime_phase_label(locale),
             topology.phase.as_str()
         ),
-        format!("{}: {}", "Locale", topology.locale),
-        format!("{} ({})", "Plugins", topology.plugins.len()),
+        format!("{}: {}", i18n::locale_label(locale), topology.locale),
+        format!(
+            "{} ({})",
+            i18n::plugins_label(locale),
+            topology.plugins.len()
+        ),
     ];
 
     for plugin in topology.plugins {
@@ -742,7 +744,11 @@ pub fn render_runtime_topology_for_locale(topology: &RuntimeTopology<'_>, locale
         ));
     }
 
-    lines.push(format!("Capabilities ({})", topology.capabilities.len()));
+    lines.push(format!(
+        "{} ({})",
+        i18n::capabilities_label(locale),
+        topology.capabilities.len()
+    ));
 
     for capability in topology.capabilities {
         lines.push(format!(
@@ -754,7 +760,11 @@ pub fn render_runtime_topology_for_locale(topology: &RuntimeTopology<'_>, locale
         ));
     }
 
-    lines.push(format!("Templates ({})", topology.templates.len()));
+    lines.push(format!(
+        "{} ({})",
+        i18n::templates_label(locale),
+        topology.templates.len()
+    ));
 
     for template in topology.templates {
         lines.push(format!(
@@ -766,7 +776,11 @@ pub fn render_runtime_topology_for_locale(topology: &RuntimeTopology<'_>, locale
         ));
     }
 
-    lines.push(format!("Prompts ({})", topology.prompts.len()));
+    lines.push(format!(
+        "{} ({})",
+        i18n::prompts_label(locale),
+        topology.prompts.len()
+    ));
 
     for prompt in topology.prompts {
         lines.push(format!(
@@ -780,11 +794,7 @@ pub fn render_runtime_topology_for_locale(topology: &RuntimeTopology<'_>, locale
 
     lines.push(format!(
         "{} ({})",
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Runtimes de agente"
-        } else {
-            "Agent runtimes"
-        },
+        i18n::agent_runtimes_label(locale),
         topology.agents.len()
     ));
 
@@ -798,7 +808,11 @@ pub fn render_runtime_topology_for_locale(topology: &RuntimeTopology<'_>, locale
         ));
     }
 
-    lines.push(format!("Checks ({})", topology.checks.len()));
+    lines.push(format!(
+        "{} ({})",
+        i18n::checks_label(locale),
+        topology.checks.len()
+    ));
 
     for check in topology.checks {
         lines.push(format!(
@@ -813,11 +827,7 @@ pub fn render_runtime_topology_for_locale(topology: &RuntimeTopology<'_>, locale
 
     lines.push(format!(
         "{} ({})",
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Provedores"
-        } else {
-            "Providers"
-        },
+        i18n::providers_label(locale),
         topology.providers.len()
     ));
 
@@ -832,7 +842,11 @@ pub fn render_runtime_topology_for_locale(topology: &RuntimeTopology<'_>, locale
         ));
     }
 
-    lines.push(format!("Policies ({})", topology.policies.len()));
+    lines.push(format!(
+        "{} ({})",
+        i18n::policies_label(locale),
+        topology.policies.len()
+    ));
 
     for policy in topology.policies {
         lines.push(format!(
@@ -847,11 +861,7 @@ pub fn render_runtime_topology_for_locale(topology: &RuntimeTopology<'_>, locale
 
     lines.push(format!(
         "{} ({})",
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Hooks de runtime"
-        } else {
-            "Runtime hooks"
-        },
+        i18n::runtime_hooks_label(locale),
         topology.hooks.len()
     ));
 
@@ -867,11 +877,7 @@ pub fn render_runtime_topology_for_locale(topology: &RuntimeTopology<'_>, locale
 
     lines.push(format!(
         "{} ({})",
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Servidores MCP"
-        } else {
-            "MCP servers"
-        },
+        i18n::mcp_servers_label(locale),
         topology.mcp_servers.len()
     ));
 
@@ -1002,91 +1008,76 @@ pub fn render_runtime_status(status: &RuntimeStatus) -> String {
 /// Renders a human-readable runtime status summary for one locale.
 #[must_use]
 pub fn render_runtime_status_for_locale(status: &RuntimeStatus, locale: &str) -> String {
-    let plugin_label = "Plugins";
-    let capabilities_label = "Capabilities";
-    let templates_label = "Templates";
-    let prompts_label = "Prompts";
-    let agents_label = if locale.eq_ignore_ascii_case("pt-br") {
-        "Runtimes de agente"
-    } else {
-        "Agent runtimes"
-    };
-    let checks_label = "Checks";
-    let providers_label = if locale.eq_ignore_ascii_case("pt-br") {
-        "Provedores"
-    } else {
-        "Providers"
-    };
-    let policies_label = "Policies";
-    let hooks_label = if locale.eq_ignore_ascii_case("pt-br") {
-        "Hooks de runtime"
-    } else {
-        "Runtime hooks"
-    };
-    let mcp_label = if locale.eq_ignore_ascii_case("pt-br") {
-        "Servidores MCP"
-    } else {
-        "MCP servers"
-    };
-
     [
         format!(
             "{}: {}",
-            if locale.eq_ignore_ascii_case("pt-br") {
-                "Fase do runtime"
-            } else {
-                "Runtime phase"
-            },
+            i18n::runtime_phase_label(locale),
             status.phase.as_str()
         ),
         format!(
             "{}: {}",
-            if locale.eq_ignore_ascii_case("pt-br") {
-                "Saúde do runtime"
-            } else {
-                "Runtime health"
-            },
+            i18n::runtime_health_label(locale),
             status.health.as_str()
         ),
         format!(
-            "{plugin_label}: enabled={}, disabled={}",
-            status.enabled_plugins, status.disabled_plugins
+            "{}: enabled={}, disabled={}",
+            i18n::plugins_label(locale),
+            status.enabled_plugins,
+            status.disabled_plugins
         ),
         format!(
-            "{capabilities_label}: enabled={}, disabled={}",
-            status.enabled_capabilities, status.disabled_capabilities
+            "{}: enabled={}, disabled={}",
+            i18n::capabilities_label(locale),
+            status.enabled_capabilities,
+            status.disabled_capabilities
         ),
         format!(
-            "{templates_label}: enabled={}, disabled={}",
-            status.enabled_templates, status.disabled_templates
+            "{}: enabled={}, disabled={}",
+            i18n::templates_label(locale),
+            status.enabled_templates,
+            status.disabled_templates
         ),
         format!(
-            "{prompts_label}: enabled={}, disabled={}",
-            status.enabled_prompts, status.disabled_prompts
+            "{}: enabled={}, disabled={}",
+            i18n::prompts_label(locale),
+            status.enabled_prompts,
+            status.disabled_prompts
         ),
         format!(
-            "{agents_label}: enabled={}, disabled={}",
-            status.enabled_agents, status.disabled_agents
+            "{}: enabled={}, disabled={}",
+            i18n::agent_runtimes_label(locale),
+            status.enabled_agents,
+            status.disabled_agents
         ),
         format!(
-            "{checks_label}: enabled={}, disabled={}",
-            status.enabled_checks, status.disabled_checks
+            "{}: enabled={}, disabled={}",
+            i18n::checks_label(locale),
+            status.enabled_checks,
+            status.disabled_checks
         ),
         format!(
-            "{providers_label}: enabled={}, disabled={}",
-            status.enabled_providers, status.disabled_providers
+            "{}: enabled={}, disabled={}",
+            i18n::providers_label(locale),
+            status.enabled_providers,
+            status.disabled_providers
         ),
         format!(
-            "{policies_label}: enabled={}, disabled={}",
-            status.enabled_policies, status.disabled_policies
+            "{}: enabled={}, disabled={}",
+            i18n::policies_label(locale),
+            status.enabled_policies,
+            status.disabled_policies
         ),
         format!(
-            "{hooks_label}: enabled={}, disabled={}",
-            status.enabled_hooks, status.disabled_hooks
+            "{}: enabled={}, disabled={}",
+            i18n::runtime_hooks_label(locale),
+            status.enabled_hooks,
+            status.disabled_hooks
         ),
         format!(
-            "{mcp_label}: enabled={}, disabled={}",
-            status.enabled_mcp_servers, status.disabled_mcp_servers
+            "{}: enabled={}, disabled={}",
+            i18n::mcp_servers_label(locale),
+            status.enabled_mcp_servers,
+            status.disabled_mcp_servers
         ),
     ]
     .join("\n")
@@ -1210,23 +1201,12 @@ pub fn render_runtime_issues(issues: &[RuntimeIssue]) -> String {
 #[must_use]
 pub fn render_runtime_issues_for_locale(issues: &[RuntimeIssue], locale: &str) -> String {
     if issues.is_empty() {
-        return format!(
-            "{} (0)",
-            if locale.eq_ignore_ascii_case("pt-br") {
-                "Problemas do runtime"
-            } else {
-                "Runtime issues"
-            }
-        );
+        return format!("{} (0)", i18n::runtime_issues_label(locale));
     }
 
     let mut lines = vec![format!(
         "{} ({})",
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Problemas do runtime"
-        } else {
-            "Runtime issues"
-        },
+        i18n::runtime_issues_label(locale),
         issues.len()
     )];
 
@@ -1372,23 +1352,12 @@ pub fn render_runtime_action_plan(actions: &[RuntimeAction]) -> String {
 #[must_use]
 pub fn render_runtime_action_plan_for_locale(actions: &[RuntimeAction], locale: &str) -> String {
     if actions.is_empty() {
-        return format!(
-            "{} (0)",
-            if locale.eq_ignore_ascii_case("pt-br") {
-                "Plano de ação do runtime"
-            } else {
-                "Runtime action plan"
-            }
-        );
+        return format!("{} (0)", i18n::runtime_action_plan_label(locale));
     }
 
     let mut lines = vec![format!(
         "{} ({})",
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Plano de ação do runtime"
-        } else {
-            "Runtime action plan"
-        },
+        i18n::runtime_action_plan_label(locale),
         actions.len()
     )];
 
@@ -1427,11 +1396,7 @@ pub fn render_runtime_doctor_report_for_locale(
     locale: &str,
 ) -> String {
     [
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Doctor do runtime".to_owned()
-        } else {
-            "Runtime doctor".to_owned()
-        },
+        i18n::runtime_doctor_label(locale).to_owned(),
         String::new(),
         render_runtime_status_for_locale(&report.status, locale),
         String::new(),
