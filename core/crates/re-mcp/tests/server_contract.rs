@@ -7,15 +7,15 @@ use re_mcp::{
     render_mcp_server_listing_for_locale,
 };
 
-const LOCALIZED_CLAUDE_SERVER_NAMES: &[McpLocalizedText] =
-    &[McpLocalizedText::new("pt-br", "Sessão Claude")];
+const LOCALIZED_FIXTURE_SERVER_NAMES: &[McpLocalizedText] =
+    &[McpLocalizedText::new("pt-br", "Sessão de teste")];
 
-fn claude_server() -> McpServerDescriptor {
+fn fixture_server() -> McpServerDescriptor {
     McpServerDescriptor::new(
-        "official.claude.session",
-        "official.claude",
-        "Claude Session",
-        LOCALIZED_CLAUDE_SERVER_NAMES,
+        "test.runtime.session",
+        "test.runtime",
+        "Fixture Session",
+        LOCALIZED_FIXTURE_SERVER_NAMES,
         McpTransport::Stdio,
         McpLaunchPolicy::PluginRuntime,
         McpAvailability::OnDemand,
@@ -42,7 +42,7 @@ fn invalid_server() -> McpServerDescriptor {
 #[test]
 fn server_descriptor_requires_namespaced_identifier() {
     // Arrange
-    let server = claude_server();
+    let server = fixture_server();
 
     // Act
     let namespaced = server.is_namespaced();
@@ -66,7 +66,7 @@ fn server_descriptor_rejects_non_namespaced_identifier() {
 #[test]
 fn server_descriptor_requires_plugin_namespace() {
     // Arrange
-    let server = claude_server();
+    let server = fixture_server();
 
     // Act
     let namespaced = server.has_plugin_namespace();
@@ -203,7 +203,7 @@ fn command_descriptor_reports_arguments_when_present() {
 fn command_descriptor_handles_argument_free_invocation() {
     // Arrange
     let command = McpCommandDescriptor::new(
-        "claude-mcp",
+        "fixture-mcp",
         &[],
         McpWorkingDirectoryPolicy::RuntimeManaged,
         McpEnvironmentPolicy::MinimalRuntime,
@@ -215,7 +215,7 @@ fn command_descriptor_handles_argument_free_invocation() {
 
     // Assert
     assert!(!has_args);
-    assert_eq!(invocation, "claude-mcp");
+    assert_eq!(invocation, "fixture-mcp");
 }
 
 #[test]
@@ -236,7 +236,7 @@ fn availability_display_is_stable() {
 #[test]
 fn server_descriptor_reports_plugin_managed_execution() {
     // Arrange
-    let server = claude_server();
+    let server = fixture_server();
 
     // Act
     let plugin_managed = server.is_plugin_managed();
@@ -274,7 +274,7 @@ fn launch_policy_returns_spawn_command_for_external_binary() {
 #[test]
 fn launch_policy_reports_no_spawn_command_for_plugin_runtime() {
     // Arrange
-    let server = claude_server();
+    let server = fixture_server();
 
     // Act
     let command = server.command();
@@ -286,7 +286,7 @@ fn launch_policy_reports_no_spawn_command_for_plugin_runtime() {
 #[test]
 fn server_descriptor_reports_on_demand_availability() {
     // Arrange
-    let server = claude_server();
+    let server = fixture_server();
 
     // Act
     let on_demand = server.is_on_demand();
@@ -310,16 +310,14 @@ fn server_descriptor_reports_explicit_opt_in_availability() {
 #[test]
 fn render_mcp_server_listing_includes_human_readable_lines() {
     // Arrange
-    let servers = [claude_server()];
+    let servers = [fixture_server()];
 
     // Act
     let listing = render_mcp_server_listing(&servers);
 
     // Assert
     assert!(listing.contains("Official MCP servers (1)"));
-    assert!(
-        listing.contains("- official.claude.session | Claude Session | official.claude | stdio")
-    );
+    assert!(listing.contains("- test.runtime.session | Fixture Session | test.runtime | stdio"));
 }
 
 #[test]
@@ -337,13 +335,13 @@ fn render_mcp_server_listing_handles_empty_sets() {
 #[test]
 fn render_mcp_server_detail_includes_process_model_and_policy() {
     // Arrange
-    let server = claude_server();
+    let server = fixture_server();
 
     // Act
     let detail = render_mcp_server_detail(&server);
 
     // Assert
-    assert!(detail.contains("MCP server: official.claude.session"));
+    assert!(detail.contains("MCP server: test.runtime.session"));
     assert!(detail.contains("Process model: plugin_managed"));
     assert!(detail.contains("Launch policy: plugin_runtime"));
     assert!(detail.contains("Availability: on_demand"));
@@ -368,18 +366,18 @@ fn render_mcp_server_detail_includes_spawn_contract() {
 
 #[test]
 fn render_mcp_server_listing_supports_pt_br() {
-    let rendered = render_mcp_server_listing_for_locale(&[claude_server()], "pt-br");
+    let rendered = render_mcp_server_listing_for_locale(&[fixture_server()], "pt-br");
 
     assert!(rendered.contains("Servidores MCP oficiais (1)"));
-    assert!(rendered.contains("official.claude.session | Sessão Claude | official.claude | stdio"));
+    assert!(rendered.contains("test.runtime.session | Sessão de teste | test.runtime | stdio"));
 }
 
 #[test]
 fn render_mcp_server_detail_supports_pt_br_and_runtime_fallback_text() {
-    let rendered = render_mcp_server_detail_for_locale(&claude_server(), "pt-br");
+    let rendered = render_mcp_server_detail_for_locale(&fixture_server(), "pt-br");
 
-    assert!(rendered.contains("Servidor MCP: official.claude.session"));
-    assert!(rendered.contains("Nome: Sessão Claude"));
+    assert!(rendered.contains("Servidor MCP: test.runtime.session"));
+    assert!(rendered.contains("Nome: Sessão de teste"));
     assert!(rendered.contains("Transporte: stdio"));
     assert!(rendered.contains("Política de execução: plugin_runtime"));
     assert!(rendered.contains("Comando: gerenciado pelo runtime do plugin"));
