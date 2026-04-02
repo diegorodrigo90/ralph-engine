@@ -15,7 +15,7 @@ If you come from TypeScript, Go, Java, or another language, read these notes as 
 
 - Public Rust APIs use `rustdoc` comments with `///` or `//!`.
 - Public undocumented items fail the repository lint contract.
-- `cargo fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, docs build, and public-surface assembly are mandatory.
+- `cargo fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, cross-language plugin-contract verification, docs build, and public-surface assembly are mandatory.
 - CI caches should be keyed by runner, toolchain, and lockfile inputs instead of using one blind global cache.
 - Expensive checks should run once in the right job instead of being duplicated across the workflow graph.
 - Cross-platform product behavior should be proven in the quality matrix, while platform-independent security scanners may stay centralized on the canonical Linux runner.
@@ -71,6 +71,7 @@ The goal is simple: a contributor should be able to scan a test and understand s
 
 ```bash
 ./scripts/validate.sh --mode local
+npm run contracts:verify
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-targets --all-features

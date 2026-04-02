@@ -49,6 +49,21 @@ pub const REMOTE_CONTROL: PluginCapability = PluginCapability::new("remote_contr
 /// Policy enforcement capability.
 pub const POLICY: PluginCapability = PluginCapability::new("policy");
 
+/// Canonical ordered list of reviewed plugin capabilities.
+pub const ALL_PLUGIN_CAPABILITIES: &[PluginCapability] = &[
+    TEMPLATE,
+    PROMPT_FRAGMENTS,
+    PREPARE_CHECKS,
+    DOCTOR_CHECKS,
+    AGENT_RUNTIME,
+    MCP_CONTRIBUTION,
+    DATA_SOURCE,
+    CONTEXT_PROVIDER,
+    FORGE_PROVIDER,
+    REMOTE_CONTROL,
+    POLICY,
+];
+
 /// Typed plugin lifecycle stage identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PluginLifecycleStage {

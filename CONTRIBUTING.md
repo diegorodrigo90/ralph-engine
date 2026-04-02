@@ -15,6 +15,7 @@ cd ralph-engine
 ./scripts/bootstrap-dev.sh
 ./scripts/validate.sh --mode local
 ./scripts/validate-ci-local.sh
+npm run contracts:verify
 ```
 
 ## Workflow
@@ -40,6 +41,7 @@ The repository contract is enforced through:
 - `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps`
 - `cargo deny check`
 - `cargo audit`
+- `npm run contracts:verify`
 - `npm --prefix docs run build`
 - `./scripts/assemble-public-surfaces.sh .site-dist`
 - `./scripts/validate.sh --mode local`

@@ -15,7 +15,7 @@ Se você vem de TypeScript, Go, Java ou outra linguagem, leia esta página como 
 
 - APIs públicas em Rust usam comentários `rustdoc` com `///` ou `//!`.
 - Itens públicos sem documentação falham no contrato de lint do repositório.
-- `cargo fmt`, `clippy`, testes, cobertura, `rustdoc`, `cargo deny`, `cargo audit`, build das docs e montagem das superfícies públicas são obrigatórios.
+- `cargo fmt`, `clippy`, testes, cobertura, `rustdoc`, `cargo deny`, `cargo audit`, verificação cross-language do contrato de plugins, build das docs e montagem das superfícies públicas são obrigatórios.
 - Os caches da CI devem ser indexados por runner, toolchain e lockfiles relevantes, em vez de usar um cache global cego.
 - Etapas caras devem rodar uma vez no job certo, não ficar duplicadas ao longo do workflow.
 - O comportamento cross-platform do produto deve ser provado na matriz de quality, enquanto scanners de segurança independentes de plataforma podem ficar centralizados no runner Linux canônico.
@@ -71,6 +71,7 @@ O objetivo é simples: alguém precisa bater o olho num teste e entender rapidam
 
 ```bash
 ./scripts/validate.sh --mode local
+npm run contracts:verify
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-targets --all-features

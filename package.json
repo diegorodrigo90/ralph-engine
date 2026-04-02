@@ -8,6 +8,7 @@
   "scripts": {
     "commitlint": "commitlint --edit",
     "commitlint:range": "commitlint --from origin/main --to HEAD --verbose",
+    "contracts:verify": "node ./scripts/verify-plugin-contracts.mjs",
     "docs:build": "npm --prefix docs run build",
     "docs:install": "npm --prefix docs ci",
     "hooks:install": "npx --no -- lefthook install"

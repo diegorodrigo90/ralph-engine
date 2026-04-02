@@ -34,13 +34,13 @@ done
 default_checks_for_mode() {
   case "$1" in
     hook)
-      echo "fmt,clippy,test,rustdoc,deny,audit,gitleaks,trivy,public"
+      echo "fmt,clippy,test,contracts,rustdoc,deny,audit,gitleaks,trivy,public"
       ;;
     ci | local)
-      echo "fmt,clippy,test,coverage,rustdoc,deny,audit,gitleaks,trivy,public"
+      echo "fmt,clippy,test,contracts,coverage,rustdoc,deny,audit,gitleaks,trivy,public"
       ;;
     release)
-      echo "fmt,clippy,test,coverage,rustdoc,deny,audit,gitleaks,trivy,public,release"
+      echo "fmt,clippy,test,contracts,coverage,rustdoc,deny,audit,gitleaks,trivy,public,release"
       ;;
     *)
       echo "unknown validation mode: $1" >&2
@@ -208,6 +208,9 @@ should_run_check() {
     fmt | clippy | test | coverage | rustdoc)
       [[ "$SCOPE" == "rust-only" || "$SCOPE" == "full" ]]
       ;;
+    contracts)
+      [[ "$SCOPE" == "rust-only" || "$SCOPE" == "full" ]]
+      ;;
     deny | audit | trivy)
       [[ "$SCOPE" == "rust-only" || "$SCOPE" == "full" ]]
       ;;
@@ -259,6 +262,12 @@ if should_run_check test; then
   run_check test cargo test --workspace --all-targets --all-features
 elif contains_requested_check test; then
   skip_check test "public-only change set"
+fi
+
+if should_run_check contracts; then
+  run_check contracts npm run contracts:verify
+elif contains_requested_check contracts; then
+  skip_check contracts "public-only change set"
 fi
 
 if should_run_check coverage; then
