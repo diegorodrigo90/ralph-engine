@@ -1,6 +1,6 @@
 //! Runtime doctor command handlers.
 
-use re_core::{build_runtime_doctor_report, render_runtime_doctor_report_for_locale};
+use re_core::{build_runtime_snapshot, render_runtime_doctor_report_for_locale};
 
 use crate::{CliError, catalog, i18n};
 
@@ -17,7 +17,8 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 fn show_runtime_doctor(locale: &str) -> String {
     let snapshot = catalog::official_runtime_snapshot();
     let topology = snapshot.topology();
-    let report = build_runtime_doctor_report(&topology);
+    let runtime = build_runtime_snapshot(&topology);
+    let report = runtime.doctor_report();
 
     render_runtime_doctor_report_for_locale(&report, locale)
 }

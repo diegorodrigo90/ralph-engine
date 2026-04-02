@@ -1,9 +1,9 @@
 //! Runtime command handlers.
 
 use re_core::{
-    build_runtime_action_plan, collect_runtime_issues, evaluate_runtime_status,
-    render_runtime_action_plan_for_locale, render_runtime_issues_for_locale,
-    render_runtime_status_for_locale, render_runtime_topology_for_locale,
+    build_runtime_snapshot, render_runtime_action_plan_for_locale,
+    render_runtime_issues_for_locale, render_runtime_status_for_locale,
+    render_runtime_topology_for_locale,
 };
 
 use crate::{CliError, catalog, i18n};
@@ -24,30 +24,31 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 fn show_runtime(locale: &str) -> String {
     let snapshot = catalog::official_runtime_snapshot();
     let topology = snapshot.topology();
+    let runtime = build_runtime_snapshot(&topology);
 
-    render_runtime_topology_for_locale(&topology, locale)
+    render_runtime_topology_for_locale(&runtime.topology, locale)
 }
 
 fn show_runtime_status(locale: &str) -> String {
     let snapshot = catalog::official_runtime_snapshot();
     let topology = snapshot.topology();
-    let status = evaluate_runtime_status(&topology);
+    let runtime = build_runtime_snapshot(&topology);
 
-    render_runtime_status_for_locale(&status, locale)
+    render_runtime_status_for_locale(&runtime.status, locale)
 }
 
 fn show_runtime_issues(locale: &str) -> String {
     let snapshot = catalog::official_runtime_snapshot();
     let topology = snapshot.topology();
-    let issues = collect_runtime_issues(&topology);
+    let runtime = build_runtime_snapshot(&topology);
 
-    render_runtime_issues_for_locale(&issues, locale)
+    render_runtime_issues_for_locale(&runtime.issues, locale)
 }
 
 fn show_runtime_action_plan(locale: &str) -> String {
     let snapshot = catalog::official_runtime_snapshot();
     let topology = snapshot.topology();
-    let actions = build_runtime_action_plan(&topology);
+    let runtime = build_runtime_snapshot(&topology);
 
-    render_runtime_action_plan_for_locale(&actions, locale)
+    render_runtime_action_plan_for_locale(&runtime.actions, locale)
 }
