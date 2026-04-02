@@ -290,8 +290,8 @@ mod tests {
             "plugins show exige um id de plugin"
         );
         assert_eq!(
-            unknown_entity("pt-br", "plugin", "official.missing"),
-            "plugin desconhecido: official.missing"
+            unknown_entity("pt-br", "plugin", "fixture.missing"),
+            "plugin desconhecido: fixture.missing"
         );
         assert_eq!(
             unknown_entity("pt-br", "capacidade", "template"),
@@ -305,8 +305,8 @@ mod tests {
         assert_eq!(activation_label("pt-br"), "Ativação");
         assert_eq!(load_boundary_label("pt-br"), "Fronteira de carregamento");
         assert_eq!(
-            detail_heading("pt-br", "Plugin", "Plugin", "official.basic"),
-            "Plugin: official.basic"
+            detail_heading("pt-br", "Plugin", "Plugin", "fixture.basic"),
+            "Plugin: fixture.basic"
         );
     }
 
@@ -323,16 +323,16 @@ mod tests {
             "plugins show requires a plugin id"
         );
         assert_eq!(
-            unknown_entity("en", "plugin", "official.missing"),
-            "unknown plugin: official.missing"
+            unknown_entity("en", "plugin", "fixture.missing"),
+            "unknown plugin: fixture.missing"
         );
         assert_eq!(list_heading("en", "Plugins", "Plugins", 3), "Plugins (3)");
         assert_eq!(providers_heading("en", 2), "Providers (2)");
         assert_eq!(activation_label("en"), "Activation");
         assert_eq!(load_boundary_label("en"), "Load boundary");
         assert_eq!(
-            detail_heading("en", "Plugin", "Plugin", "official.basic"),
-            "Plugin: official.basic"
+            detail_heading("en", "Plugin", "Plugin", "fixture.basic"),
+            "Plugin: fixture.basic"
         );
     }
 
