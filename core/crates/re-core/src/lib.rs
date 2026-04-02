@@ -383,6 +383,15 @@ pub fn runtime_check_kind_for_capability(capability: PluginCapability) -> Option
     }
 }
 
+/// Resolves the runtime hook that activates one typed runtime check.
+#[must_use]
+pub const fn runtime_hook_for_check(kind: RuntimeCheckKind) -> PluginRuntimeHook {
+    match kind {
+        RuntimeCheckKind::Prepare => PluginRuntimeHook::Prepare,
+        RuntimeCheckKind::Doctor => PluginRuntimeHook::Doctor,
+    }
+}
+
 /// One typed runtime check registration in the resolved runtime topology.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RuntimeCheckRegistration {
@@ -461,6 +470,17 @@ pub fn runtime_provider_kind_for_capability(
         FORGE_PROVIDER => Some(RuntimeProviderKind::ForgeProvider),
         REMOTE_CONTROL => Some(RuntimeProviderKind::RemoteControl),
         _ => None,
+    }
+}
+
+/// Resolves the runtime hook that activates one typed runtime provider.
+#[must_use]
+pub const fn runtime_hook_for_provider(kind: RuntimeProviderKind) -> PluginRuntimeHook {
+    match kind {
+        RuntimeProviderKind::DataSource => PluginRuntimeHook::DataSourceRegistration,
+        RuntimeProviderKind::ContextProvider => PluginRuntimeHook::ContextProviderRegistration,
+        RuntimeProviderKind::ForgeProvider => PluginRuntimeHook::ForgeProviderRegistration,
+        RuntimeProviderKind::RemoteControl => PluginRuntimeHook::RemoteControlBootstrap,
     }
 }
 
