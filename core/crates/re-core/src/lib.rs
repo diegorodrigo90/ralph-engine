@@ -325,6 +325,8 @@ impl RuntimePromptRegistration {
 /// One typed agent-runtime registration in the resolved runtime topology.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RuntimeAgentRegistration {
+    /// Stable agent runtime identifier.
+    pub agent_id: &'static str,
     /// Plugin providing the agent runtime.
     pub plugin_id: &'static str,
     /// Effective activation state for the provider plugin.
@@ -339,12 +341,14 @@ impl RuntimeAgentRegistration {
     /// Creates a new immutable runtime agent registration.
     #[must_use]
     pub const fn new(
+        agent_id: &'static str,
         plugin_id: &'static str,
         activation: PluginActivation,
         load_boundary: PluginLoadBoundary,
         bootstrap_hook_registered: bool,
     ) -> Self {
         Self {
+            agent_id,
             plugin_id,
             activation,
             load_boundary,
@@ -1838,6 +1842,7 @@ mod tests {
 
     fn agent_registration() -> RuntimeAgentRegistration {
         RuntimeAgentRegistration::new(
+            "test.agents.session",
             AGENT_PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
@@ -2523,6 +2528,7 @@ mod tests {
             true,
         )];
         let agents = [RuntimeAgentRegistration::new(
+            "test.agents.session",
             AGENT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
@@ -2618,6 +2624,7 @@ mod tests {
             true,
         )];
         let agents = [RuntimeAgentRegistration::new(
+            "test.agents.session",
             AGENT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
@@ -2728,6 +2735,7 @@ mod tests {
             true,
         )];
         let agents = [RuntimeAgentRegistration::new(
+            "test.agents.session",
             AGENT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
@@ -2934,6 +2942,7 @@ mod tests {
             true,
         )];
         let agents = [RuntimeAgentRegistration::new(
+            "test.agents.session",
             AGENT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
@@ -3237,6 +3246,7 @@ mod tests {
             true,
         )];
         let agents = [RuntimeAgentRegistration::new(
+            "test.agents.session",
             AGENT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
