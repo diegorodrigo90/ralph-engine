@@ -293,8 +293,25 @@ impl McpServerDescriptor {
 /// Renders a human-readable MCP server listing.
 #[must_use]
 pub fn render_mcp_server_listing(servers: &[McpServerDescriptor]) -> String {
+    render_mcp_server_listing_for_locale(servers, "en")
+}
+
+/// Renders a human-readable MCP server listing for one locale.
+#[must_use]
+pub fn render_mcp_server_listing_for_locale(
+    servers: &[McpServerDescriptor],
+    locale: &str,
+) -> String {
     let mut lines = Vec::with_capacity(servers.len() + 1);
-    lines.push(format!("Official MCP servers ({})", servers.len()));
+    lines.push(format!(
+        "{} ({})",
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Servidores MCP oficiais"
+        } else {
+            "Official MCP servers"
+        },
+        servers.len()
+    ));
 
     for server in servers {
         lines.push(format!(
@@ -309,26 +326,130 @@ pub fn render_mcp_server_listing(servers: &[McpServerDescriptor]) -> String {
 /// Renders a human-readable MCP server detail block.
 #[must_use]
 pub fn render_mcp_server_detail(server: &McpServerDescriptor) -> String {
+    render_mcp_server_detail_for_locale(server, "en")
+}
+
+/// Renders a human-readable MCP server detail block for one locale.
+#[must_use]
+pub fn render_mcp_server_detail_for_locale(server: &McpServerDescriptor, locale: &str) -> String {
     let mut lines = vec![
-        format!("MCP server: {}", server.id),
-        format!("Name: {}", server.name),
-        format!("Plugin: {}", server.plugin_id),
-        format!("Transport: {}", server.transport),
-        format!("Process model: {}", server.process_model()),
-        format!("Launch policy: {}", server.launch_policy),
-        format!("Availability: {}", server.availability),
+        format!(
+            "{}: {}",
+            if locale.eq_ignore_ascii_case("pt-br") {
+                "Servidor MCP"
+            } else {
+                "MCP server"
+            },
+            server.id
+        ),
+        format!(
+            "{}: {}",
+            if locale.eq_ignore_ascii_case("pt-br") {
+                "Nome"
+            } else {
+                "Name"
+            },
+            server.name
+        ),
+        format!("{}: {}", "Plugin", server.plugin_id),
+        format!(
+            "{}: {}",
+            if locale.eq_ignore_ascii_case("pt-br") {
+                "Transporte"
+            } else {
+                "Transport"
+            },
+            server.transport
+        ),
+        format!(
+            "{}: {}",
+            if locale.eq_ignore_ascii_case("pt-br") {
+                "Modelo de processo"
+            } else {
+                "Process model"
+            },
+            server.process_model()
+        ),
+        format!(
+            "{}: {}",
+            if locale.eq_ignore_ascii_case("pt-br") {
+                "Política de launch"
+            } else {
+                "Launch policy"
+            },
+            server.launch_policy
+        ),
+        format!(
+            "{}: {}",
+            if locale.eq_ignore_ascii_case("pt-br") {
+                "Disponibilidade"
+            } else {
+                "Availability"
+            },
+            server.availability
+        ),
     ];
 
     match server.command() {
         Some(command) => {
-            lines.push(format!("Command: {}", command.render_invocation()));
-            lines.push(format!("Working directory: {}", command.working_directory));
-            lines.push(format!("Environment: {}", command.environment));
+            lines.push(format!(
+                "{}: {}",
+                if locale.eq_ignore_ascii_case("pt-br") {
+                    "Comando"
+                } else {
+                    "Command"
+                },
+                command.render_invocation()
+            ));
+            lines.push(format!(
+                "{}: {}",
+                if locale.eq_ignore_ascii_case("pt-br") {
+                    "Diretório de trabalho"
+                } else {
+                    "Working directory"
+                },
+                command.working_directory
+            ));
+            lines.push(format!(
+                "{}: {}",
+                if locale.eq_ignore_ascii_case("pt-br") {
+                    "Ambiente"
+                } else {
+                    "Environment"
+                },
+                command.environment
+            ));
         }
         None => {
-            lines.push("Command: managed by plugin runtime".to_owned());
-            lines.push("Working directory: runtime_managed".to_owned());
-            lines.push("Environment: minimal_runtime".to_owned());
+            lines.push(format!(
+                "{}: {}",
+                if locale.eq_ignore_ascii_case("pt-br") {
+                    "Comando"
+                } else {
+                    "Command"
+                },
+                if locale.eq_ignore_ascii_case("pt-br") {
+                    "gerenciado pelo runtime do plugin"
+                } else {
+                    "managed by plugin runtime"
+                }
+            ));
+            lines.push(format!(
+                "{}: runtime_managed",
+                if locale.eq_ignore_ascii_case("pt-br") {
+                    "Diretório de trabalho"
+                } else {
+                    "Working directory"
+                }
+            ));
+            lines.push(format!(
+                "{}: minimal_runtime",
+                if locale.eq_ignore_ascii_case("pt-br") {
+                    "Ambiente"
+                } else {
+                    "Environment"
+                }
+            ));
         }
     }
 

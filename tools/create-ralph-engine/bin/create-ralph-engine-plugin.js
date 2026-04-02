@@ -230,6 +230,8 @@ function renderManifest(scaffold) {
     `id: ${scaffold.id}`,
     `kind: ${scaffold.kind}`,
     `display_name: ${humanize(scaffold.name)}`,
+    "display_name_locales:",
+    `  pt-br: ${humanize(scaffold.name)}`,
     `publisher: ${scaffold.publisher}`,
     `trust_level: community`,
     `plugin_version: 0.1.0`,

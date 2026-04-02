@@ -14,11 +14,11 @@ mod providers;
 mod runtime;
 mod templates;
 
-use crate::CliError;
+use crate::{CliError, i18n};
 
 struct CommandDescriptor {
     name: &'static str,
-    handler: fn(&[String]) -> Result<String, CliError>,
+    handler: fn(&[String], &str) -> Result<String, CliError>,
 }
 
 const COMMANDS: &[CommandDescriptor] = &[
@@ -78,19 +78,22 @@ const COMMANDS: &[CommandDescriptor] = &[
 
 /// Executes the CLI command tree from collected process arguments.
 pub fn execute(args: &[String]) -> Result<String, CliError> {
+    let locale = i18n::resolve_cli_locale()?;
+
     match args.get(1).map(String::as_str) {
         None => Ok(format!(
-            "{}\n\nRust foundation bootstrapped.",
-            re_core::banner()
+            "{}\n\n{}",
+            re_core::banner(),
+            i18n::root_bootstrapped(locale)
         )),
         Some("--version") => Ok(env!("CARGO_PKG_VERSION").to_owned()),
-        Some(command_name) => dispatch_command(command_name, &args[2..]),
+        Some(command_name) => dispatch_command(command_name, &args[2..], locale),
     }
 }
 
-fn dispatch_command(command_name: &str, args: &[String]) -> Result<String, CliError> {
+fn dispatch_command(command_name: &str, args: &[String], locale: &str) -> Result<String, CliError> {
     match COMMANDS.iter().find(|command| command.name == command_name) {
-        Some(command) => (command.handler)(args),
-        None => Err(CliError::new(format!("unknown command: {command_name}"))),
+        Some(command) => (command.handler)(args, locale),
+        None => Err(CliError::new(i18n::unknown_command(locale, command_name))),
     }
 }

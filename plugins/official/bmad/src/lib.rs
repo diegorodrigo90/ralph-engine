@@ -2,12 +2,14 @@
 
 use re_plugin::{
     DOCTOR_CHECKS, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginDescriptor, PluginKind,
-    PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook, TEMPLATE,
+    PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginRuntimeHook,
+    PluginTrustLevel, TEMPLATE,
 };
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.bmad";
 const PLUGIN_NAME: &str = "BMAD";
+const LOCALIZED_NAMES: &[PluginLocalizedText] = &[];
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] =
     &[TEMPLATE, PROMPT_FRAGMENTS, PREPARE_CHECKS, DOCTOR_CHECKS];
@@ -26,7 +28,9 @@ const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
     PluginKind::Template,
+    PluginTrustLevel::Official,
     PLUGIN_NAME,
+    LOCALIZED_NAMES,
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,

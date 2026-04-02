@@ -32,6 +32,7 @@ cargo test --workspace --all-targets --all-features
 - Public Rust APIs are documented with `rustdoc`
 - Rust tests prefer Arrange, Act, Assert
 - Plugin and MCP extensibility stays typed: plugin kinds, capabilities, lifecycle stages, runtime hooks, configuration scopes, launch policy, command boundaries, and future contributions are expected to evolve through shared contracts rather than string-coupled runtime branches
+- Plugin trust stays typed and explicit: official/runtime-owned plugins and community manifests are expected to flow through shared trust-level contracts instead of ad hoc YAML strings or CLI-only labels
 - Configuration layering stays typed and explicit: canonical defaults, future workspace settings, project settings, and user overrides are expected to evolve through shared layer contracts and inspectable CLI output rather than hidden precedence rules
 - Prompt and context budgets stay typed and explicit: shared runtime budget contracts and CLI inspection are expected to carry token ceilings instead of scattering implicit defaults through providers
 - Runtime registration stays typed: the resolved runtime topology, capability registry, template registry, prompt registry, agent registry, check registry, provider registry, policy registry, runtime-hook registry, runtime health, runtime issues, runtime action plans, and MCP contributions are expected to evolve through shared contracts rather than implicit command-local catalog traversal, and disabled capabilities, templates, prompt providers, agent runtimes, checks, providers, policies, or hooks remain visible in health plus remediation output
@@ -40,6 +41,7 @@ cargo test --workspace --all-targets --all-features
 - Official and scaffolded plugin identifiers use the same dotted namespace contract, such as `official.basic` and `acme.jira-suite`
 - Third-party plugin manifests stay contract-driven: `tools/create-ralph-engine/` owns a versioned `manifest.yaml` schema plus validation helpers so language-agnostic plugin metadata cannot drift away from the typed runtime contracts
 - Cross-language plugin contracts are verified explicitly so Rust capability contracts, manifest schema enums, and `create-ralph-engine-plugin` supported surfaces cannot drift silently
+- CLI output SHALL stay locale-aware for `en` and `pt-br`, and plugin-facing metadata SHALL support locale-specific names with English fallback when a requested locale is missing
 - Runtime diagnostics stay typed: doctor-style reporting is expected to compose status, unresolved issues, and remediation actions from one shared runtime snapshot instead of re-deriving them ad hoc in separate commands
 - The repository enforces `fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, docs build, and public-surface assembly from the same validation contract
 - SonarCloud is configured as the final coverage gate for analyzed code, and the release path is blocked unless that gate stays at `100%`

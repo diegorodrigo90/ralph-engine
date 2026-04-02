@@ -57,6 +57,19 @@ function parseRustPluginKinds(source) {
   );
 }
 
+function parseRustPluginTrustLevels(source) {
+  const trustImplMatch = source.match(/impl PluginTrustLevel \{([\s\S]*?)\n\}/);
+  if (!trustImplMatch) {
+    fail("could not find PluginTrustLevel implementation in Rust plugin contract");
+  }
+
+  return new Set(
+    [...trustImplMatch[1].matchAll(/Self::[A-Za-z]+ => "([^"]+)"/g)].map(
+      (match) => match[1],
+    ),
+  );
+}
+
 function parseScaffolderSet(source, setName) {
   const regex = new RegExp(
     `const ${setName} = new Set\\(\\[([\\s\\S]*?)\\]\\);`,
@@ -124,10 +137,12 @@ const manifestSchema = manifestContract.loadManifestSchema();
 
 const rustCapabilities = parseRustCapabilityConstants(rustPluginContract);
 const rustKinds = parseRustPluginKinds(rustPluginContract);
+const rustTrustLevels = parseRustPluginTrustLevels(rustPluginContract);
 const supportedCapabilities = parseScaffolderSet(scaffolderSource, "SUPPORTED_CAPABILITIES");
 const supportedKinds = parseScaffolderSet(scaffolderSource, "SUPPORTED_KINDS");
 const manifestCapabilities = new Set(manifestSchema.properties.capabilities.items.enum);
 const manifestKinds = new Set(manifestSchema.properties.kind.enum);
+const manifestTrustLevels = new Set(manifestSchema.properties.trust_level.enum);
 const defaultKind = parseDefaultKind(scaffolderSource);
 const defaultCapabilitiesByKind = parseDefaultCapabilitiesByKind(scaffolderSource);
 
@@ -139,6 +154,7 @@ assertExactSet(
 assertExactSet(supportedKinds, rustKinds, "scaffolder supported kinds");
 assertExactSet(manifestCapabilities, rustCapabilities, "manifest schema capabilities");
 assertExactSet(manifestKinds, rustKinds, "manifest schema kinds");
+assertSubset(manifestTrustLevels, rustTrustLevels, "manifest schema trust levels");
 
 if (!supportedKinds.has(defaultKind)) {
   fail(`DEFAULT_KIND must stay inside SUPPORTED_KINDS: ${defaultKind}`);

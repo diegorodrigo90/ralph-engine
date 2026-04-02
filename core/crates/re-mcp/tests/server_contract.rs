@@ -3,7 +3,8 @@
 use re_mcp::{
     McpAvailability, McpCommandDescriptor, McpEnvironmentPolicy, McpLaunchPolicy, McpProcessModel,
     McpServerDescriptor, McpTransport, McpWorkingDirectoryPolicy, render_mcp_server_detail,
-    render_mcp_server_listing,
+    render_mcp_server_detail_for_locale, render_mcp_server_listing,
+    render_mcp_server_listing_for_locale,
 };
 
 fn claude_server() -> McpServerDescriptor {
@@ -358,4 +359,36 @@ fn render_mcp_server_detail_includes_spawn_contract() {
     assert!(detail.contains("Command: broken-mcp serve"));
     assert!(detail.contains("Working directory: project_root"));
     assert!(detail.contains("Environment: plugin_scoped"));
+}
+
+#[test]
+fn render_mcp_server_listing_supports_pt_br() {
+    let rendered = render_mcp_server_listing_for_locale(&[claude_server()], "pt-br");
+
+    assert!(rendered.contains("Servidores MCP oficiais (1)"));
+    assert!(
+        rendered.contains("official.claude.session | Claude Session | official.claude | stdio")
+    );
+}
+
+#[test]
+fn render_mcp_server_detail_supports_pt_br_and_runtime_fallback_text() {
+    let rendered = render_mcp_server_detail_for_locale(&claude_server(), "pt-br");
+
+    assert!(rendered.contains("Servidor MCP: official.claude.session"));
+    assert!(rendered.contains("Nome: Claude Session"));
+    assert!(rendered.contains("Transporte: stdio"));
+    assert!(rendered.contains("Política de launch: plugin_runtime"));
+    assert!(rendered.contains("Comando: gerenciado pelo runtime do plugin"));
+    assert!(rendered.contains("Diretório de trabalho: runtime_managed"));
+    assert!(rendered.contains("Ambiente: minimal_runtime"));
+}
+
+#[test]
+fn render_mcp_server_detail_supports_pt_br_for_spawn_process() {
+    let rendered = render_mcp_server_detail_for_locale(&invalid_server(), "pt-br");
+
+    assert!(rendered.contains("Comando: broken-mcp serve"));
+    assert!(rendered.contains("Diretório de trabalho: project_root"));
+    assert!(rendered.contains("Ambiente: plugin_scoped"));
 }

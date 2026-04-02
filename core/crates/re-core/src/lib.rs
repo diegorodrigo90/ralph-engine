@@ -712,10 +712,24 @@ impl RuntimeDoctorReport {
 /// Renders a human-readable runtime topology summary.
 #[must_use]
 pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
+    render_runtime_topology_for_locale(topology, "en")
+}
+
+/// Renders a human-readable runtime topology summary for one locale.
+#[must_use]
+pub fn render_runtime_topology_for_locale(topology: &RuntimeTopology<'_>, locale: &str) -> String {
     let mut lines = vec![
-        format!("Runtime phase: {}", topology.phase.as_str()),
-        format!("Locale: {}", topology.locale),
-        format!("Plugins ({})", topology.plugins.len()),
+        format!(
+            "{}: {}",
+            if locale.eq_ignore_ascii_case("pt-br") {
+                "Fase do runtime"
+            } else {
+                "Runtime phase"
+            },
+            topology.phase.as_str()
+        ),
+        format!("{}: {}", "Locale", topology.locale),
+        format!("{} ({})", "Plugins", topology.plugins.len()),
     ];
 
     for plugin in topology.plugins {
@@ -764,7 +778,15 @@ pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
         ));
     }
 
-    lines.push(format!("Agent runtimes ({})", topology.agents.len()));
+    lines.push(format!(
+        "{} ({})",
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Runtimes de agente"
+        } else {
+            "Agent runtimes"
+        },
+        topology.agents.len()
+    ));
 
     for agent in topology.agents {
         lines.push(format!(
@@ -789,7 +811,15 @@ pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
         ));
     }
 
-    lines.push(format!("Providers ({})", topology.providers.len()));
+    lines.push(format!(
+        "{} ({})",
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Provedores"
+        } else {
+            "Providers"
+        },
+        topology.providers.len()
+    ));
 
     for provider in topology.providers {
         lines.push(format!(
@@ -815,7 +845,15 @@ pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
         ));
     }
 
-    lines.push(format!("Runtime hooks ({})", topology.hooks.len()));
+    lines.push(format!(
+        "{} ({})",
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Hooks de runtime"
+        } else {
+            "Runtime hooks"
+        },
+        topology.hooks.len()
+    ));
 
     for hook in topology.hooks {
         lines.push(format!(
@@ -827,7 +865,15 @@ pub fn render_runtime_topology(topology: &RuntimeTopology<'_>) -> String {
         ));
     }
 
-    lines.push(format!("MCP servers ({})", topology.mcp_servers.len()));
+    lines.push(format!(
+        "{} ({})",
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Servidores MCP"
+        } else {
+            "MCP servers"
+        },
+        topology.mcp_servers.len()
+    ));
 
     for server in topology.mcp_servers {
         lines.push(format!(
@@ -950,9 +996,31 @@ pub fn evaluate_runtime_status(topology: &RuntimeTopology<'_>) -> RuntimeStatus 
 /// Renders a human-readable runtime status summary.
 #[must_use]
 pub fn render_runtime_status(status: &RuntimeStatus) -> String {
+    render_runtime_status_for_locale(status, "en")
+}
+
+/// Renders a human-readable runtime status summary for one locale.
+#[must_use]
+pub fn render_runtime_status_for_locale(status: &RuntimeStatus, locale: &str) -> String {
     [
-        format!("Runtime phase: {}", status.phase.as_str()),
-        format!("Runtime health: {}", status.health.as_str()),
+        format!(
+            "{}: {}",
+            if locale.eq_ignore_ascii_case("pt-br") {
+                "Fase do runtime"
+            } else {
+                "Runtime phase"
+            },
+            status.phase.as_str()
+        ),
+        format!(
+            "{}: {}",
+            if locale.eq_ignore_ascii_case("pt-br") {
+                "Saúde do runtime"
+            } else {
+                "Runtime health"
+            },
+            status.health.as_str()
+        ),
         format!(
             "Plugins: enabled={}, disabled={}",
             status.enabled_plugins, status.disabled_plugins
@@ -1108,18 +1176,39 @@ pub fn collect_runtime_issues(topology: &RuntimeTopology<'_>) -> Vec<RuntimeIssu
 /// Renders a human-readable runtime issue summary.
 #[must_use]
 pub fn render_runtime_issues(issues: &[RuntimeIssue]) -> String {
+    render_runtime_issues_for_locale(issues, "en")
+}
+
+/// Renders a human-readable runtime issue summary for one locale.
+#[must_use]
+pub fn render_runtime_issues_for_locale(issues: &[RuntimeIssue], locale: &str) -> String {
     if issues.is_empty() {
-        return "Runtime issues (0)".to_owned();
+        return format!(
+            "{} (0)",
+            if locale.eq_ignore_ascii_case("pt-br") {
+                "Problemas do runtime"
+            } else {
+                "Runtime issues"
+            }
+        );
     }
 
-    let mut lines = vec![format!("Runtime issues ({})", issues.len())];
+    let mut lines = vec![format!(
+        "{} ({})",
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Problemas do runtime"
+        } else {
+            "Runtime issues"
+        },
+        issues.len()
+    )];
 
     for issue in issues {
         lines.push(format!(
             "- {} | subject={} | action={}",
             issue.kind.as_str(),
             issue.subject,
-            issue.recommended_action
+            translate_runtime_reason(locale, issue.recommended_action)
         ));
     }
 
@@ -1249,18 +1338,39 @@ pub fn build_runtime_action_plan(topology: &RuntimeTopology<'_>) -> Vec<RuntimeA
 /// Renders a human-readable runtime remediation plan.
 #[must_use]
 pub fn render_runtime_action_plan(actions: &[RuntimeAction]) -> String {
+    render_runtime_action_plan_for_locale(actions, "en")
+}
+
+/// Renders a human-readable runtime remediation plan for one locale.
+#[must_use]
+pub fn render_runtime_action_plan_for_locale(actions: &[RuntimeAction], locale: &str) -> String {
     if actions.is_empty() {
-        return "Runtime action plan (0)".to_owned();
+        return format!(
+            "{} (0)",
+            if locale.eq_ignore_ascii_case("pt-br") {
+                "Plano de ação do runtime"
+            } else {
+                "Runtime action plan"
+            }
+        );
     }
 
-    let mut lines = vec![format!("Runtime action plan ({})", actions.len())];
+    let mut lines = vec![format!(
+        "{} ({})",
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Plano de ação do runtime"
+        } else {
+            "Runtime action plan"
+        },
+        actions.len()
+    )];
 
     for action in actions {
         lines.push(format!(
             "- {} | target={} | reason={}",
             action.kind.as_str(),
             action.target,
-            action.reason
+            translate_runtime_reason(locale, action.reason.as_str())
         ));
     }
 
@@ -1280,16 +1390,104 @@ pub fn build_runtime_doctor_report(topology: &RuntimeTopology<'_>) -> RuntimeDoc
 /// Renders a human-readable runtime doctor report.
 #[must_use]
 pub fn render_runtime_doctor_report(report: &RuntimeDoctorReport) -> String {
+    render_runtime_doctor_report_for_locale(report, "en")
+}
+
+/// Renders a human-readable runtime doctor report for one locale.
+#[must_use]
+pub fn render_runtime_doctor_report_for_locale(
+    report: &RuntimeDoctorReport,
+    locale: &str,
+) -> String {
     [
-        "Runtime doctor".to_owned(),
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Doctor do runtime".to_owned()
+        } else {
+            "Runtime doctor".to_owned()
+        },
         String::new(),
-        render_runtime_status(&report.status),
+        render_runtime_status_for_locale(&report.status, locale),
         String::new(),
-        render_runtime_issues(&report.issues),
+        render_runtime_issues_for_locale(&report.issues, locale),
         String::new(),
-        render_runtime_action_plan(&report.actions),
+        render_runtime_action_plan_for_locale(&report.actions, locale),
     ]
     .join("\n")
+}
+
+fn translate_runtime_reason(locale: &str, reason: &str) -> String {
+    if !locale.eq_ignore_ascii_case("pt-br") {
+        return reason.to_owned();
+    }
+
+    if let Some(capability) = reason.strip_prefix("the provider still disables capability ") {
+        return format!("o provedor ainda desabilita a capability {capability}");
+    }
+
+    if let Some(check_kind) = reason.strip_prefix("the provider still disables runtime check ") {
+        return format!("o provedor ainda desabilita o check de runtime {check_kind}");
+    }
+
+    if let Some(provider_kind) = reason.strip_prefix("the provider still disables contribution ") {
+        return format!("o provedor ainda desabilita a contribuição {provider_kind}");
+    }
+
+    if let Some(policy_id) = reason.strip_prefix("the provider still disables policy ") {
+        return format!("o provedor ainda desabilita a policy {policy_id}");
+    }
+
+    if let Some(hook_id) = reason.strip_prefix("the provider still disables runtime hook ") {
+        return format!("o provedor ainda desabilita o hook de runtime {hook_id}");
+    }
+
+    match reason {
+        "enable the plugin in typed project configuration" => {
+            "ative o plugin na configuração tipada do projeto".to_owned()
+        }
+        "enable the provider plugin that owns this capability" => {
+            "ative o plugin provedor dono desta capability".to_owned()
+        }
+        "enable the provider plugin that owns this template surface" => {
+            "ative o plugin provedor dono desta surface de template".to_owned()
+        }
+        "enable the provider plugin that owns this prompt surface" => {
+            "ative o plugin provedor dono desta surface de prompt".to_owned()
+        }
+        "enable the provider plugin that owns this agent runtime" => {
+            "ative o plugin provedor dono deste runtime de agente".to_owned()
+        }
+        "enable the provider plugin that owns this runtime check" => {
+            "ative o plugin provedor dono deste check de runtime".to_owned()
+        }
+        "enable the provider plugin that owns this contribution" => {
+            "ative o plugin provedor dono desta contribuição".to_owned()
+        }
+        "enable the provider plugin that owns this policy" => {
+            "ative o plugin provedor dono desta policy".to_owned()
+        }
+        "enable the provider plugin that owns this runtime hook" => {
+            "ative o plugin provedor dono deste hook de runtime".to_owned()
+        }
+        "enable the owning plugin or opt in to the MCP server" => {
+            "ative o plugin dono ou faça opt-in no servidor MCP".to_owned()
+        }
+        "the plugin is registered but disabled" => {
+            "o plugin está registrado, mas desabilitado".to_owned()
+        }
+        "the provider still disables the template surface" => {
+            "o provedor ainda desabilita a surface de template".to_owned()
+        }
+        "the provider still disables the prompt surface" => {
+            "o provedor ainda desabilita a surface de prompt".to_owned()
+        }
+        "the provider still disables the agent runtime" => {
+            "o provedor ainda desabilita o runtime de agente".to_owned()
+        }
+        "the MCP contribution is registered but disabled" => {
+            "a contribuição MCP está registrada, mas desabilitada".to_owned()
+        }
+        _ => reason.to_owned(),
+    }
 }
 
 #[cfg(test)]
@@ -1298,7 +1496,7 @@ mod tests {
     use re_mcp::{McpAvailability, McpLaunchPolicy, McpServerDescriptor, McpTransport};
     use re_plugin::{
         PluginCapability, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
-        PluginRuntimeHook,
+        PluginLocalizedText, PluginRuntimeHook, PluginTrustLevel,
     };
 
     use super::{
@@ -1307,21 +1505,27 @@ mod tests {
         RuntimeDoctorReport, RuntimeHealth, RuntimeHookRegistration, RuntimeIssue,
         RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
         RuntimePolicyRegistration, RuntimePromptRegistration, RuntimeProviderKind,
-        RuntimeProviderRegistration, RuntimeTemplateRegistration, RuntimeTopology, banner,
-        build_runtime_action_plan, build_runtime_doctor_report, collect_runtime_issues,
-        evaluate_runtime_status, render_runtime_action_plan, render_runtime_doctor_report,
-        render_runtime_issues, render_runtime_status, render_runtime_topology,
+        RuntimeProviderRegistration, RuntimeStatus, RuntimeTemplateRegistration, RuntimeTopology,
+        banner, build_runtime_action_plan, build_runtime_doctor_report, collect_runtime_issues,
+        evaluate_runtime_status, render_runtime_action_plan, render_runtime_action_plan_for_locale,
+        render_runtime_doctor_report, render_runtime_doctor_report_for_locale,
+        render_runtime_issues, render_runtime_issues_for_locale, render_runtime_status,
+        render_runtime_status_for_locale, render_runtime_topology,
+        render_runtime_topology_for_locale,
     };
 
     const CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
     const LIFECYCLE: &[PluginLifecycleStage] = &[PluginLifecycleStage::Discover];
     const HOOKS: &[PluginRuntimeHook] = &[PluginRuntimeHook::Scaffold];
+    const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "Básico")];
 
     fn plugin_descriptor() -> PluginDescriptor {
         PluginDescriptor::new(
             "official.basic",
             PluginKind::Template,
+            PluginTrustLevel::Official,
             "Basic",
+            LOCALIZED_NAMES,
             "0.2.0-alpha.1",
             CAPABILITIES,
             LIFECYCLE,
@@ -2558,5 +2762,306 @@ mod tests {
         assert!(rendered.contains("Policies (0)"));
         assert!(rendered.contains("Runtime hooks (0)"));
         assert!(rendered.contains("MCP servers (0)"));
+    }
+
+    #[test]
+    fn render_runtime_topology_supports_pt_br() {
+        let plugins = [RuntimePluginRegistration::new(
+            plugin_descriptor(),
+            PluginActivation::Enabled,
+            ConfigScope::BuiltInDefaults,
+        )];
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "pt-br",
+            plugins: &plugins,
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[],
+        };
+
+        let rendered = render_runtime_topology_for_locale(&topology, "pt-br");
+
+        assert!(rendered.contains("Fase do runtime: ready"));
+        assert!(rendered.contains("Locale: pt-br"));
+        assert!(rendered.contains("Plugins (1)"));
+        assert!(rendered.contains("Runtimes de agente (0)"));
+        assert!(rendered.contains("Provedores (0)"));
+        assert!(rendered.contains("Hooks de runtime (0)"));
+        assert!(rendered.contains("Servidores MCP (0)"));
+    }
+
+    #[test]
+    fn render_runtime_status_supports_pt_br() {
+        let status = RuntimeStatus {
+            phase: RuntimePhase::Ready,
+            health: RuntimeHealth::Degraded,
+            enabled_plugins: 1,
+            disabled_plugins: 2,
+            enabled_capabilities: 0,
+            disabled_capabilities: 1,
+            enabled_templates: 0,
+            disabled_templates: 1,
+            enabled_prompts: 0,
+            disabled_prompts: 1,
+            enabled_agents: 0,
+            disabled_agents: 1,
+            enabled_checks: 0,
+            disabled_checks: 1,
+            enabled_providers: 0,
+            disabled_providers: 1,
+            enabled_policies: 0,
+            disabled_policies: 1,
+            enabled_hooks: 0,
+            disabled_hooks: 1,
+            enabled_mcp_servers: 0,
+            disabled_mcp_servers: 1,
+        };
+
+        let rendered = render_runtime_status_for_locale(&status, "pt-br");
+
+        assert!(rendered.contains("Fase do runtime: ready"));
+        assert!(rendered.contains("Saúde do runtime: degraded"));
+    }
+
+    #[test]
+    fn render_runtime_issues_supports_pt_br() {
+        let issues = [
+            RuntimeIssue::new(
+                RuntimeIssueKind::PluginDisabled,
+                "official.github",
+                "enable the plugin in typed project configuration",
+            ),
+            RuntimeIssue::new(
+                RuntimeIssueKind::McpServerDisabled,
+                "official.codex.session",
+                "enable the owning plugin or opt in to the MCP server",
+            ),
+        ];
+
+        let rendered = render_runtime_issues_for_locale(&issues, "pt-br");
+
+        assert!(rendered.contains("Problemas do runtime (2)"));
+        assert!(rendered.contains("action=ative o plugin na configuração tipada do projeto"));
+        assert!(rendered.contains("action=ative o plugin dono ou faça opt-in no servidor MCP"));
+    }
+
+    #[test]
+    fn render_runtime_issues_handles_empty_sets_in_pt_br() {
+        let issues = [];
+
+        let rendered = render_runtime_issues_for_locale(&issues, "pt-br");
+
+        assert_eq!(rendered, "Problemas do runtime (0)");
+    }
+
+    #[test]
+    fn render_runtime_action_plan_supports_pt_br_for_dynamic_and_static_reasons() {
+        let actions = [
+            RuntimeAction::new(
+                RuntimeActionKind::EnablePlugin,
+                "official.github",
+                "the plugin is registered but disabled",
+            ),
+            RuntimeAction::new(
+                RuntimeActionKind::EnableCapabilityProvider,
+                "official.basic",
+                "the provider still disables capability template",
+            ),
+            RuntimeAction::new(
+                RuntimeActionKind::EnableCheckProvider,
+                "official.bmad",
+                "the provider still disables runtime check prepare",
+            ),
+            RuntimeAction::new(
+                RuntimeActionKind::EnableProvider,
+                "official.basic",
+                "the provider still disables contribution data_source",
+            ),
+            RuntimeAction::new(
+                RuntimeActionKind::EnablePolicyProvider,
+                "official.basic",
+                "the provider still disables policy official.basic",
+            ),
+            RuntimeAction::new(
+                RuntimeActionKind::EnableHookProvider,
+                "official.basic",
+                "the provider still disables runtime hook scaffold",
+            ),
+        ];
+
+        let rendered = render_runtime_action_plan_for_locale(&actions, "pt-br");
+
+        assert!(rendered.contains("Plano de ação do runtime (6)"));
+        assert!(rendered.contains("reason=o plugin está registrado, mas desabilitado"));
+        assert!(rendered.contains("reason=o provedor ainda desabilita a capability template"));
+        assert!(rendered.contains("reason=o provedor ainda desabilita o check de runtime prepare"));
+        assert!(rendered.contains("reason=o provedor ainda desabilita a contribuição data_source"));
+        assert!(rendered.contains("reason=o provedor ainda desabilita a policy official.basic"));
+        assert!(rendered.contains("reason=o provedor ainda desabilita o hook de runtime scaffold"));
+    }
+
+    #[test]
+    fn render_runtime_action_plan_handles_empty_sets_in_pt_br() {
+        let actions = [];
+
+        let rendered = render_runtime_action_plan_for_locale(&actions, "pt-br");
+
+        assert_eq!(rendered, "Plano de ação do runtime (0)");
+    }
+
+    #[test]
+    fn render_runtime_issues_supports_all_pt_br_fixed_recommendations() {
+        let issues = [
+            RuntimeIssue::new(
+                RuntimeIssueKind::CapabilityDisabled,
+                "template",
+                "enable the provider plugin that owns this capability",
+            ),
+            RuntimeIssue::new(
+                RuntimeIssueKind::TemplateDisabled,
+                "official.basic",
+                "enable the provider plugin that owns this template surface",
+            ),
+            RuntimeIssue::new(
+                RuntimeIssueKind::PromptProviderDisabled,
+                "official.bmad",
+                "enable the provider plugin that owns this prompt surface",
+            ),
+            RuntimeIssue::new(
+                RuntimeIssueKind::AgentRuntimeDisabled,
+                "official.codex",
+                "enable the provider plugin that owns this agent runtime",
+            ),
+            RuntimeIssue::new(
+                RuntimeIssueKind::CheckDisabled,
+                "prepare",
+                "enable the provider plugin that owns this runtime check",
+            ),
+            RuntimeIssue::new(
+                RuntimeIssueKind::ProviderDisabled,
+                "data_source",
+                "enable the provider plugin that owns this contribution",
+            ),
+            RuntimeIssue::new(
+                RuntimeIssueKind::PolicyDisabled,
+                "official.tdd-strict",
+                "enable the provider plugin that owns this policy",
+            ),
+            RuntimeIssue::new(
+                RuntimeIssueKind::HookDisabled,
+                "scaffold",
+                "enable the provider plugin that owns this runtime hook",
+            ),
+        ];
+
+        let rendered = render_runtime_issues_for_locale(&issues, "pt-br");
+
+        assert!(rendered.contains("action=ative o plugin provedor dono desta capability"));
+        assert!(rendered.contains("action=ative o plugin provedor dono desta surface de template"));
+        assert!(rendered.contains("action=ative o plugin provedor dono desta surface de prompt"));
+        assert!(rendered.contains("action=ative o plugin provedor dono deste runtime de agente"));
+        assert!(rendered.contains("action=ative o plugin provedor dono deste check de runtime"));
+        assert!(rendered.contains("action=ative o plugin provedor dono desta contribuição"));
+        assert!(rendered.contains("action=ative o plugin provedor dono desta policy"));
+        assert!(rendered.contains("action=ative o plugin provedor dono deste hook de runtime"));
+    }
+
+    #[test]
+    fn render_runtime_action_plan_supports_remaining_pt_br_static_reasons() {
+        let actions = [
+            RuntimeAction::new(
+                RuntimeActionKind::EnableTemplateProvider,
+                "official.basic",
+                "the provider still disables the template surface",
+            ),
+            RuntimeAction::new(
+                RuntimeActionKind::EnablePromptProvider,
+                "official.bmad",
+                "the provider still disables the prompt surface",
+            ),
+            RuntimeAction::new(
+                RuntimeActionKind::EnableAgentRuntimeProvider,
+                "official.codex",
+                "the provider still disables the agent runtime",
+            ),
+            RuntimeAction::new(
+                RuntimeActionKind::EnableMcpServer,
+                "official.codex.session",
+                "the MCP contribution is registered but disabled",
+            ),
+        ];
+
+        let rendered = render_runtime_action_plan_for_locale(&actions, "pt-br");
+
+        assert!(rendered.contains("reason=o provedor ainda desabilita a surface de template"));
+        assert!(rendered.contains("reason=o provedor ainda desabilita a surface de prompt"));
+        assert!(rendered.contains("reason=o provedor ainda desabilita o runtime de agente"));
+        assert!(rendered.contains("reason=a contribuição MCP está registrada, mas desabilitada"));
+    }
+
+    #[test]
+    fn render_runtime_action_plan_falls_back_to_original_reason_when_no_translation_exists() {
+        let actions = [RuntimeAction::new(
+            RuntimeActionKind::EnablePlugin,
+            "official.github",
+            "custom untranslated reason",
+        )];
+
+        let rendered = render_runtime_action_plan_for_locale(&actions, "pt-br");
+
+        assert!(rendered.contains("reason=custom untranslated reason"));
+    }
+
+    #[test]
+    fn render_runtime_doctor_report_supports_pt_br() {
+        let report = RuntimeDoctorReport::new(
+            RuntimeStatus {
+                phase: RuntimePhase::Ready,
+                health: RuntimeHealth::Degraded,
+                enabled_plugins: 0,
+                disabled_plugins: 1,
+                enabled_capabilities: 0,
+                disabled_capabilities: 1,
+                enabled_templates: 0,
+                disabled_templates: 0,
+                enabled_prompts: 0,
+                disabled_prompts: 0,
+                enabled_agents: 0,
+                disabled_agents: 0,
+                enabled_checks: 0,
+                disabled_checks: 0,
+                enabled_providers: 0,
+                disabled_providers: 0,
+                enabled_policies: 0,
+                disabled_policies: 0,
+                enabled_hooks: 0,
+                disabled_hooks: 0,
+                enabled_mcp_servers: 0,
+                disabled_mcp_servers: 0,
+            },
+            vec![RuntimeIssue::new(
+                RuntimeIssueKind::PluginDisabled,
+                "official.github",
+                "enable the plugin in typed project configuration",
+            )],
+            vec![RuntimeAction::new(
+                RuntimeActionKind::EnablePlugin,
+                "official.github",
+                "the plugin is registered but disabled",
+            )],
+        );
+
+        let rendered = render_runtime_doctor_report_for_locale(&report, "pt-br");
+
+        assert!(rendered.contains("Doctor do runtime"));
+        assert!(rendered.contains("Problemas do runtime (1)"));
+        assert!(rendered.contains("Plano de ação do runtime (1)"));
     }
 }

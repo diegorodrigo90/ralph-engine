@@ -120,6 +120,53 @@ pub const ALL_PLUGIN_KINDS: &[PluginKind] = &[
     PluginKind::Policy,
 ];
 
+/// Typed plugin trust-level identifier.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PluginTrustLevel {
+    /// Official first-party plugin.
+    Official,
+    /// Community plugin outside the trusted official set.
+    Community,
+}
+
+impl PluginTrustLevel {
+    /// Returns the stable plugin trust-level identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Official => "official",
+            Self::Community => "community",
+        }
+    }
+}
+
+impl fmt::Display for PluginTrustLevel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Canonical ordered list of reviewed plugin trust levels.
+pub const ALL_PLUGIN_TRUST_LEVELS: &[PluginTrustLevel] =
+    &[PluginTrustLevel::Official, PluginTrustLevel::Community];
+
+/// One localized plugin text entry.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PluginLocalizedText {
+    /// Stable locale identifier.
+    pub locale: &'static str,
+    /// Localized text value.
+    pub value: &'static str,
+}
+
+impl PluginLocalizedText {
+    /// Creates a new immutable localized plugin text entry.
+    #[must_use]
+    pub const fn new(locale: &'static str, value: &'static str) -> Self {
+        Self { locale, value }
+    }
+}
+
 /// Typed plugin lifecycle stage identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PluginLifecycleStage {
@@ -241,8 +288,12 @@ pub struct PluginDescriptor {
     pub id: &'static str,
     /// Stable primary plugin kind.
     pub kind: PluginKind,
+    /// Stable plugin trust level.
+    pub trust_level: PluginTrustLevel,
     /// Human-readable plugin name.
     pub name: &'static str,
+    /// Optional localized plugin names keyed by locale.
+    pub localized_names: &'static [PluginLocalizedText],
     /// Published plugin version.
     pub version: &'static str,
     /// Declared plugin capabilities.
@@ -262,7 +313,9 @@ impl PluginDescriptor {
     pub const fn new(
         id: &'static str,
         kind: PluginKind,
+        trust_level: PluginTrustLevel,
         name: &'static str,
+        localized_names: &'static [PluginLocalizedText],
         version: &'static str,
         capabilities: &'static [PluginCapability],
         lifecycle: &'static [PluginLifecycleStage],
@@ -272,7 +325,9 @@ impl PluginDescriptor {
         Self {
             id,
             kind,
+            trust_level,
             name,
+            localized_names,
             version,
             capabilities,
             lifecycle,
@@ -304,13 +359,36 @@ impl PluginDescriptor {
     pub fn has_runtime_hooks(&self) -> bool {
         !self.runtime_hooks.is_empty()
     }
+
+    /// Resolves the display name for a locale with English fallback.
+    #[must_use]
+    pub fn display_name_for_locale(&self, locale: &str) -> &'static str {
+        self.localized_names
+            .iter()
+            .find(|entry| entry.locale.eq_ignore_ascii_case(locale))
+            .map_or(self.name, |entry| entry.value)
+    }
 }
 
 /// Renders a human-readable plugin listing.
 #[must_use]
 pub fn render_plugin_listing(plugins: &[PluginDescriptor]) -> String {
+    render_plugin_listing_for_locale(plugins, "en")
+}
+
+/// Renders a human-readable plugin listing for one locale.
+#[must_use]
+pub fn render_plugin_listing_for_locale(plugins: &[PluginDescriptor], locale: &str) -> String {
     let mut lines = Vec::with_capacity(plugins.len() + 1);
-    lines.push(format!("Official plugins ({})", plugins.len()));
+    lines.push(format!(
+        "{} ({})",
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Plugins oficiais"
+        } else {
+            "Official plugins"
+        },
+        plugins.len()
+    ));
 
     for plugin in plugins {
         let capabilities = plugin
@@ -321,8 +399,13 @@ pub fn render_plugin_listing(plugins: &[PluginDescriptor]) -> String {
             .join(", ");
 
         lines.push(format!(
-            "- {} | {} | {} | v{} | {}",
-            plugin.id, plugin.kind, plugin.name, plugin.version, capabilities
+            "- {} | {} | {} | {} | v{} | {}",
+            plugin.id,
+            plugin.kind,
+            plugin.trust_level,
+            plugin.display_name_for_locale(locale),
+            plugin.version,
+            capabilities
         ));
     }
 
@@ -332,6 +415,12 @@ pub fn render_plugin_listing(plugins: &[PluginDescriptor]) -> String {
 /// Renders a human-readable plugin detail block.
 #[must_use]
 pub fn render_plugin_detail(plugin: &PluginDescriptor) -> String {
+    render_plugin_detail_for_locale(plugin, "en")
+}
+
+/// Renders a human-readable plugin detail block for one locale.
+#[must_use]
+pub fn render_plugin_detail_for_locale(plugin: &PluginDescriptor, locale: &str) -> String {
     let capabilities = plugin
         .capabilities
         .iter()
@@ -352,14 +441,48 @@ pub fn render_plugin_detail(plugin: &PluginDescriptor) -> String {
         .join(", ");
 
     format!(
-        "Plugin: {}\nKind: {}\nName: {}\nVersion: v{}\nCapabilities: {}\nLifecycle: {}\nLoad boundary: {}\nRuntime hooks: {}",
+        "{}: {}\n{}: {}\n{}: {}\n{}: {}\n{}: v{}\n{}: {}\n{}: {}\n{}: {}\n{}: {}",
+        "Plugin",
         plugin.id,
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Tipo"
+        } else {
+            "Kind"
+        },
         plugin.kind,
-        plugin.name,
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Confiança"
+        } else {
+            "Trust"
+        },
+        plugin.trust_level,
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Nome"
+        } else {
+            "Name"
+        },
+        plugin.display_name_for_locale(locale),
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Versão"
+        } else {
+            "Version"
+        },
         plugin.version,
+        "Capabilities",
         capabilities,
+        "Lifecycle",
         lifecycle,
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Boundary de carga"
+        } else {
+            "Load boundary"
+        },
         plugin.load_boundary,
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Hooks de runtime"
+        } else {
+            "Runtime hooks"
+        },
         runtime_hooks
     )
 }

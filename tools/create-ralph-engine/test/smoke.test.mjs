@@ -38,6 +38,7 @@ test("creates a non-interactive plugin scaffold", () => {
   validateManifestDocument(manifest);
   assert.match(manifest, /id: acme\.jira-suite/);
   assert.match(manifest, /kind: mcp_contribution/);
+  assert.match(manifest, /display_name_locales:\n  pt-br: Jira Suite/);
   assert.match(manifest, /- mcp_contribution/);
   assert.match(manifest, /- context_provider/);
   assert.match(manifest, /- data_source/);
@@ -75,6 +76,8 @@ test("rejects manifests that drift from the typed contract", () => {
         `id: acme.jira-suite
 kind: data_source
 display_name: Jira Suite
+display_name_locales:
+  pt-br: Jira Suite
 publisher: acme
 trust_level: community
 plugin_version: 0.1.0

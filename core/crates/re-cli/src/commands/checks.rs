@@ -2,27 +2,33 @@
 
 use re_core::{RuntimeCheckKind, RuntimeCheckRegistration};
 
-use crate::{CliError, catalog};
+use crate::{CliError, catalog, i18n};
 
 /// Executes the checks command tree.
-pub fn execute(args: &[String]) -> Result<String, CliError> {
+pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
-        None | Some("list") => Ok(render_check_listing(&catalog::official_runtime_checks())),
-        Some("show") => show_check(args.get(1).map(String::as_str)),
-        Some(other) => Err(CliError::new(format!("unknown checks command: {other}"))),
+        None | Some("list") => Ok(render_check_listing(
+            &catalog::official_runtime_checks(),
+            locale,
+        )),
+        Some("show") => show_check(args.get(1).map(String::as_str), locale),
+        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+            locale, "checks", other,
+        ))),
     }
 }
 
-fn show_check(check_kind: Option<&str>) -> Result<String, CliError> {
-    let check_kind = check_kind.ok_or_else(|| CliError::new("checks show requires a check id"))?;
+fn show_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let check_kind = check_kind
+        .ok_or_else(|| CliError::new(i18n::missing_id(locale, "checks", "a check id")))?;
     let kind = parse_check_kind(check_kind)
-        .ok_or_else(|| CliError::new(format!("unknown check: {check_kind}")))?;
+        .ok_or_else(|| CliError::new(i18n::unknown_entity(locale, "check", check_kind)))?;
     let checks = catalog::official_runtime_checks()
         .into_iter()
         .filter(|registration| registration.kind == kind)
         .collect::<Vec<_>>();
 
-    Ok(render_check_detail(kind, &checks))
+    Ok(render_check_detail(kind, &checks, locale))
 }
 
 fn parse_check_kind(value: &str) -> Option<RuntimeCheckKind> {
@@ -33,7 +39,7 @@ fn parse_check_kind(value: &str) -> Option<RuntimeCheckKind> {
     }
 }
 
-fn render_check_listing(registrations: &[RuntimeCheckRegistration]) -> String {
+fn render_check_listing(registrations: &[RuntimeCheckRegistration], locale: &str) -> String {
     let mut seen = Vec::new();
     let mut lines = Vec::new();
 
@@ -61,16 +67,24 @@ fn render_check_listing(registrations: &[RuntimeCheckRegistration]) -> String {
     }
 
     if lines.is_empty() {
-        "Checks (0)".to_owned()
+        i18n::list_heading(locale, "Checks", "Checks", 0)
     } else {
-        format!("Checks ({})\n{}", lines.len(), lines.join("\n"))
+        format!(
+            "{}\n{}",
+            i18n::list_heading(locale, "Checks", "Checks", lines.len()),
+            lines.join("\n")
+        )
     }
 }
 
-fn render_check_detail(kind: RuntimeCheckKind, checks: &[RuntimeCheckRegistration]) -> String {
+fn render_check_detail(
+    kind: RuntimeCheckKind,
+    checks: &[RuntimeCheckRegistration],
+    locale: &str,
+) -> String {
     let mut lines = vec![
-        format!("Check: {}", kind.as_str()),
-        format!("Providers ({})", checks.len()),
+        i18n::detail_heading(locale, "Check", "Check", kind.as_str()),
+        i18n::providers_heading(locale, checks.len()),
     ];
 
     for check in checks {
@@ -130,7 +144,7 @@ mod tests {
         let registrations = [];
 
         // Act
-        let rendered = render_check_listing(&registrations);
+        let rendered = render_check_listing(&registrations, "en");
 
         // Assert
         assert_eq!(rendered, "Checks (0)");
@@ -157,7 +171,7 @@ mod tests {
         ];
 
         // Act
-        let rendered = render_check_listing(&registrations);
+        let rendered = render_check_listing(&registrations, "en");
 
         // Assert
         assert_eq!(rendered, "Checks (1)\n- prepare | providers=2 | enabled=1");
@@ -175,7 +189,7 @@ mod tests {
         )];
 
         // Act
-        let rendered = render_check_detail(RuntimeCheckKind::Prepare, &checks);
+        let rendered = render_check_detail(RuntimeCheckKind::Prepare, &checks, "en");
 
         // Assert
         assert!(rendered.contains("Check: prepare"));

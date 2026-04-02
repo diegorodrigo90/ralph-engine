@@ -3,12 +3,13 @@
 use re_mcp::{McpAvailability, McpLaunchPolicy, McpServerDescriptor, McpTransport};
 use re_plugin::{
     AGENT_RUNTIME, MCP_CONTRIBUTION, PluginDescriptor, PluginKind, PluginLifecycleStage,
-    PluginLoadBoundary, PluginRuntimeHook,
+    PluginLoadBoundary, PluginLocalizedText, PluginRuntimeHook, PluginTrustLevel,
 };
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.claude";
 const PLUGIN_NAME: &str = "Claude";
+const LOCALIZED_NAMES: &[PluginLocalizedText] = &[];
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[AGENT_RUNTIME, MCP_CONTRIBUTION];
 const LIFECYCLE: &[PluginLifecycleStage] =
@@ -20,7 +21,9 @@ const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
     PluginKind::AgentRuntime,
+    PluginTrustLevel::Official,
     PLUGIN_NAME,
+    LOCALIZED_NAMES,
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,
@@ -100,7 +103,9 @@ mod tests {
         let plugin = descriptor();
 
         // Act
-        let descriptor_matches = plugin.id == PLUGIN_ID && plugin.name == "Claude";
+        let descriptor_matches = plugin.id == PLUGIN_ID
+            && plugin.name == "Claude"
+            && plugin.display_name_for_locale("pt-br") == "Claude";
 
         // Assert
         assert!(descriptor_matches);

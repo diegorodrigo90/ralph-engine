@@ -2,34 +2,48 @@
 
 use re_core::RuntimeAgentRegistration;
 
-use crate::{CliError, catalog};
+use crate::{CliError, catalog, i18n};
 
 /// Executes the agents command tree.
-pub fn execute(args: &[String]) -> Result<String, CliError> {
+pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
-        None | Some("list") => Ok(render_agent_listing(&catalog::official_runtime_agents())),
-        Some("show") => show_agent(args.get(1).map(String::as_str)),
-        Some(other) => Err(CliError::new(format!("unknown agents command: {other}"))),
+        None | Some("list") => Ok(render_agent_listing(
+            &catalog::official_runtime_agents(),
+            locale,
+        )),
+        Some("show") => show_agent(args.get(1).map(String::as_str), locale),
+        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+            locale, "agents", other,
+        ))),
     }
 }
 
-fn show_agent(plugin_id: Option<&str>) -> Result<String, CliError> {
-    let plugin_id = plugin_id.ok_or_else(|| CliError::new("agents show requires a plugin id"))?;
+fn show_agent(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let plugin_id = plugin_id
+        .ok_or_else(|| CliError::new(i18n::missing_id(locale, "agents", "a plugin id")))?;
     let agents = catalog::official_runtime_agents()
         .into_iter()
         .filter(|registration| registration.plugin_id == plugin_id)
         .collect::<Vec<_>>();
 
     if agents.is_empty() {
-        return Err(CliError::new(format!("unknown agent runtime: {plugin_id}")));
+        return Err(CliError::new(i18n::unknown_entity(
+            locale,
+            if i18n::is_pt_br(locale) {
+                "runtime de agente"
+            } else {
+                "agent runtime"
+            },
+            plugin_id,
+        )));
     }
 
-    Ok(render_agent_detail(plugin_id, &agents))
+    Ok(render_agent_detail(plugin_id, &agents, locale))
 }
 
-fn render_agent_listing(registrations: &[RuntimeAgentRegistration]) -> String {
+fn render_agent_listing(registrations: &[RuntimeAgentRegistration], locale: &str) -> String {
     if registrations.is_empty() {
-        return "Agent runtimes (0)".to_owned();
+        return i18n::list_heading(locale, "Agent runtimes", "Runtimes de agente", 0);
     }
 
     let lines = registrations
@@ -45,13 +59,21 @@ fn render_agent_listing(registrations: &[RuntimeAgentRegistration]) -> String {
         })
         .collect::<Vec<_>>();
 
-    format!("Agent runtimes ({})\n{}", lines.len(), lines.join("\n"))
+    format!(
+        "{}\n{}",
+        i18n::list_heading(locale, "Agent runtimes", "Runtimes de agente", lines.len()),
+        lines.join("\n")
+    )
 }
 
-fn render_agent_detail(plugin_id: &str, agents: &[RuntimeAgentRegistration]) -> String {
+fn render_agent_detail(
+    plugin_id: &str,
+    agents: &[RuntimeAgentRegistration],
+    locale: &str,
+) -> String {
     let mut lines = vec![
-        format!("Agent runtime: {plugin_id}"),
-        format!("Providers ({})", agents.len()),
+        i18n::detail_heading(locale, "Agent runtime", "Runtime de agente", plugin_id),
+        i18n::providers_heading(locale, agents.len()),
     ];
 
     for agent in agents {
@@ -81,10 +103,19 @@ mod tests {
         let registrations = [];
 
         // Act
-        let rendered = render_agent_listing(&registrations);
+        let rendered = render_agent_listing(&registrations, "en");
 
         // Assert
         assert_eq!(rendered, "Agent runtimes (0)");
+    }
+
+    #[test]
+    fn render_agent_listing_handles_empty_sets_in_pt_br() {
+        let registrations = [];
+
+        let rendered = render_agent_listing(&registrations, "pt-br");
+
+        assert_eq!(rendered, "Runtimes de agente (0)");
     }
 
     #[test]
@@ -98,7 +129,7 @@ mod tests {
         )];
 
         // Act
-        let rendered = render_agent_detail("official.codex", &agents);
+        let rendered = render_agent_detail("official.codex", &agents, "en");
 
         // Assert
         assert!(rendered.contains("Agent runtime: official.codex"));
@@ -106,5 +137,20 @@ mod tests {
         assert!(rendered.contains(
             "- official.codex | activation=enabled | boundary=in_process | bootstrap_hook=true"
         ));
+    }
+
+    #[test]
+    fn render_agent_detail_supports_pt_br() {
+        let agents = [RuntimeAgentRegistration::new(
+            "official.codex",
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
+
+        let rendered = render_agent_detail("official.codex", &agents, "pt-br");
+
+        assert!(rendered.contains("Runtime de agente: official.codex"));
+        assert!(rendered.contains("Provedores (1)"));
     }
 }

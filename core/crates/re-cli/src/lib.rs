@@ -3,6 +3,7 @@
 mod catalog;
 mod commands;
 mod error;
+mod i18n;
 
 pub use error::CliError;
 
@@ -665,7 +666,7 @@ mod tests {
         let error = execute(command).expect_err("missing plugin id should fail");
 
         // Assert
-        assert_eq!(error.to_string(), "config show-plugin requires a plugin id");
+        assert_eq!(error.to_string(), "config show requires a plugin id");
     }
 
     #[test]

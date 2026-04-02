@@ -2,39 +2,50 @@
 
 use re_core::RuntimeTemplateRegistration;
 
-use crate::{CliError, catalog};
+use crate::{CliError, catalog, i18n};
 
 /// Executes the templates command tree.
-pub fn execute(args: &[String]) -> Result<String, CliError> {
+pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
         None | Some("list") => Ok(render_template_listing(
             &catalog::official_runtime_templates(),
+            locale,
         )),
-        Some("show") => show_template(args.get(1).map(String::as_str)),
-        Some(other) => Err(CliError::new(format!("unknown templates command: {other}"))),
+        Some("show") => show_template(args.get(1).map(String::as_str), locale),
+        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+            locale,
+            "templates",
+            other,
+        ))),
     }
 }
 
-fn show_template(plugin_id: Option<&str>) -> Result<String, CliError> {
-    let plugin_id =
-        plugin_id.ok_or_else(|| CliError::new("templates show requires a plugin id"))?;
+fn show_template(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let plugin_id = plugin_id
+        .ok_or_else(|| CliError::new(i18n::missing_id(locale, "templates", "a plugin id")))?;
     let templates = catalog::official_runtime_templates()
         .into_iter()
         .filter(|registration| registration.plugin_id == plugin_id)
         .collect::<Vec<_>>();
 
     if templates.is_empty() {
-        return Err(CliError::new(format!(
-            "unknown template provider: {plugin_id}"
+        return Err(CliError::new(i18n::unknown_entity(
+            locale,
+            if i18n::is_pt_br(locale) {
+                "provedor de template"
+            } else {
+                "template provider"
+            },
+            plugin_id,
         )));
     }
 
-    Ok(render_template_detail(plugin_id, &templates))
+    Ok(render_template_detail(plugin_id, &templates, locale))
 }
 
-fn render_template_listing(registrations: &[RuntimeTemplateRegistration]) -> String {
+fn render_template_listing(registrations: &[RuntimeTemplateRegistration], locale: &str) -> String {
     if registrations.is_empty() {
-        return "Templates (0)".to_owned();
+        return i18n::list_heading(locale, "Templates", "Templates", 0);
     }
 
     let lines = registrations
@@ -50,13 +61,26 @@ fn render_template_listing(registrations: &[RuntimeTemplateRegistration]) -> Str
         })
         .collect::<Vec<_>>();
 
-    format!("Templates ({})\n{}", lines.len(), lines.join("\n"))
+    format!(
+        "{}\n{}",
+        i18n::list_heading(locale, "Templates", "Templates", lines.len()),
+        lines.join("\n")
+    )
 }
 
-fn render_template_detail(plugin_id: &str, templates: &[RuntimeTemplateRegistration]) -> String {
+fn render_template_detail(
+    plugin_id: &str,
+    templates: &[RuntimeTemplateRegistration],
+    locale: &str,
+) -> String {
     let mut lines = vec![
-        format!("Template provider: {plugin_id}"),
-        format!("Providers ({})", templates.len()),
+        i18n::detail_heading(
+            locale,
+            "Template provider",
+            "Provedor de template",
+            plugin_id,
+        ),
+        i18n::providers_heading(locale, templates.len()),
     ];
 
     for template in templates {
@@ -86,9 +110,18 @@ mod tests {
         let registrations = [];
 
         // Act
-        let rendered = render_template_listing(&registrations);
+        let rendered = render_template_listing(&registrations, "en");
 
         // Assert
+        assert_eq!(rendered, "Templates (0)");
+    }
+
+    #[test]
+    fn render_template_listing_handles_empty_sets_in_pt_br() {
+        let registrations = [];
+
+        let rendered = render_template_listing(&registrations, "pt-br");
+
         assert_eq!(rendered, "Templates (0)");
     }
 
@@ -103,7 +136,7 @@ mod tests {
         )];
 
         // Act
-        let rendered = render_template_detail("official.basic", &templates);
+        let rendered = render_template_detail("official.basic", &templates, "en");
 
         // Assert
         assert!(rendered.contains("Template provider: official.basic"));
@@ -111,5 +144,20 @@ mod tests {
         assert!(rendered.contains(
             "- official.basic | activation=enabled | boundary=in_process | scaffold_hook=true"
         ));
+    }
+
+    #[test]
+    fn render_template_detail_supports_pt_br() {
+        let templates = [RuntimeTemplateRegistration::new(
+            "official.basic",
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
+
+        let rendered = render_template_detail("official.basic", &templates, "pt-br");
+
+        assert!(rendered.contains("Provedor de template: official.basic"));
+        assert!(rendered.contains("Provedores (1)"));
     }
 }

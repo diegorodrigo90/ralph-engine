@@ -2,36 +2,48 @@
 
 use re_core::RuntimePromptRegistration;
 
-use crate::{CliError, catalog};
+use crate::{CliError, catalog, i18n};
 
 /// Executes the prompts command tree.
-pub fn execute(args: &[String]) -> Result<String, CliError> {
+pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
-        None | Some("list") => Ok(render_prompt_listing(&catalog::official_runtime_prompts())),
-        Some("show") => show_prompt(args.get(1).map(String::as_str)),
-        Some(other) => Err(CliError::new(format!("unknown prompts command: {other}"))),
+        None | Some("list") => Ok(render_prompt_listing(
+            &catalog::official_runtime_prompts(),
+            locale,
+        )),
+        Some("show") => show_prompt(args.get(1).map(String::as_str), locale),
+        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+            locale, "prompts", other,
+        ))),
     }
 }
 
-fn show_prompt(plugin_id: Option<&str>) -> Result<String, CliError> {
-    let plugin_id = plugin_id.ok_or_else(|| CliError::new("prompts show requires a plugin id"))?;
+fn show_prompt(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let plugin_id = plugin_id
+        .ok_or_else(|| CliError::new(i18n::missing_id(locale, "prompts", "a plugin id")))?;
     let prompts = catalog::official_runtime_prompts()
         .into_iter()
         .filter(|registration| registration.plugin_id == plugin_id)
         .collect::<Vec<_>>();
 
     if prompts.is_empty() {
-        return Err(CliError::new(format!(
-            "unknown prompt provider: {plugin_id}"
+        return Err(CliError::new(i18n::unknown_entity(
+            locale,
+            if i18n::is_pt_br(locale) {
+                "provedor de prompt"
+            } else {
+                "prompt provider"
+            },
+            plugin_id,
         )));
     }
 
-    Ok(render_prompt_detail(plugin_id, &prompts))
+    Ok(render_prompt_detail(plugin_id, &prompts, locale))
 }
 
-fn render_prompt_listing(registrations: &[RuntimePromptRegistration]) -> String {
+fn render_prompt_listing(registrations: &[RuntimePromptRegistration], locale: &str) -> String {
     if registrations.is_empty() {
-        return "Prompts (0)".to_owned();
+        return i18n::list_heading(locale, "Prompts", "Prompts", 0);
     }
 
     let lines = registrations
@@ -47,13 +59,21 @@ fn render_prompt_listing(registrations: &[RuntimePromptRegistration]) -> String 
         })
         .collect::<Vec<_>>();
 
-    format!("Prompts ({})\n{}", lines.len(), lines.join("\n"))
+    format!(
+        "{}\n{}",
+        i18n::list_heading(locale, "Prompts", "Prompts", lines.len()),
+        lines.join("\n")
+    )
 }
 
-fn render_prompt_detail(plugin_id: &str, prompts: &[RuntimePromptRegistration]) -> String {
+fn render_prompt_detail(
+    plugin_id: &str,
+    prompts: &[RuntimePromptRegistration],
+    locale: &str,
+) -> String {
     let mut lines = vec![
-        format!("Prompt provider: {plugin_id}"),
-        format!("Providers ({})", prompts.len()),
+        i18n::detail_heading(locale, "Prompt provider", "Provedor de prompt", plugin_id),
+        i18n::providers_heading(locale, prompts.len()),
     ];
 
     for prompt in prompts {
@@ -83,9 +103,18 @@ mod tests {
         let registrations = [];
 
         // Act
-        let rendered = render_prompt_listing(&registrations);
+        let rendered = render_prompt_listing(&registrations, "en");
 
         // Assert
+        assert_eq!(rendered, "Prompts (0)");
+    }
+
+    #[test]
+    fn render_prompt_listing_handles_empty_sets_in_pt_br() {
+        let registrations = [];
+
+        let rendered = render_prompt_listing(&registrations, "pt-br");
+
         assert_eq!(rendered, "Prompts (0)");
     }
 
@@ -100,7 +129,7 @@ mod tests {
         )];
 
         // Act
-        let rendered = render_prompt_detail("official.bmad", &prompts);
+        let rendered = render_prompt_detail("official.bmad", &prompts, "en");
 
         // Assert
         assert!(rendered.contains("Prompt provider: official.bmad"));
@@ -108,5 +137,20 @@ mod tests {
         assert!(rendered.contains(
             "- official.bmad | activation=disabled | boundary=in_process | prompt_hook=true"
         ));
+    }
+
+    #[test]
+    fn render_prompt_detail_supports_pt_br() {
+        let prompts = [RuntimePromptRegistration::new(
+            "official.bmad",
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
+
+        let rendered = render_prompt_detail("official.bmad", &prompts, "pt-br");
+
+        assert!(rendered.contains("Provedor de prompt: official.bmad"));
+        assert!(rendered.contains("Provedores (1)"));
     }
 }

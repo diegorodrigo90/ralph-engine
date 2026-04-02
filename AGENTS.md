@@ -73,6 +73,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 - `core/crates/re-config/` SHALL own typed runtime configuration contracts and defaults.
 - `core/crates/re-mcp/` SHALL own typed MCP contribution contracts, including launch policy, process model, command boundaries, working-directory policy, environment policy, and availability policy.
 - `core/crates/re-plugin/` SHALL own typed plugin metadata, lifecycle, runtime-hook, loading-boundary, and capability contracts.
+- `core/crates/re-plugin/` SHALL also own typed plugin trust-level contracts so official and community plugin metadata stay aligned across runtime, CLI, and third-party manifests.
 - `core/crates/re-cli/` SHALL own the modular CLI surface and command registry.
 - `re-core` and `re-cli` SHALL expose typed runtime capability, template, prompt, agent, check, provider, policy, and hook registration so new capabilities can be added through shared contracts instead of command-local branching.
 - `plugins/official/` SHALL own Rust-first official plugins.
@@ -80,6 +81,9 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 - `site/` SHALL own the public web surfaces, including `landing/`, `plugins/`, and `ui/`.
 - `packaging/` SHALL own npm and Homebrew packaging.
 - `tools/create-ralph-engine/` SHALL own plugin scaffolding for `npx create-ralph-engine-plugin`. Runtime catalog surfaces SHALL NOT turn scaffolding into a generic runtime responsibility.
+- CLI surfaces SHALL support `en` and `pt-br` through typed locale helpers, and new locales SHALL be additive rather than requiring handler rewrites.
+- Plugin metadata SHALL support locale-aware display names with English fallback when a requested locale is missing.
+- Third-party plugin manifests SHALL carry locale-aware display metadata through the versioned `manifest.yaml` contract owned by `tools/create-ralph-engine/`.
 - `core/crates/re-plugin/` SHALL own typed plugin kind contracts for the runtime and tooling.
 - The plugin scaffolder SHALL only accept kinds and capabilities that already exist in the typed runtime and plugin contracts. Future surfaces SHALL stay rejected until the core defines them explicitly.
 - Scaffolded and official plugin identifiers SHALL use the same dotted namespace contract, such as `official.basic` or `acme.jira-suite`.

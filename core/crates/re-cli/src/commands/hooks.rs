@@ -2,32 +2,38 @@
 
 use re_core::RuntimeHookRegistration;
 
-use crate::{CliError, catalog};
+use crate::{CliError, catalog, i18n};
 
 /// Executes the hooks command tree.
-pub fn execute(args: &[String]) -> Result<String, CliError> {
+pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
-        None | Some("list") => Ok(render_hook_listing(&catalog::official_runtime_hooks())),
-        Some("show") => show_hook(args.get(1).map(String::as_str)),
-        Some(other) => Err(CliError::new(format!("unknown hooks command: {other}"))),
+        None | Some("list") => Ok(render_hook_listing(
+            &catalog::official_runtime_hooks(),
+            locale,
+        )),
+        Some("show") => show_hook(args.get(1).map(String::as_str), locale),
+        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+            locale, "hooks", other,
+        ))),
     }
 }
 
-fn show_hook(hook_id: Option<&str>) -> Result<String, CliError> {
-    let hook_id = hook_id.ok_or_else(|| CliError::new("hooks show requires a hook id"))?;
+fn show_hook(hook_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let hook_id =
+        hook_id.ok_or_else(|| CliError::new(i18n::missing_id(locale, "hooks", "a hook id")))?;
     let providers = catalog::official_runtime_hooks()
         .into_iter()
         .filter(|registration| registration.hook.as_str() == hook_id)
         .collect::<Vec<_>>();
 
     if providers.is_empty() {
-        return Err(CliError::new(format!("unknown hook: {hook_id}")));
+        return Err(CliError::new(i18n::unknown_entity(locale, "hook", hook_id)));
     }
 
-    Ok(render_hook_detail(hook_id, &providers))
+    Ok(render_hook_detail(hook_id, &providers, locale))
 }
 
-fn render_hook_listing(registrations: &[RuntimeHookRegistration]) -> String {
+fn render_hook_listing(registrations: &[RuntimeHookRegistration], locale: &str) -> String {
     let mut seen = Vec::new();
     let mut lines = Vec::new();
 
@@ -58,16 +64,24 @@ fn render_hook_listing(registrations: &[RuntimeHookRegistration]) -> String {
     }
 
     if lines.is_empty() {
-        "Runtime hooks (0)".to_owned()
+        i18n::list_heading(locale, "Runtime hooks", "Hooks de runtime", 0)
     } else {
-        format!("Runtime hooks ({})\n{}", lines.len(), lines.join("\n"))
+        format!(
+            "{}\n{}",
+            i18n::list_heading(locale, "Runtime hooks", "Hooks de runtime", lines.len()),
+            lines.join("\n")
+        )
     }
 }
 
-fn render_hook_detail(hook_id: &str, providers: &[RuntimeHookRegistration]) -> String {
+fn render_hook_detail(
+    hook_id: &str,
+    providers: &[RuntimeHookRegistration],
+    locale: &str,
+) -> String {
     let mut lines = vec![
-        format!("Runtime hook: {hook_id}"),
-        format!("Providers ({})", providers.len()),
+        i18n::detail_heading(locale, "Runtime hook", "Hook de runtime", hook_id),
+        i18n::providers_heading(locale, providers.len()),
     ];
 
     for provider in providers {
@@ -96,7 +110,7 @@ mod tests {
         let registrations = [];
 
         // Act
-        let rendered = render_hook_listing(&registrations);
+        let rendered = render_hook_listing(&registrations, "en");
 
         // Assert
         assert_eq!(rendered, "Runtime hooks (0)");
@@ -113,7 +127,7 @@ mod tests {
         )];
 
         // Act
-        let rendered = render_hook_detail("scaffold", &providers);
+        let rendered = render_hook_detail("scaffold", &providers, "en");
 
         // Assert
         assert!(rendered.contains("Runtime hook: scaffold"));
