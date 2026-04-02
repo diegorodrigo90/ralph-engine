@@ -363,6 +363,37 @@ impl RuntimeAgentRegistration {
     }
 }
 
+/// One executable agent bootstrap plan derived from the resolved runtime.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimeAgentBootstrapPlan {
+    /// Stable agent runtime identifier.
+    pub agent_id: &'static str,
+    /// Owning plugin identifier.
+    pub plugin_id: &'static str,
+    /// Declared load boundary for the agent runtime provider.
+    pub load_boundary: PluginLoadBoundary,
+    /// Whether the bootstrap hook is registered for this agent runtime.
+    pub bootstrap_hook_registered: bool,
+}
+
+impl RuntimeAgentBootstrapPlan {
+    /// Creates a new immutable agent bootstrap plan.
+    #[must_use]
+    pub const fn new(
+        agent_id: &'static str,
+        plugin_id: &'static str,
+        load_boundary: PluginLoadBoundary,
+        bootstrap_hook_registered: bool,
+    ) -> Self {
+        Self {
+            agent_id,
+            plugin_id,
+            load_boundary,
+            bootstrap_hook_registered,
+        }
+    }
+}
+
 /// Typed runtime check-kind identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RuntimeCheckKind {
@@ -887,6 +918,8 @@ pub struct RuntimeSnapshot<'a> {
     pub issues: Vec<RuntimeIssue>,
     /// Derived remediation actions.
     pub actions: Vec<RuntimeAction>,
+    /// Derived executable agent bootstrap plans for enabled agent runtimes.
+    pub agent_bootstrap_plans: Vec<RuntimeAgentBootstrapPlan>,
     /// Derived executable MCP launch plans for enabled servers.
     pub mcp_launch_plans: Vec<McpLaunchPlan>,
     /// Derived configuration patch that remediates the snapshot.
@@ -901,6 +934,7 @@ impl<'a> RuntimeSnapshot<'a> {
         status: RuntimeStatus,
         issues: Vec<RuntimeIssue>,
         actions: Vec<RuntimeAction>,
+        agent_bootstrap_plans: Vec<RuntimeAgentBootstrapPlan>,
         mcp_launch_plans: Vec<McpLaunchPlan>,
         config_patch: RuntimeConfigPatch,
     ) -> Self {
@@ -909,6 +943,7 @@ impl<'a> RuntimeSnapshot<'a> {
             status,
             issues,
             actions,
+            agent_bootstrap_plans,
             mcp_launch_plans,
             config_patch,
         }
@@ -1443,6 +1478,57 @@ pub fn render_runtime_issues_for_locale(issues: &[RuntimeIssue], locale: &str) -
     lines.join("\n")
 }
 
+/// Builds the executable bootstrap plans for enabled agent runtimes.
+#[must_use]
+pub fn build_runtime_agent_bootstrap_plans(
+    topology: &RuntimeTopology<'_>,
+) -> Vec<RuntimeAgentBootstrapPlan> {
+    topology
+        .agents
+        .iter()
+        .filter(|agent| agent.is_enabled())
+        .map(|agent| {
+            RuntimeAgentBootstrapPlan::new(
+                agent.agent_id,
+                agent.plugin_id,
+                agent.load_boundary,
+                agent.bootstrap_hook_registered,
+            )
+        })
+        .collect()
+}
+
+/// Renders the runtime agent bootstrap plans in English.
+#[must_use]
+pub fn render_runtime_agent_bootstrap_plans(plans: &[RuntimeAgentBootstrapPlan]) -> String {
+    render_runtime_agent_bootstrap_plans_for_locale(plans, "en")
+}
+
+/// Renders the runtime agent bootstrap plans for one locale.
+#[must_use]
+pub fn render_runtime_agent_bootstrap_plans_for_locale(
+    plans: &[RuntimeAgentBootstrapPlan],
+    locale: &str,
+) -> String {
+    if plans.is_empty() {
+        return format!("{} (0)", i18n::runtime_agent_bootstrap_plans_label(locale));
+    }
+
+    let mut lines = vec![format!(
+        "{} ({})",
+        i18n::runtime_agent_bootstrap_plans_label(locale),
+        plans.len()
+    )];
+    for plan in plans {
+        lines.push(format!(
+            "- {} | plugin={} | boundary={} | bootstrap_hook={}",
+            plan.agent_id, plan.plugin_id, plan.load_boundary, plan.bootstrap_hook_registered
+        ));
+    }
+
+    lines.join("\n")
+}
+
 /// Builds the executable MCP launch plans for enabled runtime servers.
 #[must_use]
 pub fn build_runtime_mcp_launch_plans(topology: &RuntimeTopology<'_>) -> Vec<McpLaunchPlan> {
@@ -1694,6 +1780,7 @@ pub fn build_runtime_snapshot<'a>(topology: &'a RuntimeTopology<'a>) -> RuntimeS
     let status = evaluate_runtime_status(topology);
     let issues = collect_runtime_issues(topology);
     let actions = build_runtime_action_plan(topology);
+    let agent_bootstrap_plans = build_runtime_agent_bootstrap_plans(topology);
     let mcp_launch_plans = build_runtime_mcp_launch_plans(topology);
     let config_patch = build_runtime_config_patch(topology);
 
@@ -1702,6 +1789,7 @@ pub fn build_runtime_snapshot<'a>(topology: &'a RuntimeTopology<'a>) -> RuntimeS
         status,
         issues,
         actions,
+        agent_bootstrap_plans,
         mcp_launch_plans,
         config_patch,
     )
@@ -1752,13 +1840,14 @@ mod tests {
         RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration, RuntimePolicyRegistration,
         RuntimePromptRegistration, RuntimeProviderKind, RuntimeProviderRegistration,
         RuntimeSnapshot, RuntimeStatus, RuntimeTemplateRegistration, RuntimeTopology,
-        agent_runtime_hook, banner, build_runtime_action_plan, build_runtime_config_patch,
-        build_runtime_doctor_report, build_runtime_mcp_launch_plans, build_runtime_patched_config,
-        build_runtime_snapshot, capability_activates_agent_surface,
+        agent_runtime_hook, banner, build_runtime_action_plan, build_runtime_agent_bootstrap_plans,
+        build_runtime_config_patch, build_runtime_doctor_report, build_runtime_mcp_launch_plans,
+        build_runtime_patched_config, build_runtime_snapshot, capability_activates_agent_surface,
         capability_activates_policy_surface, capability_activates_prompt_surface,
         capability_activates_template_surface, collect_runtime_issues, evaluate_runtime_status,
         parse_runtime_check_kind, parse_runtime_provider_kind, policy_runtime_hook,
         prompt_runtime_hook, render_runtime_action_plan, render_runtime_action_plan_for_locale,
+        render_runtime_agent_bootstrap_plans, render_runtime_agent_bootstrap_plans_for_locale,
         render_runtime_config_patch_yaml, render_runtime_doctor_report,
         render_runtime_doctor_report_for_locale, render_runtime_issues,
         render_runtime_issues_for_locale, render_runtime_mcp_launch_plans,
@@ -2227,10 +2316,81 @@ mod tests {
         assert!(snapshot.issues.is_empty());
         assert!(snapshot.actions.is_empty());
         assert_eq!(
+            snapshot.agent_bootstrap_plans,
+            build_runtime_agent_bootstrap_plans(&topology)
+        );
+        assert_eq!(
             snapshot.mcp_launch_plans,
             build_runtime_mcp_launch_plans(&topology)
         );
         assert!(snapshot.config_patch.is_empty());
+    }
+
+    #[test]
+    fn build_runtime_agent_bootstrap_plans_only_includes_enabled_agents() {
+        let enabled = RuntimeAgentRegistration::new(
+            "test.agents.enabled",
+            AGENT_PLUGIN_ID,
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        );
+        let disabled = RuntimeAgentRegistration::new(
+            "test.agents.disabled",
+            AGENT_PLUGIN_ID,
+            PluginActivation::Disabled,
+            PluginLoadBoundary::Subprocess,
+            false,
+        );
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[enabled, disabled],
+            checks: &[],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[],
+        };
+
+        let plans = build_runtime_agent_bootstrap_plans(&topology);
+
+        assert_eq!(plans.len(), 1);
+        assert_eq!(plans[0].agent_id, "test.agents.enabled");
+        assert_eq!(plans[0].plugin_id, AGENT_PLUGIN_ID);
+    }
+
+    #[test]
+    fn render_runtime_agent_bootstrap_plans_is_human_readable() {
+        let plans = build_runtime_agent_bootstrap_plans(&RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[RuntimeAgentRegistration::new(
+                "test.agents.session",
+                AGENT_PLUGIN_ID,
+                PluginActivation::Enabled,
+                PluginLoadBoundary::InProcess,
+                true,
+            )],
+            checks: &[],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[],
+        });
+
+        let rendered = render_runtime_agent_bootstrap_plans(&plans);
+
+        assert!(rendered.contains("Runtime agent bootstrap plans (1)"));
+        assert!(rendered.contains("test.agents.session | plugin=test.agents"));
     }
 
     #[test]
@@ -2332,6 +2492,7 @@ mod tests {
                 PRIMARY_PLUGIN_ID,
                 "enable plugin test.foundation",
             )],
+            Vec::new(),
             Vec::new(),
             RuntimeConfigPatch::new(
                 vec![PluginConfig::new(
@@ -3735,5 +3896,34 @@ mod tests {
 
         assert!(rendered.contains("Planos de lançamento MCP do runtime (1)"));
         assert!(rendered.contains("Plano de lançamento MCP: test.mcp.session"));
+    }
+
+    #[test]
+    fn render_runtime_agent_bootstrap_plans_supports_pt_br() {
+        let plans = build_runtime_agent_bootstrap_plans(&RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "pt-br",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[RuntimeAgentRegistration::new(
+                "test.agents.session",
+                AGENT_PLUGIN_ID,
+                PluginActivation::Enabled,
+                PluginLoadBoundary::InProcess,
+                true,
+            )],
+            checks: &[],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[],
+        });
+
+        let rendered = render_runtime_agent_bootstrap_plans_for_locale(&plans, "pt-br");
+
+        assert!(rendered.contains("Planos de bootstrap de agentes do runtime (1)"));
+        assert!(rendered.contains("test.agents.session | plugin=test.agents"));
     }
 }

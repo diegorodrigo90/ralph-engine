@@ -881,6 +881,34 @@ fn binary_runtime_plan_succeeds_in_pt_br() {
 }
 
 #[test]
+fn binary_runtime_agent_plans_succeeds() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["runtime", "agent-plans"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert_eq!(stdout.trim(), "Runtime agent bootstrap plans (0)");
+}
+
+#[test]
+fn binary_runtime_agent_plans_succeeds_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["runtime", "agent-plans"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert_eq!(
+        stdout.trim(),
+        "Planos de bootstrap de agentes do runtime (0)"
+    );
+}
+
+#[test]
 fn binary_runtime_mcp_plans_succeeds() {
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
     command.args(["runtime", "mcp-plans"]);

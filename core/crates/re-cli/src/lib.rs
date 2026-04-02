@@ -1168,6 +1168,15 @@ mod tests {
     }
 
     #[test]
+    fn execute_runtime_agent_plans_returns_bootstrap_plans() {
+        let command = args(&["ralph-engine", "runtime", "agent-plans"]);
+
+        let output = execute(command).expect("runtime agent-plans should succeed");
+
+        assert_eq!(output, "Runtime agent bootstrap plans (0)");
+    }
+
+    #[test]
     fn execute_runtime_mcp_plans_returns_launch_plans() {
         let command = args(&["ralph-engine", "runtime", "mcp-plans"]);
 
