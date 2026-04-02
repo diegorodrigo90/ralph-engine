@@ -2,7 +2,10 @@
 
 mod i18n;
 
-use re_config::{ConfigScope, McpServerConfig, PluginActivation, PluginConfig};
+use re_config::{
+    ConfigScope, McpServerConfig, OwnedProjectConfig, PluginActivation, PluginConfig,
+    apply_project_config_patch, default_project_config,
+};
 use re_mcp::McpServerDescriptor;
 use re_plugin::{
     AGENT_RUNTIME, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, POLICY,
@@ -1621,6 +1624,19 @@ pub fn build_runtime_doctor_report(topology: &RuntimeTopology<'_>) -> RuntimeDoc
     build_runtime_snapshot(topology).doctor_report()
 }
 
+/// Builds the fully materialized project configuration after applying the
+/// runtime remediation patch for the resolved topology.
+#[must_use]
+pub fn build_runtime_patched_config(topology: &RuntimeTopology<'_>) -> OwnedProjectConfig {
+    let patch = build_runtime_config_patch(topology);
+
+    apply_project_config_patch(
+        &default_project_config(),
+        &patch.plugins,
+        &patch.mcp_servers,
+    )
+}
+
 /// Builds a typed runtime snapshot from the resolved topology.
 #[must_use]
 pub fn build_runtime_snapshot<'a>(topology: &'a RuntimeTopology<'a>) -> RuntimeSnapshot<'a> {
@@ -1678,11 +1694,12 @@ mod tests {
         RuntimePromptRegistration, RuntimeProviderKind, RuntimeProviderRegistration,
         RuntimeSnapshot, RuntimeStatus, RuntimeTemplateRegistration, RuntimeTopology,
         agent_runtime_hook, banner, build_runtime_action_plan, build_runtime_config_patch,
-        build_runtime_doctor_report, build_runtime_snapshot, capability_activates_agent_surface,
-        capability_activates_policy_surface, capability_activates_prompt_surface,
-        capability_activates_template_surface, collect_runtime_issues, evaluate_runtime_status,
-        parse_runtime_check_kind, parse_runtime_provider_kind, policy_runtime_hook,
-        prompt_runtime_hook, render_runtime_action_plan, render_runtime_action_plan_for_locale,
+        build_runtime_doctor_report, build_runtime_patched_config, build_runtime_snapshot,
+        capability_activates_agent_surface, capability_activates_policy_surface,
+        capability_activates_prompt_surface, capability_activates_template_surface,
+        collect_runtime_issues, evaluate_runtime_status, parse_runtime_check_kind,
+        parse_runtime_provider_kind, policy_runtime_hook, prompt_runtime_hook,
+        render_runtime_action_plan, render_runtime_action_plan_for_locale,
         render_runtime_config_patch_yaml, render_runtime_doctor_report,
         render_runtime_doctor_report_for_locale, render_runtime_issues,
         render_runtime_issues_for_locale, render_runtime_status, render_runtime_status_for_locale,
@@ -3029,6 +3046,44 @@ mod tests {
         assert!(rendered.contains("servers:"));
         assert!(rendered.contains("- id: test.mcp.session"));
         assert!(rendered.contains("enabled: true"));
+    }
+
+    #[test]
+    fn build_runtime_patched_config_materializes_runtime_remediation() {
+        let plugins = [RuntimePluginRegistration::new(
+            plugin_descriptor(),
+            PluginActivation::Disabled,
+            ConfigScope::Project,
+        )];
+        let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), false)];
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &plugins,
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &mcp_servers,
+        };
+
+        let config = build_runtime_patched_config(&topology);
+
+        assert_eq!(
+            config.plugins,
+            vec![
+                PluginConfig::new("official.basic", PluginActivation::Enabled),
+                PluginConfig::new(PRIMARY_PLUGIN_ID, PluginActivation::Enabled),
+            ]
+        );
+        assert_eq!(
+            config.mcp.servers,
+            vec![McpServerConfig::new(MCP_SERVER_ID, true)]
+        );
     }
 
     #[test]
