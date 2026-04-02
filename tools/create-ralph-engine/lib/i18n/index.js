@@ -7,7 +7,10 @@ const SUPPORTED_LOCALES = new Set(["en", "pt-br"]);
 const LOCALE_ENV_KEY = "RALPH_ENGINE_LOCALE";
 
 function normalizeLocale(value) {
-  const normalized = String(value || "").trim().toLowerCase();
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replaceAll("_", "-");
   return SUPPORTED_LOCALES.has(normalized) ? normalized : "en";
 }
 
