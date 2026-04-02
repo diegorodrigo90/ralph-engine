@@ -5,11 +5,11 @@ use re_config::{
     default_project_config_layer, resolve_plugin_config,
 };
 use re_core::{
-    RuntimeAgentRegistration, RuntimeCapabilityRegistration, RuntimeCheckKind,
-    RuntimeCheckRegistration, RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase,
-    RuntimePluginRegistration, RuntimePolicyRegistration, RuntimePromptRegistration,
-    RuntimeProviderKind, RuntimeProviderRegistration, RuntimeTemplateRegistration, RuntimeTopology,
-    runtime_check_kind_for_capability, runtime_provider_kind_for_capability,
+    RuntimeAgentRegistration, RuntimeCapabilityRegistration, RuntimeCheckRegistration,
+    RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
+    RuntimePolicyRegistration, RuntimePromptRegistration, RuntimeProviderRegistration,
+    RuntimeTemplateRegistration, RuntimeTopology, runtime_check_kind_for_capability,
+    runtime_hook_for_check, runtime_hook_for_provider, runtime_provider_kind_for_capability,
 };
 use re_mcp::McpServerDescriptor;
 use re_plugin::{
@@ -255,13 +255,6 @@ pub fn official_runtime_hooks() -> Vec<RuntimeHookRegistration> {
         .collect()
 }
 
-fn runtime_hook_for_check(kind: RuntimeCheckKind) -> PluginRuntimeHook {
-    match kind {
-        RuntimeCheckKind::Prepare => PluginRuntimeHook::Prepare,
-        RuntimeCheckKind::Doctor => PluginRuntimeHook::Doctor,
-    }
-}
-
 /// Returns the resolved runtime check registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_checks() -> Vec<RuntimeCheckRegistration> {
@@ -291,15 +284,6 @@ pub fn official_runtime_checks() -> Vec<RuntimeCheckRegistration> {
         .collect()
 }
 
-fn registration_hook_for_provider(kind: RuntimeProviderKind) -> PluginRuntimeHook {
-    match kind {
-        RuntimeProviderKind::DataSource => PluginRuntimeHook::DataSourceRegistration,
-        RuntimeProviderKind::ContextProvider => PluginRuntimeHook::ContextProviderRegistration,
-        RuntimeProviderKind::ForgeProvider => PluginRuntimeHook::ForgeProviderRegistration,
-        RuntimeProviderKind::RemoteControl => PluginRuntimeHook::RemoteControlBootstrap,
-    }
-}
-
 /// Returns the resolved runtime provider registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_providers() -> Vec<RuntimeProviderRegistration> {
@@ -321,7 +305,7 @@ pub fn official_runtime_providers() -> Vec<RuntimeProviderRegistration> {
                             plugin
                                 .descriptor
                                 .runtime_hooks
-                                .contains(&registration_hook_for_provider(kind)),
+                                .contains(&runtime_hook_for_provider(kind)),
                         )
                     })
                 })
