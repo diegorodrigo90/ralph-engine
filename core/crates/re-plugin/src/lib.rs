@@ -294,6 +294,10 @@ pub struct PluginDescriptor {
     pub name: &'static str,
     /// Optional localized plugin names keyed by locale.
     pub localized_names: &'static [PluginLocalizedText],
+    /// Human-readable English summary.
+    pub summary: &'static str,
+    /// Optional localized plugin summaries keyed by locale.
+    pub localized_summaries: &'static [PluginLocalizedText],
     /// Published plugin version.
     pub version: &'static str,
     /// Declared plugin capabilities.
@@ -316,6 +320,8 @@ impl PluginDescriptor {
         trust_level: PluginTrustLevel,
         name: &'static str,
         localized_names: &'static [PluginLocalizedText],
+        summary: &'static str,
+        localized_summaries: &'static [PluginLocalizedText],
         version: &'static str,
         capabilities: &'static [PluginCapability],
         lifecycle: &'static [PluginLifecycleStage],
@@ -328,6 +334,8 @@ impl PluginDescriptor {
             trust_level,
             name,
             localized_names,
+            summary,
+            localized_summaries,
             version,
             capabilities,
             lifecycle,
@@ -368,6 +376,15 @@ impl PluginDescriptor {
             .find(|entry| entry.locale.eq_ignore_ascii_case(locale))
             .map_or(self.name, |entry| entry.value)
     }
+
+    /// Resolves the plugin summary for a locale with English fallback.
+    #[must_use]
+    pub fn summary_for_locale(&self, locale: &str) -> &'static str {
+        self.localized_summaries
+            .iter()
+            .find(|entry| entry.locale.eq_ignore_ascii_case(locale))
+            .map_or(self.summary, |entry| entry.value)
+    }
 }
 
 /// Renders a human-readable plugin listing.
@@ -399,13 +416,14 @@ pub fn render_plugin_listing_for_locale(plugins: &[PluginDescriptor], locale: &s
             .join(", ");
 
         lines.push(format!(
-            "- {} | {} | {} | {} | v{} | {}",
+            "- {} | {} | {} | {} | v{} | {} | {}",
             plugin.id,
             plugin.kind,
             plugin.trust_level,
             plugin.display_name_for_locale(locale),
             plugin.version,
-            capabilities
+            capabilities,
+            plugin.summary_for_locale(locale)
         ));
     }
 
@@ -441,7 +459,7 @@ pub fn render_plugin_detail_for_locale(plugin: &PluginDescriptor, locale: &str) 
         .join(", ");
 
     format!(
-        "{}: {}\n{}: {}\n{}: {}\n{}: {}\n{}: v{}\n{}: {}\n{}: {}\n{}: {}\n{}: {}",
+        "{}: {}\n{}: {}\n{}: {}\n{}: {}\n{}: v{}\n{}: {}\n{}: {}\n{}: {}\n{}: {}\n{}: {}",
         "Plugin",
         plugin.id,
         if locale.eq_ignore_ascii_case("pt-br") {
@@ -468,6 +486,12 @@ pub fn render_plugin_detail_for_locale(plugin: &PluginDescriptor, locale: &str) 
             "Version"
         },
         plugin.version,
+        if locale.eq_ignore_ascii_case("pt-br") {
+            "Resumo"
+        } else {
+            "Summary"
+        },
+        plugin.summary_for_locale(locale),
         "Capabilities",
         capabilities,
         "Lifecycle",

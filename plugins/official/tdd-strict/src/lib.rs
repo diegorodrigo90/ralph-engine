@@ -9,6 +9,11 @@ use re_plugin::{
 pub const PLUGIN_ID: &str = "official.tdd-strict";
 const PLUGIN_NAME: &str = "TDD Strict";
 const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "TDD Estrito")];
+const PLUGIN_SUMMARY: &str = "Strict TDD policy and template guardrails.";
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Política estrita de TDD com guardrails de template.",
+)];
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[TEMPLATE, POLICY];
 const LIFECYCLE: &[PluginLifecycleStage] = &[
@@ -27,6 +32,8 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PluginTrustLevel::Official,
     PLUGIN_NAME,
     LOCALIZED_NAMES,
+    PLUGIN_SUMMARY,
+    LOCALIZED_SUMMARIES,
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,
@@ -60,7 +67,7 @@ pub const fn descriptor() -> PluginDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, capabilities, descriptor, lifecycle, runtime_hooks};
+    use super::{PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, lifecycle, runtime_hooks};
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -92,7 +99,11 @@ mod tests {
         let plugin = descriptor();
 
         // Act
-        let descriptor_matches = plugin.id == PLUGIN_ID && plugin.name == "TDD Strict";
+        let descriptor_matches = plugin.id == PLUGIN_ID
+            && plugin.name == "TDD Strict"
+            && plugin.summary_for_locale("pt-br")
+                == "Política estrita de TDD com guardrails de template."
+            && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert
         assert!(descriptor_matches);

@@ -1518,6 +1518,10 @@ mod tests {
     const LIFECYCLE: &[PluginLifecycleStage] = &[PluginLifecycleStage::Discover];
     const HOOKS: &[PluginRuntimeHook] = &[PluginRuntimeHook::Scaffold];
     const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "Básico")];
+    const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+        "pt-br",
+        "Plugin base para templates iniciais.",
+    )];
 
     fn plugin_descriptor() -> PluginDescriptor {
         PluginDescriptor::new(
@@ -1526,6 +1530,8 @@ mod tests {
             PluginTrustLevel::Official,
             "Basic",
             LOCALIZED_NAMES,
+            "Foundation plugin for starter templates.",
+            LOCALIZED_SUMMARIES,
             "0.2.0-alpha.1",
             CAPABILITIES,
             LIFECYCLE,

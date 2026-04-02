@@ -27,6 +27,11 @@ const GITHUB_LIFECYCLE: &[PluginLifecycleStage] = &[
 const BASIC_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[PluginRuntimeHook::Scaffold];
 const BASIC_LOCALIZED_NAMES: &[PluginLocalizedText] =
     &[PluginLocalizedText::new("pt-br", "Básico")];
+const BASIC_SUMMARY: &str = "Foundation plugin for starter templates.";
+const BASIC_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Plugin base para templates iniciais.",
+)];
 const GITHUB_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
     PluginRuntimeHook::McpRegistration,
     PluginRuntimeHook::DataSourceRegistration,
@@ -40,6 +45,8 @@ fn basic_plugin() -> PluginDescriptor {
         PluginTrustLevel::Official,
         "Basic",
         BASIC_LOCALIZED_NAMES,
+        BASIC_SUMMARY,
+        BASIC_LOCALIZED_SUMMARIES,
         "0.2.0-alpha.1",
         BASIC_CAPABILITIES,
         BASIC_LIFECYCLE,
@@ -55,6 +62,8 @@ fn github_plugin() -> PluginDescriptor {
         PluginTrustLevel::Official,
         "GitHub",
         &[],
+        "GitHub integration for data and forge workflows.",
+        &[],
         "0.2.0-alpha.1",
         GITHUB_CAPABILITIES,
         GITHUB_LIFECYCLE,
@@ -69,6 +78,8 @@ fn invalid_plugin() -> PluginDescriptor {
         PluginKind::Template,
         PluginTrustLevel::Community,
         "Broken",
+        &[],
+        "Broken plugin fixture.",
         &[],
         "0.2.0-alpha.1",
         &[],
@@ -425,9 +436,11 @@ fn render_plugin_listing_supports_pt_br_and_falls_back_to_english() {
     // Assert
     assert!(rendered.contains("Plugins oficiais (2)"));
     assert!(rendered.contains("official.basic | template | official | Básico | v0.2.0-alpha.1"));
+    assert!(rendered.contains("Plugin base para templates iniciais."));
     assert!(
         rendered.contains("official.github | data_source | official | GitHub | v0.2.0-alpha.1")
     );
+    assert!(rendered.contains("GitHub integration for data and forge workflows."));
 }
 
 #[test]
@@ -444,6 +457,7 @@ fn render_plugin_detail_supports_pt_br_and_falls_back_to_english() {
     assert!(rendered.contains("Confiança: official"));
     assert!(rendered.contains("Nome: Básico"));
     assert!(rendered.contains("Versão: v0.2.0-alpha.1"));
+    assert!(rendered.contains("Resumo: Plugin base para templates iniciais."));
     assert!(rendered.contains("Boundary de carga: in_process"));
     assert!(rendered.contains("Hooks de runtime: scaffold"));
 }
@@ -453,6 +467,16 @@ fn plugin_display_name_falls_back_to_english_for_unknown_locale() {
     let plugin = basic_plugin();
 
     assert_eq!(plugin.display_name_for_locale("es"), "Basic");
+}
+
+#[test]
+fn plugin_summary_falls_back_to_english_for_unknown_locale() {
+    let plugin = basic_plugin();
+
+    assert_eq!(
+        plugin.summary_for_locale("es"),
+        "Foundation plugin for starter templates."
+    );
 }
 
 #[test]

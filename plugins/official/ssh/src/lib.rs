@@ -9,6 +9,8 @@ use re_plugin::{
 pub const PLUGIN_ID: &str = "official.ssh";
 const PLUGIN_NAME: &str = "SSH";
 const LOCALIZED_NAMES: &[PluginLocalizedText] = &[];
+const PLUGIN_SUMMARY: &str = "SSH remote control integration.";
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[];
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[REMOTE_CONTROL];
 const LIFECYCLE: &[PluginLifecycleStage] =
@@ -20,6 +22,8 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PluginTrustLevel::Official,
     PLUGIN_NAME,
     LOCALIZED_NAMES,
+    PLUGIN_SUMMARY,
+    LOCALIZED_SUMMARIES,
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,
@@ -53,7 +57,7 @@ pub const fn descriptor() -> PluginDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, capabilities, descriptor, lifecycle, runtime_hooks};
+    use super::{PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, lifecycle, runtime_hooks};
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -85,7 +89,9 @@ mod tests {
         let plugin = descriptor();
 
         // Act
-        let descriptor_matches = plugin.id == PLUGIN_ID && plugin.name == "SSH";
+        let descriptor_matches = plugin.id == PLUGIN_ID
+            && plugin.name == "SSH"
+            && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert
         assert!(descriptor_matches);

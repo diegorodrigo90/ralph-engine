@@ -10,6 +10,8 @@ use re_plugin::{
 pub const PLUGIN_ID: &str = "official.claude";
 const PLUGIN_NAME: &str = "Claude";
 const LOCALIZED_NAMES: &[PluginLocalizedText] = &[];
+const PLUGIN_SUMMARY: &str = "Claude agent runtime and MCP session integration.";
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[];
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[AGENT_RUNTIME, MCP_CONTRIBUTION];
 const LIFECYCLE: &[PluginLifecycleStage] =
@@ -24,6 +26,8 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PluginTrustLevel::Official,
     PLUGIN_NAME,
     LOCALIZED_NAMES,
+    PLUGIN_SUMMARY,
+    LOCALIZED_SUMMARIES,
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,
@@ -71,7 +75,9 @@ pub const fn mcp_servers() -> &'static [McpServerDescriptor] {
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, capabilities, descriptor, lifecycle, mcp_servers, runtime_hooks};
+    use super::{
+        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, lifecycle, mcp_servers, runtime_hooks,
+    };
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -105,7 +111,8 @@ mod tests {
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
             && plugin.name == "Claude"
-            && plugin.display_name_for_locale("pt-br") == "Claude";
+            && plugin.display_name_for_locale("pt-br") == "Claude"
+            && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert
         assert!(descriptor_matches);

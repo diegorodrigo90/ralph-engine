@@ -9,6 +9,11 @@ use re_plugin::{
 pub const PLUGIN_ID: &str = "official.basic";
 const PLUGIN_NAME: &str = "Basic";
 const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "Básico")];
+const PLUGIN_SUMMARY: &str = "Foundation plugin for starter templates.";
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Plugin base para templates iniciais.",
+)];
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[TEMPLATE];
 const LIFECYCLE: &[PluginLifecycleStage] = &[
@@ -23,6 +28,8 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PluginTrustLevel::Official,
     PLUGIN_NAME,
     LOCALIZED_NAMES,
+    PLUGIN_SUMMARY,
+    LOCALIZED_SUMMARIES,
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,
@@ -56,7 +63,7 @@ pub const fn descriptor() -> PluginDescriptor {
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, capabilities, descriptor, lifecycle, runtime_hooks};
+    use super::{PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, lifecycle, runtime_hooks};
 
     #[test]
     fn plugin_id_is_namespaced() {
@@ -90,7 +97,9 @@ mod tests {
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
             && plugin.name == "Basic"
-            && plugin.display_name_for_locale("pt-br") == "Básico";
+            && plugin.display_name_for_locale("pt-br") == "Básico"
+            && plugin.summary_for_locale("pt-br") == "Plugin base para templates iniciais."
+            && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert
         assert!(descriptor_matches);
