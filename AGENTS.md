@@ -75,6 +75,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 - `core/crates/re-plugin/` SHALL own typed plugin metadata, lifecycle, runtime-hook, loading-boundary, and capability contracts.
 - `core/crates/re-plugin/` SHALL also own typed plugin trust-level contracts so official and community plugin metadata stay aligned across runtime, CLI, and third-party manifests.
 - `core/crates/re-cli/` SHALL own the modular CLI surface and command registry.
+- `core/crates/re-config/` SHALL also own the canonical typed locale contract and supported-locale catalog for runtime-facing surfaces.
 - `re-core` and `re-cli` SHALL expose typed runtime capability, template, prompt, agent, check, provider, policy, and hook registration so new capabilities can be added through shared contracts instead of command-local branching.
 - `plugins/official/` SHALL own Rust-first official plugins.
 - `docs/` SHALL remain a distinct top-level owned surface.
@@ -82,6 +83,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 - `packaging/` SHALL own npm and Homebrew packaging.
 - `tools/create-ralph-engine/` SHALL own plugin scaffolding for `npx create-ralph-engine-plugin`. Runtime catalog surfaces SHALL NOT turn scaffolding into a generic runtime responsibility.
 - CLI surfaces SHALL support `en` and `pt-br` through typed locale catalogs, and new locales SHALL be additive rather than requiring handler rewrites.
+- Locale-aware crates SHALL resolve locale selection through the shared typed locale contract in `re-config` instead of introducing crate-local locale-id branching rules.
 - Locale-aware crates and public surfaces SHALL organize translation strings per locale module or file set instead of scattering inline locale branches across handlers.
 - Plugin metadata SHALL support locale-aware display names and summaries with English fallback when a requested locale is missing.
 - Plugins that expose public CLI-facing output SHALL own their locale catalogs alongside the plugin/runtime crate that renders that output, with English fallback when a requested locale is missing.

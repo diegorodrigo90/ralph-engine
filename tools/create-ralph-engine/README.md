@@ -32,7 +32,9 @@ mode is driven by flags and is suitable for automation.
 
 The scaffolder resolves user-facing CLI text through locale catalogs and
 currently supports `en` plus `pt-br` via `RALPH_ENGINE_LOCALE`, falling back to
-English when an unsupported locale is requested.
+English when an unsupported locale is requested. That locale resolution now
+follows the same typed shared locale contract owned by `re-config`, so runtime,
+official plugins, and scaffolded plugins add new locales on one canonical base.
 
 Generated Rust plugin crates also start with per-locale catalog modules in
 `src/i18n/`, so localized names and summaries can grow by adding locale files
