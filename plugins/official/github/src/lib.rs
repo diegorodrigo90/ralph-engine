@@ -53,7 +53,8 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
 const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
     "official.github.repository",
     PLUGIN_ID,
-    "GitHub Repository",
+    i18n::default_mcp_server_name(),
+    i18n::localized_mcp_server_names(),
     McpTransport::Stdio,
     McpLaunchPolicy::SpawnProcess(McpCommandDescriptor::new(
         "ralph-engine-github-mcp",
@@ -151,6 +152,10 @@ mod tests {
 
         // Assert
         assert!(contributes_servers);
+        assert_eq!(
+            servers[0].display_name_for_locale("pt-br"),
+            "Repositório GitHub"
+        );
     }
 
     #[test]

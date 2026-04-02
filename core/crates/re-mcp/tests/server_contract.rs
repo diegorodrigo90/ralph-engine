@@ -1,17 +1,21 @@
 //! Integration tests for the shared Ralph Engine MCP contract.
 
 use re_mcp::{
-    McpAvailability, McpCommandDescriptor, McpEnvironmentPolicy, McpLaunchPolicy, McpProcessModel,
-    McpServerDescriptor, McpTransport, McpWorkingDirectoryPolicy, render_mcp_server_detail,
-    render_mcp_server_detail_for_locale, render_mcp_server_listing,
+    McpAvailability, McpCommandDescriptor, McpEnvironmentPolicy, McpLaunchPolicy, McpLocalizedText,
+    McpProcessModel, McpServerDescriptor, McpTransport, McpWorkingDirectoryPolicy,
+    render_mcp_server_detail, render_mcp_server_detail_for_locale, render_mcp_server_listing,
     render_mcp_server_listing_for_locale,
 };
+
+const LOCALIZED_CLAUDE_SERVER_NAMES: &[McpLocalizedText] =
+    &[McpLocalizedText::new("pt-br", "Sessão Claude")];
 
 fn claude_server() -> McpServerDescriptor {
     McpServerDescriptor::new(
         "official.claude.session",
         "official.claude",
         "Claude Session",
+        LOCALIZED_CLAUDE_SERVER_NAMES,
         McpTransport::Stdio,
         McpLaunchPolicy::PluginRuntime,
         McpAvailability::OnDemand,
@@ -23,6 +27,7 @@ fn invalid_server() -> McpServerDescriptor {
         "claude",
         "claude",
         "Broken",
+        &[],
         McpTransport::Stdio,
         McpLaunchPolicy::SpawnProcess(McpCommandDescriptor::new(
             "broken-mcp",
@@ -366,9 +371,7 @@ fn render_mcp_server_listing_supports_pt_br() {
     let rendered = render_mcp_server_listing_for_locale(&[claude_server()], "pt-br");
 
     assert!(rendered.contains("Servidores MCP oficiais (1)"));
-    assert!(
-        rendered.contains("official.claude.session | Claude Session | official.claude | stdio")
-    );
+    assert!(rendered.contains("official.claude.session | Sessão Claude | official.claude | stdio"));
 }
 
 #[test]
@@ -376,7 +379,7 @@ fn render_mcp_server_detail_supports_pt_br_and_runtime_fallback_text() {
     let rendered = render_mcp_server_detail_for_locale(&claude_server(), "pt-br");
 
     assert!(rendered.contains("Servidor MCP: official.claude.session"));
-    assert!(rendered.contains("Nome: Claude Session"));
+    assert!(rendered.contains("Nome: Sessão Claude"));
     assert!(rendered.contains("Transporte: stdio"));
     assert!(rendered.contains("Política de execução: plugin_runtime"));
     assert!(rendered.contains("Comando: gerenciado pelo runtime do plugin"));

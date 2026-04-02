@@ -4,6 +4,36 @@ use std::fmt;
 
 mod i18n;
 
+/// One localized MCP text entry.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct McpLocalizedText {
+    /// Stable locale identifier.
+    pub locale: &'static str,
+    /// Localized text value.
+    pub value: &'static str,
+}
+
+impl McpLocalizedText {
+    /// Creates a new immutable localized MCP text entry.
+    #[must_use]
+    pub const fn new(locale: &'static str, value: &'static str) -> Self {
+        Self { locale, value }
+    }
+}
+
+fn resolve_localized_text<'a>(
+    localized_values: &'a [McpLocalizedText],
+    locale: &str,
+    fallback: &'a str,
+) -> &'a str {
+    let locale = re_config::resolve_supported_locale_or_default(locale.trim()).as_str();
+
+    localized_values
+        .iter()
+        .find(|entry| entry.locale == locale)
+        .map_or(fallback, |entry| entry.value)
+}
+
 /// Supported MCP transport kinds.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum McpTransport {
@@ -226,6 +256,8 @@ pub struct McpServerDescriptor {
     pub plugin_id: &'static str,
     /// Human-readable server name.
     pub name: &'static str,
+    /// Optional localized server names keyed by locale.
+    pub localized_names: &'static [McpLocalizedText],
     /// Declared transport kind.
     pub transport: McpTransport,
     /// Declared server launch policy.
@@ -241,6 +273,7 @@ impl McpServerDescriptor {
         id: &'static str,
         plugin_id: &'static str,
         name: &'static str,
+        localized_names: &'static [McpLocalizedText],
         transport: McpTransport,
         launch_policy: McpLaunchPolicy,
         availability: McpAvailability,
@@ -249,10 +282,17 @@ impl McpServerDescriptor {
             id,
             plugin_id,
             name,
+            localized_names,
             transport,
             launch_policy,
             availability,
         }
+    }
+
+    /// Resolves the display name for a locale with English fallback.
+    #[must_use]
+    pub fn display_name_for_locale(&self, locale: &str) -> &'static str {
+        resolve_localized_text(self.localized_names, locale, self.name)
     }
 
     /// Returns whether the server identifier uses a namespace prefix.
@@ -314,7 +354,10 @@ pub fn render_mcp_server_listing_for_locale(
     for server in servers {
         lines.push(format!(
             "- {} | {} | {} | {}",
-            server.id, server.name, server.plugin_id, server.transport
+            server.id,
+            server.display_name_for_locale(locale),
+            server.plugin_id,
+            server.transport
         ));
     }
 
@@ -332,7 +375,11 @@ pub fn render_mcp_server_detail(server: &McpServerDescriptor) -> String {
 pub fn render_mcp_server_detail_for_locale(server: &McpServerDescriptor, locale: &str) -> String {
     let mut lines = vec![
         format!("{}: {}", i18n::server_label(locale), server.id),
-        format!("{}: {}", i18n::name_label(locale), server.name),
+        format!(
+            "{}: {}",
+            i18n::name_label(locale),
+            server.display_name_for_locale(locale)
+        ),
         format!("{}: {}", i18n::plugin_label(locale), server.plugin_id),
         format!("{}: {}", i18n::transport_label(locale), server.transport),
         format!(

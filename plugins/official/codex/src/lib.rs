@@ -48,7 +48,8 @@ const AGENTS: &[PluginAgentDescriptor] = &[PluginAgentDescriptor::new(
 const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
     "official.codex.session",
     PLUGIN_ID,
-    "Codex Session",
+    i18n::default_mcp_server_name(),
+    i18n::localized_mcp_server_names(),
     McpTransport::Stdio,
     McpLaunchPolicy::PluginRuntime,
     McpAvailability::OnDemand,
@@ -147,6 +148,7 @@ mod tests {
 
         // Assert
         assert!(contributes_servers);
+        assert_eq!(servers[0].display_name_for_locale("pt-br"), "Sessão Codex");
     }
 
     #[test]

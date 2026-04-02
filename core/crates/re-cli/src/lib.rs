@@ -848,6 +848,7 @@ mod tests {
 
         // Assert
         assert!(output.contains("MCP server: official.github.repository"));
+        assert!(output.contains("Name: GitHub Repository"));
         assert!(output.contains("Process model: external_binary"));
         assert!(output.contains("Launch policy: spawn_process"));
         assert!(output.contains("Availability: explicit_opt_in"));

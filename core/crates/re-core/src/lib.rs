@@ -1644,6 +1644,7 @@ mod tests {
             "official.codex.session",
             "official.codex",
             "Codex Session",
+            &[],
             McpTransport::Stdio,
             McpLaunchPolicy::PluginRuntime,
             McpAvailability::OnDemand,
