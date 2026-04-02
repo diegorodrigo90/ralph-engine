@@ -7,7 +7,8 @@ use re_config::{
     default_project_config_layer, find_locale_descriptor, find_plugin_config,
     render_config_layers_yaml, render_default_locale_yaml, render_locale_descriptor_yaml,
     render_project_config_yaml, render_resolved_plugin_config_yaml, render_runtime_budgets_yaml,
-    render_supported_locales_yaml, resolve_plugin_config, supported_locales,
+    render_supported_locales_yaml, resolve_locale_or_default, resolve_plugin_config,
+    supported_locales,
 };
 
 #[test]
@@ -85,8 +86,25 @@ fn find_locale_descriptor_returns_matching_locale() {
 }
 
 #[test]
+fn find_locale_descriptor_accepts_case_insensitive_lookup() {
+    let locale = find_locale_descriptor("PT-BR");
+
+    assert_eq!(locale.map(|entry| entry.id), Some("pt-br"));
+}
+
+#[test]
 fn find_locale_descriptor_returns_none_for_unknown_locale() {
     assert!(find_locale_descriptor("es").is_none());
+}
+
+#[test]
+fn resolve_locale_or_default_returns_supported_locale() {
+    assert_eq!(resolve_locale_or_default("PT-BR"), "pt-br");
+}
+
+#[test]
+fn resolve_locale_or_default_falls_back_to_english() {
+    assert_eq!(resolve_locale_or_default("es"), "en");
 }
 
 #[test]

@@ -248,8 +248,20 @@ pub const fn supported_locales() -> &'static [LocaleDescriptor] {
 pub fn find_locale_descriptor(locale_id: &str) -> Option<LocaleDescriptor> {
     supported_locales()
         .iter()
-        .find(|locale| locale.id == locale_id)
+        .find(|locale| locale.id.eq_ignore_ascii_case(locale_id))
         .copied()
+}
+
+/// Returns the canonical supported locale identifier when one exists.
+#[must_use]
+pub fn canonical_locale_id(locale_id: &str) -> Option<&'static str> {
+    find_locale_descriptor(locale_id).map(|locale| locale.id)
+}
+
+/// Resolves one locale identifier to a supported value, falling back to English.
+#[must_use]
+pub fn resolve_locale_or_default(locale_id: &str) -> &'static str {
+    canonical_locale_id(locale_id).unwrap_or(DEFAULT_LOCALE)
 }
 
 /// Returns one immutable plugin config entry by identifier.

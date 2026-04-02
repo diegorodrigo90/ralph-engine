@@ -9,7 +9,7 @@ enum RuntimeLocale {
 
 impl RuntimeLocale {
     fn resolve(locale: &str) -> Self {
-        if locale.eq_ignore_ascii_case("pt-br") {
+        if re_config::resolve_locale_or_default(locale) == "pt-br" {
             Self::PtBr
         } else {
             Self::En

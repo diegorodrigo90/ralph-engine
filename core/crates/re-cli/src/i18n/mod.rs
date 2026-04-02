@@ -25,7 +25,7 @@ impl CliLocale {
 
 #[must_use]
 pub fn is_pt_br(locale: &str) -> bool {
-    locale.eq_ignore_ascii_case("pt-br")
+    re_config::resolve_locale_or_default(locale) == "pt-br"
 }
 
 fn parse_locale(locale: &str) -> CliLocale {
@@ -55,19 +55,30 @@ fn resolve_cli_locale_from_env_result(
 }
 
 fn normalize_cli_locale(value: &str) -> Result<&'static str, CliError> {
-    let normalized = value.trim().to_ascii_lowercase();
-    match normalized.as_str() {
-        "en" => Ok(CliLocale::En.as_str()),
-        "pt-br" => Ok(CliLocale::PtBr.as_str()),
-        other => Err(CliError::new(format!(
+    let normalized = value.trim();
+    match re_config::canonical_locale_id(normalized) {
+        Some("en") => Ok(CliLocale::En.as_str()),
+        Some("pt-br") => Ok(CliLocale::PtBr.as_str()),
+        Some(other) => Err(CliError::new(format!(
             "unsupported locale: {other}. supported locales: {}",
-            re_config::supported_locales()
-                .iter()
-                .map(|locale| locale.id)
-                .collect::<Vec<_>>()
-                .join(", ")
+            supported_locale_ids(),
         ))),
+        None => {
+            let other = normalized.to_ascii_lowercase();
+            Err(CliError::new(format!(
+                "unsupported locale: {other}. supported locales: {}",
+                supported_locale_ids(),
+            )))
+        }
     }
+}
+
+fn supported_locale_ids() -> String {
+    re_config::supported_locales()
+        .iter()
+        .map(|locale| locale.id)
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 #[must_use]
