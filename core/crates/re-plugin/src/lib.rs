@@ -348,6 +348,40 @@ impl PluginRuntimeHook {
     }
 }
 
+/// Canonical ordered list of reviewed runtime hooks.
+pub const ALL_PLUGIN_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
+    PluginRuntimeHook::Scaffold,
+    PluginRuntimeHook::Prepare,
+    PluginRuntimeHook::Doctor,
+    PluginRuntimeHook::PromptAssembly,
+    PluginRuntimeHook::AgentBootstrap,
+    PluginRuntimeHook::McpRegistration,
+    PluginRuntimeHook::DataSourceRegistration,
+    PluginRuntimeHook::ContextProviderRegistration,
+    PluginRuntimeHook::ForgeProviderRegistration,
+    PluginRuntimeHook::RemoteControlBootstrap,
+    PluginRuntimeHook::PolicyEnforcement,
+];
+
+/// Parses one stable runtime-hook identifier.
+#[must_use]
+pub fn parse_plugin_runtime_hook(value: &str) -> Option<PluginRuntimeHook> {
+    match value {
+        "scaffold" => Some(PluginRuntimeHook::Scaffold),
+        "prepare" => Some(PluginRuntimeHook::Prepare),
+        "doctor" => Some(PluginRuntimeHook::Doctor),
+        "prompt_assembly" => Some(PluginRuntimeHook::PromptAssembly),
+        "agent_bootstrap" => Some(PluginRuntimeHook::AgentBootstrap),
+        "mcp_registration" => Some(PluginRuntimeHook::McpRegistration),
+        "data_source_registration" => Some(PluginRuntimeHook::DataSourceRegistration),
+        "context_provider_registration" => Some(PluginRuntimeHook::ContextProviderRegistration),
+        "forge_provider_registration" => Some(PluginRuntimeHook::ForgeProviderRegistration),
+        "remote_control_bootstrap" => Some(PluginRuntimeHook::RemoteControlBootstrap),
+        "policy_enforcement" => Some(PluginRuntimeHook::PolicyEnforcement),
+        _ => None,
+    }
+}
+
 impl fmt::Display for PluginRuntimeHook {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.as_str())

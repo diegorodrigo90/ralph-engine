@@ -1,13 +1,13 @@
 //! Integration tests for the shared Ralph Engine plugin contract.
 
 use re_plugin::{
-    AGENT_RUNTIME, ALL_PLUGIN_CAPABILITIES, ALL_PLUGIN_KINDS, ALL_PLUGIN_RUNTIME_SURFACES,
-    ALL_PLUGIN_TRUST_LEVELS, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER,
-    MCP_CONTRIBUTION, POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCapability, PluginDescriptor,
-    PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginRuntimeHook,
-    PluginRuntimeSurface, PluginTrustLevel, REMOTE_CONTROL, TEMPLATE, render_plugin_detail,
-    render_plugin_detail_for_locale, render_plugin_listing, render_plugin_listing_for_locale,
-    runtime_surface_for_capability,
+    AGENT_RUNTIME, ALL_PLUGIN_CAPABILITIES, ALL_PLUGIN_KINDS, ALL_PLUGIN_RUNTIME_HOOKS,
+    ALL_PLUGIN_RUNTIME_SURFACES, ALL_PLUGIN_TRUST_LEVELS, CONTEXT_PROVIDER, DATA_SOURCE,
+    DOCTOR_CHECKS, FORGE_PROVIDER, MCP_CONTRIBUTION, POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS,
+    PluginCapability, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
+    PluginLocalizedText, PluginRuntimeHook, PluginRuntimeSurface, PluginTrustLevel, REMOTE_CONTROL,
+    TEMPLATE, parse_plugin_runtime_hook, render_plugin_detail, render_plugin_detail_for_locale,
+    render_plugin_listing, render_plugin_listing_for_locale, runtime_surface_for_capability,
 };
 
 const BASIC_CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -330,25 +330,10 @@ fn load_boundary_display_is_stable() {
 #[test]
 fn runtime_hook_display_is_stable() {
     // Arrange
-    let hooks = [
-        PluginRuntimeHook::Scaffold,
-        PluginRuntimeHook::Prepare,
-        PluginRuntimeHook::Doctor,
-        PluginRuntimeHook::PromptAssembly,
-        PluginRuntimeHook::AgentBootstrap,
-        PluginRuntimeHook::McpRegistration,
-        PluginRuntimeHook::DataSourceRegistration,
-        PluginRuntimeHook::ContextProviderRegistration,
-        PluginRuntimeHook::ForgeProviderRegistration,
-        PluginRuntimeHook::RemoteControlBootstrap,
-        PluginRuntimeHook::PolicyEnforcement,
-    ];
+    let hooks = ALL_PLUGIN_RUNTIME_HOOKS;
 
     // Act
-    let rendered = hooks
-        .into_iter()
-        .map(PluginRuntimeHook::as_str)
-        .collect::<Vec<_>>();
+    let rendered = hooks.iter().map(|hook| hook.as_str()).collect::<Vec<_>>();
 
     // Assert
     assert_eq!(
@@ -367,6 +352,25 @@ fn runtime_hook_display_is_stable() {
             "policy_enforcement",
         ]
     );
+}
+
+#[test]
+fn parse_runtime_hook_supports_stable_identifiers() {
+    let parsed = ALL_PLUGIN_RUNTIME_HOOKS
+        .iter()
+        .copied()
+        .map(|hook| parse_plugin_runtime_hook(hook.as_str()))
+        .collect::<Vec<_>>();
+
+    assert_eq!(
+        parsed,
+        ALL_PLUGIN_RUNTIME_HOOKS
+            .iter()
+            .copied()
+            .map(Some)
+            .collect::<Vec<_>>()
+    );
+    assert_eq!(parse_plugin_runtime_hook("unknown"), None);
 }
 
 #[test]
