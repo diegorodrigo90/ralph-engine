@@ -394,6 +394,41 @@ impl RuntimeAgentBootstrapPlan {
     }
 }
 
+/// One executable provider registration plan derived from the resolved runtime.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimeProviderRegistrationPlan {
+    /// Stable provider kind.
+    pub kind: RuntimeProviderKind,
+    /// Owning plugin identifier.
+    pub plugin_id: &'static str,
+    /// Declared load boundary for the provider.
+    pub load_boundary: PluginLoadBoundary,
+    /// Runtime hook responsible for registration.
+    pub registration_hook: PluginRuntimeHook,
+    /// Whether the registration hook is registered for this provider.
+    pub registration_hook_registered: bool,
+}
+
+impl RuntimeProviderRegistrationPlan {
+    /// Creates a new immutable provider registration plan.
+    #[must_use]
+    pub const fn new(
+        kind: RuntimeProviderKind,
+        plugin_id: &'static str,
+        load_boundary: PluginLoadBoundary,
+        registration_hook: PluginRuntimeHook,
+        registration_hook_registered: bool,
+    ) -> Self {
+        Self {
+            kind,
+            plugin_id,
+            load_boundary,
+            registration_hook,
+            registration_hook_registered,
+        }
+    }
+}
+
 /// Typed runtime check-kind identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RuntimeCheckKind {
@@ -610,6 +645,8 @@ pub fn capability_activates_policy_surface(capability: PluginCapability) -> bool
 /// One typed provider registration in the resolved runtime topology.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RuntimeProviderRegistration {
+    /// Stable provider contribution identifier.
+    pub provider_id: &'static str,
     /// Stable provider kind.
     pub kind: RuntimeProviderKind,
     /// Plugin providing the contribution.
@@ -626,6 +663,7 @@ impl RuntimeProviderRegistration {
     /// Creates a new immutable runtime provider registration.
     #[must_use]
     pub const fn new(
+        provider_id: &'static str,
         kind: RuntimeProviderKind,
         plugin_id: &'static str,
         activation: PluginActivation,
@@ -633,6 +671,7 @@ impl RuntimeProviderRegistration {
         registration_hook_registered: bool,
     ) -> Self {
         Self {
+            provider_id,
             kind,
             plugin_id,
             activation,
@@ -920,32 +959,70 @@ pub struct RuntimeSnapshot<'a> {
     pub actions: Vec<RuntimeAction>,
     /// Derived executable agent bootstrap plans for enabled agent runtimes.
     pub agent_bootstrap_plans: Vec<RuntimeAgentBootstrapPlan>,
+    /// Derived executable provider registration plans for enabled providers.
+    pub provider_registration_plans: Vec<RuntimeProviderRegistrationPlan>,
     /// Derived executable MCP launch plans for enabled servers.
     pub mcp_launch_plans: Vec<McpLaunchPlan>,
     /// Derived configuration patch that remediates the snapshot.
     pub config_patch: RuntimeConfigPatch,
 }
 
-impl<'a> RuntimeSnapshot<'a> {
-    /// Creates a new immutable runtime snapshot.
+/// Derived runtime state that complements one resolved topology snapshot.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RuntimeSnapshotDerived {
+    /// Derived runtime status.
+    pub status: RuntimeStatus,
+    /// Derived unresolved issues.
+    pub issues: Vec<RuntimeIssue>,
+    /// Derived remediation actions.
+    pub actions: Vec<RuntimeAction>,
+    /// Derived executable agent bootstrap plans for enabled agent runtimes.
+    pub agent_bootstrap_plans: Vec<RuntimeAgentBootstrapPlan>,
+    /// Derived executable provider registration plans for enabled providers.
+    pub provider_registration_plans: Vec<RuntimeProviderRegistrationPlan>,
+    /// Derived executable MCP launch plans for enabled servers.
+    pub mcp_launch_plans: Vec<McpLaunchPlan>,
+    /// Derived configuration patch that remediates the snapshot.
+    pub config_patch: RuntimeConfigPatch,
+}
+
+impl RuntimeSnapshotDerived {
+    /// Creates one immutable bundle of derived runtime state.
     #[must_use]
     pub fn new(
-        topology: RuntimeTopology<'a>,
         status: RuntimeStatus,
         issues: Vec<RuntimeIssue>,
         actions: Vec<RuntimeAction>,
         agent_bootstrap_plans: Vec<RuntimeAgentBootstrapPlan>,
+        provider_registration_plans: Vec<RuntimeProviderRegistrationPlan>,
         mcp_launch_plans: Vec<McpLaunchPlan>,
         config_patch: RuntimeConfigPatch,
     ) -> Self {
         Self {
-            topology,
             status,
             issues,
             actions,
             agent_bootstrap_plans,
+            provider_registration_plans,
             mcp_launch_plans,
             config_patch,
+        }
+    }
+}
+
+impl<'a> RuntimeSnapshot<'a> {
+    /// Creates a new immutable runtime snapshot.
+    #[must_use]
+    pub fn new(topology: RuntimeTopology<'a>, derived: RuntimeSnapshotDerived) -> Self {
+        Self {
+            topology,
+            status: derived.status,
+            issues: derived.issues,
+            actions: derived.actions,
+            agent_bootstrap_plans: derived.agent_bootstrap_plans,
+            provider_registration_plans: derived.provider_registration_plans,
+            mcp_launch_plans: derived.mcp_launch_plans,
+            config_patch: derived.config_patch,
         }
     }
 
@@ -1529,6 +1606,66 @@ pub fn render_runtime_agent_bootstrap_plans_for_locale(
     lines.join("\n")
 }
 
+/// Builds the executable registration plans for enabled providers.
+#[must_use]
+pub fn build_runtime_provider_registration_plans(
+    topology: &RuntimeTopology<'_>,
+) -> Vec<RuntimeProviderRegistrationPlan> {
+    topology
+        .providers
+        .iter()
+        .filter(|provider| provider.is_enabled())
+        .map(|provider| {
+            RuntimeProviderRegistrationPlan::new(
+                provider.kind,
+                provider.plugin_id,
+                provider.load_boundary,
+                runtime_hook_for_provider(provider.kind),
+                provider.registration_hook_registered,
+            )
+        })
+        .collect()
+}
+
+/// Renders the runtime provider registration plans in English.
+#[must_use]
+pub fn render_runtime_provider_registration_plans(
+    plans: &[RuntimeProviderRegistrationPlan],
+) -> String {
+    render_runtime_provider_registration_plans_for_locale(plans, "en")
+}
+
+/// Renders the runtime provider registration plans for one locale.
+#[must_use]
+pub fn render_runtime_provider_registration_plans_for_locale(
+    plans: &[RuntimeProviderRegistrationPlan],
+    locale: &str,
+) -> String {
+    if plans.is_empty() {
+        return format!(
+            "{} (0)",
+            i18n::runtime_provider_registration_plans_label(locale)
+        );
+    }
+
+    let mut lines = vec![format!(
+        "{} ({})",
+        i18n::runtime_provider_registration_plans_label(locale),
+        plans.len()
+    )];
+    for plan in plans {
+        lines.push(format!(
+            "- {} | plugin={} | boundary={} | registration_hook={}",
+            plan.kind.as_str(),
+            plan.plugin_id,
+            plan.load_boundary,
+            plan.registration_hook.as_str()
+        ));
+    }
+
+    lines.join("\n")
+}
+
 /// Builds the executable MCP launch plans for enabled runtime servers.
 #[must_use]
 pub fn build_runtime_mcp_launch_plans(topology: &RuntimeTopology<'_>) -> Vec<McpLaunchPlan> {
@@ -1781,17 +1918,21 @@ pub fn build_runtime_snapshot<'a>(topology: &'a RuntimeTopology<'a>) -> RuntimeS
     let issues = collect_runtime_issues(topology);
     let actions = build_runtime_action_plan(topology);
     let agent_bootstrap_plans = build_runtime_agent_bootstrap_plans(topology);
+    let provider_registration_plans = build_runtime_provider_registration_plans(topology);
     let mcp_launch_plans = build_runtime_mcp_launch_plans(topology);
     let config_patch = build_runtime_config_patch(topology);
 
     RuntimeSnapshot::new(
         *topology,
-        status,
-        issues,
-        actions,
-        agent_bootstrap_plans,
-        mcp_launch_plans,
-        config_patch,
+        RuntimeSnapshotDerived::new(
+            status,
+            issues,
+            actions,
+            agent_bootstrap_plans,
+            provider_registration_plans,
+            mcp_launch_plans,
+            config_patch,
+        ),
     )
 }
 
@@ -1839,19 +1980,22 @@ mod tests {
         RuntimeHealth, RuntimeHookRegistration, RuntimeIssue, RuntimeIssueKind,
         RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration, RuntimePolicyRegistration,
         RuntimePromptRegistration, RuntimeProviderKind, RuntimeProviderRegistration,
-        RuntimeSnapshot, RuntimeStatus, RuntimeTemplateRegistration, RuntimeTopology,
-        agent_runtime_hook, banner, build_runtime_action_plan, build_runtime_agent_bootstrap_plans,
-        build_runtime_config_patch, build_runtime_doctor_report, build_runtime_mcp_launch_plans,
-        build_runtime_patched_config, build_runtime_snapshot, capability_activates_agent_surface,
-        capability_activates_policy_surface, capability_activates_prompt_surface,
-        capability_activates_template_surface, collect_runtime_issues, evaluate_runtime_status,
-        parse_runtime_check_kind, parse_runtime_provider_kind, policy_runtime_hook,
-        prompt_runtime_hook, render_runtime_action_plan, render_runtime_action_plan_for_locale,
+        RuntimeSnapshot, RuntimeSnapshotDerived, RuntimeStatus, RuntimeTemplateRegistration,
+        RuntimeTopology, agent_runtime_hook, banner, build_runtime_action_plan,
+        build_runtime_agent_bootstrap_plans, build_runtime_config_patch,
+        build_runtime_doctor_report, build_runtime_mcp_launch_plans, build_runtime_patched_config,
+        build_runtime_provider_registration_plans, build_runtime_snapshot,
+        capability_activates_agent_surface, capability_activates_policy_surface,
+        capability_activates_prompt_surface, capability_activates_template_surface,
+        collect_runtime_issues, evaluate_runtime_status, parse_runtime_check_kind,
+        parse_runtime_provider_kind, policy_runtime_hook, prompt_runtime_hook,
+        render_runtime_action_plan, render_runtime_action_plan_for_locale,
         render_runtime_agent_bootstrap_plans, render_runtime_agent_bootstrap_plans_for_locale,
         render_runtime_config_patch_yaml, render_runtime_doctor_report,
         render_runtime_doctor_report_for_locale, render_runtime_issues,
         render_runtime_issues_for_locale, render_runtime_mcp_launch_plans,
-        render_runtime_mcp_launch_plans_for_locale, render_runtime_status,
+        render_runtime_mcp_launch_plans_for_locale, render_runtime_provider_registration_plans,
+        render_runtime_provider_registration_plans_for_locale, render_runtime_status,
         render_runtime_status_for_locale, render_runtime_topology,
         render_runtime_topology_for_locale, template_runtime_hook,
     };
@@ -1960,6 +2104,7 @@ mod tests {
 
     fn provider_registration() -> RuntimeProviderRegistration {
         RuntimeProviderRegistration::new(
+            "test.providers.data",
             RuntimeProviderKind::DataSource,
             PROVIDER_PLUGIN_ID,
             PluginActivation::Enabled,
@@ -2320,6 +2465,10 @@ mod tests {
             build_runtime_agent_bootstrap_plans(&topology)
         );
         assert_eq!(
+            snapshot.provider_registration_plans,
+            build_runtime_provider_registration_plans(&topology)
+        );
+        assert_eq!(
             snapshot.mcp_launch_plans,
             build_runtime_mcp_launch_plans(&topology)
         );
@@ -2394,6 +2543,81 @@ mod tests {
     }
 
     #[test]
+    fn build_runtime_provider_registration_plans_only_includes_enabled_providers() {
+        let enabled = RuntimeProviderRegistration::new(
+            "test.providers.data",
+            RuntimeProviderKind::DataSource,
+            PROVIDER_PLUGIN_ID,
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        );
+        let disabled = RuntimeProviderRegistration::new(
+            "test.providers.forge",
+            RuntimeProviderKind::ForgeProvider,
+            PROVIDER_PLUGIN_ID,
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            false,
+        );
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[enabled, disabled],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[],
+        };
+
+        let plans = build_runtime_provider_registration_plans(&topology);
+
+        assert_eq!(plans.len(), 1);
+        assert_eq!(plans[0].kind, RuntimeProviderKind::DataSource);
+        assert_eq!(plans[0].plugin_id, PROVIDER_PLUGIN_ID);
+        assert_eq!(
+            plans[0].registration_hook,
+            PluginRuntimeHook::DataSourceRegistration
+        );
+    }
+
+    #[test]
+    fn render_runtime_provider_registration_plans_is_human_readable() {
+        let plans = build_runtime_provider_registration_plans(&RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[RuntimeProviderRegistration::new(
+                "test.providers.data",
+                RuntimeProviderKind::DataSource,
+                PROVIDER_PLUGIN_ID,
+                PluginActivation::Enabled,
+                PluginLoadBoundary::InProcess,
+                true,
+            )],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[],
+        });
+
+        let rendered = render_runtime_provider_registration_plans(&plans);
+
+        assert!(rendered.contains("Runtime provider registration plans (1)"));
+        assert!(rendered.contains("data_source | plugin=test.providers"));
+        assert!(rendered.contains("registration_hook=data_source_registration"));
+    }
+
+    #[test]
     fn build_runtime_mcp_launch_plans_only_includes_enabled_servers() {
         let enabled = RuntimeMcpRegistration::new(mcp_descriptor(), true);
         let disabled = RuntimeMcpRegistration::new(mcp_descriptor(), false);
@@ -2458,48 +2682,51 @@ mod tests {
                 hooks: &[],
                 mcp_servers: &[],
             },
-            RuntimeStatus {
-                phase: RuntimePhase::Bootstrapped,
-                health: RuntimeHealth::Degraded,
-                enabled_plugins: 0,
-                disabled_plugins: 0,
-                enabled_capabilities: 0,
-                disabled_capabilities: 0,
-                enabled_templates: 0,
-                disabled_templates: 0,
-                enabled_prompts: 0,
-                disabled_prompts: 0,
-                enabled_agents: 0,
-                disabled_agents: 0,
-                enabled_checks: 0,
-                disabled_checks: 0,
-                enabled_providers: 0,
-                disabled_providers: 0,
-                enabled_policies: 0,
-                disabled_policies: 0,
-                enabled_hooks: 0,
-                disabled_hooks: 0,
-                enabled_mcp_servers: 0,
-                disabled_mcp_servers: 0,
-            },
-            vec![RuntimeIssue::new(
-                RuntimeIssueKind::PluginDisabled,
-                PRIMARY_PLUGIN_ID,
-                "enable plugin test.foundation",
-            )],
-            vec![RuntimeAction::new(
-                RuntimeActionKind::EnablePlugin,
-                PRIMARY_PLUGIN_ID,
-                "enable plugin test.foundation",
-            )],
-            Vec::new(),
-            Vec::new(),
-            RuntimeConfigPatch::new(
-                vec![PluginConfig::new(
+            RuntimeSnapshotDerived::new(
+                RuntimeStatus {
+                    phase: RuntimePhase::Bootstrapped,
+                    health: RuntimeHealth::Degraded,
+                    enabled_plugins: 0,
+                    disabled_plugins: 0,
+                    enabled_capabilities: 0,
+                    disabled_capabilities: 0,
+                    enabled_templates: 0,
+                    disabled_templates: 0,
+                    enabled_prompts: 0,
+                    disabled_prompts: 0,
+                    enabled_agents: 0,
+                    disabled_agents: 0,
+                    enabled_checks: 0,
+                    disabled_checks: 0,
+                    enabled_providers: 0,
+                    disabled_providers: 0,
+                    enabled_policies: 0,
+                    disabled_policies: 0,
+                    enabled_hooks: 0,
+                    disabled_hooks: 0,
+                    enabled_mcp_servers: 0,
+                    disabled_mcp_servers: 0,
+                },
+                vec![RuntimeIssue::new(
+                    RuntimeIssueKind::PluginDisabled,
                     PRIMARY_PLUGIN_ID,
-                    PluginActivation::Enabled,
+                    "enable plugin test.foundation",
+                )],
+                vec![RuntimeAction::new(
+                    RuntimeActionKind::EnablePlugin,
+                    PRIMARY_PLUGIN_ID,
+                    "enable plugin test.foundation",
                 )],
                 Vec::new(),
+                Vec::new(),
+                Vec::new(),
+                RuntimeConfigPatch::new(
+                    vec![PluginConfig::new(
+                        PRIMARY_PLUGIN_ID,
+                        PluginActivation::Enabled,
+                    )],
+                    Vec::new(),
+                ),
             ),
         );
         let report = snapshot.doctor_report();
@@ -2696,6 +2923,7 @@ mod tests {
             true,
         )];
         let providers = [RuntimeProviderRegistration::new(
+            "test.providers.data",
             RuntimeProviderKind::DataSource,
             PROVIDER_PLUGIN_ID,
             PluginActivation::Disabled,
@@ -2792,6 +3020,7 @@ mod tests {
             true,
         )];
         let providers = [RuntimeProviderRegistration::new(
+            "test.providers.data",
             RuntimeProviderKind::DataSource,
             PROVIDER_PLUGIN_ID,
             PluginActivation::Disabled,
@@ -2903,6 +3132,7 @@ mod tests {
             true,
         )];
         let providers = [RuntimeProviderRegistration::new(
+            "test.providers.data",
             RuntimeProviderKind::DataSource,
             PROVIDER_PLUGIN_ID,
             PluginActivation::Disabled,
@@ -3110,6 +3340,7 @@ mod tests {
             true,
         )];
         let providers = [RuntimeProviderRegistration::new(
+            "test.providers.data",
             RuntimeProviderKind::DataSource,
             PROVIDER_PLUGIN_ID,
             PluginActivation::Disabled,
@@ -3414,6 +3645,7 @@ mod tests {
             true,
         )];
         let providers = [RuntimeProviderRegistration::new(
+            "test.providers.data",
             RuntimeProviderKind::DataSource,
             PROVIDER_PLUGIN_ID,
             PluginActivation::Disabled,
@@ -3925,5 +4157,36 @@ mod tests {
 
         assert!(rendered.contains("Planos de bootstrap de agentes do runtime (1)"));
         assert!(rendered.contains("test.agents.session | plugin=test.agents"));
+    }
+
+    #[test]
+    fn render_runtime_provider_registration_plans_supports_pt_br() {
+        let plans = build_runtime_provider_registration_plans(&RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "pt-br",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[RuntimeProviderRegistration::new(
+                "test.providers.data",
+                RuntimeProviderKind::DataSource,
+                PROVIDER_PLUGIN_ID,
+                PluginActivation::Enabled,
+                PluginLoadBoundary::InProcess,
+                true,
+            )],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[],
+        });
+
+        let rendered = render_runtime_provider_registration_plans_for_locale(&plans, "pt-br");
+
+        assert!(rendered.contains("Planos de registro de providers do runtime (1)"));
+        assert!(rendered.contains("data_source | plugin=test.providers"));
+        assert!(rendered.contains("registration_hook=data_source_registration"));
     }
 }

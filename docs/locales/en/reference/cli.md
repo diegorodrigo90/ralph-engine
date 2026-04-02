@@ -108,6 +108,8 @@ The `runtime plan` command prints the typed runtime remediation plan derived fro
 
 The `runtime agent-plans` command prints the executable agent bootstrap plans that remain enabled in the resolved runtime snapshot, so operational agent startup steps stay visible next to topology, health, issues, and remediation.
 
+The `runtime provider-plans` command prints the executable provider registration plans that remain enabled in the resolved runtime snapshot, so runtime-managed provider registration stays visible next to topology, health, issues, remediation, and agent bootstrap.
+
 The `runtime mcp-plans` command prints the executable MCP launch plans that remain enabled in the resolved runtime snapshot, so operational launch steps stay visible next to topology, health, issues, and remediation.
 
 The `runtime patch` command renders the typed configuration patch that would remediate the current degraded topology, including plugin activation entries and per-server MCP enablement, so runtime recovery stays explicit and reusable instead of remaining only a textual plan.

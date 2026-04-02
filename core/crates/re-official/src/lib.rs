@@ -100,6 +100,24 @@ pub struct OfficialProviderContribution {
     pub registration_hook_registered: bool,
 }
 
+/// One resolved official check surface with both contract and runtime registration.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct OfficialResolvedCheckSurface {
+    /// Immutable check descriptor and plugin-owned metadata.
+    pub contribution: OfficialCheckContribution,
+    /// Runtime registration derived from the resolved official topology.
+    pub registration: RuntimeCheckRegistration,
+}
+
+/// One resolved official provider surface with both contract and runtime registration.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct OfficialResolvedProviderSurface {
+    /// Immutable provider descriptor and plugin-owned metadata.
+    pub contribution: OfficialProviderContribution,
+    /// Runtime registration derived from the resolved official topology.
+    pub registration: RuntimeProviderRegistration,
+}
+
 /// Immutable owned snapshot of the official runtime catalog.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OfficialRuntimeSnapshot {
@@ -677,6 +695,7 @@ pub fn official_runtime_providers() -> Vec<RuntimeProviderRegistration> {
         .into_iter()
         .map(|provider| {
             RuntimeProviderRegistration::new(
+                provider.descriptor.id,
                 runtime_provider_kind_for_descriptor(provider.descriptor.kind),
                 provider.descriptor.plugin_id,
                 provider.activation,
@@ -833,6 +852,40 @@ pub fn find_official_provider_contribution(
         .find(|provider| provider.descriptor.id == provider_id)
 }
 
+/// Returns one resolved check surface by stable identifier.
+#[must_use]
+pub fn find_official_check_surface(check_id: &str) -> Option<OfficialResolvedCheckSurface> {
+    let contribution = find_official_check_contribution(check_id)?;
+    let registration = find_official_runtime_checks(runtime_check_kind_for_descriptor(
+        contribution.descriptor.kind,
+    ))
+    .into_iter()
+    .find(|candidate| candidate.plugin_id == contribution.descriptor.plugin_id)?;
+
+    Some(OfficialResolvedCheckSurface {
+        contribution,
+        registration,
+    })
+}
+
+/// Returns one resolved provider surface by stable identifier.
+#[must_use]
+pub fn find_official_provider_surface(
+    provider_id: &str,
+) -> Option<OfficialResolvedProviderSurface> {
+    let contribution = find_official_provider_contribution(provider_id)?;
+    let registration = find_official_runtime_providers(runtime_provider_kind_for_descriptor(
+        contribution.descriptor.kind,
+    ))
+    .into_iter()
+    .find(|candidate| candidate.plugin_id == contribution.descriptor.plugin_id)?;
+
+    Some(OfficialResolvedProviderSurface {
+        contribution,
+        registration,
+    })
+}
+
 /// Returns the resolved capability registrations for one reviewed capability.
 #[must_use]
 pub fn find_official_runtime_capabilities(
@@ -894,10 +947,10 @@ pub fn find_official_provider_contributions(
 #[cfg(test)]
 mod tests {
     use super::{
-        find_official_agent_contribution, find_official_mcp_server, find_official_plugin,
-        find_official_policy_contribution, find_official_prompt_contribution,
-        find_official_runtime_capabilities, find_official_runtime_checks,
-        find_official_runtime_hooks, find_official_runtime_providers,
+        find_official_agent_contribution, find_official_check_surface, find_official_mcp_server,
+        find_official_plugin, find_official_policy_contribution, find_official_prompt_contribution,
+        find_official_provider_surface, find_official_runtime_capabilities,
+        find_official_runtime_checks, find_official_runtime_hooks, find_official_runtime_providers,
         find_official_template_contribution, official_plugin_bundles, official_plugins,
         official_runtime_agents, official_runtime_checks, official_runtime_mcp_registrations,
         official_runtime_policies, official_runtime_prompts, official_runtime_providers,
@@ -1035,6 +1088,27 @@ mod tests {
         assert_eq!(find_official_prompt_contribution("fixture.missing"), None);
         assert_eq!(find_official_agent_contribution("fixture.missing"), None);
         assert_eq!(find_official_policy_contribution("fixture.missing"), None);
+        assert_eq!(find_official_check_surface("fixture.missing"), None);
+        assert_eq!(find_official_provider_surface("fixture.missing"), None);
+    }
+
+    #[test]
+    fn resolved_surface_helpers_pair_contributions_with_runtime_registrations() {
+        let Some(check_surface) = find_official_check_surface("official.bmad.prepare") else {
+            unreachable!("known check should resolve");
+        };
+        let Some(provider_surface) = find_official_provider_surface("official.github.data") else {
+            unreachable!("known provider should resolve");
+        };
+
+        assert_eq!(
+            check_surface.contribution.descriptor.plugin_id,
+            check_surface.registration.plugin_id
+        );
+        assert_eq!(
+            provider_surface.contribution.descriptor.plugin_id,
+            provider_surface.registration.plugin_id
+        );
     }
 
     #[test]
