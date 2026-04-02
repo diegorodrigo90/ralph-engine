@@ -12,6 +12,7 @@ ralph-engine --locale <locale-id> --version
 ralph-engine agents
 ralph-engine agents list
 ralph-engine agents show <agent-id>
+ralph-engine agents plan <agent-id>
 ralph-engine capabilities
 ralph-engine capabilities list
 ralph-engine capabilities show <capability-id>
@@ -36,6 +37,7 @@ ralph-engine policies show <policy-id>
 ralph-engine providers
 ralph-engine providers list
 ralph-engine providers show <provider-id>
+ralph-engine providers plan <provider-id>
 ralph-engine config
 ralph-engine config budgets
 ralph-engine config layers
@@ -85,6 +87,8 @@ O comando `plugins show` imprime o contrato imutável do plugin, incluindo lifec
 
 A família `agents` imprime o registro tipado de agent runtimes para que integrações oficiais de agente permaneçam explícitas, em vez de ficarem escondidas só em listagens genéricas de capability.
 
+O comando `agents plan` imprime o plano executável de bootstrap de um agent runtime tipado, para que os passos operacionais de inicialização fiquem ligados à própria superfície de agente em vez de vazarem apenas pela saída agregada do runtime.
+
 A família `capabilities` imprime o registro tipado de capabilities do runtime para que os providers permaneçam explícitos e modulares.
 
 A família `templates` imprime o registro tipado de templates do runtime para que providers de template permaneçam explícitos e separados das listagens genéricas de capability, enquanto a responsabilidade de scaffolding continua pertencendo ao tooling.
@@ -118,6 +122,8 @@ A família `hooks` imprime o registro tipado de runtime hooks do runtime para qu
 A família `policies` imprime o registro tipado de policies do runtime para que os providers de policy permaneçam explícitos, inspecionáveis e separados de listagens genéricas de capability.
 
 A família `providers` imprime o registro tipado de providers do runtime para que contribuições de data source, context provider, forge provider e remote control permaneçam explícitas, em vez de ficarem escondidas só na saída genérica de capability.
+
+O comando `providers plan` imprime o plano executável de registro de uma contribuição tipada de provider, para que os passos operacionais de registro permaneçam ligados à própria superfície do provider em vez de vazarem apenas pela saída agregada do runtime.
 
 O comando `mcp show` imprime o contrato tipado de lançamento do MCP, incluindo modelo de processo, policy de lançamento, fronteiras de comando, policy de diretório de trabalho, policy de ambiente e disponibilidade.
 
