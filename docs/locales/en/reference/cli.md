@@ -19,6 +19,7 @@ ralph-engine capabilities show <capability-id>
 ralph-engine checks
 ralph-engine checks list
 ralph-engine checks show <check-id>
+ralph-engine checks plan <check-id>
 ralph-engine checks run <check-id>
 ralph-engine doctor
 ralph-engine doctor runtime
@@ -35,6 +36,7 @@ ralph-engine locales show <locale-id>
 ralph-engine policies
 ralph-engine policies list
 ralph-engine policies show <policy-id>
+ralph-engine policies plan <policy-id>
 ralph-engine providers
 ralph-engine providers list
 ralph-engine providers show <provider-id>
@@ -102,6 +104,8 @@ The `prompts materialize` command writes the embedded asset bundle owned by one 
 
 The `checks` command family prints the typed runtime check registry so prepare-time and doctor-time validation contributions stay explicit instead of hiding only as generic capabilities.
 
+The `checks plan` command prints the typed execution plan for one runtime check contribution, so prepare and doctor execution steps stay attached to the check surface that owns them instead of leaking only through aggregate runtime output.
+
 The `checks run` command executes one typed runtime check against the canonical resolved topology and returns a localized pass/fail result with the current runtime findings and remediation actions, so official check providers stop at being metadata and become an executable runtime surface.
 
 The `doctor` command family prints the typed runtime diagnostic report by composing runtime status, unresolved issues, and remediation actions from one shared runtime snapshot instead of spreading diagnosis across ad hoc command logic.
@@ -123,6 +127,8 @@ The `hooks` command family prints the typed runtime-hook registry so hook provid
 The `hooks plan` command prints the typed surface map owned by one runtime hook, so templates, prompts, agents, checks, providers, policies, and MCP registrations remain inspectable from the hook boundary that orchestrates them instead of leaking only through aggregate runtime output.
 
 The `policies` command family prints the typed runtime policy registry so policy providers stay explicit, inspectable, and separate from generic capability listings.
+
+The `policies plan` command prints the typed enforcement plan for one policy contribution, so guardrail execution steps stay attached to the policy surface that owns them instead of leaking only through aggregate runtime output.
 
 The `providers` command family prints the typed runtime provider registry so data-source, context-provider, forge-provider, and remote-control contributions stay explicit instead of hiding only inside generic capability output.
 

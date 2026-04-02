@@ -510,6 +510,17 @@ mod tests {
     }
 
     #[test]
+    fn execute_checks_plan_returns_execution_plan() {
+        let command = args(&["ralph-engine", "checks", "plan", "official.bmad.prepare"]);
+
+        let output = execute(command).expect("checks plan should succeed");
+
+        assert!(output.contains("Runtime check plan: official.bmad.prepare"));
+        assert!(output.contains("Plugin: official.bmad"));
+        assert!(output.contains("prepare"));
+    }
+
+    #[test]
     fn execute_checks_show_rejects_unknown_check() {
         // Arrange
         let command = args(&["ralph-engine", "checks", "show", "unknown"]);
@@ -666,6 +677,22 @@ mod tests {
         let error = execute(command).expect_err("missing policy id should fail");
 
         assert_eq!(error.to_string(), "policies run requires a policy id");
+    }
+
+    #[test]
+    fn execute_policies_plan_returns_enforcement_plan() {
+        let command = args(&[
+            "ralph-engine",
+            "policies",
+            "plan",
+            "official.tdd-strict.guardrails",
+        ]);
+
+        let output = execute(command).expect("policies plan should succeed");
+
+        assert!(output.contains("Policy enforcement plan: official.tdd-strict.guardrails"));
+        assert!(output.contains("Plugin: official.tdd-strict"));
+        assert!(output.contains("policy_enforcement"));
     }
 
     #[test]

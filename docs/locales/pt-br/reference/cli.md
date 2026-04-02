@@ -19,6 +19,7 @@ ralph-engine capabilities show <capability-id>
 ralph-engine checks
 ralph-engine checks list
 ralph-engine checks show <check-id>
+ralph-engine checks plan <check-id>
 ralph-engine checks run <check-id>
 ralph-engine doctor
 ralph-engine doctor runtime
@@ -35,6 +36,7 @@ ralph-engine locales show <locale-id>
 ralph-engine policies
 ralph-engine policies list
 ralph-engine policies show <policy-id>
+ralph-engine policies plan <policy-id>
 ralph-engine providers
 ralph-engine providers list
 ralph-engine providers show <provider-id>
@@ -102,6 +104,8 @@ O comando `prompts materialize` grava o conjunto de assets embutidos pertencente
 
 A família `checks` imprime o registro tipado de checks do runtime para que contribuições de validação de prepare e doctor permaneçam explícitas, em vez de ficarem escondidas só como capabilities genéricas.
 
+O comando `checks plan` imprime o plano tipado de execução de uma contribuição de runtime check, para que os passos de `prepare` e `doctor` permaneçam ligados à própria superfície de verificação em vez de vazarem apenas pela saída agregada do runtime.
+
 O comando `checks run` executa uma verificação tipada do runtime contra a topologia resolvida canônica e retorna um resultado localizado de aprovação ou reprovação com os findings atuais e as ações de remediação, para que os providers oficiais de check deixem de ser só metadado e passem a ser uma superfície executável do runtime.
 
 A família `doctor` imprime o relatório tipado de diagnóstico do runtime, compondo status, issues pendentes e ações de remediação a partir de um snapshot compartilhado do runtime, em vez de espalhar o diagnóstico por lógicas ad hoc em cada comando.
@@ -123,6 +127,8 @@ A família `hooks` imprime o registro tipado de runtime hooks do runtime para qu
 O comando `hooks plan` imprime o mapa tipado de superfícies pertencentes a um runtime hook, para que templates, prompts, agentes, verificações, providers, policies e registros de MCP permaneçam inspecionáveis a partir da fronteira do hook que os orquestra, em vez de vazarem apenas pela saída agregada do runtime.
 
 A família `policies` imprime o registro tipado de policies do runtime para que os providers de policy permaneçam explícitos, inspecionáveis e separados de listagens genéricas de capability.
+
+O comando `policies plan` imprime o plano tipado de enforcement de uma contribuição de policy, para que os passos de guardrail permaneçam ligados à própria superfície de policy em vez de vazarem apenas pela saída agregada do runtime.
 
 A família `providers` imprime o registro tipado de providers do runtime para que contribuições de data source, context provider, forge provider e remote control permaneçam explícitas, em vez de ficarem escondidas só na saída genérica de capability.
 
