@@ -176,7 +176,7 @@ function buildScaffold(input) {
     publisher: input.publisher,
     kind: input.kind,
     capabilities: input.capabilities,
-    id: `${input.publisher}/${input.name}`,
+    id: `${input.publisher}.${input.name}`,
     targetDir: input.targetDir,
   };
 }

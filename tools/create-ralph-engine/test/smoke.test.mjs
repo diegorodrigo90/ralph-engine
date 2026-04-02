@@ -32,7 +32,7 @@ test("creates a non-interactive plugin scaffold", () => {
   assert.equal(result.status, 0, result.stderr);
 
   const manifest = fs.readFileSync(path.join(targetDir, "manifest.yaml"), "utf8");
-  assert.match(manifest, /id: acme\/jira-suite/);
+  assert.match(manifest, /id: acme\.jira-suite/);
   assert.match(manifest, /kind: mcp_contribution/);
   assert.match(manifest, /- mcp_contribution/);
   assert.match(manifest, /- context_provider/);
