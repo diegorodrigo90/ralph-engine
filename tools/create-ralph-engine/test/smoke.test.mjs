@@ -86,6 +86,24 @@ test("renders help in pt-br when locale is configured", () => {
   assert.match(result.stdout, /Slug do nome do plugin/);
 });
 
+test("normalizes locale aliases for pt-br help output", () => {
+  const result = spawnSync(process.execPath, [
+    binPath,
+    "--help",
+  ], {
+    cwd: rootDir,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      RALPH_ENGINE_LOCALE: " PT_BR ",
+    },
+  });
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /Uso:/);
+  assert.match(result.stdout, /Opções:/);
+});
+
 test("creates template assets when template capability is present", () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-ralph-engine-plugin-"));
   const targetDir = path.join(tempDir, "bmad-pack");
