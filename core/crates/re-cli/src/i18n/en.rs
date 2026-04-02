@@ -1,58 +1,66 @@
-pub(super) const ROOT_BOOTSTRAPPED: &str = "Rust foundation bootstrapped.";
-pub(super) const PROVIDERS_LABEL: &str = "Providers";
-pub(super) const RESOLVED_ACTIVATION_LABEL: &str = "Resolved activation";
-pub(super) const RESOLVED_FROM_LABEL: &str = "Resolved from";
-pub(super) const ACTIVATION_LABEL: &str = "Activation";
-pub(super) const LOAD_BOUNDARY_LABEL: &str = "Load boundary";
-pub(super) const AGENT_RUNTIME_LABEL: &str = "Agent runtime";
-pub(super) const AGENT_RUNTIMES_LABEL: &str = "Agent runtimes";
-pub(super) const TEMPLATE_PROVIDER_LABEL: &str = "Template provider";
-pub(super) const TEMPLATES_LABEL: &str = "Templates";
-pub(super) const PROMPT_PROVIDER_LABEL: &str = "Prompt provider";
-pub(super) const PROMPTS_LABEL: &str = "Prompts";
-pub(super) const POLICY_LABEL: &str = "Policy";
-pub(super) const POLICIES_LABEL: &str = "Policies";
-pub(super) const POLICY_ENFORCEMENT_HOOK_LABEL: &str = "Policy enforcement hook";
-pub(super) const CAPABILITY_LABEL: &str = "Capability";
-pub(super) const CAPABILITIES_LABEL: &str = "Capabilities";
-pub(super) const CHECK_LABEL: &str = "Check";
-pub(super) const CHECKS_LABEL: &str = "Checks";
-pub(super) const HOOK_LABEL: &str = "Runtime hook";
-pub(super) const HOOKS_LABEL: &str = "Runtime hooks";
-pub(super) const PROVIDER_LABEL: &str = "Provider";
-pub(super) const LOCALE_ID_ENTITY_LABEL: &str = "a locale id";
-pub(super) const MCP_SERVER_ID_ENTITY_LABEL: &str = "a server id";
-pub(super) const PLUGIN_CONFIG_ENTITY_LABEL: &str = "plugin config";
-pub(super) const PLUGIN_ID_ENTITY_LABEL: &str = "a plugin id";
-pub(super) const POLICY_ID_ENTITY_LABEL: &str = "a policy id";
-pub(super) const CAPABILITY_ID_ENTITY_LABEL: &str = "a capability id";
-pub(super) const CHECK_ID_ENTITY_LABEL: &str = "a check id";
-pub(super) const HOOK_ID_ENTITY_LABEL: &str = "a hook id";
-pub(super) const PROVIDER_ID_ENTITY_LABEL: &str = "a provider id";
-pub(super) const PLUGIN_ENTITY_LABEL: &str = "plugin";
-pub(super) const AGENT_RUNTIME_ENTITY_LABEL: &str = "agent runtime";
-pub(super) const TEMPLATE_PROVIDER_ENTITY_LABEL: &str = "template provider";
-pub(super) const PROMPT_PROVIDER_ENTITY_LABEL: &str = "prompt provider";
-pub(super) const POLICY_ENTITY_LABEL: &str = "policy";
-pub(super) const CAPABILITY_ENTITY_LABEL: &str = "capability";
-pub(super) const CHECK_ENTITY_LABEL: &str = "check";
-pub(super) const HOOK_ENTITY_LABEL: &str = "hook";
-pub(super) const PROVIDER_ENTITY_LABEL: &str = "provider";
-pub(super) const LOCALE_ENTITY_LABEL: &str = "locale";
-pub(super) const MCP_SERVER_ENTITY_LABEL: &str = "mcp server";
+use super::CliLocaleCatalog;
 
-pub(super) fn unknown_command(command_name: &str) -> String {
+pub(super) const LOCALE: CliLocaleCatalog = CliLocaleCatalog {
+    root_bootstrapped: "Rust foundation bootstrapped.",
+    providers_label: "Providers",
+    resolved_activation_label: "Resolved activation",
+    resolved_from_label: "Resolved from",
+    activation_label: "Activation",
+    load_boundary_label: "Load boundary",
+    agent_runtime_label: "Agent runtime",
+    agent_runtimes_label: "Agent runtimes",
+    template_provider_label: "Template provider",
+    templates_label: "Templates",
+    prompt_provider_label: "Prompt provider",
+    prompts_label: "Prompts",
+    policy_label: "Policy",
+    policies_label: "Policies",
+    policy_enforcement_hook_label: "Policy enforcement hook",
+    capability_label: "Capability",
+    capabilities_label: "Capabilities",
+    check_label: "Check",
+    checks_label: "Checks",
+    hook_label: "Runtime hook",
+    hooks_label: "Runtime hooks",
+    provider_label: "Provider",
+    locale_id_entity_label: "a locale id",
+    mcp_server_id_entity_label: "a server id",
+    plugin_config_entity_label: "plugin config",
+    plugin_id_entity_label: "a plugin id",
+    policy_id_entity_label: "a policy id",
+    capability_id_entity_label: "a capability id",
+    check_id_entity_label: "a check id",
+    hook_id_entity_label: "a hook id",
+    provider_id_entity_label: "a provider id",
+    plugin_entity_label: "plugin",
+    agent_runtime_entity_label: "agent runtime",
+    template_provider_entity_label: "template provider",
+    prompt_provider_entity_label: "prompt provider",
+    policy_entity_label: "policy",
+    capability_entity_label: "capability",
+    check_entity_label: "check",
+    hook_entity_label: "hook",
+    provider_entity_label: "provider",
+    locale_entity_label: "locale",
+    mcp_server_entity_label: "mcp server",
+    unknown_command,
+    unknown_subcommand,
+    missing_id,
+    unknown_entity,
+};
+
+fn unknown_command(command_name: &str) -> String {
     format!("unknown command: {command_name}")
 }
 
-pub(super) fn unknown_subcommand(command_group: &str, command_name: &str) -> String {
+fn unknown_subcommand(command_group: &str, command_name: &str) -> String {
     format!("unknown {command_group} command: {command_name}")
 }
 
-pub(super) fn missing_id(command_group: &str, entity_label: &str) -> String {
+fn missing_id(command_group: &str, entity_label: &str) -> String {
     format!("{command_group} show requires {entity_label}")
 }
 
-pub(super) fn unknown_entity(entity_label: &str, value: &str) -> String {
+fn unknown_entity(entity_label: &str, value: &str) -> String {
     format!("unknown {entity_label}: {value}")
 }
