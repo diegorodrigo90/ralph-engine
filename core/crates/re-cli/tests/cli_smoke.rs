@@ -666,6 +666,34 @@ fn binary_config_locale_succeeds() {
 }
 
 #[test]
+fn binary_locales_list_succeeds() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["locales", "list"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("supported_locales:"));
+    assert!(stdout.contains("  - id: en"));
+    assert!(stdout.contains("  - id: pt-br"));
+}
+
+#[test]
+fn binary_locales_show_succeeds_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["locales", "show", "pt-br"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("id: pt-br"));
+    assert!(stdout.contains("native_name: Português (Brasil)"));
+}
+
+#[test]
 fn binary_config_budgets_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
