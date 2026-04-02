@@ -77,9 +77,21 @@ fn render_template_detail(template: OfficialTemplateContribution, locale: &str) 
     } else {
         "Runtime hook"
     };
+    let assets_label = "Assets";
+    let asset_paths = if template.descriptor.has_assets() {
+        template
+            .descriptor
+            .assets
+            .iter()
+            .map(|asset| asset.path)
+            .collect::<Vec<_>>()
+            .join(", ")
+    } else {
+        "none".to_owned()
+    };
 
     format!(
-        "Template: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{}: {}\n{}: {}\n{hook_label}: {}",
+        "Template: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{}: {}\n{}: {}\n{hook_label}: {}\n{assets_label}: {}",
         template.descriptor.id,
         template.descriptor.display_name_for_locale(locale),
         template.descriptor.summary_for_locale(locale),
@@ -93,13 +105,16 @@ fn render_template_detail(template: OfficialTemplateContribution, locale: &str) 
         } else {
             "missing"
         },
+        asset_paths,
     )
 }
 
 #[cfg(test)]
 mod tests {
     use re_config::PluginActivation;
-    use re_plugin::{PluginLoadBoundary, PluginLocalizedText, PluginTemplateDescriptor};
+    use re_plugin::{
+        PluginLoadBoundary, PluginLocalizedText, PluginTemplateAsset, PluginTemplateDescriptor,
+    };
 
     use super::{OfficialTemplateContribution, render_template_detail, render_template_listing};
 
@@ -108,6 +123,10 @@ mod tests {
     const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
         "pt-br",
         "Template inicial para novos projetos Ralph Engine.",
+    )];
+    const TEMPLATE_ASSETS: &[PluginTemplateAsset] = &[PluginTemplateAsset::new(
+        ".ralph-engine/config.yaml",
+        "schema_version: 1\n",
     )];
 
     fn template_descriptor() -> PluginTemplateDescriptor {
@@ -118,6 +137,7 @@ mod tests {
             LOCALIZED_NAMES,
             "Starter template for new Ralph Engine projects.",
             LOCALIZED_SUMMARIES,
+            TEMPLATE_ASSETS,
         )
     }
 
@@ -156,6 +176,7 @@ mod tests {
         assert!(rendered.contains("Plugin: official.basic"));
         assert!(rendered.contains("Activation: enabled"));
         assert!(rendered.contains("Runtime hook: scaffold"));
+        assert!(rendered.contains("Assets: .ralph-engine/config.yaml"));
     }
 
     #[test]
@@ -174,5 +195,6 @@ mod tests {
         assert!(rendered.contains("Nome: Starter básico"));
         assert!(rendered.contains("Resumo: Template inicial para novos projetos Ralph Engine."));
         assert!(rendered.contains("Plugin: official.basic"));
+        assert!(rendered.contains("Assets: .ralph-engine/config.yaml"));
     }
 }
