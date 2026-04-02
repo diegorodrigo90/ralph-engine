@@ -31,6 +31,13 @@ pub(super) struct RuntimeLocaleCatalog {
     pub runtime_issues: &'static str,
     pub runtime_action_plan: &'static str,
     pub runtime_doctor: &'static str,
+    pub mcp_server_status: &'static str,
+    pub mcp_server_statuses: &'static str,
+    pub mcp_readiness: &'static str,
+    pub mcp_readiness_ready: &'static str,
+    pub mcp_readiness_not_ready: &'static str,
+    pub mcp_transport: &'static str,
+    pub mcp_enabled: &'static str,
     pub translate_runtime_reason: fn(&str) -> String,
 }
 
@@ -96,6 +103,14 @@ locale_label!(runtime_check_passed_label, runtime_check_passed);
 locale_label!(runtime_check_failed_label, runtime_check_failed);
 locale_label!(runtime_policy_passed_label, runtime_policy_passed);
 locale_label!(runtime_policy_failed_label, runtime_policy_failed);
+
+locale_label!(mcp_server_status_label, mcp_server_status);
+locale_label!(mcp_server_statuses_label, mcp_server_statuses);
+locale_label!(mcp_readiness_label, mcp_readiness);
+locale_label!(mcp_readiness_ready_label, mcp_readiness_ready);
+locale_label!(mcp_readiness_not_ready_label, mcp_readiness_not_ready);
+locale_label!(mcp_transport_label, mcp_transport);
+locale_label!(mcp_enabled_label, mcp_enabled);
 
 pub(crate) fn translate_runtime_reason(locale: &str, reason: &str) -> String {
     (locale_catalog(locale).translate_runtime_reason)(reason)

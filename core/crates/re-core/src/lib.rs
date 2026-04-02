@@ -7,7 +7,8 @@ use re_config::{
     apply_project_config_patch, default_project_config,
 };
 use re_mcp::{
-    McpLaunchPlan, McpServerDescriptor, build_mcp_launch_plan, render_mcp_launch_plan_for_locale,
+    McpLaunchPlan, McpServerDescriptor, McpTransport, build_mcp_launch_plan,
+    render_mcp_launch_plan_for_locale,
 };
 use re_plugin::{
     AGENT_RUNTIME, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, POLICY,
@@ -279,6 +280,74 @@ impl RuntimePolicyResult {
             load_boundary,
             enforcement_hook,
             enforcement_hook_registered,
+            issues,
+            actions,
+        }
+    }
+}
+
+/// Typed launch-readiness assessment for one MCP server.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum McpServerReadiness {
+    /// The server is enabled and ready to launch.
+    Ready,
+    /// The server cannot be launched because of unresolved issues.
+    NotReady,
+}
+
+impl McpServerReadiness {
+    /// Returns the stable string identifier for the readiness state.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Ready => "ready",
+            Self::NotReady => "not_ready",
+        }
+    }
+}
+
+/// One typed MCP-server status result derived from the resolved topology.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct McpServerStatusResult {
+    /// Stable MCP server identifier.
+    pub server_id: &'static str,
+    /// Owning plugin identifier for the MCP contribution.
+    pub plugin_id: &'static str,
+    /// Final typed readiness for the server.
+    pub readiness: McpServerReadiness,
+    /// Server-scoped runtime health.
+    pub health: RuntimeHealth,
+    /// Whether the server is enabled in the resolved topology.
+    pub enabled: bool,
+    /// Transport type declared by the server descriptor.
+    pub transport: McpTransport,
+    /// Unresolved server-scoped findings reported by the runtime.
+    pub issues: Vec<RuntimeIssue>,
+    /// Recommended remediation actions for this server.
+    pub actions: Vec<RuntimeAction>,
+}
+
+impl McpServerStatusResult {
+    /// Creates a new immutable MCP-server status result.
+    #[must_use]
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        server_id: &'static str,
+        plugin_id: &'static str,
+        readiness: McpServerReadiness,
+        health: RuntimeHealth,
+        enabled: bool,
+        transport: McpTransport,
+        issues: Vec<RuntimeIssue>,
+        actions: Vec<RuntimeAction>,
+    ) -> Self {
+        Self {
+            server_id,
+            plugin_id,
+            readiness,
+            health,
+            enabled,
+            transport,
             issues,
             actions,
         }
@@ -2048,6 +2117,141 @@ pub fn render_runtime_policy_result_for_locale(
     .join("\n")
 }
 
+/// Evaluates the launch-readiness of one MCP server against the resolved
+/// topology and returns a typed status result.
+#[must_use]
+pub fn build_mcp_server_status(
+    server_id: &str,
+    topology: &RuntimeTopology<'_>,
+) -> Option<McpServerStatusResult> {
+    let server = topology
+        .mcp_servers
+        .iter()
+        .find(|s| s.descriptor.id == server_id)?;
+    let snapshot = build_runtime_snapshot(topology);
+    let issues = snapshot
+        .issues
+        .into_iter()
+        .filter(|issue| match issue.kind {
+            RuntimeIssueKind::PluginDisabled => issue.subject == server.descriptor.plugin_id,
+            RuntimeIssueKind::McpServerDisabled => issue.subject == server.descriptor.id,
+            _ => false,
+        })
+        .collect::<Vec<_>>();
+    let actions = snapshot
+        .actions
+        .into_iter()
+        .filter(|action| match action.kind {
+            RuntimeActionKind::EnablePlugin => action.target == server.descriptor.plugin_id,
+            RuntimeActionKind::EnableMcpServer => {
+                action.target == server.descriptor.plugin_id
+                    && action.reason.contains(server.descriptor.id)
+            }
+            _ => false,
+        })
+        .collect::<Vec<_>>();
+    let readiness = if server.enabled && issues.is_empty() {
+        McpServerReadiness::Ready
+    } else {
+        McpServerReadiness::NotReady
+    };
+    let health = if readiness == McpServerReadiness::Ready {
+        RuntimeHealth::Healthy
+    } else {
+        RuntimeHealth::Degraded
+    };
+
+    Some(McpServerStatusResult::new(
+        server.descriptor.id,
+        server.descriptor.plugin_id,
+        readiness,
+        health,
+        server.enabled,
+        server.descriptor.transport,
+        issues,
+        actions,
+    ))
+}
+
+/// Evaluates the launch-readiness of all registered MCP servers.
+#[must_use]
+pub fn build_mcp_server_statuses(topology: &RuntimeTopology<'_>) -> Vec<McpServerStatusResult> {
+    topology
+        .mcp_servers
+        .iter()
+        .filter_map(|server| build_mcp_server_status(server.descriptor.id, topology))
+        .collect()
+}
+
+/// Renders one typed MCP-server status result in English.
+#[must_use]
+pub fn render_mcp_server_status(result: &McpServerStatusResult) -> String {
+    render_mcp_server_status_for_locale(result, "en")
+}
+
+/// Renders one typed MCP-server status result for one locale.
+#[must_use]
+pub fn render_mcp_server_status_for_locale(result: &McpServerStatusResult, locale: &str) -> String {
+    let readiness = match result.readiness {
+        McpServerReadiness::Ready => i18n::mcp_readiness_ready_label(locale),
+        McpServerReadiness::NotReady => i18n::mcp_readiness_not_ready_label(locale),
+    };
+
+    [
+        format!(
+            "{}: {}",
+            i18n::mcp_server_status_label(locale),
+            result.server_id
+        ),
+        format!("{}: {}", i18n::provider_label(locale), result.plugin_id),
+        format!("{}: {readiness}", i18n::mcp_readiness_label(locale)),
+        format!(
+            "{}: {}",
+            i18n::runtime_health_label(locale),
+            result.health.as_str()
+        ),
+        format!("{}: {}", i18n::mcp_enabled_label(locale), result.enabled),
+        format!(
+            "{}: {}",
+            i18n::mcp_transport_label(locale),
+            result.transport
+        ),
+        String::new(),
+        render_runtime_issues_for_locale(&result.issues, locale),
+        String::new(),
+        render_runtime_action_plan_for_locale(&result.actions, locale),
+    ]
+    .join("\n")
+}
+
+/// Renders all MCP-server statuses in English.
+#[must_use]
+pub fn render_mcp_server_statuses(results: &[McpServerStatusResult]) -> String {
+    render_mcp_server_statuses_for_locale(results, "en")
+}
+
+/// Renders all MCP-server statuses for one locale.
+#[must_use]
+pub fn render_mcp_server_statuses_for_locale(
+    results: &[McpServerStatusResult],
+    locale: &str,
+) -> String {
+    if results.is_empty() {
+        return format!("{} (0)", i18n::mcp_server_statuses_label(locale));
+    }
+
+    let mut lines = vec![format!(
+        "{} ({})",
+        i18n::mcp_server_statuses_label(locale),
+        results.len()
+    )];
+    for result in results {
+        lines.push(render_mcp_server_status_for_locale(result, locale));
+    }
+
+    lines.join("\n\n")
+}
+
 /// Renders the runtime check execution plans in English.
 #[must_use]
 pub fn render_runtime_check_execution_plans(plans: &[RuntimeCheckExecutionPlan]) -> String {
@@ -2452,23 +2656,26 @@ mod tests {
     };
 
     use super::{
-        ALL_RUNTIME_CHECK_KINDS, ALL_RUNTIME_PROVIDER_KINDS, PRODUCT_NAME, PRODUCT_TAGLINE,
-        RuntimeAction, RuntimeActionKind, RuntimeAgentRegistration, RuntimeCapabilityRegistration,
-        RuntimeCheckKind, RuntimeCheckOutcome, RuntimeCheckRegistration, RuntimeCheckResult,
-        RuntimeConfigPatch, RuntimeDoctorReport, RuntimeHealth, RuntimeHookRegistration,
-        RuntimeIssue, RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase,
-        RuntimePluginRegistration, RuntimePolicyRegistration, RuntimePromptRegistration,
-        RuntimeProviderKind, RuntimeProviderRegistration, RuntimeSnapshot, RuntimeSnapshotDerived,
-        RuntimeStatus, RuntimeTemplateRegistration, RuntimeTopology, agent_runtime_hook, banner,
-        build_runtime_action_plan, build_runtime_agent_bootstrap_plans,
-        build_runtime_check_execution_plans, build_runtime_check_result,
-        build_runtime_config_patch, build_runtime_doctor_report, build_runtime_mcp_launch_plans,
-        build_runtime_patched_config, build_runtime_policy_enforcement_plans,
-        build_runtime_provider_registration_plans, build_runtime_snapshot,
-        capability_activates_agent_surface, capability_activates_policy_surface,
-        capability_activates_prompt_surface, capability_activates_template_surface,
-        collect_runtime_issues, evaluate_runtime_status, parse_runtime_check_kind,
-        parse_runtime_provider_kind, policy_runtime_hook, prompt_runtime_hook,
+        ALL_RUNTIME_CHECK_KINDS, ALL_RUNTIME_PROVIDER_KINDS, McpServerReadiness,
+        McpServerStatusResult, PRODUCT_NAME, PRODUCT_TAGLINE, RuntimeAction, RuntimeActionKind,
+        RuntimeAgentRegistration, RuntimeCapabilityRegistration, RuntimeCheckKind,
+        RuntimeCheckOutcome, RuntimeCheckRegistration, RuntimeCheckResult, RuntimeConfigPatch,
+        RuntimeDoctorReport, RuntimeHealth, RuntimeHookRegistration, RuntimeIssue,
+        RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
+        RuntimePolicyRegistration, RuntimePromptRegistration, RuntimeProviderKind,
+        RuntimeProviderRegistration, RuntimeSnapshot, RuntimeSnapshotDerived, RuntimeStatus,
+        RuntimeTemplateRegistration, RuntimeTopology, agent_runtime_hook, banner,
+        build_mcp_server_status, build_mcp_server_statuses, build_runtime_action_plan,
+        build_runtime_agent_bootstrap_plans, build_runtime_check_execution_plans,
+        build_runtime_check_result, build_runtime_config_patch, build_runtime_doctor_report,
+        build_runtime_mcp_launch_plans, build_runtime_patched_config,
+        build_runtime_policy_enforcement_plans, build_runtime_provider_registration_plans,
+        build_runtime_snapshot, capability_activates_agent_surface,
+        capability_activates_policy_surface, capability_activates_prompt_surface,
+        capability_activates_template_surface, collect_runtime_issues, evaluate_runtime_status,
+        parse_runtime_check_kind, parse_runtime_provider_kind, policy_runtime_hook,
+        prompt_runtime_hook, render_mcp_server_status, render_mcp_server_status_for_locale,
+        render_mcp_server_statuses, render_mcp_server_statuses_for_locale,
         render_runtime_action_plan, render_runtime_action_plan_for_locale,
         render_runtime_agent_bootstrap_plans, render_runtime_agent_bootstrap_plans_for_locale,
         render_runtime_check_execution_plans, render_runtime_check_execution_plans_for_locale,
@@ -4950,5 +5157,252 @@ mod tests {
         assert!(rendered.contains("Planos de enforcement de políticas do runtime (1)"));
         assert!(rendered.contains("test.policies | plugin=test.policies"));
         assert!(rendered.contains("enforcement_hook=policy_enforcement"));
+    }
+
+    // ---- MCP server status tests ----
+
+    #[test]
+    fn mcp_server_readiness_as_str_returns_stable_identifiers() {
+        assert_eq!(McpServerReadiness::Ready.as_str(), "ready");
+        assert_eq!(McpServerReadiness::NotReady.as_str(), "not_ready");
+    }
+
+    #[test]
+    fn build_mcp_server_status_returns_ready_for_enabled_server() {
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[RuntimeMcpRegistration::new(mcp_descriptor(), true)],
+        };
+
+        let results = build_mcp_server_statuses(&topology);
+        assert_eq!(results.len(), 1);
+
+        let result = &results[0];
+        assert_eq!(result.server_id, MCP_SERVER_ID);
+        assert_eq!(result.plugin_id, MCP_PLUGIN_ID);
+        assert_eq!(result.readiness, McpServerReadiness::Ready);
+        assert_eq!(result.health, RuntimeHealth::Healthy);
+        assert!(result.enabled);
+        assert_eq!(result.transport, McpTransport::Stdio);
+        assert!(result.issues.is_empty());
+        assert!(result.actions.is_empty());
+    }
+
+    #[test]
+    fn build_mcp_server_status_returns_not_ready_for_disabled_server() {
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[RuntimeMcpRegistration::new(mcp_descriptor(), false)],
+        };
+
+        let results = build_mcp_server_statuses(&topology);
+        assert_eq!(results.len(), 1);
+
+        let result = &results[0];
+        assert_eq!(result.readiness, McpServerReadiness::NotReady);
+        assert_eq!(result.health, RuntimeHealth::Degraded);
+        assert!(!result.enabled);
+    }
+
+    #[test]
+    fn build_mcp_server_status_returns_none_for_unknown_server() {
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[],
+        };
+
+        assert!(build_mcp_server_status("unknown.server", &topology).is_none());
+    }
+
+    #[test]
+    fn build_mcp_server_status_reports_plugin_issues_and_actions() {
+        let mcp_plugin = PluginDescriptor::new(
+            MCP_PLUGIN_ID,
+            PluginKind::McpContribution,
+            PluginTrustLevel::Official,
+            "Test MCP Plugin",
+            &[],
+            "Test MCP plugin.",
+            &[],
+            "0.2.0-alpha.1",
+            &[],
+            &[],
+            PluginLoadBoundary::InProcess,
+            &[],
+        );
+        let plugin = RuntimePluginRegistration::new(
+            mcp_plugin,
+            PluginActivation::Disabled,
+            ConfigScope::BuiltInDefaults,
+        );
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[plugin],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[RuntimeMcpRegistration::new(mcp_descriptor(), false)],
+        };
+
+        let results = build_mcp_server_statuses(&topology);
+        assert_eq!(results.len(), 1);
+
+        let result = &results[0];
+        assert_eq!(result.readiness, McpServerReadiness::NotReady);
+        assert!(!result.issues.is_empty());
+        assert!(!result.actions.is_empty());
+    }
+
+    #[test]
+    fn build_mcp_server_statuses_includes_all_servers() {
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[
+                RuntimeMcpRegistration::new(mcp_descriptor(), true),
+                RuntimeMcpRegistration::new(mcp_descriptor(), false),
+            ],
+        };
+
+        let results = build_mcp_server_statuses(&topology);
+
+        assert_eq!(results.len(), 2);
+    }
+
+    #[test]
+    fn render_mcp_server_status_is_human_readable() {
+        let result = McpServerStatusResult::new(
+            MCP_SERVER_ID,
+            MCP_PLUGIN_ID,
+            McpServerReadiness::Ready,
+            RuntimeHealth::Healthy,
+            true,
+            McpTransport::Stdio,
+            vec![],
+            vec![],
+        );
+
+        let rendered = render_mcp_server_status(&result);
+
+        assert!(rendered.contains("MCP server status: test.mcp.session"));
+        assert!(rendered.contains("Provider: test.mcp"));
+        assert!(rendered.contains("Readiness: ready"));
+        assert!(rendered.contains("Runtime health: healthy"));
+        assert!(rendered.contains("Enabled: true"));
+        assert!(rendered.contains("Transport: stdio"));
+    }
+
+    #[test]
+    fn render_mcp_server_status_supports_pt_br() {
+        let result = McpServerStatusResult::new(
+            MCP_SERVER_ID,
+            MCP_PLUGIN_ID,
+            McpServerReadiness::NotReady,
+            RuntimeHealth::Degraded,
+            false,
+            McpTransport::Stdio,
+            vec![],
+            vec![],
+        );
+
+        let rendered = render_mcp_server_status_for_locale(&result, "pt-br");
+
+        assert!(rendered.contains("Status do servidor MCP: test.mcp.session"));
+        assert!(rendered.contains("Provedor: test.mcp"));
+        assert!(rendered.contains("Prontidão: não pronto"));
+        assert!(rendered.contains("Saúde do runtime: degraded"));
+        assert!(rendered.contains("Habilitado: false"));
+        assert!(rendered.contains("Transporte: stdio"));
+    }
+
+    #[test]
+    fn render_mcp_server_statuses_handles_empty_sets() {
+        let rendered = render_mcp_server_statuses(&[]);
+
+        assert_eq!(rendered, "MCP server statuses (0)");
+    }
+
+    #[test]
+    fn render_mcp_server_statuses_handles_empty_sets_in_pt_br() {
+        let rendered = render_mcp_server_statuses_for_locale(&[], "pt-br");
+
+        assert_eq!(rendered, "Status dos servidores MCP (0)");
+    }
+
+    #[test]
+    fn render_mcp_server_statuses_lists_all_results() {
+        let results = vec![
+            McpServerStatusResult::new(
+                MCP_SERVER_ID,
+                MCP_PLUGIN_ID,
+                McpServerReadiness::Ready,
+                RuntimeHealth::Healthy,
+                true,
+                McpTransport::Stdio,
+                vec![],
+                vec![],
+            ),
+            McpServerStatusResult::new(
+                "test.mcp.other",
+                MCP_PLUGIN_ID,
+                McpServerReadiness::NotReady,
+                RuntimeHealth::Degraded,
+                false,
+                McpTransport::Stdio,
+                vec![],
+                vec![],
+            ),
+        ];
+
+        let rendered = render_mcp_server_statuses(&results);
+
+        assert!(rendered.contains("MCP server statuses (2)"));
+        assert!(rendered.contains("MCP server status: test.mcp.session"));
+        assert!(rendered.contains("MCP server status: test.mcp.other"));
     }
 }

@@ -33,6 +33,13 @@ pub(super) const LOCALE: RuntimeLocaleCatalog = RuntimeLocaleCatalog {
     runtime_issues: "Runtime issues",
     runtime_action_plan: "Runtime action plan",
     runtime_doctor: "Runtime doctor",
+    mcp_server_status: "MCP server status",
+    mcp_server_statuses: "MCP server statuses",
+    mcp_readiness: "Readiness",
+    mcp_readiness_ready: "ready",
+    mcp_readiness_not_ready: "not ready",
+    mcp_transport: "Transport",
+    mcp_enabled: "Enabled",
     translate_runtime_reason,
 };
 
