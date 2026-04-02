@@ -4,7 +4,8 @@ mod i18n;
 
 use re_plugin::{
     PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
-    PluginRuntimeHook, PluginTrustLevel, REMOTE_CONTROL,
+    PluginProviderDescriptor, PluginProviderKind, PluginRuntimeHook, PluginTrustLevel,
+    REMOTE_CONTROL,
 };
 
 /// Stable plugin identifier.
@@ -32,6 +33,15 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PluginLoadBoundary::InProcess,
     RUNTIME_HOOKS,
 );
+const PROVIDERS: &[PluginProviderDescriptor] = &[PluginProviderDescriptor::new(
+    "official.ssh.remote",
+    PLUGIN_ID,
+    PluginProviderKind::RemoteControl,
+    i18n::default_remote_control_name(),
+    i18n::localized_remote_control_names(),
+    i18n::default_remote_control_summary(),
+    i18n::localized_remote_control_summaries(),
+)];
 
 /// Declared capabilities for the official plugin foundation.
 #[must_use]
@@ -57,10 +67,17 @@ pub const fn descriptor() -> PluginDescriptor {
     DESCRIPTOR
 }
 
+/// Returns the immutable provider contributions declared by the plugin.
+#[must_use]
+pub const fn providers() -> &'static [PluginProviderDescriptor] {
+    PROVIDERS
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, runtime_hooks,
+        PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, providers,
+        runtime_hooks,
     };
 
     fn manifest_document() -> &'static str {
@@ -132,12 +149,26 @@ mod tests {
     }
 
     #[test]
+    fn plugin_declares_provider_contributions() {
+        let providers = providers();
+
+        assert_eq!(providers.len(), 1);
+        assert_eq!(providers[0].id, "official.ssh.remote");
+        assert_eq!(providers[0].kind.as_str(), "remote_control");
+        assert_eq!(
+            providers[0].display_name_for_locale("pt-br"),
+            "Controle remoto SSH"
+        );
+    }
+
+    #[test]
     fn plugin_manifest_matches_typed_contract_surface() {
         let manifest = manifest_document();
 
         assert!(manifest.contains("id: official.ssh"));
         assert!(manifest.contains("kind: remote_control"));
         assert!(manifest.contains("- remote_control"));
+        assert!(manifest.contains("id: official.ssh.remote"));
         assert!(manifest.contains("trust_level: official"));
     }
 }

@@ -16,3 +16,28 @@ capabilities:
   - context_provider
   - forge_provider
   - mcp_contribution
+providers:
+  - id: official.github.data
+    kind: data_source
+    display_name: GitHub data source
+    display_name_locales:
+      pt-br: Fonte de dados GitHub
+    summary: Exposes typed repository data to Ralph Engine workflows.
+    summary_locales:
+      pt-br: Expõe dados tipados de repositório para workflows Ralph Engine.
+  - id: official.github.context
+    kind: context_provider
+    display_name: GitHub context provider
+    display_name_locales:
+      pt-br: Provedor de contexto GitHub
+    summary: Exposes typed GitHub context for Ralph Engine workflows.
+    summary_locales:
+      pt-br: Expõe contexto tipado do GitHub para workflows Ralph Engine.
+  - id: official.github.forge
+    kind: forge_provider
+    display_name: GitHub forge provider
+    display_name_locales:
+      pt-br: Provedor forge GitHub
+    summary: Exposes typed forge automation for GitHub-backed workflows.
+    summary_locales:
+      pt-br: Expõe automação forge tipada para workflows baseados em GitHub.

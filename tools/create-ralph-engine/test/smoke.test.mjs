@@ -49,6 +49,8 @@ test("creates a non-interactive plugin scaffold", () => {
   assert.match(manifest, /- mcp_contribution/);
   assert.match(manifest, /- context_provider/);
   assert.match(manifest, /- data_source/);
+  assert.match(manifest, /providers:\n  - id: acme\.jira-suite\.data\n    kind: data_source/);
+  assert.match(manifest, /- id: acme\.jira-suite\.context\n    kind: context_provider/);
   assert.match(cargoToml, /name = "re-plugin-acme-jira-suite"/);
   assert.match(cargoToml, /re-plugin = \{ git = "https:\/\/github\.com\/diegorodrigo90\/ralph-engine\.git", tag = "v0\.2\.0-alpha\.1", package = "re-plugin" \}/);
   assert.match(rustLib, /mod i18n;/);
@@ -150,6 +152,10 @@ test("creates typed contribution sections for runtime-facing capabilities", () =
     "--capability",
     "prompt_fragments",
     "--capability",
+    "prepare_checks",
+    "--capability",
+    "doctor_checks",
+    "--capability",
     "policy",
   ], {
     cwd: tempDir,
@@ -161,6 +167,8 @@ test("creates typed contribution sections for runtime-facing capabilities", () =
   validateManifestDocument(manifest);
   assert.match(manifest, /agents:\n  - id: acme\.codex-suite\.session/);
   assert.match(manifest, /prompts:\n  - id: acme\.codex-suite\.workflow/);
+  assert.match(manifest, /checks:\n  - id: acme\.codex-suite\.prepare\n    kind: prepare/);
+  assert.match(manifest, /- id: acme\.codex-suite\.doctor\n    kind: doctor/);
   assert.match(manifest, /policies:\n  - id: acme\.codex-suite\.guardrails/);
 });
 

@@ -8,8 +8,8 @@ use re_mcp::{
 };
 use re_plugin::{
     CONTEXT_PROVIDER, DATA_SOURCE, FORGE_PROVIDER, MCP_CONTRIBUTION, PluginDescriptor, PluginKind,
-    PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginRuntimeHook,
-    PluginTrustLevel,
+    PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginProviderDescriptor,
+    PluginProviderKind, PluginRuntimeHook, PluginTrustLevel,
 };
 
 /// Stable plugin identifier.
@@ -64,6 +64,35 @@ const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
     )),
     McpAvailability::ExplicitOptIn,
 )];
+const PROVIDERS: &[PluginProviderDescriptor] = &[
+    PluginProviderDescriptor::new(
+        "official.github.data",
+        PLUGIN_ID,
+        PluginProviderKind::DataSource,
+        i18n::default_data_source_name(),
+        i18n::localized_data_source_names(),
+        i18n::default_data_source_summary(),
+        i18n::localized_data_source_summaries(),
+    ),
+    PluginProviderDescriptor::new(
+        "official.github.context",
+        PLUGIN_ID,
+        PluginProviderKind::ContextProvider,
+        i18n::default_context_provider_name(),
+        i18n::localized_context_provider_names(),
+        i18n::default_context_provider_summary(),
+        i18n::localized_context_provider_summaries(),
+    ),
+    PluginProviderDescriptor::new(
+        "official.github.forge",
+        PLUGIN_ID,
+        PluginProviderKind::ForgeProvider,
+        i18n::default_forge_provider_name(),
+        i18n::localized_forge_provider_names(),
+        i18n::default_forge_provider_summary(),
+        i18n::localized_forge_provider_summaries(),
+    ),
+];
 
 /// Declared capabilities for the official plugin foundation.
 #[must_use]
@@ -95,11 +124,17 @@ pub const fn mcp_servers() -> &'static [McpServerDescriptor] {
     MCP_SERVERS
 }
 
+/// Returns the immutable provider contributions declared by the plugin.
+#[must_use]
+pub const fn providers() -> &'static [PluginProviderDescriptor] {
+    PROVIDERS
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, mcp_servers,
-        runtime_hooks,
+        providers, runtime_hooks,
     };
 
     fn manifest_document() -> &'static str {
@@ -163,6 +198,23 @@ mod tests {
     }
 
     #[test]
+    fn plugin_declares_provider_contributions() {
+        let providers = providers();
+
+        assert_eq!(providers.len(), 3);
+        assert_eq!(providers[0].id, "official.github.data");
+        assert_eq!(providers[0].kind.as_str(), "data_source");
+        assert_eq!(
+            providers[0].display_name_for_locale("pt-br"),
+            "Fonte de dados GitHub"
+        );
+        assert_eq!(providers[1].id, "official.github.context");
+        assert_eq!(providers[1].kind.as_str(), "context_provider");
+        assert_eq!(providers[2].id, "official.github.forge");
+        assert_eq!(providers[2].kind.as_str(), "forge_provider");
+    }
+
+    #[test]
     fn plugin_declares_lifecycle_stages() {
         // Arrange
         let declared_lifecycle = lifecycle();
@@ -196,6 +248,9 @@ mod tests {
         assert!(manifest.contains("- context_provider"));
         assert!(manifest.contains("- forge_provider"));
         assert!(manifest.contains("- mcp_contribution"));
+        assert!(manifest.contains("id: official.github.data"));
+        assert!(manifest.contains("id: official.github.context"));
+        assert!(manifest.contains("id: official.github.forge"));
         assert!(manifest.contains("plugin_api_version: 1"));
     }
 }

@@ -4,9 +4,10 @@ use re_plugin::{
     AGENT_RUNTIME, ALL_PLUGIN_CAPABILITIES, ALL_PLUGIN_KINDS, ALL_PLUGIN_RUNTIME_HOOKS,
     ALL_PLUGIN_RUNTIME_SURFACES, ALL_PLUGIN_TRUST_LEVELS, CONTEXT_PROVIDER, DATA_SOURCE,
     DOCTOR_CHECKS, FORGE_PROVIDER, MCP_CONTRIBUTION, POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS,
-    PluginAgentDescriptor, PluginCapability, PluginDescriptor, PluginKind, PluginLifecycleStage,
-    PluginLoadBoundary, PluginLocalizedText, PluginPolicyDescriptor, PluginPromptAsset,
-    PluginPromptDescriptor, PluginRuntimeHook, PluginRuntimeSurface, PluginTemplateAsset,
+    PluginAgentDescriptor, PluginCapability, PluginCheckDescriptor, PluginCheckKind,
+    PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
+    PluginPolicyDescriptor, PluginPromptAsset, PluginPromptDescriptor, PluginProviderDescriptor,
+    PluginProviderKind, PluginRuntimeHook, PluginRuntimeSurface, PluginTemplateAsset,
     PluginTemplateDescriptor, PluginTrustLevel, REMOTE_CONTROL, TEMPLATE,
     parse_plugin_runtime_hook, parse_reviewed_plugin_capability, render_plugin_detail,
     render_plugin_detail_for_locale, render_plugin_listing, render_plugin_listing_for_locale,
@@ -61,6 +62,20 @@ const TDD_POLICY_LOCALIZED_NAMES: &[PluginLocalizedText] =
 const TDD_POLICY_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
     "pt-br",
     "Política de fixture com guardrails estritos de teste.",
+)];
+const BMAD_CHECK_LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Verificação de preparo de teste",
+)];
+const BMAD_CHECK_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Executa validação tipada de preparo para o workflow de teste.",
+)];
+const GITHUB_PROVIDER_LOCALIZED_NAMES: &[PluginLocalizedText] =
+    &[PluginLocalizedText::new("pt-br", "Fonte de dados de teste")];
+const GITHUB_PROVIDER_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Expõe contexto e dados tipados para o workflow de teste.",
 )];
 const GITHUB_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
     PluginRuntimeHook::McpRegistration,
@@ -253,6 +268,60 @@ fn policy_descriptor_resolves_locales_with_english_fallback() {
         descriptor.summary_for_locale("fr"),
         "Fixture policy with strict testing guardrails."
     );
+}
+
+#[test]
+fn check_descriptor_resolves_locales_with_english_fallback() {
+    let descriptor = PluginCheckDescriptor::new(
+        "test.bmad.prepare",
+        "test.bmad",
+        PluginCheckKind::Prepare,
+        "Fixture prepare check",
+        BMAD_CHECK_LOCALIZED_NAMES,
+        "Runs typed prepare-time validation for the fixture workflow.",
+        BMAD_CHECK_LOCALIZED_SUMMARIES,
+    );
+
+    assert_eq!(
+        descriptor.display_name_for_locale("pt-br"),
+        "Verificação de preparo de teste"
+    );
+    assert_eq!(
+        descriptor.summary_for_locale("pt-br"),
+        "Executa validação tipada de preparo para o workflow de teste."
+    );
+    assert_eq!(
+        descriptor.summary_for_locale("fr"),
+        "Runs typed prepare-time validation for the fixture workflow."
+    );
+    assert_eq!(descriptor.kind.as_str(), "prepare");
+}
+
+#[test]
+fn provider_descriptor_resolves_locales_with_english_fallback() {
+    let descriptor = PluginProviderDescriptor::new(
+        "test.github.data",
+        "test.github",
+        PluginProviderKind::DataSource,
+        "Fixture data source",
+        GITHUB_PROVIDER_LOCALIZED_NAMES,
+        "Exposes typed data and context for the fixture workflow.",
+        GITHUB_PROVIDER_LOCALIZED_SUMMARIES,
+    );
+
+    assert_eq!(
+        descriptor.display_name_for_locale("pt-br"),
+        "Fonte de dados de teste"
+    );
+    assert_eq!(
+        descriptor.summary_for_locale("pt-br"),
+        "Expõe contexto e dados tipados para o workflow de teste."
+    );
+    assert_eq!(
+        descriptor.summary_for_locale("fr"),
+        "Exposes typed data and context for the fixture workflow."
+    );
+    assert_eq!(descriptor.kind.as_str(), "data_source");
 }
 
 #[test]
