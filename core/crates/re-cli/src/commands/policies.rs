@@ -74,7 +74,7 @@ fn run_policy(policy_id: Option<&str>, locale: &str) -> Result<String, CliError>
         ))
     })?;
 
-    with_official_runtime_snapshot(|runtime| {
+    let topology_output = with_official_runtime_snapshot(|runtime| {
         let result = build_runtime_policy_result(policy.descriptor.id, &runtime.topology)
             .ok_or_else(|| {
                 CliError::new(i18n::unknown_entity(
@@ -85,7 +85,85 @@ fn run_policy(policy_id: Option<&str>, locale: &str) -> Result<String, CliError>
             })?;
 
         Ok(render_runtime_policy_result_for_locale(&result, locale))
-    })
+    })?;
+
+    let cwd = std::env::current_dir().unwrap_or_default();
+    let filesystem_output = run_policy_filesystem_checks(&policy, &cwd, locale);
+
+    if filesystem_output.is_empty() {
+        Ok(topology_output)
+    } else {
+        Ok(format!("{topology_output}\n\n{filesystem_output}"))
+    }
+}
+
+/// Runs filesystem validations for a policy against a project root.
+///
+/// Checks whether the policy asset files have been materialized in the
+/// project directory, giving operators confidence that the policy
+/// expectations are visible to contributors.
+fn run_policy_filesystem_checks(
+    policy: &OfficialPolicyContribution,
+    project_root: &Path,
+    locale: &str,
+) -> String {
+    let assets = policy.descriptor.assets;
+    if assets.is_empty() {
+        return String::new();
+    }
+
+    let mut missing: Vec<&str> = Vec::new();
+    let mut found: Vec<&str> = Vec::new();
+
+    for asset in assets {
+        let expected = project_root
+            .join(".ralph-engine")
+            .join("policies")
+            .join(asset.path);
+        if expected.exists() {
+            found.push(asset.path);
+        } else {
+            missing.push(asset.path);
+        }
+    }
+
+    let heading = if locale == "pt-br" {
+        "Validação de arquivos da política"
+    } else {
+        "Policy file validation"
+    };
+
+    let mut lines = vec![format!("--- {heading} ---")];
+
+    for path in &found {
+        lines.push(format!("  [OK] .ralph-engine/policies/{path}"));
+    }
+    for path in &missing {
+        let label = if locale == "pt-br" {
+            "FALTANDO"
+        } else {
+            "MISSING"
+        };
+        lines.push(format!("  [{label}] .ralph-engine/policies/{path}"));
+    }
+
+    if !missing.is_empty() {
+        let hint = if locale == "pt-br" {
+            format!(
+                "Dica: execute 'ralph-engine policies materialize {} <dir>' para gerar os arquivos",
+                policy.descriptor.id
+            )
+        } else {
+            format!(
+                "Hint: run 'ralph-engine policies materialize {} <dir>' to generate files",
+                policy.descriptor.id
+            )
+        };
+        lines.push(String::new());
+        lines.push(hint);
+    }
+
+    lines.join("\n")
 }
 
 fn show_policy_plan(policy_id: Option<&str>, locale: &str) -> Result<String, CliError> {
@@ -384,5 +462,68 @@ mod tests {
         assert!(rendered.contains("Policy enforcement plan: fixture.strict.guardrails"));
         assert!(rendered.contains("Plugin: fixture.strict"));
         assert!(rendered.contains("Policy enforcement hook: policy_enforcement"));
+    }
+
+    #[test]
+    fn policy_filesystem_checks_reports_missing_when_not_materialized() {
+        let tmp = std::env::temp_dir().join("re-policy-fs-test-missing");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).ok();
+
+        let policy = OfficialPolicyContribution {
+            descriptor: policy_descriptor(),
+            activation: PluginActivation::Enabled,
+            load_boundary: PluginLoadBoundary::InProcess,
+            enforcement_hook_registered: true,
+        };
+
+        let output = super::run_policy_filesystem_checks(&policy, &tmp, "en");
+        assert!(output.contains("[MISSING]"));
+        assert!(output.contains("policies/guardrails.md"));
+        assert!(output.contains("Hint:"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn policy_filesystem_checks_reports_ok_when_materialized() {
+        let tmp = std::env::temp_dir().join("re-policy-fs-test-ok");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let policy_dir = tmp.join(".ralph-engine/policies/policies");
+        std::fs::create_dir_all(&policy_dir).ok();
+        std::fs::write(policy_dir.join("guardrails.md"), "# test").ok();
+
+        let policy = OfficialPolicyContribution {
+            descriptor: policy_descriptor(),
+            activation: PluginActivation::Enabled,
+            load_boundary: PluginLoadBoundary::InProcess,
+            enforcement_hook_registered: true,
+        };
+
+        let output = super::run_policy_filesystem_checks(&policy, &tmp, "en");
+        assert!(output.contains("[OK]"));
+        assert!(!output.contains("[MISSING]"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn policy_filesystem_checks_supports_pt_br() {
+        let tmp = std::env::temp_dir().join("re-policy-fs-test-ptbr");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).ok();
+
+        let policy = OfficialPolicyContribution {
+            descriptor: policy_descriptor(),
+            activation: PluginActivation::Enabled,
+            load_boundary: PluginLoadBoundary::InProcess,
+            enforcement_hook_registered: true,
+        };
+
+        let output = super::run_policy_filesystem_checks(&policy, &tmp, "pt-br");
+        assert!(output.contains("[FALTANDO]"));
+        assert!(output.contains("Dica:"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }
