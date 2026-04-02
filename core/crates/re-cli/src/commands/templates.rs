@@ -162,6 +162,8 @@ mod tests {
         "pt-br",
         "Template inicial para novos projetos Ralph Engine.",
     )];
+    const TEMPLATE_ID: &str = "fixture.templates.starter";
+    const PLUGIN_ID: &str = "fixture.templates";
     const TEMPLATE_ASSETS: &[PluginTemplateAsset] = &[PluginTemplateAsset::new(
         ".ralph-engine/config.yaml",
         "schema_version: 1\n",
@@ -169,8 +171,8 @@ mod tests {
 
     fn template_descriptor() -> PluginTemplateDescriptor {
         PluginTemplateDescriptor::new(
-            "official.basic.starter",
-            "official.basic",
+            TEMPLATE_ID,
+            PLUGIN_ID,
             "Basic starter",
             LOCALIZED_NAMES,
             "Starter template for new Ralph Engine projects.",
@@ -209,9 +211,9 @@ mod tests {
             "en",
         );
 
-        assert!(rendered.contains("Template: official.basic.starter"));
+        assert!(rendered.contains("Template: fixture.templates.starter"));
         assert!(rendered.contains("Name: Basic starter"));
-        assert!(rendered.contains("Plugin: official.basic"));
+        assert!(rendered.contains("Plugin: fixture.templates"));
         assert!(rendered.contains("Activation: enabled"));
         assert!(rendered.contains("Runtime hook: scaffold"));
         assert!(rendered.contains("Assets: .ralph-engine/config.yaml"));
@@ -229,10 +231,10 @@ mod tests {
             "pt-br",
         );
 
-        assert!(rendered.contains("Template: official.basic.starter"));
+        assert!(rendered.contains("Template: fixture.templates.starter"));
         assert!(rendered.contains("Nome: Starter básico"));
         assert!(rendered.contains("Resumo: Template inicial para novos projetos Ralph Engine."));
-        assert!(rendered.contains("Plugin: official.basic"));
+        assert!(rendered.contains("Plugin: fixture.templates"));
         assert!(rendered.contains("Assets: .ralph-engine/config.yaml"));
     }
 

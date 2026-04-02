@@ -158,6 +158,8 @@ mod tests {
         "pt-br",
         "Pacote de prompts para montar workflows BMAD.",
     )];
+    const PROMPT_ID: &str = "fixture.prompts.workflow";
+    const PLUGIN_ID: &str = "fixture.prompts";
     const PROMPT_ASSETS: &[PluginPromptAsset] = &[PluginPromptAsset::new(
         "prompts/workflow.md",
         "# workflow\n",
@@ -165,8 +167,8 @@ mod tests {
 
     fn prompt_descriptor() -> PluginPromptDescriptor {
         PluginPromptDescriptor::new(
-            "official.bmad.workflow",
-            "official.bmad",
+            PROMPT_ID,
+            PLUGIN_ID,
             "BMAD workflow prompt",
             LOCALIZED_NAMES,
             "Prompt bundle for BMAD workflow assembly.",
@@ -205,9 +207,9 @@ mod tests {
             "en",
         );
 
-        assert!(rendered.contains("Prompt: official.bmad.workflow"));
+        assert!(rendered.contains("Prompt: fixture.prompts.workflow"));
         assert!(rendered.contains("Name: BMAD workflow prompt"));
-        assert!(rendered.contains("Plugin: official.bmad"));
+        assert!(rendered.contains("Plugin: fixture.prompts"));
         assert!(rendered.contains("Activation: disabled"));
         assert!(rendered.contains("Runtime hook: prompt_assembly"));
         assert!(rendered.contains("Assets: prompts/workflow.md"));
@@ -225,10 +227,10 @@ mod tests {
             "pt-br",
         );
 
-        assert!(rendered.contains("Prompt: official.bmad.workflow"));
+        assert!(rendered.contains("Prompt: fixture.prompts.workflow"));
         assert!(rendered.contains("Nome: Prompt de workflow BMAD"));
         assert!(rendered.contains("Resumo: Pacote de prompts para montar workflows BMAD."));
-        assert!(rendered.contains("Plugin: official.bmad"));
+        assert!(rendered.contains("Plugin: fixture.prompts"));
         assert!(rendered.contains("Assets: prompts/workflow.md"));
     }
 

@@ -107,11 +107,13 @@ mod tests {
         "pt-br",
         "Sessão de runtime do Codex para o Ralph Engine.",
     )];
+    const AGENT_ID: &str = "fixture.codex.session";
+    const PLUGIN_ID: &str = "fixture.codex";
 
     fn agent_descriptor() -> PluginAgentDescriptor {
         PluginAgentDescriptor::new(
-            "official.codex.session",
-            "official.codex",
+            AGENT_ID,
+            PLUGIN_ID,
             "Codex session",
             LOCALIZED_NAMES,
             "Codex runtime session for Ralph Engine.",
@@ -149,9 +151,9 @@ mod tests {
             "en",
         );
 
-        assert!(rendered.contains("Agent runtime: official.codex.session"));
+        assert!(rendered.contains("Agent runtime: fixture.codex.session"));
         assert!(rendered.contains("Name: Codex session"));
-        assert!(rendered.contains("Plugin: official.codex"));
+        assert!(rendered.contains("Plugin: fixture.codex"));
         assert!(rendered.contains("Activation: enabled"));
         assert!(rendered.contains("Runtime hook: agent_bootstrap"));
     }
@@ -168,7 +170,7 @@ mod tests {
             "pt-br",
         );
 
-        assert!(rendered.contains("Agent runtime: official.codex.session"));
+        assert!(rendered.contains("Agent runtime: fixture.codex.session"));
         assert!(rendered.contains("Nome: Sessão Codex"));
         assert!(rendered.contains("Resumo: Sessão de runtime do Codex para o Ralph Engine."));
     }

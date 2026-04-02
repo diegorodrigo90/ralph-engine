@@ -76,6 +76,8 @@ mod tests {
 
     use super::{render_hook_detail, render_hook_listing};
 
+    const PLUGIN_ID: &str = "fixture.templates";
+
     #[test]
     fn render_hook_listing_handles_empty_sets() {
         // Arrange
@@ -93,7 +95,7 @@ mod tests {
         // Arrange
         let providers = [RuntimeHookRegistration::new(
             PluginRuntimeHook::Scaffold,
-            "official.basic",
+            PLUGIN_ID,
             PluginActivation::Enabled,
             PluginLoadBoundary::InProcess,
         )];
@@ -104,6 +106,8 @@ mod tests {
         // Assert
         assert!(rendered.contains("Runtime hook: scaffold"));
         assert!(rendered.contains("Providers (1)"));
-        assert!(rendered.contains("- official.basic | activation=enabled | boundary=in_process"));
+        assert!(
+            rendered.contains("- fixture.templates | activation=enabled | boundary=in_process")
+        );
     }
 }
