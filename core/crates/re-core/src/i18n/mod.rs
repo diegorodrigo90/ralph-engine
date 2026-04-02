@@ -1,17 +1,28 @@
 mod en;
 mod pt_br;
 
-fn is_pt_br(locale: &str) -> bool {
-    locale.eq_ignore_ascii_case("pt-br")
+#[derive(Clone, Copy)]
+enum RuntimeLocale {
+    En,
+    PtBr,
+}
+
+impl RuntimeLocale {
+    fn resolve(locale: &str) -> Self {
+        if locale.eq_ignore_ascii_case("pt-br") {
+            Self::PtBr
+        } else {
+            Self::En
+        }
+    }
 }
 
 macro_rules! locale_label {
     ($fn_name:ident, $en:ident, $pt:ident) => {
         pub(crate) fn $fn_name(locale: &str) -> &'static str {
-            if is_pt_br(locale) {
-                pt_br::$pt
-            } else {
-                en::$en
+            match RuntimeLocale::resolve(locale) {
+                RuntimeLocale::En => en::$en,
+                RuntimeLocale::PtBr => pt_br::$pt,
             }
         }
     };
@@ -39,9 +50,8 @@ locale_label!(
 locale_label!(runtime_doctor_label, RUNTIME_DOCTOR, RUNTIME_DOCTOR);
 
 pub(crate) fn translate_runtime_reason(locale: &str, reason: &str) -> String {
-    if is_pt_br(locale) {
-        pt_br::translate_runtime_reason(reason)
-    } else {
-        en::translate_runtime_reason(reason)
+    match RuntimeLocale::resolve(locale) {
+        RuntimeLocale::En => en::translate_runtime_reason(reason),
+        RuntimeLocale::PtBr => pt_br::translate_runtime_reason(reason),
     }
 }
