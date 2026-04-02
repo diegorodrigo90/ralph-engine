@@ -3,7 +3,11 @@ const { env } = require("node:process");
 const { LOCALE: EN } = require("./en.js");
 const { LOCALE: PT_BR } = require("./pt-br.js");
 
-const SUPPORTED_LOCALES = new Set(["en", "pt-br"]);
+const LOCALE_CATALOGS = {
+  en: EN,
+  "pt-br": PT_BR,
+};
+const SUPPORTED_LOCALES = new Set(Object.keys(LOCALE_CATALOGS));
 const LOCALE_ENV_KEY = "RALPH_ENGINE_LOCALE";
 
 function normalizeLocale(value) {
@@ -16,7 +20,7 @@ function normalizeLocale(value) {
 
 function resolveLocaleCatalog() {
   const locale = normalizeLocale(env[LOCALE_ENV_KEY] || "en");
-  return locale === "pt-br" ? PT_BR : EN;
+  return LOCALE_CATALOGS[locale] || EN;
 }
 
 module.exports = {
