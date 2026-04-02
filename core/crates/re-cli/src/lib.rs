@@ -575,6 +575,17 @@ mod tests {
     }
 
     #[test]
+    fn execute_hooks_plan_returns_owned_surface_map() {
+        let command = args(&["ralph-engine", "hooks", "plan", "agent_bootstrap"]);
+
+        let output = execute(command).expect("hooks plan should succeed");
+
+        assert!(output.contains("Runtime hook plan: agent_bootstrap"));
+        assert!(output.contains("Agent runtimes ("));
+        assert!(output.contains("bootstrap_hook="));
+    }
+
+    #[test]
     fn execute_policies_lists_runtime_policies() {
         // Arrange
         let command = args(&["ralph-engine", "policies", "list"]);

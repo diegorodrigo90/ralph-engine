@@ -28,6 +28,7 @@ ralph-engine doctor write-config <output-path>
 ralph-engine hooks
 ralph-engine hooks list
 ralph-engine hooks show <hook-id>
+ralph-engine hooks plan <hook-id>
 ralph-engine locales
 ralph-engine locales list
 ralph-engine locales show <locale-id>
@@ -118,6 +119,8 @@ A família `locales` imprime o catálogo tipado de locales suportados, para que 
 A família `config budgets` imprime o contrato tipado de limites de prompt e contexto, para que os tetos de tokens permaneçam explícitos na fundação do runtime em vez de ficarem escondidos em lógica futura de provider.
 
 A família `hooks` imprime o registro tipado de runtime hooks do runtime para que os providers permaneçam explícitos e modulares.
+
+O comando `hooks plan` imprime o mapa tipado de superfícies pertencentes a um runtime hook, para que templates, prompts, agentes, verificações, providers, policies e registros de MCP permaneçam inspecionáveis a partir da fronteira do hook que os orquestra, em vez de vazarem apenas pela saída agregada do runtime.
 
 A família `policies` imprime o registro tipado de policies do runtime para que os providers de policy permaneçam explícitos, inspecionáveis e separados de listagens genéricas de capability.
 

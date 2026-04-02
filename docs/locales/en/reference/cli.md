@@ -28,6 +28,7 @@ ralph-engine doctor write-config <output-path>
 ralph-engine hooks
 ralph-engine hooks list
 ralph-engine hooks show <hook-id>
+ralph-engine hooks plan <hook-id>
 ralph-engine locales
 ralph-engine locales list
 ralph-engine locales show <locale-id>
@@ -118,6 +119,8 @@ The `locales` command family prints the typed supported locale catalog so runtim
 The `config budgets` command prints the typed prompt and context budget contract so token ceilings remain explicit in the runtime foundation instead of hiding in future provider-specific logic.
 
 The `hooks` command family prints the typed runtime-hook registry so hook providers remain explicit and modular.
+
+The `hooks plan` command prints the typed surface map owned by one runtime hook, so templates, prompts, agents, checks, providers, policies, and MCP registrations remain inspectable from the hook boundary that orchestrates them instead of leaking only through aggregate runtime output.
 
 The `policies` command family prints the typed runtime policy registry so policy providers stay explicit, inspectable, and separate from generic capability listings.
 
