@@ -28,6 +28,23 @@ const TEST_DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
 const TEST_DEFAULT_MCP_SERVERS: &[McpServerConfig] =
     &[McpServerConfig::new(TEST_DEFAULT_MCP_SERVER_ID, true)];
 
+fn test_project_config() -> ProjectConfig {
+    ProjectConfig {
+        schema_version: 1,
+        default_locale: DEFAULT_LOCALE,
+        plugins: TEST_DEFAULT_PLUGINS,
+        mcp: McpConfig {
+            enabled: true,
+            discovery: McpDiscovery::OfficialOnly,
+            servers: TEST_DEFAULT_MCP_SERVERS,
+        },
+        budgets: RuntimeBudgetConfig {
+            prompt_tokens: 8_192,
+            context_tokens: 32_768,
+        },
+    }
+}
+
 #[test]
 fn default_project_config_uses_stable_schema_defaults() {
     // Arrange
@@ -98,45 +115,49 @@ fn materialize_project_config_creates_owned_patchable_document() {
 #[test]
 fn apply_project_config_patch_merges_plugin_and_mcp_entries_by_identifier() {
     let owned = apply_project_config_patch(
-        &default_project_config(),
+        &test_project_config(),
         &[
-            PluginConfig::new("official.basic", PluginActivation::Disabled),
-            PluginConfig::new("official.github", PluginActivation::Enabled),
+            PluginConfig::new(TEST_DEFAULT_PLUGIN_ID, PluginActivation::Disabled),
+            PluginConfig::new(TEST_OVERRIDE_PLUGIN_ID, PluginActivation::Enabled),
         ],
-        &[McpServerConfig::new("official.github.repository", true)],
+        &[McpServerConfig::new(TEST_OVERRIDE_MCP_SERVER_ID, true)],
     );
 
     assert_eq!(
         owned.plugins,
         vec![
-            PluginConfig::new("official.basic", PluginActivation::Disabled),
-            PluginConfig::new("official.github", PluginActivation::Enabled),
+            PluginConfig::new(TEST_DEFAULT_PLUGIN_ID, PluginActivation::Disabled),
+            PluginConfig::new(TEST_OVERRIDE_PLUGIN_ID, PluginActivation::Enabled),
         ]
     );
     assert_eq!(
         owned.mcp.servers,
-        vec![McpServerConfig::new("official.github.repository", true)]
+        vec![McpServerConfig::new(
+            TEST_DEFAULT_MCP_SERVER_ID,
+            true,
+        ), McpServerConfig::new(TEST_OVERRIDE_MCP_SERVER_ID, true)]
     );
 }
 
 #[test]
 fn render_owned_project_config_yaml_is_human_readable() {
     let owned = apply_project_config_patch(
-        &default_project_config(),
+        &test_project_config(),
         &[PluginConfig::new(
-            "official.github",
+            TEST_OVERRIDE_PLUGIN_ID,
             PluginActivation::Enabled,
         )],
-        &[McpServerConfig::new("official.github.repository", true)],
+        &[McpServerConfig::new(TEST_OVERRIDE_MCP_SERVER_ID, true)],
     );
 
     let yaml = render_owned_project_config_yaml(&owned);
 
     assert!(yaml.contains("plugins:"));
-    assert!(yaml.contains("  - id: official.basic"));
-    assert!(yaml.contains("  - id: official.github"));
+    assert!(yaml.contains("  - id: test.defaults"));
+    assert!(yaml.contains("  - id: test.override"));
     assert!(yaml.contains("  servers:"));
-    assert!(yaml.contains("    - id: official.github.repository"));
+    assert!(yaml.contains("    - id: test.mcp.default"));
+    assert!(yaml.contains("    - id: test.mcp.override"));
     assert!(yaml.contains("      enabled: true"));
 }
 
@@ -296,7 +317,7 @@ fn find_plugin_config_returns_matching_entry() {
         mcp: McpConfig {
             enabled: config.mcp.enabled,
             discovery: config.mcp.discovery,
-            servers: config.mcp.servers,
+            servers: TEST_DEFAULT_MCP_SERVERS,
         },
         budgets: config.budgets,
     };
@@ -325,20 +346,7 @@ fn find_plugin_config_returns_none_for_unknown_plugin() {
 
 #[test]
 fn find_mcp_server_config_returns_matching_entry() {
-    let config = ProjectConfig {
-        schema_version: 1,
-        default_locale: DEFAULT_LOCALE,
-        plugins: TEST_DEFAULT_PLUGINS,
-        mcp: McpConfig {
-            enabled: true,
-            discovery: McpDiscovery::OfficialOnly,
-            servers: TEST_DEFAULT_MCP_SERVERS,
-        },
-        budgets: RuntimeBudgetConfig {
-            prompt_tokens: 8_192,
-            context_tokens: 32_768,
-        },
-    };
+    let config = test_project_config();
 
     let server = find_mcp_server_config(&config, TEST_DEFAULT_MCP_SERVER_ID);
 
