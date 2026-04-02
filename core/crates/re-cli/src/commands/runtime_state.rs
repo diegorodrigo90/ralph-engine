@@ -1,7 +1,7 @@
-//! Shared runtime snapshot and remediation helpers for CLI commands.
+//! Shared runtime snapshot helpers for CLI commands.
 
 use re_config::{OwnedProjectConfig, render_owned_project_config_yaml};
-use re_core::{RuntimeSnapshot, build_runtime_patched_config, build_runtime_snapshot};
+use re_core::{RuntimeSnapshot, build_runtime_snapshot};
 
 use crate::catalog;
 
@@ -26,8 +26,5 @@ pub fn render_official_runtime_patched_config() -> String {
 /// canonical runtime remediation patch.
 #[must_use]
 pub fn official_runtime_patched_config() -> OwnedProjectConfig {
-    let snapshot = catalog::official_runtime_snapshot();
-    let topology = snapshot.topology();
-
-    build_runtime_patched_config(&topology)
+    with_official_runtime_snapshot(|runtime| runtime.patched_config())
 }

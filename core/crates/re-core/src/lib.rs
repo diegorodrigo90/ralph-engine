@@ -909,6 +909,17 @@ impl<'a> RuntimeSnapshot<'a> {
     pub fn doctor_report(&self) -> RuntimeDoctorReport {
         RuntimeDoctorReport::new(self.status, self.issues.clone(), self.actions.clone())
     }
+
+    /// Materializes the merged project configuration after applying this
+    /// snapshot's remediation patch to the built-in defaults.
+    #[must_use]
+    pub fn patched_config(&self) -> OwnedProjectConfig {
+        apply_project_config_patch(
+            &default_project_config(),
+            &self.config_patch.plugins,
+            &self.config_patch.mcp_servers,
+        )
+    }
 }
 
 /// Renders a human-readable runtime topology summary.
@@ -1628,13 +1639,7 @@ pub fn build_runtime_doctor_report(topology: &RuntimeTopology<'_>) -> RuntimeDoc
 /// runtime remediation patch for the resolved topology.
 #[must_use]
 pub fn build_runtime_patched_config(topology: &RuntimeTopology<'_>) -> OwnedProjectConfig {
-    let patch = build_runtime_config_patch(topology);
-
-    apply_project_config_patch(
-        &default_project_config(),
-        &patch.plugins,
-        &patch.mcp_servers,
-    )
+    build_runtime_snapshot(topology).patched_config()
 }
 
 /// Builds a typed runtime snapshot from the resolved topology.
@@ -2169,7 +2174,7 @@ mod tests {
 
     #[test]
     fn runtime_snapshot_builds_doctor_report_view() {
-        let report = RuntimeSnapshot::new(
+        let snapshot = RuntimeSnapshot::new(
             RuntimeTopology {
                 phase: RuntimePhase::Bootstrapped,
                 locale: "en",
@@ -2225,12 +2230,19 @@ mod tests {
                 )],
                 Vec::new(),
             ),
-        )
-        .doctor_report();
+        );
+        let report = snapshot.doctor_report();
 
         assert_eq!(report.status.health, RuntimeHealth::Degraded);
         assert_eq!(report.issues.len(), 1);
         assert_eq!(report.actions.len(), 1);
+        assert_eq!(
+            snapshot.patched_config().plugins,
+            vec![
+                PluginConfig::new("official.basic", PluginActivation::Enabled),
+                PluginConfig::new(PRIMARY_PLUGIN_ID, PluginActivation::Enabled),
+            ]
+        );
     }
 
     #[test]
