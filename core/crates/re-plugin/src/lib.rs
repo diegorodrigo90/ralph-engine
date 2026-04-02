@@ -87,6 +87,7 @@ pub fn parse_reviewed_plugin_capability(value: &str) -> Option<PluginCapability>
 
 /// Typed runtime surface identifier owned by reviewed plugin capabilities.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum PluginRuntimeSurface {
     /// Template-provider runtime surface.
     Templates,
@@ -158,6 +159,7 @@ pub fn runtime_surface_for_capability(
 
 /// Typed primary plugin kind identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum PluginKind {
     /// Template-oriented plugin.
     Template,
@@ -214,6 +216,7 @@ pub const ALL_PLUGIN_KINDS: &[PluginKind] = &[
 
 /// Typed plugin trust-level identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum PluginTrustLevel {
     /// Official first-party plugin.
     Official,
@@ -342,6 +345,7 @@ impl PluginPolicyAsset {
 
 /// Typed plugin-owned check kind.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum PluginCheckKind {
     /// Prepare-time validation contribution.
     Prepare,
@@ -368,6 +372,7 @@ impl fmt::Display for PluginCheckKind {
 
 /// Typed plugin-owned provider kind.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum PluginProviderKind {
     /// Data-source provider contribution.
     DataSource,
@@ -755,6 +760,7 @@ impl PluginPolicyDescriptor {
 
 /// Typed plugin lifecycle stage identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum PluginLifecycleStage {
     /// The runtime can discover the plugin and list it in catalogs.
     Discover,
@@ -787,6 +793,7 @@ impl fmt::Display for PluginLifecycleStage {
 
 /// Typed plugin loading boundary identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum PluginLoadBoundary {
     /// The plugin is loaded in process with the runtime.
     InProcess,
@@ -816,6 +823,7 @@ impl fmt::Display for PluginLoadBoundary {
 
 /// Typed runtime hook identifier for plugin contributions.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum PluginRuntimeHook {
     /// The plugin contributes project scaffolding behavior.
     Scaffold,
