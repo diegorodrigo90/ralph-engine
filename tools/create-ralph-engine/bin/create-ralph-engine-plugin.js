@@ -7,7 +7,11 @@ const { stdin, stdout, stderr, exit } = require("node:process");
 const { validateManifestDocument } = require("../lib/manifest-contract.js");
 const { resolveLocaleCatalog } = require("../lib/i18n/index.js");
 const {
+  SUPPORTED_CAPABILITIES,
+  SUPPORTED_KINDS,
   capabilityImportName,
+  defaultCapabilitiesForKind,
+  pluginKindVariant,
   runtimeHooksForCapabilities,
 } = require("../lib/runtime-surfaces.js");
 
@@ -15,29 +19,6 @@ const DEFAULT_KIND = "mcp_contribution";
 const DEFAULT_ENGINE_VERSION = ">=0.1.0";
 const DEFAULT_PLUGIN_API_VERSION = "1.0.0";
 const RESERVED_PUBLISHERS = new Set(["official"]);
-const SUPPORTED_KINDS = new Set([
-  "agent_runtime",
-  "forge_provider",
-  "context_provider",
-  "data_source",
-  "template",
-  "remote_control",
-  "mcp_contribution",
-  "policy",
-]);
-const SUPPORTED_CAPABILITIES = new Set([
-  "agent_runtime",
-  "data_source",
-  "context_provider",
-  "forge_provider",
-  "doctor_checks",
-  "prepare_checks",
-  "prompt_fragments",
-  "template",
-  "remote_control",
-  "mcp_contribution",
-  "policy",
-]);
 const t = resolveLocaleCatalog();
 
 async function main() {
@@ -551,29 +532,6 @@ function normalizeCapabilities(values, kind) {
   return [...new Set(combined.map((value) => value.toLowerCase()))];
 }
 
-function defaultCapabilitiesForKind(kind) {
-  switch (kind) {
-    case "template":
-      return ["template"];
-    case "agent_runtime":
-      return ["agent_runtime"];
-    case "remote_control":
-      return ["remote_control"];
-    case "mcp_contribution":
-      return ["mcp_contribution"];
-    case "forge_provider":
-      return ["forge_provider"];
-    case "context_provider":
-      return ["context_provider"];
-    case "data_source":
-      return ["data_source"];
-    case "policy":
-      return ["policy"];
-    default:
-      return [];
-  }
-}
-
 function splitCSV(value) {
   return String(value || "")
     .split(",")
@@ -591,29 +549,6 @@ function humanize(value) {
 
 function cargoPackageName(scaffold) {
   return `re-plugin-${scaffold.publisher}-${scaffold.name}`.replace(/[^a-z0-9-]+/g, "-");
-}
-
-function pluginKindVariant(kind) {
-  switch (kind) {
-    case "template":
-      return "PluginKind::Template";
-    case "agent_runtime":
-      return "PluginKind::AgentRuntime";
-    case "forge_provider":
-      return "PluginKind::ForgeProvider";
-    case "context_provider":
-      return "PluginKind::ContextProvider";
-    case "data_source":
-      return "PluginKind::DataSource";
-    case "remote_control":
-      return "PluginKind::RemoteControl";
-    case "mcp_contribution":
-      return "PluginKind::McpContribution";
-    case "policy":
-      return "PluginKind::Policy";
-    default:
-      return "PluginKind::McpContribution";
-  }
 }
 
 async function ask(rl, label, fallback) {

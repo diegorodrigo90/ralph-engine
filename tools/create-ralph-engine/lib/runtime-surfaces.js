@@ -1,3 +1,39 @@
+const SUPPORTED_KINDS = new Set([
+  "agent_runtime",
+  "forge_provider",
+  "context_provider",
+  "data_source",
+  "template",
+  "remote_control",
+  "mcp_contribution",
+  "policy",
+]);
+
+const SUPPORTED_CAPABILITIES = new Set([
+  "agent_runtime",
+  "data_source",
+  "context_provider",
+  "forge_provider",
+  "doctor_checks",
+  "prepare_checks",
+  "prompt_fragments",
+  "template",
+  "remote_control",
+  "mcp_contribution",
+  "policy",
+]);
+
+const DEFAULT_CAPABILITIES_BY_KIND = new Map([
+  ["template", ["template"]],
+  ["agent_runtime", ["agent_runtime"]],
+  ["remote_control", ["remote_control"]],
+  ["mcp_contribution", ["mcp_contribution"]],
+  ["forge_provider", ["forge_provider"]],
+  ["context_provider", ["context_provider"]],
+  ["data_source", ["data_source"]],
+  ["policy", ["policy"]],
+]);
+
 const CAPABILITY_IMPORT_NAMES = new Map([
   ["template", "TEMPLATE"],
   ["prompt_fragments", "PROMPT_FRAGMENTS"],
@@ -26,8 +62,27 @@ const CAPABILITY_RUNTIME_HOOKS = new Map([
   ["policy", "PluginRuntimeHook::PolicyEnforcement"],
 ]);
 
+const KIND_VARIANTS = new Map([
+  ["template", "PluginKind::Template"],
+  ["agent_runtime", "PluginKind::AgentRuntime"],
+  ["forge_provider", "PluginKind::ForgeProvider"],
+  ["context_provider", "PluginKind::ContextProvider"],
+  ["data_source", "PluginKind::DataSource"],
+  ["remote_control", "PluginKind::RemoteControl"],
+  ["mcp_contribution", "PluginKind::McpContribution"],
+  ["policy", "PluginKind::Policy"],
+]);
+
 function capabilityImportName(capability) {
   return CAPABILITY_IMPORT_NAMES.get(capability) || capability.toUpperCase();
+}
+
+function defaultCapabilitiesForKind(kind) {
+  return [...(DEFAULT_CAPABILITIES_BY_KIND.get(kind) || [])];
+}
+
+function pluginKindVariant(kind) {
+  return KIND_VARIANTS.get(kind) || "PluginKind::McpContribution";
 }
 
 function runtimeHooksForCapabilities(capabilities) {
@@ -44,8 +99,14 @@ function runtimeHooksForCapabilities(capabilities) {
 }
 
 module.exports = {
+  DEFAULT_CAPABILITIES_BY_KIND,
+  KIND_VARIANTS,
+  SUPPORTED_CAPABILITIES,
+  SUPPORTED_KINDS,
   CAPABILITY_IMPORT_NAMES,
   CAPABILITY_RUNTIME_HOOKS,
   capabilityImportName,
+  defaultCapabilitiesForKind,
+  pluginKindVariant,
   runtimeHooksForCapabilities,
 };

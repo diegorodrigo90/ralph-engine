@@ -202,21 +202,6 @@ function assertOfficialManifestsStayLocalizedAndVersioned(
   }
 }
 
-function parseScaffolderSet(source, setName) {
-  const regex = new RegExp(
-    `const ${setName} = new Set\\(\\[([\\s\\S]*?)\\]\\);`,
-    "m",
-  );
-  const match = source.match(regex);
-  if (!match) {
-    fail(`could not find ${setName} in scaffolder`);
-  }
-
-  return new Set(
-    [...match[1].matchAll(/"([^"]+)"/g)].map((innerMatch) => innerMatch[1]),
-  );
-}
-
 function parseDefaultKind(source) {
   const match = source.match(/const DEFAULT_KIND = "([^"]+)";/);
   if (!match) {
@@ -224,24 +209,6 @@ function parseDefaultKind(source) {
   }
 
   return match[1];
-}
-
-function parseDefaultCapabilitiesByKind(source) {
-  const match = source.match(/function defaultCapabilitiesForKind\(kind\) \{([\s\S]*?)\n\}/);
-  if (!match) {
-    fail("could not find defaultCapabilitiesForKind in scaffolder");
-  }
-
-  const branchMatches = [
-    ...match[1].matchAll(/case "([^"]+)":\s+return \[(.*?)\];/g),
-  ];
-
-  return new Map(
-    branchMatches.map(([_, kind, rawCapabilities]) => [
-      kind,
-      [...rawCapabilities.matchAll(/"([^"]+)"/g)].map((capabilityMatch) => capabilityMatch[1]),
-    ]),
-  );
 }
 
 function assertSubset(actualSet, allowedSet, label) {
@@ -281,15 +248,16 @@ const rustRuntimeHooks = parseRustRuntimeHooks(rustPluginContract);
 const rustDefaultLocale = parseRustDefaultLocale(rustConfigContract);
 const rustSupportedLocales = parseRustSupportedLocales(rustConfigContract);
 const workspaceVersion = parseWorkspaceVersion(workspaceCargoToml);
-const supportedCapabilities = parseScaffolderSet(scaffolderSource, "SUPPORTED_CAPABILITIES");
-const supportedKinds = parseScaffolderSet(scaffolderSource, "SUPPORTED_KINDS");
+const supportedCapabilities = new Set(runtimeSurfaces.SUPPORTED_CAPABILITIES);
+const supportedKinds = new Set(runtimeSurfaces.SUPPORTED_KINDS);
 const manifestCapabilities = new Set(manifestSchema.properties.capabilities.items.enum);
 const manifestKinds = new Set(manifestSchema.properties.kind.enum);
 const manifestTrustLevels = new Set(manifestSchema.properties.trust_level.enum);
 const defaultKind = parseDefaultKind(scaffolderSource);
-const defaultCapabilitiesByKind = parseDefaultCapabilitiesByKind(scaffolderSource);
+const defaultCapabilitiesByKind = new Map(runtimeSurfaces.DEFAULT_CAPABILITIES_BY_KIND);
 const scaffolderCapabilityImports = new Set(runtimeSurfaces.CAPABILITY_IMPORT_NAMES.keys());
 const scaffolderCapabilityHooks = new Set(runtimeSurfaces.CAPABILITY_RUNTIME_HOOKS.keys());
+const scaffolderKindVariants = new Set(runtimeSurfaces.KIND_VARIANTS.keys());
 const scaffolderRuntimeHooks = new Set(
   [...runtimeSurfaces.CAPABILITY_RUNTIME_HOOKS.values()].map((hook) =>
     hook.replace("PluginRuntimeHook::", "").replace(/[A-Z]/g, (letter, index) =>
@@ -309,6 +277,7 @@ assertExactSet(supportedKinds, rustKinds, "scaffolder supported kinds");
 assertExactSet(manifestCapabilities, rustCapabilities, "manifest schema capabilities");
 assertExactSet(manifestKinds, rustKinds, "manifest schema kinds");
 assertSubset(manifestTrustLevels, rustTrustLevels, "manifest schema trust levels");
+assertExactSet(scaffolderKindVariants, rustKinds, "scaffolder kind variant catalog");
 assertExactSet(
   scaffolderCapabilityImports,
   rustCapabilities,
