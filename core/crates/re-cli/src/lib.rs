@@ -1097,6 +1097,22 @@ mod tests {
     }
 
     #[test]
+    fn execute_runtime_patched_config_returns_merged_project_config() {
+        let command = args(&["ralph-engine", "runtime", "patched-config"]);
+
+        let output = execute(command).expect("runtime patched-config should succeed");
+
+        assert!(output.contains("schema_version: 1"));
+        assert!(output.contains("default_locale: en"));
+        assert!(output.contains("- id: official.basic"));
+        assert!(output.contains("- id: official.github"));
+        assert!(output.contains("activation: enabled"));
+        assert!(output.contains("mcp:"));
+        assert!(output.contains("- id: official.github.repository"));
+        assert!(output.contains("enabled: true"));
+    }
+
+    #[test]
     fn execute_runtime_without_subcommand_returns_resolved_topology() {
         // Arrange
         let command = args(&["ralph-engine", "runtime"]);

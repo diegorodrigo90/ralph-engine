@@ -260,6 +260,32 @@ pub struct RuntimeBudgetConfig {
     pub context_tokens: u32,
 }
 
+/// Owned MCP configuration document with patchable entries.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OwnedMcpConfig {
+    /// Whether MCP support is enabled.
+    pub enabled: bool,
+    /// Discovery policy for built-in MCP contributions.
+    pub discovery: McpDiscovery,
+    /// Per-server activation entries.
+    pub servers: Vec<McpServerConfig>,
+}
+
+/// Owned project configuration document with patchable entries.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct OwnedProjectConfig {
+    /// Stable config schema version.
+    pub schema_version: u8,
+    /// Default locale for runtime-facing surfaces.
+    pub default_locale: &'static str,
+    /// Default plugin entries.
+    pub plugins: Vec<PluginConfig>,
+    /// MCP configuration defaults.
+    pub mcp: OwnedMcpConfig,
+    /// Runtime budget defaults.
+    pub budgets: RuntimeBudgetConfig,
+}
+
 const DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
     "official.basic",
     PluginActivation::Enabled,
@@ -404,16 +430,82 @@ pub fn resolve_mcp_server_config(
     })
 }
 
+fn merge_plugin_config_entries(base: &[PluginConfig], patch: &[PluginConfig]) -> Vec<PluginConfig> {
+    let mut merged = base.to_vec();
+
+    for entry in patch {
+        if let Some(existing) = merged.iter_mut().find(|candidate| candidate.id == entry.id) {
+            *existing = *entry;
+        } else {
+            merged.push(*entry);
+        }
+    }
+
+    merged
+}
+
+fn merge_mcp_server_config_entries(
+    base: &[McpServerConfig],
+    patch: &[McpServerConfig],
+) -> Vec<McpServerConfig> {
+    let mut merged = base.to_vec();
+
+    for entry in patch {
+        if let Some(existing) = merged.iter_mut().find(|candidate| candidate.id == entry.id) {
+            *existing = *entry;
+        } else {
+            merged.push(*entry);
+        }
+    }
+
+    merged
+}
+
+/// Materializes the static project configuration into an owned patchable document.
+#[must_use]
+pub fn materialize_project_config(config: &ProjectConfig) -> OwnedProjectConfig {
+    OwnedProjectConfig {
+        schema_version: config.schema_version,
+        default_locale: config.default_locale,
+        plugins: config.plugins.to_vec(),
+        mcp: OwnedMcpConfig {
+            enabled: config.mcp.enabled,
+            discovery: config.mcp.discovery,
+            servers: config.mcp.servers.to_vec(),
+        },
+        budgets: config.budgets,
+    }
+}
+
+/// Applies plugin and MCP overrides to one base project configuration.
+#[must_use]
+pub fn apply_project_config_patch(
+    config: &ProjectConfig,
+    plugin_patch: &[PluginConfig],
+    mcp_server_patch: &[McpServerConfig],
+) -> OwnedProjectConfig {
+    let mut owned = materialize_project_config(config);
+    owned.plugins = merge_plugin_config_entries(&owned.plugins, plugin_patch);
+    owned.mcp.servers = merge_mcp_server_config_entries(&owned.mcp.servers, mcp_server_patch);
+    owned
+}
+
 /// Renders the project configuration contract as YAML.
 #[must_use]
 pub fn render_project_config_yaml(config: &ProjectConfig) -> String {
+    render_owned_project_config_yaml(&materialize_project_config(config))
+}
+
+/// Renders an owned project configuration document as YAML.
+#[must_use]
+pub fn render_owned_project_config_yaml(config: &OwnedProjectConfig) -> String {
     let mut lines = vec![
         format!("schema_version: {}", config.schema_version),
         format!("default_locale: {}", config.default_locale),
         "plugins:".to_owned(),
     ];
 
-    for plugin in config.plugins {
+    for plugin in &config.plugins {
         lines.push(format!("  - id: {}", plugin.id));
         lines.push(format!("    activation: {}", plugin.activation.as_str()));
     }
@@ -428,7 +520,7 @@ pub fn render_project_config_yaml(config: &ProjectConfig) -> String {
     ));
     lines.push("  servers:".to_owned());
 
-    for server in config.mcp.servers {
+    for server in &config.mcp.servers {
         lines.push(format!("    - id: {}", server.id));
         lines.push(format!("      enabled: {}", server.enabled));
     }
