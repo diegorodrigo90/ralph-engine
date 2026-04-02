@@ -542,6 +542,7 @@ pub fn official_runtime_agents() -> Vec<RuntimeAgentRegistration> {
         })
         .map(|bundle| {
             RuntimeAgentRegistration::new(
+                bundle.bundle.agents[0].id,
                 bundle.plugin.descriptor.id,
                 bundle.plugin.activation,
                 bundle.plugin.descriptor.load_boundary,
