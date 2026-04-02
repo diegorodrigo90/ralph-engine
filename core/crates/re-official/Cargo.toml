@@ -1,0 +1,26 @@
+[package]
+name = "re-official"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[dependencies]
+re-config = { path = "../re-config", version = "0.2.0-alpha.1" }
+re-core = { path = "../re-core", version = "0.2.0-alpha.1" }
+re-mcp = { path = "../re-mcp", version = "0.2.0-alpha.1" }
+re-plugin = { path = "../re-plugin", version = "0.2.0-alpha.1" }
+re-plugin-basic = { path = "../../../plugins/official/basic", version = "0.2.0-alpha.1" }
+re-plugin-bmad = { path = "../../../plugins/official/bmad", version = "0.2.0-alpha.1" }
+re-plugin-claude = { path = "../../../plugins/official/claude", version = "0.2.0-alpha.1" }
+re-plugin-claudebox = { path = "../../../plugins/official/claudebox", version = "0.2.0-alpha.1" }
+re-plugin-codex = { path = "../../../plugins/official/codex", version = "0.2.0-alpha.1" }
+re-plugin-github = { path = "../../../plugins/official/github", version = "0.2.0-alpha.1" }
+re-plugin-ssh = { path = "../../../plugins/official/ssh", version = "0.2.0-alpha.1" }
+re-plugin-tdd-strict = { path = "../../../plugins/official/tdd-strict", version = "0.2.0-alpha.1" }
+
+[lints]
+workspace = true

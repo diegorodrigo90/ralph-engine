@@ -80,6 +80,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 - `core/crates/re-mcp/` SHALL own typed MCP contribution contracts, including launch policy, process model, command boundaries, working-directory policy, environment policy, and availability policy.
 - `core/crates/re-plugin/` SHALL own typed plugin metadata, lifecycle, runtime-hook, loading-boundary, and capability contracts.
 - `core/crates/re-plugin/` SHALL also own typed plugin trust-level contracts so official and community plugin metadata stay aligned across runtime, CLI, and third-party manifests.
+- `core/crates/re-official/` SHALL own the typed built-in runtime catalog so official plugin wiring stays reusable and outside the CLI crate.
 - `core/crates/re-cli/` SHALL own the modular CLI surface and command registry.
 - `core/crates/re-config/` SHALL also own the canonical typed locale contract and supported-locale catalog for runtime-facing surfaces.
 - `re-core` and `re-cli` SHALL expose typed runtime capability, template, prompt, agent, check, provider, policy, and hook registration so new capabilities can be added through shared contracts instead of command-local branching.
