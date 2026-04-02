@@ -158,6 +158,12 @@ struct OfficialPluginBundle {
     mcp_servers: &'static [McpServerDescriptor],
 }
 
+#[derive(Clone, Copy)]
+struct ResolvedOfficialPluginBundle {
+    plugin: RuntimePluginRegistration,
+    bundle: OfficialPluginBundle,
+}
+
 #[allow(clippy::too_many_arguments)]
 const fn official_plugin_bundle(
     descriptor: PluginDescriptor,
@@ -326,57 +332,76 @@ fn resolved_plugin_entry(plugin: PluginDescriptor) -> ResolvedPluginConfig {
     )
 }
 
-fn resolved_plugin_entry_by_id(plugin_id: &'static str) -> ResolvedPluginConfig {
-    find_official_plugin(plugin_id)
-        .map(resolved_plugin_entry)
-        .unwrap_or(ResolvedPluginConfig::new(
-            plugin_id,
-            PluginActivation::Disabled,
-            ConfigScope::BuiltInDefaults,
-        ))
+fn resolved_mcp_registration(
+    server: McpServerDescriptor,
+    plugin_activation: PluginActivation,
+) -> RuntimeMcpRegistration {
+    let mcp_enabled = default_project_config().mcp.enabled;
+    let default_server_enabled = match server.availability {
+        McpAvailability::OnDemand => true,
+        McpAvailability::ExplicitOptIn => false,
+    };
+    let server_enabled = resolve_mcp_server_config(canonical_config_layers(), server.id)
+        .map(|entry| entry.enabled)
+        .unwrap_or(default_server_enabled);
+    let enabled =
+        matches!(plugin_activation, PluginActivation::Enabled) && mcp_enabled && server_enabled;
+
+    RuntimeMcpRegistration::new(server, enabled)
+}
+
+fn resolved_official_plugin_bundles() -> [ResolvedOfficialPluginBundle; 8] {
+    official_plugin_bundles().map(|bundle| {
+        let resolved = resolved_plugin_entry(bundle.descriptor);
+        let plugin = RuntimePluginRegistration::new(
+            bundle.descriptor,
+            resolved.activation,
+            resolved.resolved_from,
+        );
+
+        ResolvedOfficialPluginBundle { plugin, bundle }
+    })
 }
 
 /// Returns the resolved runtime plugin registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_plugins() -> [RuntimePluginRegistration; 8] {
-    let plugins = official_plugins();
-
-    plugins.map(|plugin| {
-        let resolved = resolved_plugin_entry(plugin);
-
-        RuntimePluginRegistration::new(plugin, resolved.activation, resolved.resolved_from)
-    })
+    resolved_official_plugin_bundles().map(|bundle| bundle.plugin)
 }
 
 /// Returns the resolved runtime MCP registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_mcp_registrations() -> [RuntimeMcpRegistration; 4] {
-    let servers = official_mcp_servers();
+    let bundles = resolved_official_plugin_bundles();
 
-    servers.map(|server| {
-        let resolved_plugin = resolved_plugin_entry_by_id(server.plugin_id);
-        let plugin_enabled = matches!(resolved_plugin.activation, PluginActivation::Enabled);
-        let mcp_enabled = default_project_config().mcp.enabled;
-        let default_server_enabled = match server.availability {
-            McpAvailability::OnDemand => true,
-            McpAvailability::ExplicitOptIn => false,
-        };
-        let server_enabled = resolve_mcp_server_config(canonical_config_layers(), server.id)
-            .map(|entry| entry.enabled)
-            .unwrap_or(default_server_enabled);
-        let enabled = plugin_enabled && mcp_enabled && server_enabled;
-
-        RuntimeMcpRegistration::new(server, enabled)
-    })
+    [
+        resolved_mcp_registration(
+            bundles[2].bundle.mcp_servers[0],
+            bundles[2].plugin.activation,
+        ),
+        resolved_mcp_registration(
+            bundles[3].bundle.mcp_servers[0],
+            bundles[3].plugin.activation,
+        ),
+        resolved_mcp_registration(
+            bundles[4].bundle.mcp_servers[0],
+            bundles[4].plugin.activation,
+        ),
+        resolved_mcp_registration(
+            bundles[5].bundle.mcp_servers[0],
+            bundles[5].plugin.activation,
+        ),
+    ]
 }
 
 /// Returns the resolved runtime capability registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_capabilities() -> Vec<RuntimeCapabilityRegistration> {
-    official_runtime_plugins()
+    resolved_official_plugin_bundles()
         .into_iter()
-        .flat_map(|plugin| {
-            plugin
+        .flat_map(|bundle| {
+            bundle
+                .plugin
                 .descriptor
                 .capabilities
                 .iter()
@@ -384,9 +409,9 @@ pub fn official_runtime_capabilities() -> Vec<RuntimeCapabilityRegistration> {
                 .map(move |capability| {
                     RuntimeCapabilityRegistration::new(
                         capability,
-                        plugin.descriptor.id,
-                        plugin.activation,
-                        plugin.descriptor.load_boundary,
+                        bundle.plugin.descriptor.id,
+                        bundle.plugin.activation,
+                        bundle.plugin.descriptor.load_boundary,
                     )
                 })
         })
@@ -396,22 +421,24 @@ pub fn official_runtime_capabilities() -> Vec<RuntimeCapabilityRegistration> {
 /// Returns the resolved template registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_templates() -> Vec<RuntimeTemplateRegistration> {
-    official_runtime_plugins()
+    resolved_official_plugin_bundles()
         .into_iter()
-        .filter(|plugin| {
-            plugin
+        .filter(|bundle| {
+            bundle
+                .plugin
                 .descriptor
                 .capabilities
                 .iter()
                 .copied()
                 .any(capability_activates_template_surface)
         })
-        .map(|plugin| {
+        .map(|bundle| {
             RuntimeTemplateRegistration::new(
-                plugin.descriptor.id,
-                plugin.activation,
-                plugin.descriptor.load_boundary,
-                plugin
+                bundle.plugin.descriptor.id,
+                bundle.plugin.activation,
+                bundle.plugin.descriptor.load_boundary,
+                bundle
+                    .plugin
                     .descriptor
                     .runtime_hooks
                     .contains(&template_runtime_hook()),
@@ -423,19 +450,20 @@ pub fn official_runtime_templates() -> Vec<RuntimeTemplateRegistration> {
 /// Returns the resolved template contributions for the official catalog.
 #[must_use]
 pub fn official_template_contributions() -> Vec<OfficialTemplateContribution> {
-    official_runtime_plugins()
+    resolved_official_plugin_bundles()
         .into_iter()
-        .zip(official_plugin_bundles())
-        .flat_map(|(plugin, bundle)| {
+        .flat_map(|bundle| {
             bundle
+                .bundle
                 .templates
                 .iter()
                 .copied()
                 .map(move |descriptor| OfficialTemplateContribution {
                     descriptor,
-                    activation: plugin.activation,
-                    load_boundary: plugin.descriptor.load_boundary,
-                    scaffold_hook_registered: plugin
+                    activation: bundle.plugin.activation,
+                    load_boundary: bundle.plugin.descriptor.load_boundary,
+                    scaffold_hook_registered: bundle
+                        .plugin
                         .descriptor
                         .runtime_hooks
                         .contains(&template_runtime_hook()),
@@ -447,22 +475,24 @@ pub fn official_template_contributions() -> Vec<OfficialTemplateContribution> {
 /// Returns the resolved prompt registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_prompts() -> Vec<RuntimePromptRegistration> {
-    official_runtime_plugins()
+    resolved_official_plugin_bundles()
         .into_iter()
-        .filter(|plugin| {
-            plugin
+        .filter(|bundle| {
+            bundle
+                .plugin
                 .descriptor
                 .capabilities
                 .iter()
                 .copied()
                 .any(capability_activates_prompt_surface)
         })
-        .map(|plugin| {
+        .map(|bundle| {
             RuntimePromptRegistration::new(
-                plugin.descriptor.id,
-                plugin.activation,
-                plugin.descriptor.load_boundary,
-                plugin
+                bundle.plugin.descriptor.id,
+                bundle.plugin.activation,
+                bundle.plugin.descriptor.load_boundary,
+                bundle
+                    .plugin
                     .descriptor
                     .runtime_hooks
                     .contains(&prompt_runtime_hook()),
@@ -474,19 +504,20 @@ pub fn official_runtime_prompts() -> Vec<RuntimePromptRegistration> {
 /// Returns the resolved prompt contributions for the official catalog.
 #[must_use]
 pub fn official_prompt_contributions() -> Vec<OfficialPromptContribution> {
-    official_runtime_plugins()
+    resolved_official_plugin_bundles()
         .into_iter()
-        .zip(official_plugin_bundles())
-        .flat_map(|(plugin, bundle)| {
+        .flat_map(|bundle| {
             bundle
+                .bundle
                 .prompts
                 .iter()
                 .copied()
                 .map(move |descriptor| OfficialPromptContribution {
                     descriptor,
-                    activation: plugin.activation,
-                    load_boundary: plugin.descriptor.load_boundary,
-                    prompt_hook_registered: plugin
+                    activation: bundle.plugin.activation,
+                    load_boundary: bundle.plugin.descriptor.load_boundary,
+                    prompt_hook_registered: bundle
+                        .plugin
                         .descriptor
                         .runtime_hooks
                         .contains(&prompt_runtime_hook()),
@@ -498,22 +529,24 @@ pub fn official_prompt_contributions() -> Vec<OfficialPromptContribution> {
 /// Returns the resolved agent runtime registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_agents() -> Vec<RuntimeAgentRegistration> {
-    official_runtime_plugins()
+    resolved_official_plugin_bundles()
         .into_iter()
-        .filter(|plugin| {
-            plugin
+        .filter(|bundle| {
+            bundle
+                .plugin
                 .descriptor
                 .capabilities
                 .iter()
                 .copied()
                 .any(capability_activates_agent_surface)
         })
-        .map(|plugin| {
+        .map(|bundle| {
             RuntimeAgentRegistration::new(
-                plugin.descriptor.id,
-                plugin.activation,
-                plugin.descriptor.load_boundary,
-                plugin
+                bundle.plugin.descriptor.id,
+                bundle.plugin.activation,
+                bundle.plugin.descriptor.load_boundary,
+                bundle
+                    .plugin
                     .descriptor
                     .runtime_hooks
                     .contains(&agent_runtime_hook()),
@@ -525,19 +558,20 @@ pub fn official_runtime_agents() -> Vec<RuntimeAgentRegistration> {
 /// Returns the resolved agent runtime contributions for the official catalog.
 #[must_use]
 pub fn official_agent_contributions() -> Vec<OfficialAgentContribution> {
-    official_runtime_plugins()
+    resolved_official_plugin_bundles()
         .into_iter()
-        .zip(official_plugin_bundles())
-        .flat_map(|(plugin, bundle)| {
+        .flat_map(|bundle| {
             bundle
+                .bundle
                 .agents
                 .iter()
                 .copied()
                 .map(move |descriptor| OfficialAgentContribution {
                     descriptor,
-                    activation: plugin.activation,
-                    load_boundary: plugin.descriptor.load_boundary,
-                    bootstrap_hook_registered: plugin
+                    activation: bundle.plugin.activation,
+                    load_boundary: bundle.plugin.descriptor.load_boundary,
+                    bootstrap_hook_registered: bundle
+                        .plugin
                         .descriptor
                         .runtime_hooks
                         .contains(&agent_runtime_hook()),
@@ -549,19 +583,19 @@ pub fn official_agent_contributions() -> Vec<OfficialAgentContribution> {
 /// Returns the resolved check contributions for the official catalog.
 #[must_use]
 pub fn official_check_contributions() -> Vec<OfficialCheckContribution> {
-    official_runtime_plugins()
+    resolved_official_plugin_bundles()
         .into_iter()
-        .zip(official_plugin_bundles())
-        .flat_map(|(plugin, bundle)| {
+        .flat_map(|bundle| {
             bundle
+                .bundle
                 .checks
                 .iter()
                 .copied()
                 .map(move |descriptor| OfficialCheckContribution {
                     descriptor,
-                    activation: plugin.activation,
-                    load_boundary: plugin.descriptor.load_boundary,
-                    runtime_hook_registered: plugin.descriptor.runtime_hooks.contains(
+                    activation: bundle.plugin.activation,
+                    load_boundary: bundle.plugin.descriptor.load_boundary,
+                    runtime_hook_registered: bundle.plugin.descriptor.runtime_hooks.contains(
                         &runtime_hook_for_check(runtime_check_kind_for_descriptor(descriptor.kind)),
                     ),
                 })
@@ -572,19 +606,19 @@ pub fn official_check_contributions() -> Vec<OfficialCheckContribution> {
 /// Returns the resolved provider contributions for the official catalog.
 #[must_use]
 pub fn official_provider_contributions() -> Vec<OfficialProviderContribution> {
-    official_runtime_plugins()
+    resolved_official_plugin_bundles()
         .into_iter()
-        .zip(official_plugin_bundles())
-        .flat_map(|(plugin, bundle)| {
+        .flat_map(|bundle| {
             bundle
+                .bundle
                 .providers
                 .iter()
                 .copied()
                 .map(move |descriptor| OfficialProviderContribution {
                     descriptor,
-                    activation: plugin.activation,
-                    load_boundary: plugin.descriptor.load_boundary,
-                    registration_hook_registered: plugin.descriptor.runtime_hooks.contains(
+                    activation: bundle.plugin.activation,
+                    load_boundary: bundle.plugin.descriptor.load_boundary,
+                    registration_hook_registered: bundle.plugin.descriptor.runtime_hooks.contains(
                         &runtime_hook_for_provider(runtime_provider_kind_for_descriptor(
                             descriptor.kind,
                         )),
@@ -597,10 +631,11 @@ pub fn official_provider_contributions() -> Vec<OfficialProviderContribution> {
 /// Returns the resolved runtime-hook registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_hooks() -> Vec<RuntimeHookRegistration> {
-    official_runtime_plugins()
+    resolved_official_plugin_bundles()
         .into_iter()
-        .flat_map(|plugin| {
-            plugin
+        .flat_map(|bundle| {
+            bundle
+                .plugin
                 .descriptor
                 .runtime_hooks
                 .iter()
@@ -608,9 +643,9 @@ pub fn official_runtime_hooks() -> Vec<RuntimeHookRegistration> {
                 .map(move |hook| {
                     RuntimeHookRegistration::new(
                         hook,
-                        plugin.descriptor.id,
-                        plugin.activation,
-                        plugin.descriptor.load_boundary,
+                        bundle.plugin.descriptor.id,
+                        bundle.plugin.activation,
+                        bundle.plugin.descriptor.load_boundary,
                     )
                 })
         })
@@ -654,23 +689,25 @@ pub fn official_runtime_providers() -> Vec<RuntimeProviderRegistration> {
 /// Returns the resolved runtime policy registrations for the official catalog.
 #[must_use]
 pub fn official_runtime_policies() -> Vec<RuntimePolicyRegistration> {
-    official_runtime_plugins()
+    resolved_official_plugin_bundles()
         .into_iter()
-        .filter(|plugin| {
-            plugin
+        .filter(|bundle| {
+            bundle
+                .plugin
                 .descriptor
                 .capabilities
                 .iter()
                 .copied()
                 .any(capability_activates_policy_surface)
         })
-        .map(|plugin| {
+        .map(|bundle| {
             RuntimePolicyRegistration::new(
-                plugin.descriptor.id,
-                plugin.descriptor.id,
-                plugin.activation,
-                plugin.descriptor.load_boundary,
-                plugin
+                bundle.plugin.descriptor.id,
+                bundle.plugin.descriptor.id,
+                bundle.plugin.activation,
+                bundle.plugin.descriptor.load_boundary,
+                bundle
+                    .plugin
                     .descriptor
                     .runtime_hooks
                     .contains(&policy_runtime_hook()),
@@ -682,19 +719,20 @@ pub fn official_runtime_policies() -> Vec<RuntimePolicyRegistration> {
 /// Returns the resolved policy contributions for the official catalog.
 #[must_use]
 pub fn official_policy_contributions() -> Vec<OfficialPolicyContribution> {
-    official_runtime_plugins()
+    resolved_official_plugin_bundles()
         .into_iter()
-        .zip(official_plugin_bundles())
-        .flat_map(|(plugin, bundle)| {
+        .flat_map(|bundle| {
             bundle
+                .bundle
                 .policies
                 .iter()
                 .copied()
                 .map(move |descriptor| OfficialPolicyContribution {
                     descriptor,
-                    activation: plugin.activation,
-                    load_boundary: plugin.descriptor.load_boundary,
-                    enforcement_hook_registered: plugin
+                    activation: bundle.plugin.activation,
+                    load_boundary: bundle.plugin.descriptor.load_boundary,
+                    enforcement_hook_registered: bundle
+                        .plugin
                         .descriptor
                         .runtime_hooks
                         .contains(&policy_runtime_hook()),
