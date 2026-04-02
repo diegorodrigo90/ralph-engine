@@ -1002,6 +1002,33 @@ pub fn render_runtime_status(status: &RuntimeStatus) -> String {
 /// Renders a human-readable runtime status summary for one locale.
 #[must_use]
 pub fn render_runtime_status_for_locale(status: &RuntimeStatus, locale: &str) -> String {
+    let plugin_label = "Plugins";
+    let capabilities_label = "Capabilities";
+    let templates_label = "Templates";
+    let prompts_label = "Prompts";
+    let agents_label = if locale.eq_ignore_ascii_case("pt-br") {
+        "Runtimes de agente"
+    } else {
+        "Agent runtimes"
+    };
+    let checks_label = "Checks";
+    let providers_label = if locale.eq_ignore_ascii_case("pt-br") {
+        "Provedores"
+    } else {
+        "Providers"
+    };
+    let policies_label = "Policies";
+    let hooks_label = if locale.eq_ignore_ascii_case("pt-br") {
+        "Hooks de runtime"
+    } else {
+        "Runtime hooks"
+    };
+    let mcp_label = if locale.eq_ignore_ascii_case("pt-br") {
+        "Servidores MCP"
+    } else {
+        "MCP servers"
+    };
+
     [
         format!(
             "{}: {}",
@@ -1022,43 +1049,43 @@ pub fn render_runtime_status_for_locale(status: &RuntimeStatus, locale: &str) ->
             status.health.as_str()
         ),
         format!(
-            "Plugins: enabled={}, disabled={}",
+            "{plugin_label}: enabled={}, disabled={}",
             status.enabled_plugins, status.disabled_plugins
         ),
         format!(
-            "Capabilities: enabled={}, disabled={}",
+            "{capabilities_label}: enabled={}, disabled={}",
             status.enabled_capabilities, status.disabled_capabilities
         ),
         format!(
-            "Templates: enabled={}, disabled={}",
+            "{templates_label}: enabled={}, disabled={}",
             status.enabled_templates, status.disabled_templates
         ),
         format!(
-            "Prompts: enabled={}, disabled={}",
+            "{prompts_label}: enabled={}, disabled={}",
             status.enabled_prompts, status.disabled_prompts
         ),
         format!(
-            "Agent runtimes: enabled={}, disabled={}",
+            "{agents_label}: enabled={}, disabled={}",
             status.enabled_agents, status.disabled_agents
         ),
         format!(
-            "Checks: enabled={}, disabled={}",
+            "{checks_label}: enabled={}, disabled={}",
             status.enabled_checks, status.disabled_checks
         ),
         format!(
-            "Providers: enabled={}, disabled={}",
+            "{providers_label}: enabled={}, disabled={}",
             status.enabled_providers, status.disabled_providers
         ),
         format!(
-            "Policies: enabled={}, disabled={}",
+            "{policies_label}: enabled={}, disabled={}",
             status.enabled_policies, status.disabled_policies
         ),
         format!(
-            "Runtime hooks: enabled={}, disabled={}",
+            "{hooks_label}: enabled={}, disabled={}",
             status.enabled_hooks, status.disabled_hooks
         ),
         format!(
-            "MCP servers: enabled={}, disabled={}",
+            "{mcp_label}: enabled={}, disabled={}",
             status.enabled_mcp_servers, status.disabled_mcp_servers
         ),
     ]
@@ -2834,6 +2861,10 @@ mod tests {
 
         assert!(rendered.contains("Fase do runtime: ready"));
         assert!(rendered.contains("Saúde do runtime: degraded"));
+        assert!(rendered.contains("Runtimes de agente: enabled=0, disabled=1"));
+        assert!(rendered.contains("Provedores: enabled=0, disabled=1"));
+        assert!(rendered.contains("Hooks de runtime: enabled=0, disabled=1"));
+        assert!(rendered.contains("Servidores MCP: enabled=0, disabled=1"));
     }
 
     #[test]

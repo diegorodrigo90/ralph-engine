@@ -137,6 +137,20 @@ fn binary_agents_list_succeeds() {
 }
 
 #[test]
+fn binary_agents_list_succeeds_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["agents", "list"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Runtimes de agente (3)"));
+    assert!(stdout.contains("official.codex"));
+}
+
+#[test]
 fn binary_agents_show_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
@@ -199,6 +213,20 @@ fn binary_templates_show_succeeds() {
 }
 
 #[test]
+fn binary_templates_show_succeeds_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["templates", "show", "official.basic"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Provedor de template: official.basic"));
+    assert!(stdout.contains("Provedores (1)"));
+}
+
+#[test]
 fn binary_templates_show_rejects_unknown_plugin_in_pt_br() {
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
@@ -241,6 +269,20 @@ fn binary_prompts_show_succeeds() {
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
     assert!(stdout.contains("Prompt provider: official.bmad"));
     assert!(stdout.contains("prompt_hook=true"));
+}
+
+#[test]
+fn binary_prompts_show_succeeds_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["prompts", "show", "official.bmad"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Provedor de prompt: official.bmad"));
+    assert!(stdout.contains("Provedores (1)"));
 }
 
 #[test]
@@ -417,6 +459,20 @@ fn binary_providers_show_succeeds() {
 }
 
 #[test]
+fn binary_providers_show_succeeds_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["providers", "show", "data_source"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Provedor: data_source"));
+    assert!(stdout.contains("Provedores (1)"));
+}
+
+#[test]
 fn binary_mcp_list_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
@@ -497,6 +553,22 @@ fn binary_runtime_status_succeeds() {
     assert!(stdout.contains("Providers: enabled=0, disabled=4"));
     assert!(stdout.contains("Policies: enabled=0, disabled=1"));
     assert!(stdout.contains("Runtime hooks: enabled=1, disabled=17"));
+}
+
+#[test]
+fn binary_runtime_status_succeeds_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["runtime", "status"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Fase do runtime: ready"));
+    assert!(stdout.contains("Saúde do runtime: degraded"));
+    assert!(stdout.contains("Runtimes de agente: enabled=0, disabled=3"));
+    assert!(stdout.contains("Hooks de runtime: enabled=1, disabled=17"));
 }
 
 #[test]
