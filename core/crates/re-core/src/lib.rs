@@ -2,7 +2,7 @@
 
 mod i18n;
 
-use re_config::{ConfigScope, PluginActivation};
+use re_config::{ConfigScope, McpServerConfig, PluginActivation, PluginConfig};
 use re_mcp::McpServerDescriptor;
 use re_plugin::{
     AGENT_RUNTIME, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, POLICY,
@@ -814,6 +814,32 @@ impl RuntimeAction {
     }
 }
 
+/// Typed configuration patch that can remediate one degraded runtime topology.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RuntimeConfigPatch {
+    /// Plugin activation entries needed to reach the recommended runtime state.
+    pub plugins: Vec<PluginConfig>,
+    /// MCP server activation entries needed to reach the recommended runtime state.
+    pub mcp_servers: Vec<McpServerConfig>,
+}
+
+impl RuntimeConfigPatch {
+    /// Creates a new immutable runtime config patch.
+    #[must_use]
+    pub fn new(plugins: Vec<PluginConfig>, mcp_servers: Vec<McpServerConfig>) -> Self {
+        Self {
+            plugins,
+            mcp_servers,
+        }
+    }
+
+    /// Returns whether the patch contains no configuration changes.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.plugins.is_empty() && self.mcp_servers.is_empty()
+    }
+}
+
 /// Immutable runtime doctor report derived from one resolved topology.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RuntimeDoctorReport {
@@ -852,6 +878,8 @@ pub struct RuntimeSnapshot<'a> {
     pub issues: Vec<RuntimeIssue>,
     /// Derived remediation actions.
     pub actions: Vec<RuntimeAction>,
+    /// Derived configuration patch that remediates the snapshot.
+    pub config_patch: RuntimeConfigPatch,
 }
 
 impl<'a> RuntimeSnapshot<'a> {
@@ -862,12 +890,14 @@ impl<'a> RuntimeSnapshot<'a> {
         status: RuntimeStatus,
         issues: Vec<RuntimeIssue>,
         actions: Vec<RuntimeAction>,
+        config_patch: RuntimeConfigPatch,
     ) -> Self {
         Self {
             topology,
             status,
             issues,
             actions,
+            config_patch,
         }
     }
 
@@ -1509,6 +1539,30 @@ pub fn build_runtime_action_plan(topology: &RuntimeTopology<'_>) -> Vec<RuntimeA
     actions
 }
 
+/// Builds a typed runtime configuration patch from the resolved topology.
+#[must_use]
+pub fn build_runtime_config_patch(topology: &RuntimeTopology<'_>) -> RuntimeConfigPatch {
+    let mut plugins = Vec::new();
+    let mut mcp_servers = Vec::new();
+
+    for plugin in topology.plugins {
+        if !plugin.is_enabled() {
+            plugins.push(PluginConfig::new(
+                plugin.descriptor.id,
+                PluginActivation::Enabled,
+            ));
+        }
+    }
+
+    for server in topology.mcp_servers {
+        if !server.enabled {
+            mcp_servers.push(McpServerConfig::new(server.descriptor.id, true));
+        }
+    }
+
+    RuntimeConfigPatch::new(plugins, mcp_servers)
+}
+
 /// Renders a human-readable runtime remediation plan.
 #[must_use]
 pub fn render_runtime_action_plan(actions: &[RuntimeAction]) -> String {
@@ -1540,6 +1594,27 @@ pub fn render_runtime_action_plan_for_locale(actions: &[RuntimeAction], locale: 
     lines.join("\n")
 }
 
+/// Renders a typed runtime config patch as YAML.
+#[must_use]
+pub fn render_runtime_config_patch_yaml(patch: &RuntimeConfigPatch) -> String {
+    let mut lines = vec!["plugins:".to_owned()];
+
+    for plugin in &patch.plugins {
+        lines.push(format!("  - id: {}", plugin.id));
+        lines.push(format!("    activation: {}", plugin.activation.as_str()));
+    }
+
+    lines.push("mcp:".to_owned());
+    lines.push("  servers:".to_owned());
+
+    for server in &patch.mcp_servers {
+        lines.push(format!("    - id: {}", server.id));
+        lines.push(format!("      enabled: {}", server.enabled));
+    }
+
+    lines.join("\n")
+}
+
 /// Builds a typed runtime doctor report from the resolved topology.
 #[must_use]
 pub fn build_runtime_doctor_report(topology: &RuntimeTopology<'_>) -> RuntimeDoctorReport {
@@ -1552,8 +1627,9 @@ pub fn build_runtime_snapshot<'a>(topology: &'a RuntimeTopology<'a>) -> RuntimeS
     let status = evaluate_runtime_status(topology);
     let issues = collect_runtime_issues(topology);
     let actions = build_runtime_action_plan(topology);
+    let config_patch = build_runtime_config_patch(topology);
 
-    RuntimeSnapshot::new(*topology, status, issues, actions)
+    RuntimeSnapshot::new(*topology, status, issues, actions, config_patch)
 }
 
 /// Renders a human-readable runtime doctor report.
@@ -1586,7 +1662,7 @@ fn translate_runtime_reason(locale: &str, reason: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use re_config::{ConfigScope, PluginActivation};
+    use re_config::{ConfigScope, McpServerConfig, PluginActivation, PluginConfig};
     use re_mcp::{McpAvailability, McpLaunchPolicy, McpServerDescriptor, McpTransport};
     use re_plugin::{
         PluginCapability, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
@@ -1596,21 +1672,21 @@ mod tests {
     use super::{
         ALL_RUNTIME_CHECK_KINDS, ALL_RUNTIME_PROVIDER_KINDS, PRODUCT_NAME, PRODUCT_TAGLINE,
         RuntimeAction, RuntimeActionKind, RuntimeAgentRegistration, RuntimeCapabilityRegistration,
-        RuntimeCheckKind, RuntimeCheckRegistration, RuntimeDoctorReport, RuntimeHealth,
-        RuntimeHookRegistration, RuntimeIssue, RuntimeIssueKind, RuntimeMcpRegistration,
-        RuntimePhase, RuntimePluginRegistration, RuntimePolicyRegistration,
+        RuntimeCheckKind, RuntimeCheckRegistration, RuntimeConfigPatch, RuntimeDoctorReport,
+        RuntimeHealth, RuntimeHookRegistration, RuntimeIssue, RuntimeIssueKind,
+        RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration, RuntimePolicyRegistration,
         RuntimePromptRegistration, RuntimeProviderKind, RuntimeProviderRegistration,
         RuntimeSnapshot, RuntimeStatus, RuntimeTemplateRegistration, RuntimeTopology,
-        agent_runtime_hook, banner, build_runtime_action_plan, build_runtime_doctor_report,
-        build_runtime_snapshot, capability_activates_agent_surface,
+        agent_runtime_hook, banner, build_runtime_action_plan, build_runtime_config_patch,
+        build_runtime_doctor_report, build_runtime_snapshot, capability_activates_agent_surface,
         capability_activates_policy_surface, capability_activates_prompt_surface,
         capability_activates_template_surface, collect_runtime_issues, evaluate_runtime_status,
         parse_runtime_check_kind, parse_runtime_provider_kind, policy_runtime_hook,
         prompt_runtime_hook, render_runtime_action_plan, render_runtime_action_plan_for_locale,
-        render_runtime_doctor_report, render_runtime_doctor_report_for_locale,
-        render_runtime_issues, render_runtime_issues_for_locale, render_runtime_status,
-        render_runtime_status_for_locale, render_runtime_topology,
-        render_runtime_topology_for_locale, template_runtime_hook,
+        render_runtime_config_patch_yaml, render_runtime_doctor_report,
+        render_runtime_doctor_report_for_locale, render_runtime_issues,
+        render_runtime_issues_for_locale, render_runtime_status, render_runtime_status_for_locale,
+        render_runtime_topology, render_runtime_topology_for_locale, template_runtime_hook,
     };
 
     const CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -2071,6 +2147,7 @@ mod tests {
         assert_eq!(snapshot.status.health, RuntimeHealth::Healthy);
         assert!(snapshot.issues.is_empty());
         assert!(snapshot.actions.is_empty());
+        assert!(snapshot.config_patch.is_empty());
     }
 
     #[test]
@@ -2124,6 +2201,13 @@ mod tests {
                 "official.basic",
                 "enable plugin official.basic",
             )],
+            RuntimeConfigPatch::new(
+                vec![PluginConfig::new(
+                    "official.basic",
+                    PluginActivation::Enabled,
+                )],
+                Vec::new(),
+            ),
         )
         .doctor_report();
 
@@ -2886,6 +2970,65 @@ mod tests {
         assert!(rendered.contains(
             "- enable_plugin | target=official.github | reason=the plugin is registered but disabled"
         ));
+    }
+
+    #[test]
+    fn build_runtime_config_patch_collects_disabled_plugins_and_mcp_servers() {
+        let plugins = [RuntimePluginRegistration::new(
+            plugin_descriptor(),
+            PluginActivation::Disabled,
+            ConfigScope::Project,
+        )];
+        let mcp_servers = [RuntimeMcpRegistration::new(mcp_descriptor(), false)];
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &plugins,
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &mcp_servers,
+        };
+
+        let patch = build_runtime_config_patch(&topology);
+
+        assert_eq!(
+            patch.plugins,
+            vec![PluginConfig::new(
+                PRIMARY_PLUGIN_ID,
+                PluginActivation::Enabled,
+            )]
+        );
+        assert_eq!(
+            patch.mcp_servers,
+            vec![McpServerConfig::new(MCP_SERVER_ID, true)]
+        );
+    }
+
+    #[test]
+    fn render_runtime_config_patch_yaml_is_human_readable() {
+        let patch = RuntimeConfigPatch::new(
+            vec![PluginConfig::new(
+                PRIMARY_PLUGIN_ID,
+                PluginActivation::Enabled,
+            )],
+            vec![McpServerConfig::new(MCP_SERVER_ID, true)],
+        );
+
+        let rendered = render_runtime_config_patch_yaml(&patch);
+
+        assert!(rendered.contains("plugins:"));
+        assert!(rendered.contains("- id: test.foundation"));
+        assert!(rendered.contains("activation: enabled"));
+        assert!(rendered.contains("mcp:"));
+        assert!(rendered.contains("servers:"));
+        assert!(rendered.contains("- id: test.mcp.session"));
+        assert!(rendered.contains("enabled: true"));
     }
 
     #[test]

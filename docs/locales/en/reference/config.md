@@ -32,6 +32,7 @@ ralph-engine config show-budgets
 ralph-engine config show-defaults
 ralph-engine config show-layers
 ralph-engine config show-locale
+ralph-engine config show-mcp-server <server-id>
 ralph-engine config show-plugin <plugin-id>
 ```
 
@@ -46,5 +47,7 @@ The `config budgets` command renders the canonical typed prompt and context budg
 The `config layers` command renders the canonical typed configuration stack in resolution order so defaults, future workspace settings, project settings, and user overrides stay explicit in the runtime contract.
 
 The `config show-plugin` command now renders the effective plugin activation together with the scope that supplied it.
+
+The `config show-mcp-server` command renders the effective typed activation for one MCP server together with the scope that supplied it, so per-server opt-in stays explicit instead of being inferred only from plugin activation.
 
 Those contracts will continue to expand on top of the new Rust core under TDD.

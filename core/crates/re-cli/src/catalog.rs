@@ -2,7 +2,8 @@
 
 use re_config::{
     ConfigScope, PluginActivation, ResolvedPluginConfig, canonical_config_layers,
-    default_project_config_layer, resolve_plugin_config,
+    default_project_config, default_project_config_layer, resolve_mcp_server_config,
+    resolve_plugin_config,
 };
 use re_core::{
     RuntimeAgentRegistration, RuntimeCapabilityRegistration, RuntimeCheckKind,
@@ -14,7 +15,7 @@ use re_core::{
     policy_runtime_hook, prompt_runtime_hook, runtime_hook_for_check, runtime_hook_for_provider,
     template_runtime_hook,
 };
-use re_mcp::McpServerDescriptor;
+use re_mcp::{McpAvailability, McpServerDescriptor};
 use re_plugin::{
     PluginAgentDescriptor, PluginCheckDescriptor, PluginCheckKind, PluginDescriptor,
     PluginPolicyDescriptor, PluginPromptDescriptor, PluginProviderDescriptor, PluginProviderKind,
@@ -353,8 +354,17 @@ pub fn official_runtime_mcp_registrations() -> [RuntimeMcpRegistration; 4] {
     let servers = official_mcp_servers();
 
     servers.map(|server| {
-        let resolved = resolved_plugin_entry_by_id(server.plugin_id);
-        let enabled = matches!(resolved.activation, PluginActivation::Enabled);
+        let resolved_plugin = resolved_plugin_entry_by_id(server.plugin_id);
+        let plugin_enabled = matches!(resolved_plugin.activation, PluginActivation::Enabled);
+        let mcp_enabled = default_project_config().mcp.enabled;
+        let default_server_enabled = match server.availability {
+            McpAvailability::OnDemand => true,
+            McpAvailability::ExplicitOptIn => false,
+        };
+        let server_enabled = resolve_mcp_server_config(canonical_config_layers(), server.id)
+            .map(|entry| entry.enabled)
+            .unwrap_or(default_server_enabled);
+        let enabled = plugin_enabled && mcp_enabled && server_enabled;
 
         RuntimeMcpRegistration::new(server, enabled)
     })

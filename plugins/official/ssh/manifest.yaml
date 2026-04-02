@@ -6,7 +6,7 @@ display_name_locales:
 summary: SSH remote control integration.
 summary_locales:
   pt-br: Integração de controle remoto por SSH.
-publisher: official
+publisher: ralph-engine
 trust_level: official
 plugin_version: 0.2.0-alpha.1
 plugin_api_version: 1.0.0

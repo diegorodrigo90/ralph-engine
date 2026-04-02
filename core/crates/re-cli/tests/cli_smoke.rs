@@ -826,6 +826,24 @@ fn binary_runtime_plan_succeeds_in_pt_br() {
 }
 
 #[test]
+fn binary_runtime_patch_succeeds() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["runtime", "patch"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("plugins:"));
+    assert!(stdout.contains("- id: official.github"));
+    assert!(stdout.contains("activation: enabled"));
+    assert!(stdout.contains("mcp:"));
+    assert!(stdout.contains("servers:"));
+    assert!(stdout.contains("- id: official.github.repository"));
+    assert!(stdout.contains("enabled: true"));
+}
+
+#[test]
 fn binary_config_show_defaults_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
@@ -962,5 +980,19 @@ fn binary_config_show_plugin_succeeds() {
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
     assert!(stdout.contains("id: official.basic"));
     assert!(stdout.contains("activation: enabled"));
+    assert!(stdout.contains("resolved_from: built_in_defaults"));
+}
+
+#[test]
+fn binary_config_show_mcp_server_succeeds() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["config", "show-mcp-server", "official.github.repository"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("id: official.github.repository"));
+    assert!(stdout.contains("enabled: false"));
     assert!(stdout.contains("resolved_from: built_in_defaults"));
 }

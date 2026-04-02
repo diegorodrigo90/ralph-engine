@@ -6,7 +6,7 @@ display_name_locales:
 summary: Foundation plugin for starter templates.
 summary_locales:
   pt-br: Plugin base para templates iniciais.
-publisher: official
+publisher: ralph-engine
 trust_level: official
 plugin_version: 0.2.0-alpha.1
 capabilities:
