@@ -63,6 +63,10 @@ mod tests {
         PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, runtime_hooks,
     };
 
+    fn manifest_document() -> &'static str {
+        include_str!("../manifest.yaml")
+    }
+
     #[test]
     fn plugin_id_is_namespaced() {
         // Arrange
@@ -125,5 +129,15 @@ mod tests {
 
         // Assert
         assert!(has_hooks);
+    }
+
+    #[test]
+    fn plugin_manifest_matches_typed_contract_surface() {
+        let manifest = manifest_document();
+
+        assert!(manifest.contains("id: official.ssh"));
+        assert!(manifest.contains("kind: remote_control"));
+        assert!(manifest.contains("- remote_control"));
+        assert!(manifest.contains("trust_level: official"));
     }
 }

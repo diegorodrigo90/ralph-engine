@@ -102,6 +102,10 @@ mod tests {
         runtime_hooks,
     };
 
+    fn manifest_document() -> &'static str {
+        include_str!("../manifest.yaml")
+    }
+
     #[test]
     fn plugin_id_is_namespaced() {
         // Arrange
@@ -180,5 +184,18 @@ mod tests {
 
         // Assert
         assert!(has_hooks);
+    }
+
+    #[test]
+    fn plugin_manifest_matches_typed_contract_surface() {
+        let manifest = manifest_document();
+
+        assert!(manifest.contains("id: official.github"));
+        assert!(manifest.contains("kind: mcp_contribution"));
+        assert!(manifest.contains("- data_source"));
+        assert!(manifest.contains("- context_provider"));
+        assert!(manifest.contains("- forge_provider"));
+        assert!(manifest.contains("- mcp_contribution"));
+        assert!(manifest.contains("plugin_api_version: 1"));
     }
 }

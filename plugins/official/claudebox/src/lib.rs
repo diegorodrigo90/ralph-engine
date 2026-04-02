@@ -98,6 +98,10 @@ mod tests {
         runtime_hooks,
     };
 
+    fn manifest_document() -> &'static str {
+        include_str!("../manifest.yaml")
+    }
+
     #[test]
     fn plugin_id_is_namespaced() {
         // Arrange
@@ -189,5 +193,17 @@ mod tests {
             agent.summary_for_locale("pt-br"),
             "Sessão de runtime do Claude Box para o Ralph Engine."
         );
+    }
+
+    #[test]
+    fn plugin_manifest_matches_typed_contract_surface() {
+        let manifest = manifest_document();
+
+        assert!(manifest.contains("id: official.claudebox"));
+        assert!(manifest.contains("kind: agent_runtime"));
+        assert!(manifest.contains("- agent_runtime"));
+        assert!(manifest.contains("- mcp_contribution"));
+        assert!(manifest.contains("id: official.claudebox.session"));
+        assert!(manifest.contains("plugin_api_version: 1"));
     }
 }
