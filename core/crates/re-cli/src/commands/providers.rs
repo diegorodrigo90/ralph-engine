@@ -1,6 +1,6 @@
 //! Provider command handlers.
 
-use re_core::{RuntimeProviderKind, RuntimeProviderRegistration};
+use re_core::{RuntimeProviderKind, RuntimeProviderRegistration, parse_runtime_provider_kind};
 
 use crate::{CliError, catalog, i18n};
 
@@ -28,7 +28,7 @@ fn show_provider(provider_kind: Option<&str>, locale: &str) -> Result<String, Cl
             i18n::provider_id_entity_label(locale),
         ))
     })?;
-    let kind = parse_provider_kind(provider_kind).ok_or_else(|| {
+    let kind = parse_runtime_provider_kind(provider_kind).ok_or_else(|| {
         CliError::new(i18n::unknown_entity(
             locale,
             i18n::provider_entity_label(locale),
@@ -41,16 +41,6 @@ fn show_provider(provider_kind: Option<&str>, locale: &str) -> Result<String, Cl
         .collect::<Vec<_>>();
 
     Ok(render_provider_detail(kind, &providers, locale))
-}
-
-fn parse_provider_kind(value: &str) -> Option<RuntimeProviderKind> {
-    match value {
-        "data_source" => Some(RuntimeProviderKind::DataSource),
-        "context_provider" => Some(RuntimeProviderKind::ContextProvider),
-        "forge_provider" => Some(RuntimeProviderKind::ForgeProvider),
-        "remote_control" => Some(RuntimeProviderKind::RemoteControl),
-        _ => None,
-    }
 }
 
 fn render_provider_listing(registrations: &[RuntimeProviderRegistration], locale: &str) -> String {
@@ -128,7 +118,8 @@ mod tests {
     use re_core::{RuntimeProviderKind, RuntimeProviderRegistration};
     use re_plugin::PluginLoadBoundary;
 
-    use super::{parse_provider_kind, render_provider_detail, render_provider_listing};
+    use super::{render_provider_detail, render_provider_listing};
+    use re_core::parse_runtime_provider_kind;
 
     #[test]
     fn parse_provider_kind_supports_stable_identifiers() {
@@ -143,7 +134,7 @@ mod tests {
         // Act
         let parsed = values
             .into_iter()
-            .map(parse_provider_kind)
+            .map(parse_runtime_provider_kind)
             .collect::<Vec<_>>();
 
         // Assert
@@ -164,7 +155,7 @@ mod tests {
         let value = "unknown";
 
         // Act
-        let parsed = parse_provider_kind(value);
+        let parsed = parse_runtime_provider_kind(value);
 
         // Assert
         assert_eq!(parsed, None);

@@ -374,6 +374,20 @@ impl RuntimeCheckKind {
     }
 }
 
+/// Canonical ordered list of reviewed runtime check kinds.
+pub const ALL_RUNTIME_CHECK_KINDS: &[RuntimeCheckKind] =
+    &[RuntimeCheckKind::Prepare, RuntimeCheckKind::Doctor];
+
+/// Parses one stable runtime-check identifier.
+#[must_use]
+pub fn parse_runtime_check_kind(value: &str) -> Option<RuntimeCheckKind> {
+    match value {
+        "prepare" => Some(RuntimeCheckKind::Prepare),
+        "doctor" => Some(RuntimeCheckKind::Doctor),
+        _ => None,
+    }
+}
+
 /// Resolves the typed runtime-check surface declared by one plugin capability.
 #[must_use]
 pub fn runtime_check_kind_for_capability(capability: PluginCapability) -> Option<RuntimeCheckKind> {
@@ -493,6 +507,26 @@ impl RuntimeProviderKind {
             Self::ForgeProvider => "forge_provider",
             Self::RemoteControl => "remote_control",
         }
+    }
+}
+
+/// Canonical ordered list of reviewed runtime provider kinds.
+pub const ALL_RUNTIME_PROVIDER_KINDS: &[RuntimeProviderKind] = &[
+    RuntimeProviderKind::DataSource,
+    RuntimeProviderKind::ContextProvider,
+    RuntimeProviderKind::ForgeProvider,
+    RuntimeProviderKind::RemoteControl,
+];
+
+/// Parses one stable runtime-provider identifier.
+#[must_use]
+pub fn parse_runtime_provider_kind(value: &str) -> Option<RuntimeProviderKind> {
+    match value {
+        "data_source" => Some(RuntimeProviderKind::DataSource),
+        "context_provider" => Some(RuntimeProviderKind::ContextProvider),
+        "forge_provider" => Some(RuntimeProviderKind::ForgeProvider),
+        "remote_control" => Some(RuntimeProviderKind::RemoteControl),
+        _ => None,
     }
 }
 
@@ -1560,21 +1594,23 @@ mod tests {
     };
 
     use super::{
-        PRODUCT_NAME, PRODUCT_TAGLINE, RuntimeAction, RuntimeActionKind, RuntimeAgentRegistration,
-        RuntimeCapabilityRegistration, RuntimeCheckKind, RuntimeCheckRegistration,
-        RuntimeDoctorReport, RuntimeHealth, RuntimeHookRegistration, RuntimeIssue,
-        RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
-        RuntimePolicyRegistration, RuntimePromptRegistration, RuntimeProviderKind,
-        RuntimeProviderRegistration, RuntimeSnapshot, RuntimeStatus, RuntimeTemplateRegistration,
-        RuntimeTopology, agent_runtime_hook, banner, build_runtime_action_plan,
-        build_runtime_doctor_report, build_runtime_snapshot, capability_activates_agent_surface,
+        ALL_RUNTIME_CHECK_KINDS, ALL_RUNTIME_PROVIDER_KINDS, PRODUCT_NAME, PRODUCT_TAGLINE,
+        RuntimeAction, RuntimeActionKind, RuntimeAgentRegistration, RuntimeCapabilityRegistration,
+        RuntimeCheckKind, RuntimeCheckRegistration, RuntimeDoctorReport, RuntimeHealth,
+        RuntimeHookRegistration, RuntimeIssue, RuntimeIssueKind, RuntimeMcpRegistration,
+        RuntimePhase, RuntimePluginRegistration, RuntimePolicyRegistration,
+        RuntimePromptRegistration, RuntimeProviderKind, RuntimeProviderRegistration,
+        RuntimeSnapshot, RuntimeStatus, RuntimeTemplateRegistration, RuntimeTopology,
+        agent_runtime_hook, banner, build_runtime_action_plan, build_runtime_doctor_report,
+        build_runtime_snapshot, capability_activates_agent_surface,
         capability_activates_policy_surface, capability_activates_prompt_surface,
         capability_activates_template_surface, collect_runtime_issues, evaluate_runtime_status,
-        policy_runtime_hook, prompt_runtime_hook, render_runtime_action_plan,
-        render_runtime_action_plan_for_locale, render_runtime_doctor_report,
-        render_runtime_doctor_report_for_locale, render_runtime_issues,
-        render_runtime_issues_for_locale, render_runtime_status, render_runtime_status_for_locale,
-        render_runtime_topology, render_runtime_topology_for_locale, template_runtime_hook,
+        parse_runtime_check_kind, parse_runtime_provider_kind, policy_runtime_hook,
+        prompt_runtime_hook, render_runtime_action_plan, render_runtime_action_plan_for_locale,
+        render_runtime_doctor_report, render_runtime_doctor_report_for_locale,
+        render_runtime_issues, render_runtime_issues_for_locale, render_runtime_status,
+        render_runtime_status_for_locale, render_runtime_topology,
+        render_runtime_topology_for_locale, template_runtime_hook,
     };
 
     const CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -1772,6 +1808,62 @@ mod tests {
                 "mcp_server_disabled"
             ]
         );
+    }
+
+    #[test]
+    fn runtime_check_kind_contract_is_stable() {
+        let rendered = ALL_RUNTIME_CHECK_KINDS
+            .iter()
+            .copied()
+            .map(RuntimeCheckKind::as_str)
+            .collect::<Vec<_>>();
+
+        assert_eq!(rendered, vec!["prepare", "doctor"]);
+        assert_eq!(
+            parse_runtime_check_kind("prepare"),
+            Some(RuntimeCheckKind::Prepare)
+        );
+        assert_eq!(
+            parse_runtime_check_kind("doctor"),
+            Some(RuntimeCheckKind::Doctor)
+        );
+        assert_eq!(parse_runtime_check_kind("unknown"), None);
+    }
+
+    #[test]
+    fn runtime_provider_kind_contract_is_stable() {
+        let rendered = ALL_RUNTIME_PROVIDER_KINDS
+            .iter()
+            .copied()
+            .map(RuntimeProviderKind::as_str)
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            rendered,
+            vec![
+                "data_source",
+                "context_provider",
+                "forge_provider",
+                "remote_control",
+            ]
+        );
+        assert_eq!(
+            parse_runtime_provider_kind("data_source"),
+            Some(RuntimeProviderKind::DataSource)
+        );
+        assert_eq!(
+            parse_runtime_provider_kind("context_provider"),
+            Some(RuntimeProviderKind::ContextProvider)
+        );
+        assert_eq!(
+            parse_runtime_provider_kind("forge_provider"),
+            Some(RuntimeProviderKind::ForgeProvider)
+        );
+        assert_eq!(
+            parse_runtime_provider_kind("remote_control"),
+            Some(RuntimeProviderKind::RemoteControl)
+        );
+        assert_eq!(parse_runtime_provider_kind("unknown"), None);
     }
 
     #[test]

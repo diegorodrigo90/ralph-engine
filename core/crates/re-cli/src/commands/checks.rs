@@ -1,6 +1,6 @@
 //! Runtime check command handlers.
 
-use re_core::{RuntimeCheckKind, RuntimeCheckRegistration};
+use re_core::{RuntimeCheckKind, RuntimeCheckRegistration, parse_runtime_check_kind};
 
 use crate::{CliError, catalog, i18n};
 
@@ -26,7 +26,7 @@ fn show_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError
             i18n::check_id_entity_label(locale),
         ))
     })?;
-    let kind = parse_check_kind(check_kind).ok_or_else(|| {
+    let kind = parse_runtime_check_kind(check_kind).ok_or_else(|| {
         CliError::new(i18n::unknown_entity(
             locale,
             i18n::check_entity_label(locale),
@@ -39,14 +39,6 @@ fn show_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError
         .collect::<Vec<_>>();
 
     Ok(render_check_detail(kind, &checks, locale))
-}
-
-fn parse_check_kind(value: &str) -> Option<RuntimeCheckKind> {
-    match value {
-        "prepare" => Some(RuntimeCheckKind::Prepare),
-        "doctor" => Some(RuntimeCheckKind::Doctor),
-        _ => None,
-    }
 }
 
 fn render_check_listing(registrations: &[RuntimeCheckRegistration], locale: &str) -> String {
@@ -131,7 +123,8 @@ mod tests {
     use re_core::{RuntimeCheckKind, RuntimeCheckRegistration};
     use re_plugin::PluginLoadBoundary;
 
-    use super::{parse_check_kind, render_check_detail, render_check_listing};
+    use super::{render_check_detail, render_check_listing};
+    use re_core::parse_runtime_check_kind;
 
     #[test]
     fn parse_check_kind_supports_stable_identifiers() {
@@ -139,7 +132,10 @@ mod tests {
         let values = ["prepare", "doctor"];
 
         // Act
-        let parsed = values.into_iter().map(parse_check_kind).collect::<Vec<_>>();
+        let parsed = values
+            .into_iter()
+            .map(parse_runtime_check_kind)
+            .collect::<Vec<_>>();
 
         // Assert
         assert_eq!(
@@ -157,7 +153,7 @@ mod tests {
         let value = "unknown";
 
         // Act
-        let parsed = parse_check_kind(value);
+        let parsed = parse_runtime_check_kind(value);
 
         // Assert
         assert_eq!(parsed, None);
