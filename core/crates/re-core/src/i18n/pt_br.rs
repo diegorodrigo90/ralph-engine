@@ -1,0 +1,16 @@
+pub(super) const RUNTIME_PHASE: &str = "Fase do runtime";
+pub(super) const RUNTIME_HEALTH: &str = "Saúde do runtime";
+pub(super) const LOCALE: &str = "Locale";
+pub(super) const PLUGINS: &str = "Plugins";
+pub(super) const CAPABILITIES: &str = "Capabilities";
+pub(super) const TEMPLATES: &str = "Templates";
+pub(super) const PROMPTS: &str = "Prompts";
+pub(super) const AGENT_RUNTIMES: &str = "Runtimes de agente";
+pub(super) const CHECKS: &str = "Checks";
+pub(super) const PROVIDERS: &str = "Provedores";
+pub(super) const POLICIES: &str = "Policies";
+pub(super) const RUNTIME_HOOKS: &str = "Hooks de runtime";
+pub(super) const MCP_SERVERS: &str = "Servidores MCP";
+pub(super) const RUNTIME_ISSUES: &str = "Problemas do runtime";
+pub(super) const RUNTIME_ACTION_PLAN: &str = "Plano de ação do runtime";
+pub(super) const RUNTIME_DOCTOR: &str = "Doctor do runtime";
