@@ -272,6 +272,23 @@ fn resolve_localized_text<'a>(
         .map_or(fallback, |entry| entry.value)
 }
 
+/// One immutable template asset entry owned by one template contribution.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PluginTemplateAsset {
+    /// Stable relative asset path exposed by the template.
+    pub path: &'static str,
+    /// Immutable embedded asset contents.
+    pub contents: &'static str,
+}
+
+impl PluginTemplateAsset {
+    /// Creates one immutable template asset entry.
+    #[must_use]
+    pub const fn new(path: &'static str, contents: &'static str) -> Self {
+        Self { path, contents }
+    }
+}
+
 /// Immutable template contribution owned by one plugin.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PluginTemplateDescriptor {
@@ -287,6 +304,8 @@ pub struct PluginTemplateDescriptor {
     pub summary: &'static str,
     /// Optional localized template summaries keyed by locale.
     pub localized_summaries: &'static [PluginLocalizedText],
+    /// Immutable assets exposed by the template contribution.
+    pub assets: &'static [PluginTemplateAsset],
 }
 
 impl PluginTemplateDescriptor {
@@ -299,6 +318,7 @@ impl PluginTemplateDescriptor {
         localized_names: &'static [PluginLocalizedText],
         summary: &'static str,
         localized_summaries: &'static [PluginLocalizedText],
+        assets: &'static [PluginTemplateAsset],
     ) -> Self {
         Self {
             id,
@@ -307,6 +327,7 @@ impl PluginTemplateDescriptor {
             localized_names,
             summary,
             localized_summaries,
+            assets,
         }
     }
 
@@ -320,6 +341,12 @@ impl PluginTemplateDescriptor {
     #[must_use]
     pub fn summary_for_locale(&self, locale: &str) -> &'static str {
         resolve_localized_text(self.localized_summaries, locale, self.summary)
+    }
+
+    /// Returns whether the template exposes embedded assets.
+    #[must_use]
+    pub const fn has_assets(&self) -> bool {
+        !self.assets.is_empty()
     }
 }
 

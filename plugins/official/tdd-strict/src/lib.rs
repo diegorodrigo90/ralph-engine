@@ -4,8 +4,8 @@ mod i18n;
 
 use re_plugin::{
     POLICY, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
-    PluginLocalizedText, PluginPolicyDescriptor, PluginRuntimeHook, PluginTemplateDescriptor,
-    PluginTrustLevel, TEMPLATE,
+    PluginLocalizedText, PluginPolicyDescriptor, PluginRuntimeHook, PluginTemplateAsset,
+    PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
 };
 
 /// Stable plugin identifier.
@@ -40,6 +40,24 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PluginLoadBoundary::InProcess,
     RUNTIME_HOOKS,
 );
+const TEMPLATE_ASSETS: &[PluginTemplateAsset] = &[
+    PluginTemplateAsset::new(
+        ".ralph-engine/README.md",
+        include_str!("../template/README.md"),
+    ),
+    PluginTemplateAsset::new(
+        ".ralph-engine/config.yaml",
+        include_str!("../template/config.yaml"),
+    ),
+    PluginTemplateAsset::new(
+        ".ralph-engine/hooks.yaml",
+        include_str!("../template/hooks.yaml"),
+    ),
+    PluginTemplateAsset::new(
+        ".ralph-engine/prompt.md",
+        include_str!("../template/prompt.md"),
+    ),
+];
 const TEMPLATES: &[PluginTemplateDescriptor] = &[PluginTemplateDescriptor::new(
     "official.tdd-strict.starter",
     PLUGIN_ID,
@@ -47,6 +65,7 @@ const TEMPLATES: &[PluginTemplateDescriptor] = &[PluginTemplateDescriptor::new(
     i18n::localized_template_names(),
     i18n::default_template_summary(),
     i18n::localized_template_summaries(),
+    TEMPLATE_ASSETS,
 )];
 const POLICIES: &[PluginPolicyDescriptor] = &[PluginPolicyDescriptor::new(
     "official.tdd-strict.guardrails",
@@ -174,6 +193,8 @@ mod tests {
 
         assert_eq!(template.id, "official.tdd-strict.starter");
         assert_eq!(template.plugin_id, PLUGIN_ID);
+        assert!(template.has_assets());
+        assert_eq!(template.assets.len(), 4);
         assert_eq!(
             template.display_name_for_locale("pt-br"),
             "Starter TDD estrito"

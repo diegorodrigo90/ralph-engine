@@ -6,10 +6,10 @@ use re_plugin::{
     DOCTOR_CHECKS, FORGE_PROVIDER, MCP_CONTRIBUTION, POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS,
     PluginAgentDescriptor, PluginCapability, PluginDescriptor, PluginKind, PluginLifecycleStage,
     PluginLoadBoundary, PluginLocalizedText, PluginPolicyDescriptor, PluginPromptDescriptor,
-    PluginRuntimeHook, PluginRuntimeSurface, PluginTemplateDescriptor, PluginTrustLevel,
-    REMOTE_CONTROL, TEMPLATE, parse_plugin_runtime_hook, parse_reviewed_plugin_capability,
-    render_plugin_detail, render_plugin_detail_for_locale, render_plugin_listing,
-    render_plugin_listing_for_locale, runtime_surface_for_capability,
+    PluginRuntimeHook, PluginRuntimeSurface, PluginTemplateAsset, PluginTemplateDescriptor,
+    PluginTrustLevel, REMOTE_CONTROL, TEMPLATE, parse_plugin_runtime_hook,
+    parse_reviewed_plugin_capability, render_plugin_detail, render_plugin_detail_for_locale,
+    render_plugin_listing, render_plugin_listing_for_locale, runtime_surface_for_capability,
 };
 
 const BASIC_CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -66,6 +66,10 @@ const GITHUB_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
     PluginRuntimeHook::DataSourceRegistration,
     PluginRuntimeHook::ForgeProviderRegistration,
 ];
+const TEMPLATE_ASSETS: &[PluginTemplateAsset] = &[PluginTemplateAsset::new(
+    ".ralph-engine/config.yaml",
+    "schema_version: 1\n",
+)];
 
 fn basic_plugin() -> PluginDescriptor {
     PluginDescriptor::new(
@@ -147,6 +151,7 @@ fn template_descriptor_resolves_locales_with_english_fallback() {
         BASIC_TEMPLATE_LOCALIZED_NAMES,
         "Starter fixture template for new Ralph Engine projects.",
         BASIC_TEMPLATE_LOCALIZED_SUMMARIES,
+        TEMPLATE_ASSETS,
     );
 
     assert_eq!(
@@ -162,6 +167,8 @@ fn template_descriptor_resolves_locales_with_english_fallback() {
         descriptor.summary_for_locale("es"),
         "Starter fixture template for new Ralph Engine projects."
     );
+    assert!(descriptor.has_assets());
+    assert_eq!(descriptor.assets[0].path, ".ralph-engine/config.yaml");
 }
 
 #[test]
