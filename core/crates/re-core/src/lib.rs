@@ -2193,17 +2193,17 @@ mod tests {
             },
             vec![RuntimeIssue::new(
                 RuntimeIssueKind::PluginDisabled,
-                "official.basic",
-                "enable plugin official.basic",
+                PRIMARY_PLUGIN_ID,
+                "enable plugin test.foundation",
             )],
             vec![RuntimeAction::new(
                 RuntimeActionKind::EnablePlugin,
-                "official.basic",
-                "enable plugin official.basic",
+                PRIMARY_PLUGIN_ID,
+                "enable plugin test.foundation",
             )],
             RuntimeConfigPatch::new(
                 vec![PluginConfig::new(
-                    "official.basic",
+                    PRIMARY_PLUGIN_ID,
                     PluginActivation::Enabled,
                 )],
                 Vec::new(),
@@ -2460,45 +2460,45 @@ mod tests {
         )];
         let capabilities = [RuntimeCapabilityRegistration::new(
             PluginCapability::new("template"),
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
         let templates = [RuntimeTemplateRegistration::new(
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let prompts = [RuntimePromptRegistration::new(
-            "official.bmad",
+            PROMPT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let checks = [RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
-            "official.bmad",
+            PROMPT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let agents = [RuntimeAgentRegistration::new(
-            "official.codex",
+            AGENT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let providers = [RuntimeProviderRegistration::new(
             RuntimeProviderKind::DataSource,
-            "official.basic",
+            PROVIDER_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let policies = [RuntimePolicyRegistration::new(
-            "official.basic",
-            "official.basic",
+            POLICY_PLUGIN_ID,
+            POLICY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
@@ -2958,7 +2958,7 @@ mod tests {
         // Arrange
         let actions = [RuntimeAction::new(
             RuntimeActionKind::EnablePlugin,
-            "official.github",
+            PROVIDER_PLUGIN_ID,
             "the plugin is registered but disabled",
         )];
 
@@ -2968,7 +2968,7 @@ mod tests {
         // Assert
         assert!(rendered.contains("Runtime action plan (1)"));
         assert!(rendered.contains(
-            "- enable_plugin | target=official.github | reason=the plugin is registered but disabled"
+            "- enable_plugin | target=test.providers | reason=the plugin is registered but disabled"
         ));
     }
 
@@ -3041,52 +3041,52 @@ mod tests {
         )];
         let capabilities = [RuntimeCapabilityRegistration::new(
             PluginCapability::new("template"),
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
         let templates = [RuntimeTemplateRegistration::new(
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let prompts = [RuntimePromptRegistration::new(
-            "official.bmad",
+            PROMPT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let checks = [RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
-            "official.basic",
+            PROMPT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let agents = [RuntimeAgentRegistration::new(
-            "official.basic",
+            AGENT_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let providers = [RuntimeProviderRegistration::new(
             RuntimeProviderKind::DataSource,
-            "official.basic",
+            PROVIDER_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let policies = [RuntimePolicyRegistration::new(
-            "official.basic",
-            "official.basic",
+            POLICY_PLUGIN_ID,
+            POLICY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
             true,
         )];
         let hooks = [RuntimeHookRegistration::new(
             PluginRuntimeHook::Scaffold,
-            "official.basic",
+            PRIMARY_PLUGIN_ID,
             PluginActivation::Disabled,
             PluginLoadBoundary::InProcess,
         )];
@@ -3150,12 +3150,12 @@ mod tests {
             },
             vec![RuntimeIssue::new(
                 RuntimeIssueKind::PluginDisabled,
-                "official.github",
+                PROVIDER_PLUGIN_ID,
                 "enable the plugin in typed project configuration",
             )],
             vec![RuntimeAction::new(
                 RuntimeActionKind::EnablePlugin,
-                "official.github",
+                PROVIDER_PLUGIN_ID,
                 "the plugin is registered but disabled",
             )],
         );
@@ -3279,12 +3279,12 @@ mod tests {
         let issues = [
             RuntimeIssue::new(
                 RuntimeIssueKind::PluginDisabled,
-                "official.github",
+                PROVIDER_PLUGIN_ID,
                 "enable the plugin in typed project configuration",
             ),
             RuntimeIssue::new(
                 RuntimeIssueKind::McpServerDisabled,
-                "official.codex.session",
+                MCP_SERVER_ID,
                 "enable the owning plugin or opt in to the MCP server",
             ),
         ];
@@ -3312,32 +3312,32 @@ mod tests {
         let actions = [
             RuntimeAction::new(
                 RuntimeActionKind::EnablePlugin,
-                "official.github",
+                PROVIDER_PLUGIN_ID,
                 "the plugin is registered but disabled",
             ),
             RuntimeAction::new(
                 RuntimeActionKind::EnableCapabilityProvider,
-                "official.basic",
+                PRIMARY_PLUGIN_ID,
                 "the provider still disables capability template",
             ),
             RuntimeAction::new(
                 RuntimeActionKind::EnableCheckProvider,
-                "official.bmad",
+                PROMPT_PLUGIN_ID,
                 "the provider still disables runtime check prepare",
             ),
             RuntimeAction::new(
                 RuntimeActionKind::EnableProvider,
-                "official.basic",
+                PROVIDER_PLUGIN_ID,
                 "the provider still disables contribution data_source",
             ),
             RuntimeAction::new(
                 RuntimeActionKind::EnablePolicyProvider,
-                "official.basic",
-                "the provider still disables policy official.basic",
+                POLICY_PLUGIN_ID,
+                "the provider still disables policy test.policies",
             ),
             RuntimeAction::new(
                 RuntimeActionKind::EnableHookProvider,
-                "official.basic",
+                PRIMARY_PLUGIN_ID,
                 "the provider still disables runtime hook scaffold",
             ),
         ];
@@ -3352,7 +3352,7 @@ mod tests {
                 .contains("reason=o provedor ainda desabilita a verificação de runtime prepare")
         );
         assert!(rendered.contains("reason=o provedor ainda desabilita a contribuição data_source"));
-        assert!(rendered.contains("reason=o provedor ainda desabilita a política official.basic"));
+        assert!(rendered.contains("reason=o provedor ainda desabilita a política test.policies"));
         assert!(rendered.contains("reason=o provedor ainda desabilita o hook de runtime scaffold"));
     }
 
@@ -3375,17 +3375,17 @@ mod tests {
             ),
             RuntimeIssue::new(
                 RuntimeIssueKind::TemplateDisabled,
-                "official.basic",
+                PRIMARY_PLUGIN_ID,
                 "enable the provider plugin that owns this template surface",
             ),
             RuntimeIssue::new(
                 RuntimeIssueKind::PromptProviderDisabled,
-                "official.bmad",
+                PROMPT_PLUGIN_ID,
                 "enable the provider plugin that owns this prompt surface",
             ),
             RuntimeIssue::new(
                 RuntimeIssueKind::AgentRuntimeDisabled,
-                "official.codex",
+                AGENT_PLUGIN_ID,
                 "enable the provider plugin that owns this agent runtime",
             ),
             RuntimeIssue::new(
@@ -3400,7 +3400,7 @@ mod tests {
             ),
             RuntimeIssue::new(
                 RuntimeIssueKind::PolicyDisabled,
-                "official.tdd-strict",
+                POLICY_PLUGIN_ID,
                 "enable the provider plugin that owns this policy",
             ),
             RuntimeIssue::new(
@@ -3445,22 +3445,22 @@ mod tests {
         let actions = [
             RuntimeAction::new(
                 RuntimeActionKind::EnableTemplateProvider,
-                "official.basic",
+                PRIMARY_PLUGIN_ID,
                 "the provider still disables the template surface",
             ),
             RuntimeAction::new(
                 RuntimeActionKind::EnablePromptProvider,
-                "official.bmad",
+                PROMPT_PLUGIN_ID,
                 "the provider still disables the prompt surface",
             ),
             RuntimeAction::new(
                 RuntimeActionKind::EnableAgentRuntimeProvider,
-                "official.codex",
+                AGENT_PLUGIN_ID,
                 "the provider still disables the agent runtime",
             ),
             RuntimeAction::new(
                 RuntimeActionKind::EnableMcpServer,
-                "official.codex.session",
+                MCP_SERVER_ID,
                 "the MCP contribution is registered but disabled",
             ),
         ];
@@ -3477,7 +3477,7 @@ mod tests {
     fn render_runtime_action_plan_falls_back_to_original_reason_when_no_translation_exists() {
         let actions = [RuntimeAction::new(
             RuntimeActionKind::EnablePlugin,
-            "official.github",
+            PROVIDER_PLUGIN_ID,
             "custom untranslated reason",
         )];
 
@@ -3515,12 +3515,12 @@ mod tests {
             },
             vec![RuntimeIssue::new(
                 RuntimeIssueKind::PluginDisabled,
-                "official.github",
+                PROVIDER_PLUGIN_ID,
                 "enable the plugin in typed project configuration",
             )],
             vec![RuntimeAction::new(
                 RuntimeActionKind::EnablePlugin,
-                "official.github",
+                PROVIDER_PLUGIN_ID,
                 "the plugin is registered but disabled",
             )],
         );
