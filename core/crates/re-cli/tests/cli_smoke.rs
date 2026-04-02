@@ -654,6 +654,18 @@ fn binary_config_layers_succeeds() {
 }
 
 #[test]
+fn binary_config_locale_succeeds() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["config", "locale"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert_eq!(stdout.trim(), "default_locale: en");
+}
+
+#[test]
 fn binary_config_budgets_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));

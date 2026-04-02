@@ -30,9 +30,11 @@ ralph-engine providers show <provider-id>
 ralph-engine config
 ralph-engine config budgets
 ralph-engine config layers
+ralph-engine config locale
 ralph-engine config show-budgets
 ralph-engine config show-defaults
 ralph-engine config show-layers
+ralph-engine config show-locale
 ralph-engine config show-plugin <plugin-id>
 ralph-engine plugins
 ralph-engine plugins list
@@ -66,6 +68,8 @@ The `prompts` command family prints the typed runtime prompt registry so prompt 
 The `checks` command family prints the typed runtime check registry so prepare-time and doctor-time validation contributions stay explicit instead of hiding only as generic capabilities.
 
 The `doctor` command family prints the typed runtime diagnostic report by composing runtime status, unresolved issues, and remediation actions from one shared runtime snapshot instead of spreading diagnosis across ad hoc command logic.
+
+The `config locale` command prints the typed default locale contract so CLI i18n stays inspectable instead of remaining implicit in the runtime defaults.
 
 The `config budgets` command prints the typed prompt and context budget contract so token ceilings remain explicit in the runtime foundation instead of hiding in future provider-specific logic.
 

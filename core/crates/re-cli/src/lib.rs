@@ -590,6 +590,30 @@ mod tests {
     }
 
     #[test]
+    fn execute_config_locale_returns_default_locale_contract() {
+        // Arrange
+        let command = args(&["ralph-engine", "config", "locale"]);
+
+        // Act
+        let output = execute(command).expect("config locale should succeed");
+
+        // Assert
+        assert_eq!(output, "default_locale: en");
+    }
+
+    #[test]
+    fn execute_config_show_locale_alias_returns_default_locale_contract() {
+        // Arrange
+        let command = args(&["ralph-engine", "config", "show-locale"]);
+
+        // Act
+        let output = execute(command).expect("config show-locale should succeed");
+
+        // Assert
+        assert_eq!(output, "default_locale: en");
+    }
+
+    #[test]
     fn execute_config_show_layers_alias_returns_typed_resolution_stack() {
         // Arrange
         let command = args(&["ralph-engine", "config", "show-layers"]);

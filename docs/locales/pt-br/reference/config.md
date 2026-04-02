@@ -24,11 +24,15 @@ A CLI atual consegue renderizar esse contrato tipado com:
 ```bash
 ralph-engine config budgets
 ralph-engine config layers
+ralph-engine config locale
 ralph-engine config show-budgets
 ralph-engine config show-defaults
 ralph-engine config show-layers
+ralph-engine config show-locale
 ralph-engine config show-plugin <plugin-id>
 ```
+
+O comando `config locale` renderiza o contrato tipado do locale padrão atual, para que a localização da CLI permaneça visível e versionada em vez de ficar só como default interno.
 
 O comando `config budgets` renderiza o contrato tipado canônico de limites de prompt e contexto, para que os tetos de tokens permaneçam explícitos na configuração compartilhada do runtime em vez de serem inferidos mais tarde por defaults locais de cada provider.
 

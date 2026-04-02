@@ -255,6 +255,12 @@ pub fn render_project_config_yaml(config: &ProjectConfig) -> String {
     lines.join("\n")
 }
 
+/// Renders the default locale contract as YAML.
+#[must_use]
+pub fn render_default_locale_yaml(config: &ProjectConfig) -> String {
+    format!("default_locale: {}", config.default_locale)
+}
+
 /// Renders one resolved plugin configuration block as YAML.
 #[must_use]
 pub fn render_resolved_plugin_config_yaml(config: &ResolvedPluginConfig) -> String {
