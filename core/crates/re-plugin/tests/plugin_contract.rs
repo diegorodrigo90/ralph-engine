@@ -29,35 +29,37 @@ const GITHUB_LIFECYCLE: &[PluginLifecycleStage] = &[
 ];
 const BASIC_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[PluginRuntimeHook::Scaffold];
 const BASIC_LOCALIZED_NAMES: &[PluginLocalizedText] =
-    &[PluginLocalizedText::new("pt-br", "Básico")];
-const BASIC_SUMMARY: &str = "Foundation plugin for starter templates.";
+    &[PluginLocalizedText::new("pt-br", "Base de teste")];
+const BASIC_SUMMARY: &str = "Shared fixture plugin for starter templates.";
 const BASIC_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
     "pt-br",
-    "Plugin base para templates iniciais.",
+    "Plugin de fixture para templates iniciais.",
 )];
 const BASIC_TEMPLATE_LOCALIZED_NAMES: &[PluginLocalizedText] =
-    &[PluginLocalizedText::new("pt-br", "Starter básico")];
+    &[PluginLocalizedText::new("pt-br", "Starter de teste")];
 const BASIC_TEMPLATE_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
     "pt-br",
-    "Template inicial para novos projetos Ralph Engine.",
+    "Template inicial de fixture para novos projetos Ralph Engine.",
 )];
-const BMAD_PROMPT_LOCALIZED_NAMES: &[PluginLocalizedText] =
-    &[PluginLocalizedText::new("pt-br", "Prompt de workflow BMAD")];
+const BMAD_PROMPT_LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Prompt de workflow de teste",
+)];
 const BMAD_PROMPT_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
     "pt-br",
-    "Pacote de prompts para montar workflows BMAD.",
+    "Pacote de prompts para montar workflows de teste.",
 )];
 const CODEX_AGENT_LOCALIZED_NAMES: &[PluginLocalizedText] =
-    &[PluginLocalizedText::new("pt-br", "Sessão Codex")];
+    &[PluginLocalizedText::new("pt-br", "Sessão de teste")];
 const CODEX_AGENT_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
     "pt-br",
-    "Sessão de runtime do Codex para o Ralph Engine.",
+    "Sessão de runtime de teste para o Ralph Engine.",
 )];
 const TDD_POLICY_LOCALIZED_NAMES: &[PluginLocalizedText] =
-    &[PluginLocalizedText::new("pt-br", "Guardrails TDD estrito")];
+    &[PluginLocalizedText::new("pt-br", "Guardrails de teste")];
 const TDD_POLICY_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
     "pt-br",
-    "Política oficial com guardrails estritos de TDD.",
+    "Política de fixture com guardrails estritos de teste.",
 )];
 const GITHUB_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
     PluginRuntimeHook::McpRegistration,
@@ -67,10 +69,10 @@ const GITHUB_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
 
 fn basic_plugin() -> PluginDescriptor {
     PluginDescriptor::new(
-        "official.basic",
+        "test.basic",
         PluginKind::Template,
-        PluginTrustLevel::Official,
-        "Basic",
+        PluginTrustLevel::Community,
+        "Test Basic",
         BASIC_LOCALIZED_NAMES,
         BASIC_SUMMARY,
         BASIC_LOCALIZED_SUMMARIES,
@@ -84,12 +86,12 @@ fn basic_plugin() -> PluginDescriptor {
 
 fn github_plugin() -> PluginDescriptor {
     PluginDescriptor::new(
-        "official.github",
+        "test.github",
         PluginKind::DataSource,
-        PluginTrustLevel::Official,
-        "GitHub",
+        PluginTrustLevel::Community,
+        "Test GitHub",
         &[],
-        "GitHub integration for data and forge workflows.",
+        "Fixture integration for data and forge workflows.",
         &[],
         "0.2.0-alpha.1",
         GITHUB_CAPABILITIES,
@@ -130,108 +132,111 @@ fn capability_display_is_stable() {
 
 #[test]
 fn localized_text_constructor_is_stable() {
-    let entry = PluginLocalizedText::new("pt-br", "Básico");
+    let entry = PluginLocalizedText::new("pt-br", "Base de teste");
 
     assert_eq!(entry.locale, "pt-br");
-    assert_eq!(entry.value, "Básico");
+    assert_eq!(entry.value, "Base de teste");
 }
 
 #[test]
 fn template_descriptor_resolves_locales_with_english_fallback() {
     let descriptor = PluginTemplateDescriptor::new(
-        "official.basic.starter",
-        "official.basic",
-        "Basic starter",
+        "test.basic.starter",
+        "test.basic",
+        "Test starter",
         BASIC_TEMPLATE_LOCALIZED_NAMES,
-        "Starter template for new Ralph Engine projects.",
+        "Starter fixture template for new Ralph Engine projects.",
         BASIC_TEMPLATE_LOCALIZED_SUMMARIES,
     );
 
     assert_eq!(
         descriptor.display_name_for_locale("pt-br"),
-        "Starter básico"
+        "Starter de teste"
     );
     assert_eq!(
         descriptor.summary_for_locale("pt-br"),
-        "Template inicial para novos projetos Ralph Engine."
+        "Template inicial de fixture para novos projetos Ralph Engine."
     );
-    assert_eq!(descriptor.display_name_for_locale("es"), "Basic starter");
+    assert_eq!(descriptor.display_name_for_locale("es"), "Test starter");
     assert_eq!(
         descriptor.summary_for_locale("es"),
-        "Starter template for new Ralph Engine projects."
+        "Starter fixture template for new Ralph Engine projects."
     );
 }
 
 #[test]
 fn prompt_descriptor_resolves_locales_with_english_fallback() {
     let descriptor = PluginPromptDescriptor::new(
-        "official.bmad.workflow",
-        "official.bmad",
-        "BMAD workflow prompt",
+        "test.prompts.workflow",
+        "test.prompts",
+        "Fixture workflow prompt",
         BMAD_PROMPT_LOCALIZED_NAMES,
-        "Prompt bundle for BMAD workflow assembly.",
+        "Prompt bundle for fixture workflow assembly.",
         BMAD_PROMPT_LOCALIZED_SUMMARIES,
     );
 
     assert_eq!(
         descriptor.display_name_for_locale("pt-br"),
-        "Prompt de workflow BMAD"
+        "Prompt de workflow de teste"
     );
     assert_eq!(
         descriptor.summary_for_locale("pt-br"),
-        "Pacote de prompts para montar workflows BMAD."
+        "Pacote de prompts para montar workflows de teste."
     );
     assert_eq!(
         descriptor.display_name_for_locale("fr"),
-        "BMAD workflow prompt"
+        "Fixture workflow prompt"
     );
     assert_eq!(
         descriptor.summary_for_locale("fr"),
-        "Prompt bundle for BMAD workflow assembly."
+        "Prompt bundle for fixture workflow assembly."
     );
 }
 
 #[test]
 fn agent_descriptor_resolves_locales_with_english_fallback() {
     let descriptor = PluginAgentDescriptor::new(
-        "official.codex.session",
-        "official.codex",
-        "Codex session",
+        "test.agents.session",
+        "test.agents",
+        "Fixture session",
         CODEX_AGENT_LOCALIZED_NAMES,
-        "Codex runtime session for Ralph Engine.",
+        "Fixture runtime session for Ralph Engine.",
         CODEX_AGENT_LOCALIZED_SUMMARIES,
     );
 
-    assert_eq!(descriptor.display_name_for_locale("pt-br"), "Sessão Codex");
+    assert_eq!(
+        descriptor.display_name_for_locale("pt-br"),
+        "Sessão de teste"
+    );
     assert_eq!(
         descriptor.summary_for_locale("pt-br"),
-        "Sessão de runtime do Codex para o Ralph Engine."
+        "Sessão de runtime de teste para o Ralph Engine."
     );
-    assert_eq!(descriptor.display_name_for_locale("fr"), "Codex session");
+    assert_eq!(descriptor.display_name_for_locale("fr"), "Fixture session");
 }
 
 #[test]
 fn policy_descriptor_resolves_locales_with_english_fallback() {
     let descriptor = PluginPolicyDescriptor::new(
-        "official.tdd-strict.guardrails",
-        "official.tdd-strict",
-        "TDD strict guardrails",
+        "test.policies.guardrails",
+        "test.policies",
+        "Fixture guardrails",
         TDD_POLICY_LOCALIZED_NAMES,
-        "Official policy with strict TDD guardrails.",
+        "Fixture policy with strict testing guardrails.",
         TDD_POLICY_LOCALIZED_SUMMARIES,
     );
 
     assert_eq!(
         descriptor.display_name_for_locale("pt-br"),
-        "Guardrails TDD estrito"
+        "Guardrails de teste"
     );
     assert_eq!(
         descriptor.summary_for_locale("pt-br"),
-        "Política oficial com guardrails estritos de TDD."
+        "Política de fixture com guardrails estritos de teste."
     );
     assert_eq!(
         descriptor.summary_for_locale("fr"),
-        "Official policy with strict TDD guardrails."
+        "Fixture policy with strict testing guardrails."
     );
 }
 
@@ -528,7 +533,7 @@ fn descriptor_requires_namespaced_identifier() {
     // Assert
     assert!(namespaced);
     assert_eq!(descriptor.kind, PluginKind::Template);
-    assert_eq!(descriptor.trust_level, PluginTrustLevel::Official);
+    assert_eq!(descriptor.trust_level, PluginTrustLevel::Community);
 }
 
 #[test]
@@ -626,11 +631,12 @@ fn render_plugin_listing_includes_human_readable_lines() {
     // Assert
     assert!(listing.contains("Official plugins (2)"));
     assert!(
-        listing
-            .contains("- official.basic | template | official | Basic | v0.2.0-alpha.1 | template")
+        listing.contains(
+            "- test.basic | template | community | Test Basic | v0.2.0-alpha.1 | template"
+        )
     );
     assert!(listing.contains(
-        "- official.github | data_source | official | GitHub | v0.2.0-alpha.1 | data_source, forge_provider"
+        "- test.github | data_source | community | Test GitHub | v0.2.0-alpha.1 | data_source, forge_provider"
     ));
 }
 
@@ -670,12 +676,14 @@ fn render_plugin_listing_supports_pt_br_and_falls_back_to_english() {
 
     // Assert
     assert!(rendered.contains("Plugins oficiais (2)"));
-    assert!(rendered.contains("official.basic | template | official | Básico | v0.2.0-alpha.1"));
-    assert!(rendered.contains("Plugin base para templates iniciais."));
     assert!(
-        rendered.contains("official.github | data_source | official | GitHub | v0.2.0-alpha.1")
+        rendered.contains("test.basic | template | community | Base de teste | v0.2.0-alpha.1")
     );
-    assert!(rendered.contains("GitHub integration for data and forge workflows."));
+    assert!(rendered.contains("Plugin de fixture para templates iniciais."));
+    assert!(
+        rendered.contains("test.github | data_source | community | Test GitHub | v0.2.0-alpha.1")
+    );
+    assert!(rendered.contains("Fixture integration for data and forge workflows."));
 }
 
 #[test]
@@ -687,12 +695,12 @@ fn render_plugin_detail_supports_pt_br_and_falls_back_to_english() {
     let rendered = render_plugin_detail_for_locale(&plugin, "pt-br");
 
     // Assert
-    assert!(rendered.contains("Plugin: official.basic"));
+    assert!(rendered.contains("Plugin: test.basic"));
     assert!(rendered.contains("Tipo: template"));
-    assert!(rendered.contains("Confiança: official"));
-    assert!(rendered.contains("Nome: Básico"));
+    assert!(rendered.contains("Confiança: community"));
+    assert!(rendered.contains("Nome: Base de teste"));
     assert!(rendered.contains("Versão: v0.2.0-alpha.1"));
-    assert!(rendered.contains("Resumo: Plugin base para templates iniciais."));
+    assert!(rendered.contains("Resumo: Plugin de fixture para templates iniciais."));
     assert!(rendered.contains("Fronteira de carregamento: in_process"));
     assert!(rendered.contains("Hooks de runtime: scaffold"));
 }
@@ -701,14 +709,14 @@ fn render_plugin_detail_supports_pt_br_and_falls_back_to_english() {
 fn plugin_display_name_falls_back_to_english_for_unknown_locale() {
     let plugin = basic_plugin();
 
-    assert_eq!(plugin.display_name_for_locale("es"), "Basic");
+    assert_eq!(plugin.display_name_for_locale("es"), "Test Basic");
 }
 
 #[test]
 fn plugin_display_name_supports_canonical_locale_resolution() {
     let plugin = basic_plugin();
 
-    assert_eq!(plugin.display_name_for_locale("pt-BR"), "Básico");
+    assert_eq!(plugin.display_name_for_locale("pt-BR"), "Base de teste");
 }
 
 #[test]
@@ -717,7 +725,7 @@ fn plugin_summary_falls_back_to_english_for_unknown_locale() {
 
     assert_eq!(
         plugin.summary_for_locale("es"),
-        "Foundation plugin for starter templates."
+        "Shared fixture plugin for starter templates."
     );
 }
 
@@ -727,7 +735,7 @@ fn plugin_summary_supports_canonical_locale_resolution() {
 
     assert_eq!(
         plugin.summary_for_locale(" pt-BR "),
-        "Plugin base para templates iniciais."
+        "Plugin de fixture para templates iniciais."
     );
 }
 
@@ -740,9 +748,9 @@ fn render_plugin_detail_includes_capabilities_and_lifecycle() {
     let detail = render_plugin_detail(&plugin);
 
     // Assert
-    assert!(detail.contains("Plugin: official.github"));
+    assert!(detail.contains("Plugin: test.github"));
     assert!(detail.contains("Kind: data_source"));
-    assert!(detail.contains("Trust: official"));
+    assert!(detail.contains("Trust: community"));
     assert!(detail.contains("Capabilities: data_source, forge_provider"));
     assert!(detail.contains("Lifecycle: discover -> configure -> load"));
     assert!(detail.contains("Load boundary: in_process"));

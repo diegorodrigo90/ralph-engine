@@ -12,6 +12,14 @@ use re_config::{
     supported_locales,
 };
 
+const TEST_DEFAULT_PLUGIN_ID: &str = "test.defaults";
+const TEST_OVERRIDE_PLUGIN_ID: &str = "test.override";
+const TEST_UNKNOWN_PLUGIN_ID: &str = "test.unknown";
+const TEST_DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
+    TEST_DEFAULT_PLUGIN_ID,
+    PluginActivation::Enabled,
+)];
+
 #[test]
 fn default_project_config_uses_stable_schema_defaults() {
     // Arrange
@@ -165,10 +173,10 @@ fn render_locale_descriptor_yaml_is_human_readable() {
 #[test]
 fn plugin_config_constructor_is_stable() {
     // Arrange
-    let plugin = PluginConfig::new("official.github", PluginActivation::Disabled);
+    let plugin = PluginConfig::new(TEST_OVERRIDE_PLUGIN_ID, PluginActivation::Disabled);
 
     // Act
-    let matches = plugin.id == "official.github" && !plugin.is_enabled();
+    let matches = plugin.id == TEST_OVERRIDE_PLUGIN_ID && !plugin.is_enabled();
 
     // Assert
     assert!(matches);
@@ -214,9 +222,16 @@ fn config_scope_as_str_is_stable() {
 fn find_plugin_config_returns_matching_entry() {
     // Arrange
     let config = default_project_config();
+    let config = ProjectConfig {
+        schema_version: config.schema_version,
+        default_locale: config.default_locale,
+        plugins: TEST_DEFAULT_PLUGINS,
+        mcp: config.mcp,
+        budgets: config.budgets,
+    };
 
     // Act
-    let plugin = find_plugin_config(&config, "official.basic");
+    let plugin = find_plugin_config(&config, TEST_DEFAULT_PLUGIN_ID);
 
     // Assert
     assert_eq!(
@@ -231,7 +246,7 @@ fn find_plugin_config_returns_none_for_unknown_plugin() {
     let config = default_project_config();
 
     // Act
-    let plugin = find_plugin_config(&config, "official.unknown");
+    let plugin = find_plugin_config(&config, TEST_UNKNOWN_PLUGIN_ID);
 
     // Assert
     assert!(plugin.is_none());
@@ -267,11 +282,11 @@ fn canonical_config_layers_returns_stable_defaults_stack() {
 fn resolve_plugin_config_returns_effective_entry_from_highest_precedence_layer() {
     // Arrange
     const DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
-        "official.github",
+        TEST_OVERRIDE_PLUGIN_ID,
         PluginActivation::Disabled,
     )];
     const PROJECT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
-        "official.github",
+        TEST_OVERRIDE_PLUGIN_ID,
         PluginActivation::Enabled,
     )];
     let layers = [
@@ -310,13 +325,13 @@ fn resolve_plugin_config_returns_effective_entry_from_highest_precedence_layer()
     ];
 
     // Act
-    let resolved = resolve_plugin_config(&layers, "official.github");
+    let resolved = resolve_plugin_config(&layers, TEST_OVERRIDE_PLUGIN_ID);
 
     // Assert
     assert_eq!(
         resolved,
         Some(ResolvedPluginConfig::new(
-            "official.github",
+            TEST_OVERRIDE_PLUGIN_ID,
             PluginActivation::Enabled,
             ConfigScope::Project,
         ))
@@ -329,7 +344,7 @@ fn resolve_plugin_config_returns_none_for_unknown_plugin() {
     let layers = [default_project_config_layer()];
 
     // Act
-    let resolved = resolve_plugin_config(&layers, "official.unknown");
+    let resolved = resolve_plugin_config(&layers, TEST_UNKNOWN_PLUGIN_ID);
 
     // Assert
     assert!(resolved.is_none());
@@ -338,7 +353,7 @@ fn resolve_plugin_config_returns_none_for_unknown_plugin() {
 #[test]
 fn plugin_config_is_enabled_reflects_enabled_state() {
     // Arrange
-    let plugin = PluginConfig::new("official.basic", PluginActivation::Enabled);
+    let plugin = PluginConfig::new(TEST_DEFAULT_PLUGIN_ID, PluginActivation::Enabled);
 
     // Act
     let enabled = plugin.is_enabled();
@@ -378,7 +393,7 @@ fn render_project_config_yaml_handles_empty_plugin_sets() {
 fn render_resolved_plugin_config_yaml_is_human_readable() {
     // Arrange
     let resolved = ResolvedPluginConfig::new(
-        "official.basic",
+        TEST_DEFAULT_PLUGIN_ID,
         PluginActivation::Enabled,
         ConfigScope::BuiltInDefaults,
     );
@@ -387,7 +402,7 @@ fn render_resolved_plugin_config_yaml_is_human_readable() {
     let yaml = render_resolved_plugin_config_yaml(&resolved);
 
     // Assert
-    assert!(yaml.contains("id: official.basic"));
+    assert!(yaml.contains("id: test.defaults"));
     assert!(yaml.contains("activation: enabled"));
     assert!(yaml.contains("resolved_from: built_in_defaults"));
 }
