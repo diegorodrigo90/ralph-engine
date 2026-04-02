@@ -9,7 +9,7 @@ ralph-engine
 ralph-engine --version
 ralph-engine agents
 ralph-engine agents list
-ralph-engine agents show <plugin-id>
+ralph-engine agents show <agent-id>
 ralph-engine capabilities
 ralph-engine capabilities list
 ralph-engine capabilities show <capability-id>
@@ -53,10 +53,10 @@ ralph-engine runtime patch
 ralph-engine runtime patched-config
 ralph-engine prompts
 ralph-engine prompts list
-ralph-engine prompts show <plugin-id>
+ralph-engine prompts show <prompt-id>
 ralph-engine templates
 ralph-engine templates list
-ralph-engine templates show <plugin-id>
+ralph-engine templates show <template-id>
 ralph-engine mcp
 ralph-engine mcp list
 ralph-engine mcp show <server-id>
