@@ -39,6 +39,7 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_SUMMARY,
     LOCALIZED_SUMMARIES,
     PLUGIN_VERSION,
+    re_plugin::CURRENT_PLUGIN_API_VERSION,
     CAPABILITIES,
     LIFECYCLE,
     PluginLoadBoundary::InProcess,
