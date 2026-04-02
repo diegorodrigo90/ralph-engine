@@ -61,6 +61,8 @@ test("creates a non-interactive plugin scaffold", () => {
   assert.match(rustLib, /PluginRuntimeHook::DataSourceRegistration/);
   assert.match(rustI18nMod, /pub mod en;/);
   assert.match(rustI18nMod, /pub mod pt_br;/);
+  assert.match(rustI18nMod, /const LOCALIZED_NAMES: &\[PluginLocalizedText\]/);
+  assert.match(rustI18nMod, /const LOCALIZED_SUMMARIES: &\[PluginLocalizedText\]/);
   assert.match(rustI18nEn, /pub const NAME: &str = "Jira Suite";/);
   assert.match(rustI18nPtBr, /pub const SUMMARY: &str = "Plugin Jira Suite para o Ralph Engine\.";?/);
 });
