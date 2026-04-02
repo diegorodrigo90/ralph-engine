@@ -3,18 +3,24 @@ pub mod pt_br;
 
 use re_plugin::PluginLocalizedText;
 
-const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", pt_br::NAME)];
+pub struct PluginLocaleCatalog {
+    pub name: &'static str,
+    pub summary: &'static str,
+}
+
+const LOCALIZED_NAMES: &[PluginLocalizedText] =
+    &[PluginLocalizedText::new("pt-br", pt_br::LOCALE.name)];
 const LOCALIZED_SUMMARIES: &[PluginLocalizedText] =
-    &[PluginLocalizedText::new("pt-br", pt_br::SUMMARY)];
+    &[PluginLocalizedText::new("pt-br", pt_br::LOCALE.summary)];
 
 #[must_use]
 pub const fn default_name() -> &'static str {
-    en::NAME
+    en::LOCALE.name
 }
 
 #[must_use]
 pub const fn default_summary() -> &'static str {
-    en::SUMMARY
+    en::LOCALE.summary
 }
 
 #[must_use]

@@ -429,8 +429,8 @@ mod tests {
 
         let descriptor_matches = plugin.id == PLUGIN_ID
             && plugin.name == i18n::default_name()
-            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::NAME
-            && plugin.summary_for_locale("pt-br") == i18n::pt_br::SUMMARY
+            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::LOCALE.name
+            && plugin.summary_for_locale("pt-br") == i18n::pt_br::LOCALE.summary
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         assert!(descriptor_matches);
@@ -455,22 +455,30 @@ pub mod pt_br;
 
 use re_plugin::PluginLocalizedText;
 
-const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", pt_br::NAME)];
+pub struct PluginLocaleCatalog {
+    pub name: &'static str,
+    pub summary: &'static str,
+}
+
+const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    pt_br::LOCALE.name,
+)];
 const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
     "pt-br",
-    pt_br::SUMMARY,
+    pt_br::LOCALE.summary,
 )];
 
 /// Returns the default English plugin name.
 #[must_use]
 pub const fn default_name() -> &'static str {
-    en::NAME
+    en::LOCALE.name
 }
 
 /// Returns the default English plugin summary.
 #[must_use]
 pub const fn default_summary() -> &'static str {
-    en::SUMMARY
+    en::LOCALE.summary
 }
 
 /// Returns localized plugin names beyond the default English value.
@@ -488,14 +496,22 @@ pub const fn localized_summaries() -> &'static [PluginLocalizedText] {
 }
 
 function renderRustPluginI18nEn(scaffold) {
-  return `pub const NAME: &str = "${humanize(scaffold.name)}";
-pub const SUMMARY: &str = "${humanize(scaffold.name)} plugin for Ralph Engine.";
+  return `use super::PluginLocaleCatalog;
+
+pub const LOCALE: PluginLocaleCatalog = PluginLocaleCatalog {
+    name: "${humanize(scaffold.name)}",
+    summary: "${humanize(scaffold.name)} plugin for Ralph Engine.",
+};
 `;
 }
 
 function renderRustPluginI18nPtBr(scaffold) {
-  return `pub const NAME: &str = "${humanize(scaffold.name)}";
-pub const SUMMARY: &str = "Plugin ${humanize(scaffold.name)} para o Ralph Engine.";
+  return `use super::PluginLocaleCatalog;
+
+pub const LOCALE: PluginLocaleCatalog = PluginLocaleCatalog {
+    name: "${humanize(scaffold.name)}",
+    summary: "Plugin ${humanize(scaffold.name)} para o Ralph Engine.",
+};
 `;
 }
 

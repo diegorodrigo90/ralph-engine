@@ -1,2 +1,6 @@
-pub const NAME: &str = "Claude Box";
-pub const SUMMARY: &str = "Claude Box runtime and MCP session integration.";
+use super::PluginLocaleCatalog;
+
+pub const LOCALE: PluginLocaleCatalog = PluginLocaleCatalog {
+    name: "Claude Box",
+    summary: "Claude Box runtime and MCP session integration.",
+};

@@ -1,2 +1,6 @@
-pub const NAME: &str = "Basic";
-pub const SUMMARY: &str = "Foundation plugin for starter templates.";
+use super::PluginLocaleCatalog;
+
+pub const LOCALE: PluginLocaleCatalog = PluginLocaleCatalog {
+    name: "Basic",
+    summary: "Foundation plugin for starter templates.",
+};
