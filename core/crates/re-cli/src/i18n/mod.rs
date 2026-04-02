@@ -115,13 +115,6 @@ fn normalize_cli_locale(value: &str) -> Result<&'static str, CliError> {
     let normalized = value.trim();
     match re_config::parse_supported_locale(normalized) {
         Some(locale) => Ok(locale.as_str()),
-        None if re_config::canonical_locale_id(normalized).is_some() => {
-            let other = normalized.to_ascii_lowercase();
-            Err(CliError::new(format!(
-                "unsupported locale: {other}. supported locales: {}",
-                supported_locale_ids(),
-            )))
-        }
         None => {
             let other = normalized.to_ascii_lowercase();
             Err(CliError::new(format!(
