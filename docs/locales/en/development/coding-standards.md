@@ -17,6 +17,7 @@ If you come from TypeScript, Go, Java, or another language, read these notes as 
 - Public undocumented items fail the repository lint contract.
 - `cargo fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, cross-language plugin-contract verification, docs build, and public-surface assembly are mandatory.
 - Official plugin crates should own their nearest contract tests locally: descriptor consistency, manifest alignment, and localized contribution behavior should fail inside the plugin crate before a shared smoke layer catches drift.
+- Official plugin manifests should localize every public contribution they ship. Templates, prompts, agents, checks, providers, and policies should keep `display_name_locales` and `summary_locales` aligned with every supported locale instead of relying on manual review.
 - CI caches should be keyed by runner, toolchain, and lockfile inputs instead of using one blind global cache.
 - Expensive checks should run once in the right job instead of being duplicated across the workflow graph.
 - Cross-platform product behavior should be proven in the quality matrix, while platform-independent security scanners may stay centralized on the canonical Linux runner.
@@ -52,6 +53,7 @@ Rust tests prefer the Arrange, Act, Assert structure.
 
 - Shared-crate contract tests should prefer neutral synthetic fixtures over official plugin identifiers when the behavior under test is generic.
 - Official plugin crates should own the closest tests for their own manifests, localized metadata, and contribution details.
+- Official plugin contract checks should fail when a shipped manifest contribution drifts from the supported locale set or loses its plugin-owned namespace.
 - Integration and smoke tests may still exercise the shipped official catalog when the goal is to validate the public packaged runtime rather than a generic shared contract.
 
 ```rust
