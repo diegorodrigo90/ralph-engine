@@ -8,6 +8,7 @@
     "id",
     "kind",
     "display_name",
+    "summary",
     "publisher",
     "trust_level",
     "plugin_version"

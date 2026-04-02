@@ -80,6 +80,9 @@ kind: data_source
 display_name: Jira Suite
 display_name_locales:
   pt-br: Jira Suite
+summary: Jira Suite plugin for Ralph Engine.
+summary_locales:
+  pt-br: Plugin Jira Suite para o Ralph Engine.
 publisher: acme
 trust_level: community
 plugin_version: 0.1.0
@@ -147,4 +150,23 @@ test("rejects unsupported future capability", () => {
 
   assert.equal(result.status, 1);
   assert.match(result.stderr, /Unsupported capability "dashboard_events"/);
+});
+
+test("rejects manifests without required summary", () => {
+  assert.throws(
+    () =>
+      validateManifestDocument(
+        `id: acme.jira-suite
+kind: data_source
+display_name: Jira Suite
+publisher: acme
+trust_level: community
+plugin_version: 0.1.0
+capabilities:
+  - data_source
+`,
+        "manifest.yaml",
+      ),
+    /missing required field "summary"/,
+  );
 });

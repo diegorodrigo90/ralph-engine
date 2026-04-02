@@ -11,5 +11,5 @@ O reboot mantém estas regras arquiteturais:
 - templates são capabilities de plugin, não um tipo de artefato separado
 - MCP pode ser configurado externamente e ampliado por plugins
 - manifests de plugins de terceiros seguem um contrato versionado de `manifest.yaml` mantido em `tools/create-ralph-engine/`
-- metadados de exibição de plugins suportam nomes localizados, começando por `en` e `pt-br`
-- quando um locale de plugin não existir, as superfícies do runtime fazem fallback para o nome em inglês em vez de falhar
+- metadados de exibição de plugins suportam nomes e resumos localizados, começando por `en` e `pt-br`
+- quando um locale de plugin não existir, as superfícies do runtime fazem fallback para o nome e o resumo em inglês em vez de falhar
