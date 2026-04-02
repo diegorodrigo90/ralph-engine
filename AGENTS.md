@@ -38,6 +38,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 14. Library code SHALL NOT use `unwrap`, `expect`, `panic!`, `todo!`, or `unimplemented!` outside tests.
 15. Unsafe Rust SHALL be forbidden unless explicitly documented, isolated, and justified.
 16. Modules, functions, traits, and structs SHALL stay small, explicit, and single-purpose.
+16a. Code SHALL be written for readability first, even for developers unfamiliar with Rust. Prefer descriptive names over abbreviations, short functions over dense chains, explicit `filter` + `map` over `filter_map` when the intent is clearer, and comments explaining "why" on any non-obvious logic. Clever Rust idioms SHALL NOT be used when a simpler alternative communicates the same intent.
 17. DDD, SOLID, object calisthenics, early returns, strong typing, and clear names SHALL be applied where they improve maintainability in idiomatic Rust.
 18. The repository SHALL optimize for low token cost and high signal: prompt/context control, MCP governance, and plugin contracts are core responsibilities.
 19. The CLI SHALL stay modular. New command families or behaviors SHALL be introduced through isolated command modules or registries rather than by growing one central dispatcher function.
