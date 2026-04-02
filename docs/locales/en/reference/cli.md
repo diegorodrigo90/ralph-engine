@@ -64,7 +64,6 @@ ralph-engine prompts list
 ralph-engine prompts show <prompt-id>
 ralph-engine prompts asset <prompt-id> <asset-path>
 ralph-engine prompts materialize <prompt-id> <output-dir>
-ralph-engine prompts materialize <prompt-id> <output-dir>
 ralph-engine templates
 ralph-engine templates list
 ralph-engine templates show <template-id>
@@ -89,8 +88,6 @@ The `templates` command family prints the typed runtime template registry so tem
 The `templates materialize` command writes the embedded asset bundle owned by one typed template into an output directory, so official scaffolding remains explicit, plugin-owned, and inspectable instead of hiding behind implicit generator behavior.
 
 The `prompts` command family prints the typed runtime prompt registry so prompt providers stay explicit and separate from generic capability listings while prompt assembly remains a modular runtime surface instead of implicit command-local behavior.
-
-The `prompts materialize` command writes the embedded asset bundle owned by one typed prompt contribution into an output directory, so official prompt bundles remain explicit, plugin-owned, and reusable as real files instead of staying limited to per-asset reads.
 
 The `prompts materialize` command writes the embedded asset bundle owned by one typed prompt surface into an output directory, so reusable prompt assets remain explicit, plugin-owned, and executable instead of hiding behind ad hoc command behavior.
 

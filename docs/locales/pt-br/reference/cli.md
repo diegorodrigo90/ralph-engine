@@ -64,7 +64,6 @@ ralph-engine prompts list
 ralph-engine prompts show <prompt-id>
 ralph-engine prompts asset <prompt-id> <asset-path>
 ralph-engine prompts materialize <prompt-id> <output-dir>
-ralph-engine prompts materialize <prompt-id> <output-dir>
 ralph-engine templates
 ralph-engine templates list
 ralph-engine templates show <template-id>
@@ -89,8 +88,6 @@ A família `templates` imprime o registro tipado de templates do runtime para qu
 O comando `templates materialize` grava o conjunto de assets embutidos pertencente a um template tipado em um diretório de saída, para que o scaffolding oficial continue explícito, pertencente ao plugin e inspecionável em vez de ficar escondido atrás de comportamento implícito de gerador.
 
 A família `prompts` imprime o registro tipado de prompts do runtime para que providers de prompt permaneçam explícitos e separados das listagens genéricas de capability, enquanto a montagem de prompt continua sendo uma superfície modular do runtime em vez de virar comportamento implícito em comandos locais.
-
-O comando `prompts materialize` grava o conjunto de assets embutidos pertencente a uma contribuição tipada de prompt em um diretório de saída, para que bundles oficiais de prompt continuem explícitos, pertencentes ao plugin e reutilizáveis como arquivos reais em vez de ficarem limitados à leitura asset por asset.
 
 O comando `prompts materialize` grava o conjunto de assets embutidos pertencente a uma superfície tipada de prompt em um diretório de saída, para que assets reutilizáveis de prompt permaneçam explícitos, pertencentes ao plugin e executáveis em vez de ficarem escondidos atrás de comportamento ad hoc de comando.
 
