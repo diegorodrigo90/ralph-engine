@@ -96,6 +96,8 @@ A família `providers` imprime o registro tipado de providers do runtime para qu
 
 O comando `mcp show` imprime o contrato tipado de lançamento do MCP, incluindo modelo de processo, policy de lançamento, fronteiras de comando, policy de diretório de trabalho, policy de ambiente e disponibilidade.
 
+O comando `mcp plan` imprime o plano tipado de lançamento derivado desse contrato, para que bootstrap gerenciado por plugin e execução por spawn de processo permaneçam reutilizáveis fora de formatação local do comando.
+
 O comando `runtime show` imprime a topologia resolvida do runtime, incluindo ativação efetiva de plugin, registro de capability, registro de template, registro de prompt, registro de agent runtime, registro de check, registro de provider, registro de policy, registro de hook e enablement de MCP.
 
 O comando `runtime status` imprime o resumo tipado de health do runtime, incluindo providers habilitados e desabilitados em plugins, capabilities, templates, prompts, agent runtimes tipados, checks tipados, providers tipados, policies, runtime hooks e servidores MCP.

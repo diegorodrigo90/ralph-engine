@@ -2,6 +2,8 @@ use super::McpLocaleCatalog;
 
 pub(super) const LOCALE: McpLocaleCatalog = McpLocaleCatalog {
     official_servers: "Servidores MCP oficiais",
+    launch_plan: "Plano de lançamento MCP",
+    launch_step: "Etapa de lançamento",
     server: "Servidor MCP",
     name: "Nome",
     plugin: "Plugin",
