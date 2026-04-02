@@ -815,6 +815,55 @@ fn binary_mcp_plan_succeeds_in_pt_br() {
 }
 
 #[test]
+fn binary_mcp_status_succeeds() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["mcp", "status"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("MCP server statuses ("));
+}
+
+#[test]
+fn binary_mcp_status_single_server_succeeds() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["mcp", "status", "official.codex.session"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("MCP server status: official.codex.session"));
+    assert!(stdout.contains("Readiness:"));
+    assert!(stdout.contains("Transport: stdio"));
+}
+
+#[test]
+fn binary_mcp_status_succeeds_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["mcp", "status"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Status dos servidores MCP ("));
+}
+
+#[test]
+fn binary_mcp_status_rejects_unknown_server() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["mcp", "status", "unknown.server"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(!output.status.success());
+}
+
+#[test]
 fn binary_runtime_show_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
