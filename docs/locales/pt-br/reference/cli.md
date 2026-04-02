@@ -51,17 +51,26 @@ ralph-engine runtime show
 ralph-engine runtime status
 ralph-engine runtime issues
 ralph-engine runtime plan
+ralph-engine runtime agent-plans
+ralph-engine runtime provider-plans
+ralph-engine runtime check-plans
+ralph-engine runtime policy-plans
+ralph-engine runtime mcp-plans
 ralph-engine runtime patch
 ralph-engine runtime patched-config
 ralph-engine prompts
 ralph-engine prompts list
 ralph-engine prompts show <prompt-id>
+ralph-engine prompts asset <prompt-id> <asset-path>
 ralph-engine templates
 ralph-engine templates list
 ralph-engine templates show <template-id>
+ralph-engine templates asset <template-id> <asset-path>
+ralph-engine templates materialize <template-id> <output-dir>
 ralph-engine mcp
 ralph-engine mcp list
 ralph-engine mcp show <server-id>
+ralph-engine mcp plan <server-id>
 ```
 
 A CLI também aceita o flag global `--locale <locale-id>` ou `-L <locale-id>` para que uma única invocação troque o idioma explicitamente sem depender do ambiente. Quando nenhum flag explícito é passado, a CLI continua fazendo fallback para `RALPH_ENGINE_LOCALE` e depois para o contrato tipado de locale padrão.
@@ -73,6 +82,8 @@ A família `agents` imprime o registro tipado de agent runtimes para que integra
 A família `capabilities` imprime o registro tipado de capabilities do runtime para que os providers permaneçam explícitos e modulares.
 
 A família `templates` imprime o registro tipado de templates do runtime para que providers de template permaneçam explícitos e separados das listagens genéricas de capability, enquanto a responsabilidade de scaffolding continua pertencendo ao tooling.
+
+O comando `templates materialize` grava o conjunto de assets embutidos pertencente a um template tipado em um diretório de saída, para que o scaffolding oficial continue explícito, pertencente ao plugin e inspecionável em vez de ficar escondido atrás de comportamento implícito de gerador.
 
 A família `prompts` imprime o registro tipado de prompts do runtime para que providers de prompt permaneçam explícitos e separados das listagens genéricas de capability, enquanto a montagem de prompt continua sendo uma superfície modular do runtime em vez de virar comportamento implícito em comandos locais.
 

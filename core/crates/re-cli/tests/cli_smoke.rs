@@ -2,7 +2,24 @@
 
 #![allow(clippy::expect_used)]
 
-use std::process::Command;
+use std::{
+    path::PathBuf,
+    process::Command,
+    time::{SystemTime, UNIX_EPOCH},
+};
+
+fn unique_temp_dir(prefix: &str) -> PathBuf {
+    let mut path = std::env::temp_dir();
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("current time should be after unix epoch")
+        .as_nanos();
+    path.push(format!(
+        "ralph-engine-{prefix}-{}-{nanos}",
+        std::process::id()
+    ));
+    path
+}
 
 #[test]
 fn binary_without_args_succeeds() {
@@ -299,6 +316,30 @@ fn binary_templates_asset_rejects_unknown_asset_in_pt_br() {
     assert_eq!(output.status.code(), Some(2));
     let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
     assert!(stderr.contains("asset de template desconhecido: .ralph-engine/missing.yaml"));
+}
+
+#[test]
+fn binary_templates_materialize_writes_embedded_assets() {
+    let output_dir = unique_temp_dir("templates-materialize");
+    let output_dir_str = output_dir.to_string_lossy().into_owned();
+
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args([
+        "templates",
+        "materialize",
+        "official.basic.starter",
+        &output_dir_str,
+    ]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Materialized assets (4)"));
+    assert!(output_dir.join(".ralph-engine/config.yaml").is_file());
+    assert!(output_dir.join(".ralph-engine/README.md").is_file());
+
+    std::fs::remove_dir_all(&output_dir).expect("temporary directory should be removable");
 }
 
 #[test]

@@ -51,17 +51,26 @@ ralph-engine runtime show
 ralph-engine runtime status
 ralph-engine runtime issues
 ralph-engine runtime plan
+ralph-engine runtime agent-plans
+ralph-engine runtime provider-plans
+ralph-engine runtime check-plans
+ralph-engine runtime policy-plans
+ralph-engine runtime mcp-plans
 ralph-engine runtime patch
 ralph-engine runtime patched-config
 ralph-engine prompts
 ralph-engine prompts list
 ralph-engine prompts show <prompt-id>
+ralph-engine prompts asset <prompt-id> <asset-path>
 ralph-engine templates
 ralph-engine templates list
 ralph-engine templates show <template-id>
+ralph-engine templates asset <template-id> <asset-path>
+ralph-engine templates materialize <template-id> <output-dir>
 ralph-engine mcp
 ralph-engine mcp list
 ralph-engine mcp show <server-id>
+ralph-engine mcp plan <server-id>
 ```
 
 The CLI also accepts the global `--locale <locale-id>` or `-L <locale-id>` flag so one invocation can switch language explicitly without depending on environment state. When no explicit flag is passed, the CLI still falls back to `RALPH_ENGINE_LOCALE` and then to the typed default locale contract.
@@ -73,6 +82,8 @@ The `agents` command family prints the typed agent runtime registry so official 
 The `capabilities` command family prints the typed runtime capability registry so capability providers remain explicit and modular.
 
 The `templates` command family prints the typed runtime template registry so template providers stay explicit and separate from generic capability listings while scaffolding ownership remains tooling-owned.
+
+The `templates materialize` command writes the embedded asset bundle owned by one typed template into an output directory, so official scaffolding remains explicit, plugin-owned, and inspectable instead of hiding behind implicit generator behavior.
 
 The `prompts` command family prints the typed runtime prompt registry so prompt providers stay explicit and separate from generic capability listings while prompt assembly remains a modular runtime surface instead of implicit command-local behavior.
 
