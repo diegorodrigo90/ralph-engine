@@ -33,21 +33,10 @@ fn show_provider(provider_kind: Option<&str>, locale: &str) -> Result<String, Cl
         ))
     })?;
 
-    if let Some(contribution) = catalog::find_official_provider_contribution(provider_id) {
-        let registration =
-            catalog::find_official_runtime_providers(kind_for_provider(contribution))
-                .into_iter()
-                .find(|candidate| candidate.plugin_id == contribution.descriptor.plugin_id)
-                .ok_or_else(|| {
-                    CliError::new(i18n::unknown_entity(
-                        locale,
-                        i18n::provider_entity_label(locale),
-                        provider_id,
-                    ))
-                })?;
+    if let Some(surface) = catalog::find_official_provider_surface(provider_id) {
         return Ok(render_provider_contribution_detail(
-            contribution,
-            registration,
+            surface.contribution,
+            surface.registration,
             locale,
         ));
     }
@@ -68,15 +57,6 @@ fn show_provider(provider_kind: Option<&str>, locale: &str) -> Result<String, Cl
         &contributions,
         locale,
     ))
-}
-
-fn kind_for_provider(contribution: catalog::OfficialProviderContribution) -> RuntimeProviderKind {
-    match contribution.descriptor.kind {
-        re_plugin::PluginProviderKind::DataSource => RuntimeProviderKind::DataSource,
-        re_plugin::PluginProviderKind::ContextProvider => RuntimeProviderKind::ContextProvider,
-        re_plugin::PluginProviderKind::ForgeProvider => RuntimeProviderKind::ForgeProvider,
-        re_plugin::PluginProviderKind::RemoteControl => RuntimeProviderKind::RemoteControl,
-    }
 }
 
 fn render_provider_listing(registrations: &[RuntimeProviderRegistration], locale: &str) -> String {
@@ -225,6 +205,7 @@ mod tests {
         // Arrange
         let registrations = [
             RuntimeProviderRegistration::new(
+                PROVIDER_ID,
                 RuntimeProviderKind::DataSource,
                 PRIMARY_PLUGIN_ID,
                 PluginActivation::Disabled,
@@ -232,6 +213,7 @@ mod tests {
                 true,
             ),
             RuntimeProviderRegistration::new(
+                "fixture.archive.data",
                 RuntimeProviderKind::DataSource,
                 SECONDARY_PLUGIN_ID,
                 PluginActivation::Enabled,
@@ -252,6 +234,7 @@ mod tests {
     fn render_provider_detail_is_human_readable() {
         // Arrange
         let providers = [RuntimeProviderRegistration::new(
+            PROVIDER_ID,
             RuntimeProviderKind::DataSource,
             PRIMARY_PLUGIN_ID,
             PluginActivation::Enabled,
