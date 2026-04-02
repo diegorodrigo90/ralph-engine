@@ -100,6 +100,10 @@ function validateManifestObject(manifest, sourceLabel = "manifest.yaml") {
     errors.push(`display_name must be a non-empty string`);
   }
 
+  if ("summary" in manifest && (typeof manifest.summary !== "string" || manifest.summary.trim().length === 0)) {
+    errors.push(`summary must be a non-empty string`);
+  }
+
   if ("display_name_locales" in manifest) {
     const displayNameLocales = requireObject(
       manifest.display_name_locales,
@@ -114,6 +118,24 @@ function validateManifestObject(manifest, sourceLabel = "manifest.yaml") {
       }
       if (typeof value !== "string" || value.trim().length === 0) {
         errors.push(`display_name_locales.${locale} must be a non-empty string`);
+      }
+    }
+  }
+
+  if ("summary_locales" in manifest) {
+    const summaryLocales = requireObject(
+      manifest.summary_locales,
+      "summary_locales",
+      errors,
+    );
+    const localePattern = schema.properties.summary_locales.propertyNames.pattern;
+
+    for (const [locale, value] of Object.entries(summaryLocales)) {
+      if (!validatePattern(locale, localePattern)) {
+        errors.push(`summary_locales key "${locale}" must be a stable locale identifier`);
+      }
+      if (typeof value !== "string" || value.trim().length === 0) {
+        errors.push(`summary_locales.${locale} must be a non-empty string`);
       }
     }
   }

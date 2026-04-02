@@ -39,6 +39,8 @@ test("creates a non-interactive plugin scaffold", () => {
   assert.match(manifest, /id: acme\.jira-suite/);
   assert.match(manifest, /kind: mcp_contribution/);
   assert.match(manifest, /display_name_locales:\n  pt-br: Jira Suite/);
+  assert.match(manifest, /summary: Jira Suite plugin for Ralph Engine\./);
+  assert.match(manifest, /summary_locales:\n  pt-br: Plugin Jira Suite para o Ralph Engine\./);
   assert.match(manifest, /- mcp_contribution/);
   assert.match(manifest, /- context_provider/);
   assert.match(manifest, /- data_source/);
