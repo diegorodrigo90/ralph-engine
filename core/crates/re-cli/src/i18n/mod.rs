@@ -162,6 +162,22 @@ pub fn resolved_from_label(locale: &str) -> &'static str {
 }
 
 #[must_use]
+pub fn activation_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::ACTIVATION_LABEL,
+        CliLocale::PtBr => pt_br::ACTIVATION_LABEL,
+    }
+}
+
+#[must_use]
+pub fn load_boundary_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::LOAD_BOUNDARY_LABEL,
+        CliLocale::PtBr => pt_br::LOAD_BOUNDARY_LABEL,
+    }
+}
+
+#[must_use]
 pub fn agent_runtime_label(locale: &str) -> &'static str {
     match parse_locale(locale) {
         CliLocale::En => en::AGENT_RUNTIME_LABEL,
@@ -454,9 +470,9 @@ mod tests {
     use std::{env, ffi::OsString};
 
     use super::{
-        detail_heading, list_heading, missing_id, normalize_cli_locale, providers_heading,
-        resolve_cli_locale_from_env_result, root_bootstrapped, unknown_command, unknown_entity,
-        unknown_subcommand,
+        activation_label, detail_heading, list_heading, load_boundary_label, missing_id,
+        normalize_cli_locale, providers_heading, resolve_cli_locale_from_env_result,
+        root_bootstrapped, unknown_command, unknown_entity, unknown_subcommand,
     };
 
     #[test]
@@ -507,6 +523,8 @@ mod tests {
             "Plugins (3)"
         );
         assert_eq!(providers_heading("pt-br", 2), "Provedores (2)");
+        assert_eq!(activation_label("pt-br"), "Ativação");
+        assert_eq!(load_boundary_label("pt-br"), "Fronteira de carregamento");
         assert_eq!(
             detail_heading("pt-br", "Plugin", "Plugin", "official.basic"),
             "Plugin: official.basic"
@@ -531,6 +549,8 @@ mod tests {
         );
         assert_eq!(list_heading("en", "Plugins", "Plugins", 3), "Plugins (3)");
         assert_eq!(providers_heading("en", 2), "Providers (2)");
+        assert_eq!(activation_label("en"), "Activation");
+        assert_eq!(load_boundary_label("en"), "Load boundary");
         assert_eq!(
             detail_heading("en", "Plugin", "Plugin", "official.basic"),
             "Plugin: official.basic"
