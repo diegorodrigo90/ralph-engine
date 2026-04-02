@@ -8,12 +8,15 @@ use re_core::{
     RuntimeAgentRegistration, RuntimeCapabilityRegistration, RuntimeCheckRegistration,
     RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
     RuntimePolicyRegistration, RuntimePromptRegistration, RuntimeProviderRegistration,
-    RuntimeTemplateRegistration, RuntimeTopology, agent_runtime_hook, policy_runtime_hook,
-    prompt_runtime_hook, runtime_check_kind_for_capability, runtime_hook_for_check,
-    runtime_hook_for_provider, runtime_provider_kind_for_capability, template_runtime_hook,
+    RuntimeTemplateRegistration, RuntimeTopology, agent_runtime_hook,
+    capability_activates_agent_surface, capability_activates_policy_surface,
+    capability_activates_prompt_surface, capability_activates_template_surface,
+    policy_runtime_hook, prompt_runtime_hook, runtime_check_kind_for_capability,
+    runtime_hook_for_check, runtime_hook_for_provider, runtime_provider_kind_for_capability,
+    template_runtime_hook,
 };
 use re_mcp::McpServerDescriptor;
-use re_plugin::{AGENT_RUNTIME, POLICY, PROMPT_FRAGMENTS, PluginDescriptor, TEMPLATE};
+use re_plugin::PluginDescriptor;
 
 /// Immutable owned snapshot of the official runtime catalog.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -176,7 +179,14 @@ pub fn official_runtime_capabilities() -> Vec<RuntimeCapabilityRegistration> {
 pub fn official_runtime_templates() -> Vec<RuntimeTemplateRegistration> {
     official_runtime_plugins()
         .into_iter()
-        .filter(|plugin| plugin.descriptor.capabilities.contains(&TEMPLATE))
+        .filter(|plugin| {
+            plugin
+                .descriptor
+                .capabilities
+                .iter()
+                .copied()
+                .any(capability_activates_template_surface)
+        })
         .map(|plugin| {
             RuntimeTemplateRegistration::new(
                 plugin.descriptor.id,
@@ -196,7 +206,14 @@ pub fn official_runtime_templates() -> Vec<RuntimeTemplateRegistration> {
 pub fn official_runtime_prompts() -> Vec<RuntimePromptRegistration> {
     official_runtime_plugins()
         .into_iter()
-        .filter(|plugin| plugin.descriptor.capabilities.contains(&PROMPT_FRAGMENTS))
+        .filter(|plugin| {
+            plugin
+                .descriptor
+                .capabilities
+                .iter()
+                .copied()
+                .any(capability_activates_prompt_surface)
+        })
         .map(|plugin| {
             RuntimePromptRegistration::new(
                 plugin.descriptor.id,
@@ -216,7 +233,14 @@ pub fn official_runtime_prompts() -> Vec<RuntimePromptRegistration> {
 pub fn official_runtime_agents() -> Vec<RuntimeAgentRegistration> {
     official_runtime_plugins()
         .into_iter()
-        .filter(|plugin| plugin.descriptor.capabilities.contains(&AGENT_RUNTIME))
+        .filter(|plugin| {
+            plugin
+                .descriptor
+                .capabilities
+                .iter()
+                .copied()
+                .any(capability_activates_agent_surface)
+        })
         .map(|plugin| {
             RuntimeAgentRegistration::new(
                 plugin.descriptor.id,
@@ -317,7 +341,14 @@ pub fn official_runtime_providers() -> Vec<RuntimeProviderRegistration> {
 pub fn official_runtime_policies() -> Vec<RuntimePolicyRegistration> {
     official_runtime_plugins()
         .into_iter()
-        .filter(|plugin| plugin.descriptor.capabilities.contains(&POLICY))
+        .filter(|plugin| {
+            plugin
+                .descriptor
+                .capabilities
+                .iter()
+                .copied()
+                .any(capability_activates_policy_surface)
+        })
         .map(|plugin| {
             RuntimePolicyRegistration::new(
                 plugin.descriptor.id,

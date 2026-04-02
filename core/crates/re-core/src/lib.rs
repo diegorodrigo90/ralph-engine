@@ -5,8 +5,9 @@ mod i18n;
 use re_config::{ConfigScope, PluginActivation};
 use re_mcp::McpServerDescriptor;
 use re_plugin::{
-    CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, PREPARE_CHECKS, PluginCapability,
-    PluginDescriptor, PluginLoadBoundary, PluginRuntimeHook, REMOTE_CONTROL,
+    AGENT_RUNTIME, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER, POLICY,
+    PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCapability, PluginDescriptor, PluginLoadBoundary,
+    PluginRuntimeHook, REMOTE_CONTROL, TEMPLATE,
 };
 
 /// Public product name.
@@ -398,16 +399,34 @@ pub const fn template_runtime_hook() -> PluginRuntimeHook {
     PluginRuntimeHook::Scaffold
 }
 
+/// Returns whether one capability activates the template surface.
+#[must_use]
+pub fn capability_activates_template_surface(capability: PluginCapability) -> bool {
+    capability == TEMPLATE
+}
+
 /// Returns the runtime hook that activates the prompt surface.
 #[must_use]
 pub const fn prompt_runtime_hook() -> PluginRuntimeHook {
     PluginRuntimeHook::PromptAssembly
 }
 
+/// Returns whether one capability activates the prompt surface.
+#[must_use]
+pub fn capability_activates_prompt_surface(capability: PluginCapability) -> bool {
+    capability == PROMPT_FRAGMENTS
+}
+
 /// Returns the runtime hook that activates the agent runtime surface.
 #[must_use]
 pub const fn agent_runtime_hook() -> PluginRuntimeHook {
     PluginRuntimeHook::AgentBootstrap
+}
+
+/// Returns whether one capability activates the agent runtime surface.
+#[must_use]
+pub fn capability_activates_agent_surface(capability: PluginCapability) -> bool {
+    capability == AGENT_RUNTIME
 }
 
 /// One typed runtime check registration in the resolved runtime topology.
@@ -506,6 +525,12 @@ pub const fn runtime_hook_for_provider(kind: RuntimeProviderKind) -> PluginRunti
 #[must_use]
 pub const fn policy_runtime_hook() -> PluginRuntimeHook {
     PluginRuntimeHook::PolicyEnforcement
+}
+
+/// Returns whether one capability activates the policy surface.
+#[must_use]
+pub fn capability_activates_policy_surface(capability: PluginCapability) -> bool {
+    capability == POLICY
 }
 
 /// One typed provider registration in the resolved runtime topology.
@@ -1498,12 +1523,15 @@ mod tests {
         RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
         RuntimePolicyRegistration, RuntimePromptRegistration, RuntimeProviderKind,
         RuntimeProviderRegistration, RuntimeStatus, RuntimeTemplateRegistration, RuntimeTopology,
-        banner, build_runtime_action_plan, build_runtime_doctor_report, collect_runtime_issues,
-        evaluate_runtime_status, render_runtime_action_plan, render_runtime_action_plan_for_locale,
+        agent_runtime_hook, banner, build_runtime_action_plan, build_runtime_doctor_report,
+        capability_activates_agent_surface, capability_activates_policy_surface,
+        capability_activates_prompt_surface, capability_activates_template_surface,
+        collect_runtime_issues, evaluate_runtime_status, policy_runtime_hook, prompt_runtime_hook,
+        render_runtime_action_plan, render_runtime_action_plan_for_locale,
         render_runtime_doctor_report, render_runtime_doctor_report_for_locale,
         render_runtime_issues, render_runtime_issues_for_locale, render_runtime_status,
         render_runtime_status_for_locale, render_runtime_topology,
-        render_runtime_topology_for_locale,
+        render_runtime_topology_for_locale, template_runtime_hook,
     };
 
     const CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -1833,6 +1861,33 @@ mod tests {
 
         // Assert
         assert!(enabled);
+    }
+
+    #[test]
+    fn dedicated_surface_capability_helpers_are_stable() {
+        assert!(capability_activates_template_surface(
+            PluginCapability::new("template")
+        ));
+        assert!(capability_activates_prompt_surface(PluginCapability::new(
+            "prompt_fragments"
+        )));
+        assert!(capability_activates_agent_surface(PluginCapability::new(
+            "agent_runtime"
+        )));
+        assert!(capability_activates_policy_surface(PluginCapability::new(
+            "policy"
+        )));
+        assert!(!capability_activates_template_surface(
+            PluginCapability::new("doctor_checks")
+        ));
+    }
+
+    #[test]
+    fn dedicated_surface_hooks_are_stable() {
+        assert_eq!(template_runtime_hook(), PluginRuntimeHook::Scaffold);
+        assert_eq!(prompt_runtime_hook(), PluginRuntimeHook::PromptAssembly);
+        assert_eq!(agent_runtime_hook(), PluginRuntimeHook::AgentBootstrap);
+        assert_eq!(policy_runtime_hook(), PluginRuntimeHook::PolicyEnforcement);
     }
 
     #[test]
