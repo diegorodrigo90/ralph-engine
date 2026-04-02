@@ -256,6 +256,37 @@ function assertOfficialPluginLocaleModules(supportedLocales) {
   }
 }
 
+function assertOfficialPluginOwnedTests() {
+  const pluginDirs = fs.readdirSync(OFFICIAL_PLUGIN_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(OFFICIAL_PLUGIN_DIR, entry.name));
+
+  for (const pluginDir of pluginDirs) {
+    const pluginName = path.basename(pluginDir);
+    const libPath = path.join(pluginDir, "src", "lib.rs");
+
+    if (!fs.existsSync(libPath)) {
+      fail(`official plugin ${pluginName} is missing src/lib.rs`);
+    }
+
+    const libSource = readUtf8(libPath);
+    const requiredTestMarkers = [
+      "#[cfg(test)]",
+      "mod tests {",
+      "fn plugin_descriptor_is_consistent()",
+      "fn plugin_manifest_matches_typed_contract_surface()",
+    ];
+
+    for (const marker of requiredTestMarkers) {
+      if (!libSource.includes(marker)) {
+        fail(
+          `official plugin ${pluginName} must own the test marker '${marker}' in src/lib.rs`,
+        );
+      }
+    }
+  }
+}
+
 function parseDefaultKind(source) {
   const match = source.match(/const DEFAULT_KIND = "([^"]+)";/);
   if (!match) {
@@ -386,5 +417,6 @@ assertOfficialManifestsStayLocalizedAndVersioned(
   workspaceVersion,
 );
 assertOfficialPluginLocaleModules(rustSupportedLocales);
+assertOfficialPluginOwnedTests();
 
 process.stdout.write("Plugin contracts verified.\n");
