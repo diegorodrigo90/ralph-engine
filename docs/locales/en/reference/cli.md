@@ -18,6 +18,7 @@ ralph-engine checks list
 ralph-engine checks show <check-id>
 ralph-engine doctor
 ralph-engine doctor runtime
+ralph-engine doctor config
 ralph-engine hooks
 ralph-engine hooks list
 ralph-engine hooks show <hook-id>
@@ -74,6 +75,8 @@ The `prompts` command family prints the typed runtime prompt registry so prompt 
 The `checks` command family prints the typed runtime check registry so prepare-time and doctor-time validation contributions stay explicit instead of hiding only as generic capabilities.
 
 The `doctor` command family prints the typed runtime diagnostic report by composing runtime status, unresolved issues, and remediation actions from one shared runtime snapshot instead of spreading diagnosis across ad hoc command logic.
+
+The `doctor config` command renders the same owned project configuration that results from applying the runtime remediation patch to the current defaults, so the doctor flow can point directly at an inspectable remediation target instead of stopping at diagnosis.
 
 The `config locale` command prints the typed default locale contract so CLI i18n stays inspectable instead of remaining implicit in the runtime defaults.
 
