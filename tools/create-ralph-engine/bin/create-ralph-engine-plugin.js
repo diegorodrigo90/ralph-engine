@@ -200,7 +200,7 @@ function createScaffold(scaffold) {
   writeFile(scaffold.targetDir, "Cargo.toml", renderCargoToml(scaffold));
   writeFile(scaffold.targetDir, "README.md", renderREADME(scaffold));
   writeFile(scaffold.targetDir, path.join("src", "lib.rs"), renderRustPluginLib(scaffold));
-  writeFile(scaffold.targetDir, path.join("src", "i18n", "mod.rs"), renderRustPluginI18nMod());
+  writeFile(scaffold.targetDir, path.join("src", "i18n", "mod.rs"), renderRustPluginI18nMod(scaffold));
   writeFile(scaffold.targetDir, path.join("src", "i18n", "en.rs"), renderRustPluginI18nEn(scaffold));
   writeFile(
     scaffold.targetDir,
@@ -522,6 +522,18 @@ function buildRuntimeContributionDefinitions(scaffold) {
   return definitions;
 }
 
+function rustContributionIdent(sectionName, entryId) {
+  return `${sectionName}_${entryId}`
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .replace(/_+/g, "_")
+    .toUpperCase();
+}
+
+function rustContributionHelperBase(sectionName, entryId) {
+  return rustContributionIdent(sectionName, entryId).toLowerCase();
+}
+
 function renderREADME(scaffold) {
   const lines = [
     `# ${scaffold.id}`,
@@ -646,69 +658,87 @@ ${contributions.templates.length > 0 ? `const TEMPLATE_ASSETS: &[PluginTemplateA
     PluginTemplateAsset::new(".ralph-engine/prompt.md", include_str!("../template/prompt.md")),
 ];
 const TEMPLATES: &[PluginTemplateDescriptor] = &[
-${contributions.templates.map((entry) => `    PluginTemplateDescriptor::new(
+${contributions.templates.map((entry) => {
+  const helperBase = rustContributionHelperBase("templates", entry.id);
+  return `    PluginTemplateDescriptor::new(
         "${entry.id}",
         PLUGIN_ID,
-        "${entry.displayName}",
-        &[PluginLocalizedText::new("pt-br", "${entry.displayNamePtBr}")],
-        "${entry.summary}",
-        &[PluginLocalizedText::new("pt-br", "${entry.summaryPtBr}")],
+        i18n::${helperBase}_default_name(),
+        i18n::${helperBase}_localized_names(),
+        i18n::${helperBase}_default_summary(),
+        i18n::${helperBase}_localized_summaries(),
         TEMPLATE_ASSETS,
-    ),`).join("\n")}
+    ),`;
+}).join("\n")}
 ];` : ""}
 ${contributions.prompts.length > 0 ? `const PROMPT_ASSETS: &[PluginPromptAsset] = &[];
 const PROMPTS: &[PluginPromptDescriptor] = &[
-${contributions.prompts.map((entry) => `    PluginPromptDescriptor::new(
+${contributions.prompts.map((entry) => {
+  const helperBase = rustContributionHelperBase("prompts", entry.id);
+  return `    PluginPromptDescriptor::new(
         "${entry.id}",
         PLUGIN_ID,
-        "${entry.displayName}",
-        &[PluginLocalizedText::new("pt-br", "${entry.displayNamePtBr}")],
-        "${entry.summary}",
-        &[PluginLocalizedText::new("pt-br", "${entry.summaryPtBr}")],
+        i18n::${helperBase}_default_name(),
+        i18n::${helperBase}_localized_names(),
+        i18n::${helperBase}_default_summary(),
+        i18n::${helperBase}_localized_summaries(),
         PROMPT_ASSETS,
-    ),`).join("\n")}
+    ),`;
+}).join("\n")}
 ];` : ""}
 ${contributions.agents.length > 0 ? `const AGENTS: &[PluginAgentDescriptor] = &[
-${contributions.agents.map((entry) => `    PluginAgentDescriptor::new(
+${contributions.agents.map((entry) => {
+  const helperBase = rustContributionHelperBase("agents", entry.id);
+  return `    PluginAgentDescriptor::new(
         "${entry.id}",
         PLUGIN_ID,
-        "${entry.displayName}",
-        &[PluginLocalizedText::new("pt-br", "${entry.displayNamePtBr}")],
-        "${entry.summary}",
-        &[PluginLocalizedText::new("pt-br", "${entry.summaryPtBr}")],
-    ),`).join("\n")}
+        i18n::${helperBase}_default_name(),
+        i18n::${helperBase}_localized_names(),
+        i18n::${helperBase}_default_summary(),
+        i18n::${helperBase}_localized_summaries(),
+    ),`;
+}).join("\n")}
 ];` : ""}
 ${contributions.checks.length > 0 ? `const CHECKS: &[PluginCheckDescriptor] = &[
-${contributions.checks.map((entry) => `    PluginCheckDescriptor::new(
+${contributions.checks.map((entry) => {
+  const helperBase = rustContributionHelperBase("checks", entry.id);
+  return `    PluginCheckDescriptor::new(
         "${entry.id}",
         PLUGIN_ID,
         ${entry.checkKindVariant},
-        "${entry.displayName}",
-        &[PluginLocalizedText::new("pt-br", "${entry.displayNamePtBr}")],
-        "${entry.summary}",
-        &[PluginLocalizedText::new("pt-br", "${entry.summaryPtBr}")],
-    ),`).join("\n")}
+        i18n::${helperBase}_default_name(),
+        i18n::${helperBase}_localized_names(),
+        i18n::${helperBase}_default_summary(),
+        i18n::${helperBase}_localized_summaries(),
+    ),`;
+}).join("\n")}
 ];` : ""}
 ${contributions.providers.length > 0 ? `const PROVIDERS: &[PluginProviderDescriptor] = &[
-${contributions.providers.map((entry) => `    PluginProviderDescriptor::new(
+${contributions.providers.map((entry) => {
+  const helperBase = rustContributionHelperBase("providers", entry.id);
+  return `    PluginProviderDescriptor::new(
         "${entry.id}",
         PLUGIN_ID,
         ${entry.providerKindVariant},
-        "${entry.displayName}",
-        &[PluginLocalizedText::new("pt-br", "${entry.displayNamePtBr}")],
-        "${entry.summary}",
-        &[PluginLocalizedText::new("pt-br", "${entry.summaryPtBr}")],
-    ),`).join("\n")}
+        i18n::${helperBase}_default_name(),
+        i18n::${helperBase}_localized_names(),
+        i18n::${helperBase}_default_summary(),
+        i18n::${helperBase}_localized_summaries(),
+    ),`;
+}).join("\n")}
 ];` : ""}
 ${contributions.policies.length > 0 ? `const POLICIES: &[PluginPolicyDescriptor] = &[
-${contributions.policies.map((entry) => `    PluginPolicyDescriptor::new(
+${contributions.policies.map((entry) => {
+  const helperBase = rustContributionHelperBase("policies", entry.id);
+  return `    PluginPolicyDescriptor::new(
         "${entry.id}",
         PLUGIN_ID,
-        "${entry.displayName}",
-        &[PluginLocalizedText::new("pt-br", "${entry.displayNamePtBr}")],
-        "${entry.summary}",
-        &[PluginLocalizedText::new("pt-br", "${entry.summaryPtBr}")],
-    ),`).join("\n")}
+        i18n::${helperBase}_default_name(),
+        i18n::${helperBase}_localized_names(),
+        i18n::${helperBase}_default_summary(),
+        i18n::${helperBase}_localized_summaries(),
+    ),`;
+}).join("\n")}
 ];` : ""}
 
 /// Declared capabilities for the plugin.
@@ -811,7 +841,52 @@ ${[
 `;
 }
 
-function renderRustPluginI18nMod() {
+function renderRustPluginI18nMod(scaffold) {
+  const contributions = buildRuntimeContributionDefinitions(scaffold);
+  const sections = [
+    ["templates", contributions.templates],
+    ["prompts", contributions.prompts],
+    ["agents", contributions.agents],
+    ["checks", contributions.checks],
+    ["providers", contributions.providers],
+    ["policies", contributions.policies],
+  ];
+  const contributionHelpers = sections
+    .flatMap(([sectionName, entries]) => entries.map((entry) => {
+      const helperBase = rustContributionHelperBase(sectionName, entry.id);
+      const constantName = rustContributionIdent(sectionName, entry.id);
+      return `
+const ${constantName}_LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    pt_br::${constantName}.display_name,
+)];
+const ${constantName}_LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    pt_br::${constantName}.summary,
+)];
+
+#[must_use]
+pub const fn ${helperBase}_default_name() -> &'static str {
+    en::${constantName}.display_name
+}
+
+#[must_use]
+pub const fn ${helperBase}_default_summary() -> &'static str {
+    en::${constantName}.summary
+}
+
+#[must_use]
+pub const fn ${helperBase}_localized_names() -> &'static [PluginLocalizedText] {
+    ${constantName}_LOCALIZED_NAMES
+}
+
+#[must_use]
+pub const fn ${helperBase}_localized_summaries() -> &'static [PluginLocalizedText] {
+    ${constantName}_LOCALIZED_SUMMARIES
+}`;
+    }))
+    .join("\n");
+
   return `pub mod en;
 pub mod pt_br;
 
@@ -819,6 +894,11 @@ use re_plugin::PluginLocalizedText;
 
 pub struct PluginLocaleCatalog {
     pub name: &'static str,
+    pub summary: &'static str,
+}
+
+pub struct ContributionLocaleCatalog {
+    pub display_name: &'static str,
     pub summary: &'static str,
 }
 
@@ -854,26 +934,71 @@ pub const fn localized_names() -> &'static [PluginLocalizedText] {
 pub const fn localized_summaries() -> &'static [PluginLocalizedText] {
     LOCALIZED_SUMMARIES
 }
+${contributionHelpers}
 `;
 }
 
 function renderRustPluginI18nEn(scaffold) {
+  const contributions = buildRuntimeContributionDefinitions(scaffold);
+  const sections = [
+    ["templates", contributions.templates],
+    ["prompts", contributions.prompts],
+    ["agents", contributions.agents],
+    ["checks", contributions.checks],
+    ["providers", contributions.providers],
+    ["policies", contributions.policies],
+  ];
+  const contributionCatalogs = sections
+    .flatMap(([sectionName, entries]) => entries.map((entry) => {
+      const constantName = rustContributionIdent(sectionName, entry.id);
+      return `
+pub const ${constantName}: ContributionLocaleCatalog = ContributionLocaleCatalog {
+    display_name: "${entry.displayName}",
+    summary: "${entry.summary}",
+};`;
+    }))
+    .join("\n");
+
   return `use super::PluginLocaleCatalog;
+use super::ContributionLocaleCatalog;
 
 pub const LOCALE: PluginLocaleCatalog = PluginLocaleCatalog {
     name: "${humanize(scaffold.name)}",
     summary: "${humanize(scaffold.name)} plugin for Ralph Engine.",
 };
+${contributionCatalogs}
 `;
 }
 
 function renderRustPluginI18nPtBr(scaffold) {
+  const contributions = buildRuntimeContributionDefinitions(scaffold);
+  const sections = [
+    ["templates", contributions.templates],
+    ["prompts", contributions.prompts],
+    ["agents", contributions.agents],
+    ["checks", contributions.checks],
+    ["providers", contributions.providers],
+    ["policies", contributions.policies],
+  ];
+  const contributionCatalogs = sections
+    .flatMap(([sectionName, entries]) => entries.map((entry) => {
+      const constantName = rustContributionIdent(sectionName, entry.id);
+      return `
+pub const ${constantName}: ContributionLocaleCatalog = ContributionLocaleCatalog {
+    display_name: "${entry.displayNamePtBr}",
+    summary: "${entry.summaryPtBr}",
+};`;
+    }))
+    .join("\n");
+
   return `use super::PluginLocaleCatalog;
+use super::ContributionLocaleCatalog;
 
 pub const LOCALE: PluginLocaleCatalog = PluginLocaleCatalog {
     name: "${humanize(scaffold.name)}",
     summary: "Plugin ${humanize(scaffold.name)} para o Ralph Engine.",
 };
+${contributionCatalogs}
 `;
 }
 

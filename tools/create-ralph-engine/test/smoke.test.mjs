@@ -63,13 +63,19 @@ test("creates a non-interactive plugin scaffold", () => {
   assert.match(rustLib, /PluginRuntimeHook::DataSourceRegistration/);
   assert.match(rustLib, /const PROVIDERS: &\[PluginProviderDescriptor\]/);
   assert.match(rustLib, /pub const fn providers\(\) -> &'static \[PluginProviderDescriptor\]/);
+  assert.match(rustLib, /i18n::providers_acme_jira_suite_data_default_name\(\)/);
+  assert.match(rustLib, /i18n::providers_acme_jira_suite_context_localized_summaries\(\)/);
   assert.match(rustI18nMod, /pub mod en;/);
   assert.match(rustI18nMod, /pub mod pt_br;/);
   assert.match(rustI18nMod, /const LOCALIZED_NAMES: &\[PluginLocalizedText\]/);
   assert.match(rustI18nMod, /const LOCALIZED_SUMMARIES: &\[PluginLocalizedText\]/);
+  assert.match(rustI18nMod, /pub struct ContributionLocaleCatalog/);
+  assert.match(rustI18nMod, /providers_acme_jira_suite_data_default_name/);
   assert.match(rustI18nEn, /pub const LOCALE: PluginLocaleCatalog = PluginLocaleCatalog \{/);
   assert.match(rustI18nEn, /name: "Jira Suite"/);
+  assert.match(rustI18nEn, /pub const PROVIDERS_ACME_JIRA_SUITE_DATA: ContributionLocaleCatalog/);
   assert.match(rustI18nPtBr, /summary: "Plugin Jira Suite para o Ralph Engine\."/);
+  assert.match(rustI18nPtBr, /display_name: "Fonte de dados Jira Suite"/);
 });
 
 test("renders help in pt-br when locale is configured", () => {
@@ -178,6 +184,8 @@ test("creates typed contribution sections for runtime-facing capabilities", () =
   assert.match(rustLib, /pub const fn prompts\(\) -> &'static \[PluginPromptDescriptor\]/);
   assert.match(rustLib, /pub const fn agents\(\) -> &'static \[PluginAgentDescriptor\]/);
   assert.match(rustLib, /pub const fn policies\(\) -> &'static \[PluginPolicyDescriptor\]/);
+  assert.match(rustLib, /i18n::checks_acme_codex_suite_prepare_default_name\(\)/);
+  assert.match(rustLib, /i18n::policies_acme_codex_suite_guardrails_localized_names\(\)/);
 });
 
 test("rejects manifests that drift from the typed contract", () => {
