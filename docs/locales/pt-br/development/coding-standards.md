@@ -49,6 +49,10 @@ Na prática, prefira:
 
 Testes em Rust preferem a estrutura Arrange, Act, Assert.
 
+- Testes de contrato em crates compartilhadas devem preferir fixtures sintéticas e neutras em vez de depender de identificadores de plugins oficiais quando o comportamento testado é genérico.
+- Cada crate de plugin oficial deve possuir os testes mais próximos do seu próprio manifesto, metadata localizada e detalhes de contribuição.
+- Testes de integração e smoke podem continuar exercitando o catálogo oficial empacotado quando o objetivo for validar o runtime público distribuído, não um contrato compartilhado genérico.
+
 ```rust
 #[test]
 fn example() {
