@@ -83,6 +83,7 @@ cargo test --workspace --all-targets --all-features
 - The built-in runtime catalog lives in `re-official`, so official plugin wiring stays reusable and outside the CLI crate
 - Template and prompt contributions now carry typed embedded asset contracts, so the CLI can expose the real files a plugin delivers instead of stopping at metadata-only listings
 - `ralph-engine templates asset <template-id> <path>` and `ralph-engine prompts asset <prompt-id> <path>` expose embedded plugin assets directly from the typed official catalog
+- `ralph-engine templates materialize <template-id> <output-dir>` and `ralph-engine prompts materialize <prompt-id> <output-dir>` materialize those embedded bundles as real files without pushing generic scaffolding ownership into the runtime core
 - Developer scaffolding stays tooling-owned: `tools/create-ralph-engine/` is the home of plugin scaffold generation through `npx create-ralph-engine-plugin`, while runtime surfaces stay focused on typed runtime contracts instead of turning scaffolding into a generic runtime responsibility
 - The plugin scaffolder only accepts kinds and capabilities that the typed runtime already defines; future surfaces stay rejected until the core contracts exist for them
 - Official and scaffolded plugin identifiers use the same dotted namespace contract, such as `official.basic` and `acme.jira-suite`
