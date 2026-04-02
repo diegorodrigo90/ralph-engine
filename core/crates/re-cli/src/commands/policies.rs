@@ -150,4 +150,22 @@ mod tests {
         assert!(rendered.contains("Load boundary: in_process"));
         assert!(rendered.contains("Policy enforcement hook: true"));
     }
+
+    #[test]
+    fn render_policy_detail_supports_pt_br() {
+        let registration = RuntimePolicyRegistration::new(
+            "official.tdd-strict",
+            "official.tdd-strict",
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        );
+
+        let rendered = render_policy_detail(&registration, "pt-br");
+
+        assert!(rendered.contains("Política: official.tdd-strict"));
+        assert!(rendered.contains("Provedor: official.tdd-strict"));
+        assert!(rendered.contains("Fronteira de carregamento: in_process"));
+        assert!(rendered.contains("Hook de aplicação de política: true"));
+    }
 }

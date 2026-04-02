@@ -223,4 +223,20 @@ mod tests {
             "- official.bmad | activation=enabled | boundary=in_process | runtime_hook=true"
         ));
     }
+
+    #[test]
+    fn render_check_detail_supports_pt_br() {
+        let checks = [RuntimeCheckRegistration::new(
+            RuntimeCheckKind::Prepare,
+            "official.bmad",
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        )];
+
+        let rendered = render_check_detail(RuntimeCheckKind::Prepare, &checks, "pt-br");
+
+        assert!(rendered.contains("Verificação: prepare"));
+        assert!(rendered.contains("Provedores (1)"));
+    }
 }
