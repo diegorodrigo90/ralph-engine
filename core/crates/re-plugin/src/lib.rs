@@ -2,6 +2,8 @@
 
 use std::fmt;
 
+mod i18n;
+
 /// Extensible plugin capability identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PluginCapability(&'static str);
@@ -399,11 +401,7 @@ pub fn render_plugin_listing_for_locale(plugins: &[PluginDescriptor], locale: &s
     let mut lines = Vec::with_capacity(plugins.len() + 1);
     lines.push(format!(
         "{} ({})",
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Plugins oficiais"
-        } else {
-            "Official plugins"
-        },
+        i18n::official_plugins_label(locale),
         plugins.len()
     ));
 
@@ -460,53 +458,25 @@ pub fn render_plugin_detail_for_locale(plugin: &PluginDescriptor, locale: &str) 
 
     format!(
         "{}: {}\n{}: {}\n{}: {}\n{}: {}\n{}: v{}\n{}: {}\n{}: {}\n{}: {}\n{}: {}\n{}: {}",
-        "Plugin",
+        i18n::plugin_label(locale),
         plugin.id,
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Tipo"
-        } else {
-            "Kind"
-        },
+        i18n::kind_label(locale),
         plugin.kind,
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Confiança"
-        } else {
-            "Trust"
-        },
+        i18n::trust_label(locale),
         plugin.trust_level,
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Nome"
-        } else {
-            "Name"
-        },
+        i18n::name_label(locale),
         plugin.display_name_for_locale(locale),
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Versão"
-        } else {
-            "Version"
-        },
+        i18n::version_label(locale),
         plugin.version,
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Resumo"
-        } else {
-            "Summary"
-        },
+        i18n::summary_label(locale),
         plugin.summary_for_locale(locale),
-        "Capabilities",
+        i18n::capabilities_label(locale),
         capabilities,
-        "Lifecycle",
+        i18n::lifecycle_label(locale),
         lifecycle,
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Boundary de carga"
-        } else {
-            "Load boundary"
-        },
+        i18n::load_boundary_label(locale),
         plugin.load_boundary,
-        if locale.eq_ignore_ascii_case("pt-br") {
-            "Hooks de runtime"
-        } else {
-            "Runtime hooks"
-        },
+        i18n::runtime_hooks_label(locale),
         runtime_hooks
     )
 }
