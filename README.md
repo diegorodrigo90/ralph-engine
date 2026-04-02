@@ -98,6 +98,7 @@ cargo test --workspace --all-targets --all-features
 - release-plz opens release PRs from `main`
 - merging the release PR prepares the versioned release state
 - the canonical `CI` workflow on `main` builds cross-platform release candidates in parallel and only publishes reusable approved release artifacts for the SHA after `Quality`, `Security`, and `SonarCloud` have passed
+- `dist-workspace.toml` and generated release assets are explicitly validated before release candidates are approved or promoted
 - the manual hardened release workflow verifies green CI for the current `main` SHA and promotes those same artifacts instead of rebuilding them
 - the public Pages deployment publishes from published releases and builds from the release tag so docs and site stay aligned with published releases
 

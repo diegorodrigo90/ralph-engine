@@ -20,5 +20,5 @@ Atualizado: 2026-04-02
 - [ ] Levar o runtime de metadados tipados e diagnósticos para uma orquestração executável mais rica e tratamento de estado, com TDD e 100% de cobertura significativa.
 - [ ] Reconstruir os plugins oficiais além dos descritores tipados, para que executem comportamento real sobre os novos contratos do runtime em Rust.
 - [ ] Fechar o pipeline ponta a ponta de release para GitHub Releases, npm e Homebrew com provenance, checksums, atestações e gates finais de publish.
-- [ ] Adicionar validação explícita para `dist-workspace.toml` e para os artefatos gerados por release.
+- [x] Adicionar validação explícita para `dist-workspace.toml` e para os artefatos gerados por release.
 - [ ] Restaurar exemplos mais ricos do runtime nas docs quando a camada executável estiver mais avançada.

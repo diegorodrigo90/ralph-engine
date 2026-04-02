@@ -138,6 +138,9 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Verify cargo-dist workspace contract
+        shell: bash
+        run: ./scripts/verify-dist-workspace.sh
       - name: Install pinned Rust toolchain
         shell: bash
         run: |
@@ -294,6 +297,10 @@ jobs:
         uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
         with:
           egress-policy: audit
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - name: Download Linux release candidate artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
         with:
@@ -309,6 +316,18 @@ jobs:
         with:
           name: release-candidate-dist-windows
           path: .release/candidates/windows
+      - name: Verify cargo-dist workspace contract
+        shell: bash
+        run: ./scripts/verify-dist-workspace.sh
+      - name: Verify Linux release candidate artifacts
+        shell: bash
+        run: ./scripts/verify-release-assets.sh .release/candidates/ubuntu
+      - name: Verify macOS release candidate artifacts
+        shell: bash
+        run: ./scripts/verify-release-assets.sh .release/candidates/macos
+      - name: Verify Windows release candidate artifacts
+        shell: bash
+        run: ./scripts/verify-release-assets.sh .release/candidates/windows
       - name: Publish approved Linux release artifacts
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
