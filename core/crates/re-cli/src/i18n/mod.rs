@@ -355,7 +355,7 @@ catalog_str!(policy_entity_label, policy_entity_label);
 
 #[cfg(test)]
 mod tests {
-    use std::{env, ffi::OsString};
+    use std::env;
 
     use crate::CliError;
 
@@ -524,6 +524,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn resolve_cli_locale_reports_non_unicode_environment_values() {
+        use std::ffi::OsString;
         use std::os::unix::ffi::OsStringExt;
 
         let result = resolve_cli_locale_from_env_result(Err(env::VarError::NotUnicode(
