@@ -1,20 +1,25 @@
-pub(super) const RUNTIME_PHASE: &str = "Runtime phase";
-pub(super) const RUNTIME_HEALTH: &str = "Runtime health";
-pub(super) const LOCALE: &str = "Locale";
-pub(super) const PLUGINS: &str = "Plugins";
-pub(super) const CAPABILITIES: &str = "Capabilities";
-pub(super) const TEMPLATES: &str = "Templates";
-pub(super) const PROMPTS: &str = "Prompts";
-pub(super) const AGENT_RUNTIMES: &str = "Agent runtimes";
-pub(super) const CHECKS: &str = "Checks";
-pub(super) const PROVIDERS: &str = "Providers";
-pub(super) const POLICIES: &str = "Policies";
-pub(super) const RUNTIME_HOOKS: &str = "Runtime hooks";
-pub(super) const MCP_SERVERS: &str = "MCP servers";
-pub(super) const RUNTIME_ISSUES: &str = "Runtime issues";
-pub(super) const RUNTIME_ACTION_PLAN: &str = "Runtime action plan";
-pub(super) const RUNTIME_DOCTOR: &str = "Runtime doctor";
+use super::RuntimeLocaleCatalog;
 
-pub(super) fn translate_runtime_reason(reason: &str) -> String {
+pub(super) const LOCALE: RuntimeLocaleCatalog = RuntimeLocaleCatalog {
+    runtime_phase: "Runtime phase",
+    runtime_health: "Runtime health",
+    locale: "Locale",
+    plugins: "Plugins",
+    capabilities: "Capabilities",
+    templates: "Templates",
+    prompts: "Prompts",
+    agent_runtimes: "Agent runtimes",
+    checks: "Checks",
+    providers: "Providers",
+    policies: "Policies",
+    runtime_hooks: "Runtime hooks",
+    mcp_servers: "MCP servers",
+    runtime_issues: "Runtime issues",
+    runtime_action_plan: "Runtime action plan",
+    runtime_doctor: "Runtime doctor",
+    translate_runtime_reason,
+};
+
+fn translate_runtime_reason(reason: &str) -> String {
     reason.to_owned()
 }
