@@ -19,8 +19,13 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 }
 
 fn show_agent(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError> {
-    let plugin_id = plugin_id
-        .ok_or_else(|| CliError::new(i18n::missing_id(locale, "agents", "a plugin id")))?;
+    let plugin_id = plugin_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "agents",
+            i18n::plugin_id_entity_label(locale),
+        ))
+    })?;
     let agents = catalog::official_runtime_agents()
         .into_iter()
         .filter(|registration| registration.plugin_id == plugin_id)
@@ -29,11 +34,7 @@ fn show_agent(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError>
     if agents.is_empty() {
         return Err(CliError::new(i18n::unknown_entity(
             locale,
-            if i18n::is_pt_br(locale) {
-                "runtime de agente"
-            } else {
-                "agent runtime"
-            },
+            i18n::agent_runtime_entity_label(locale),
             plugin_id,
         )));
     }
@@ -43,7 +44,12 @@ fn show_agent(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError>
 
 fn render_agent_listing(registrations: &[RuntimeAgentRegistration], locale: &str) -> String {
     if registrations.is_empty() {
-        return i18n::list_heading(locale, "Agent runtimes", "Runtimes de agente", 0);
+        return i18n::list_heading(
+            locale,
+            i18n::agent_runtimes_label(locale),
+            i18n::agent_runtimes_label(locale),
+            0,
+        );
     }
 
     let lines = registrations
@@ -61,7 +67,12 @@ fn render_agent_listing(registrations: &[RuntimeAgentRegistration], locale: &str
 
     format!(
         "{}\n{}",
-        i18n::list_heading(locale, "Agent runtimes", "Runtimes de agente", lines.len()),
+        i18n::list_heading(
+            locale,
+            i18n::agent_runtimes_label(locale),
+            i18n::agent_runtimes_label(locale),
+            lines.len(),
+        ),
         lines.join("\n")
     )
 }
@@ -72,7 +83,12 @@ fn render_agent_detail(
     locale: &str,
 ) -> String {
     let mut lines = vec![
-        i18n::detail_heading(locale, "Agent runtime", "Runtime de agente", plugin_id),
+        i18n::detail_heading(
+            locale,
+            i18n::agent_runtime_label(locale),
+            i18n::agent_runtime_label(locale),
+            plugin_id,
+        ),
         i18n::providers_heading(locale, agents.len()),
     ];
 

@@ -19,19 +19,35 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 }
 
 fn show_policy(policy_id: Option<&str>, locale: &str) -> Result<String, CliError> {
-    let policy_id = policy_id
-        .ok_or_else(|| CliError::new(i18n::missing_id(locale, "policies", "a policy id")))?;
+    let policy_id = policy_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "policies",
+            i18n::policy_id_entity_label(locale),
+        ))
+    })?;
     let registration = catalog::official_runtime_policies()
         .into_iter()
         .find(|registration| registration.policy_id == policy_id)
-        .ok_or_else(|| CliError::new(i18n::unknown_entity(locale, "policy", policy_id)))?;
+        .ok_or_else(|| {
+            CliError::new(i18n::unknown_entity(
+                locale,
+                i18n::policy_entity_label(locale),
+                policy_id,
+            ))
+        })?;
 
     Ok(render_policy_detail(&registration, locale))
 }
 
 fn render_policy_listing(registrations: &[RuntimePolicyRegistration], locale: &str) -> String {
     if registrations.is_empty() {
-        return i18n::list_heading(locale, "Policies", "Policies", 0);
+        return i18n::list_heading(
+            locale,
+            i18n::policies_label(locale),
+            i18n::policies_label(locale),
+            0,
+        );
     }
 
     let lines = registrations
@@ -48,14 +64,24 @@ fn render_policy_listing(registrations: &[RuntimePolicyRegistration], locale: &s
 
     format!(
         "{}\n{}",
-        i18n::list_heading(locale, "Policies", "Policies", registrations.len()),
+        i18n::list_heading(
+            locale,
+            i18n::policies_label(locale),
+            i18n::policies_label(locale),
+            registrations.len(),
+        ),
         lines.join("\n")
     )
 }
 
 fn render_policy_detail(registration: &RuntimePolicyRegistration, locale: &str) -> String {
     [
-        i18n::detail_heading(locale, "Policy", "Policy", registration.policy_id),
+        i18n::detail_heading(
+            locale,
+            i18n::policy_label(locale),
+            i18n::policy_label(locale),
+            registration.policy_id,
+        ),
         i18n::detail_heading(locale, "Provider", "Provedor", registration.plugin_id),
         i18n::detail_heading(
             locale,
@@ -71,11 +97,7 @@ fn render_policy_detail(registration: &RuntimePolicyRegistration, locale: &str) 
         ),
         format!(
             "{}: {}",
-            if i18n::is_pt_br(locale) {
-                "Hook de enforcement de policy"
-            } else {
-                "Policy enforcement hook"
-            },
+            i18n::policy_enforcement_hook_label(locale),
             registration.enforcement_hook_registered
         ),
     ]

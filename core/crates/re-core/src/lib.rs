@@ -2780,7 +2780,9 @@ mod tests {
 
         assert!(rendered.contains("Problemas do runtime (2)"));
         assert!(rendered.contains("action=ative o plugin na configuração tipada do projeto"));
-        assert!(rendered.contains("action=ative o plugin responsável ou faça opt-in no servidor MCP"));
+        assert!(
+            rendered.contains("action=ative o plugin responsável ou faça opt-in no servidor MCP")
+        );
     }
 
     #[test]
@@ -2894,14 +2896,33 @@ mod tests {
 
         let rendered = render_runtime_issues_for_locale(&issues, "pt-br");
 
-        assert!(rendered.contains("action=ative o plugin provedor responsável por esta capability"));
-        assert!(rendered.contains("action=ative o plugin provedor responsável por esta superfície de template"));
-        assert!(rendered.contains("action=ative o plugin provedor responsável por esta superfície de prompt"));
-        assert!(rendered.contains("action=ative o plugin provedor responsável por este runtime de agente"));
-        assert!(rendered.contains("action=ative o plugin provedor responsável por este check de runtime"));
-        assert!(rendered.contains("action=ative o plugin provedor responsável por esta contribuição"));
+        assert!(
+            rendered.contains("action=ative o plugin provedor responsável por esta capability")
+        );
+        assert!(rendered.contains(
+            "action=ative o plugin provedor responsável por esta superfície de template"
+        ));
+        assert!(
+            rendered.contains(
+                "action=ative o plugin provedor responsável por esta superfície de prompt"
+            )
+        );
+        assert!(
+            rendered
+                .contains("action=ative o plugin provedor responsável por este runtime de agente")
+        );
+        assert!(
+            rendered
+                .contains("action=ative o plugin provedor responsável por este check de runtime")
+        );
+        assert!(
+            rendered.contains("action=ative o plugin provedor responsável por esta contribuição")
+        );
         assert!(rendered.contains("action=ative o plugin provedor responsável por esta política"));
-        assert!(rendered.contains("action=ative o plugin provedor responsável por este hook de runtime"));
+        assert!(
+            rendered
+                .contains("action=ative o plugin provedor responsável por este hook de runtime")
+        );
     }
 
     #[test]
