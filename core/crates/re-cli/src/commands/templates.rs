@@ -12,6 +12,11 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
             locale,
         )),
         Some("show") => show_template(args.get(1).map(String::as_str), locale),
+        Some("asset") => show_template_asset(
+            args.get(1).map(String::as_str),
+            args.get(2).map(String::as_str),
+            locale,
+        ),
         Some(other) => Err(CliError::new(i18n::unknown_subcommand(
             locale,
             "templates",
@@ -37,6 +42,44 @@ fn show_template(template_id: Option<&str>, locale: &str) -> Result<String, CliE
     })?;
 
     Ok(render_template_detail(template, locale))
+}
+
+fn show_template_asset(
+    template_id: Option<&str>,
+    asset_path: Option<&str>,
+    locale: &str,
+) -> Result<String, CliError> {
+    let template_id = template_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "templates asset",
+            i18n::template_id_entity_label(locale),
+        ))
+    })?;
+    let asset_path = asset_path.ok_or_else(|| {
+        CliError::new("subcommand `templates asset` requires an asset path".to_owned())
+    })?;
+    let template = catalog::find_official_template_contribution(template_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::template_entity_label(locale),
+            template_id,
+        ))
+    })?;
+    let asset = template
+        .descriptor
+        .assets
+        .iter()
+        .find(|asset| asset.path == asset_path)
+        .ok_or_else(|| {
+            CliError::new(if i18n::is_pt_br(locale) {
+                format!("asset de template desconhecido: {asset_path}")
+            } else {
+                format!("unknown template asset: {asset_path}")
+            })
+        })?;
+
+    Ok(asset.contents.to_owned())
 }
 
 fn render_template_listing(registrations: &[OfficialTemplateContribution], locale: &str) -> String {
@@ -116,7 +159,9 @@ mod tests {
         PluginLoadBoundary, PluginLocalizedText, PluginTemplateAsset, PluginTemplateDescriptor,
     };
 
-    use super::{OfficialTemplateContribution, render_template_detail, render_template_listing};
+    use super::{
+        OfficialTemplateContribution, execute, render_template_detail, render_template_listing,
+    };
 
     const LOCALIZED_NAMES: &[PluginLocalizedText] =
         &[PluginLocalizedText::new("pt-br", "Starter básico")];
@@ -196,5 +241,24 @@ mod tests {
         assert!(rendered.contains("Resumo: Template inicial para novos projetos Ralph Engine."));
         assert!(rendered.contains("Plugin: official.basic"));
         assert!(rendered.contains("Assets: .ralph-engine/config.yaml"));
+    }
+
+    #[test]
+    fn execute_template_asset_returns_embedded_contents() {
+        let output = execute(
+            &[
+                "asset".to_owned(),
+                "official.basic.starter".to_owned(),
+                ".ralph-engine/config.yaml".to_owned(),
+            ],
+            "en",
+        );
+
+        assert!(output.is_ok());
+        assert!(
+            output
+                .unwrap_or_default()
+                .contains("# ralph-engine basic template")
+        );
     }
 }
