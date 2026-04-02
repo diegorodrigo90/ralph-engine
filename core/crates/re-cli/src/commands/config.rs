@@ -2,8 +2,9 @@
 
 use re_config::{
     ConfigScope, PluginActivation, ResolvedPluginConfig, canonical_config_layers,
-    default_project_config, render_config_layers_yaml, render_project_config_yaml,
-    render_resolved_plugin_config_yaml, render_runtime_budgets_yaml, resolve_plugin_config,
+    default_project_config, render_config_layers_yaml, render_default_locale_yaml,
+    render_project_config_yaml, render_resolved_plugin_config_yaml, render_runtime_budgets_yaml,
+    resolve_plugin_config,
 };
 
 use crate::{CliError, catalog, i18n};
@@ -12,6 +13,9 @@ use crate::{CliError, catalog, i18n};
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
         None | Some("show-defaults") => Ok(render_project_config_yaml(&default_project_config())),
+        Some("locale") | Some("show-locale") => {
+            Ok(render_default_locale_yaml(&default_project_config()))
+        }
         Some("budgets") | Some("show-budgets") => Ok(render_runtime_budgets_yaml(
             &default_project_config().budgets,
         )),

@@ -30,9 +30,11 @@ ralph-engine providers show <provider-id>
 ralph-engine config
 ralph-engine config budgets
 ralph-engine config layers
+ralph-engine config locale
 ralph-engine config show-budgets
 ralph-engine config show-defaults
 ralph-engine config show-layers
+ralph-engine config show-locale
 ralph-engine config show-plugin <plugin-id>
 ralph-engine plugins
 ralph-engine plugins list
@@ -66,6 +68,8 @@ A família `prompts` imprime o registro tipado de prompts do runtime para que pr
 A família `checks` imprime o registro tipado de checks do runtime para que contribuições de validação de prepare e doctor permaneçam explícitas, em vez de ficarem escondidas só como capabilities genéricas.
 
 A família `doctor` imprime o relatório tipado de diagnóstico do runtime, compondo status, issues pendentes e ações de remediação a partir de um snapshot compartilhado do runtime, em vez de espalhar o diagnóstico por lógicas ad hoc em cada comando.
+
+A família `config locale` imprime o contrato tipado do locale padrão, para que o i18n da CLI permaneça inspecionável em vez de ficar implícito nos defaults do runtime.
 
 A família `config budgets` imprime o contrato tipado de limites de prompt e contexto, para que os tetos de tokens permaneçam explícitos na fundação do runtime em vez de ficarem escondidos em lógica futura de provider.
 
