@@ -2,39 +2,48 @@
 
 use re_core::RuntimeCapabilityRegistration;
 
-use crate::{CliError, catalog};
+use crate::{CliError, catalog, i18n};
 
 /// Executes the capabilities command tree.
-pub fn execute(args: &[String]) -> Result<String, CliError> {
+pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
         None | Some("list") => Ok(render_capability_listing(
             &catalog::official_runtime_capabilities(),
+            locale,
         )),
-        Some("show") => show_capability(args.get(1).map(String::as_str)),
-        Some(other) => Err(CliError::new(format!(
-            "unknown capabilities command: {other}"
+        Some("show") => show_capability(args.get(1).map(String::as_str), locale),
+        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+            locale,
+            "capabilities",
+            other,
         ))),
     }
 }
 
-fn show_capability(capability_id: Option<&str>) -> Result<String, CliError> {
-    let capability_id =
-        capability_id.ok_or_else(|| CliError::new("capabilities show requires a capability id"))?;
+fn show_capability(capability_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let capability_id = capability_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(locale, "capabilities", "a capability id"))
+    })?;
     let providers = catalog::official_runtime_capabilities()
         .into_iter()
         .filter(|registration| registration.capability.as_str() == capability_id)
         .collect::<Vec<_>>();
 
     if providers.is_empty() {
-        return Err(CliError::new(format!(
-            "unknown capability: {capability_id}"
+        return Err(CliError::new(i18n::unknown_entity(
+            locale,
+            "capability",
+            capability_id,
         )));
     }
 
-    Ok(render_capability_detail(capability_id, &providers))
+    Ok(render_capability_detail(capability_id, &providers, locale))
 }
 
-fn render_capability_listing(registrations: &[RuntimeCapabilityRegistration]) -> String {
+fn render_capability_listing(
+    registrations: &[RuntimeCapabilityRegistration],
+    locale: &str,
+) -> String {
     let mut seen = Vec::new();
     let mut lines = Vec::new();
 
@@ -65,19 +74,24 @@ fn render_capability_listing(registrations: &[RuntimeCapabilityRegistration]) ->
     }
 
     if lines.is_empty() {
-        "Capabilities (0)".to_owned()
+        i18n::list_heading(locale, "Capabilities", "Capabilities", 0)
     } else {
-        format!("Capabilities ({})\n{}", lines.len(), lines.join("\n"))
+        format!(
+            "{}\n{}",
+            i18n::list_heading(locale, "Capabilities", "Capabilities", lines.len()),
+            lines.join("\n")
+        )
     }
 }
 
 fn render_capability_detail(
     capability_id: &str,
     providers: &[RuntimeCapabilityRegistration],
+    locale: &str,
 ) -> String {
     let mut lines = vec![
-        format!("Capability: {capability_id}"),
-        format!("Providers ({})", providers.len()),
+        i18n::detail_heading(locale, "Capability", "Capability", capability_id),
+        i18n::providers_heading(locale, providers.len()),
     ];
 
     for provider in providers {
@@ -106,7 +120,7 @@ mod tests {
         let registrations = [];
 
         // Act
-        let rendered = render_capability_listing(&registrations);
+        let rendered = render_capability_listing(&registrations, "en");
 
         // Assert
         assert_eq!(rendered, "Capabilities (0)");
@@ -123,11 +137,26 @@ mod tests {
         )];
 
         // Act
-        let rendered = render_capability_detail("template", &providers);
+        let rendered = render_capability_detail("template", &providers, "en");
 
         // Assert
         assert!(rendered.contains("Capability: template"));
         assert!(rendered.contains("Providers (1)"));
         assert!(rendered.contains("- official.basic | activation=enabled | boundary=in_process"));
+    }
+
+    #[test]
+    fn render_capability_detail_supports_pt_br() {
+        let providers = [RuntimeCapabilityRegistration::new(
+            PluginCapability::new("template"),
+            "official.basic",
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
+        )];
+
+        let rendered = render_capability_detail("template", &providers, "pt-br");
+
+        assert!(rendered.contains("Capability: template"));
+        assert!(rendered.contains("Provedores (1)"));
     }
 }

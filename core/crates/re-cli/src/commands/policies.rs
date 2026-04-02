@@ -2,30 +2,36 @@
 
 use re_core::RuntimePolicyRegistration;
 
-use crate::{CliError, catalog};
+use crate::{CliError, catalog, i18n};
 
 /// Executes the policies command tree.
-pub fn execute(args: &[String]) -> Result<String, CliError> {
+pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
-        None | Some("list") => Ok(render_policy_listing(&catalog::official_runtime_policies())),
-        Some("show") => show_policy(args.get(1).map(String::as_str)),
-        Some(other) => Err(CliError::new(format!("unknown policies command: {other}"))),
+        None | Some("list") => Ok(render_policy_listing(
+            &catalog::official_runtime_policies(),
+            locale,
+        )),
+        Some("show") => show_policy(args.get(1).map(String::as_str), locale),
+        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+            locale, "policies", other,
+        ))),
     }
 }
 
-fn show_policy(policy_id: Option<&str>) -> Result<String, CliError> {
-    let policy_id = policy_id.ok_or_else(|| CliError::new("policies show requires a policy id"))?;
+fn show_policy(policy_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let policy_id = policy_id
+        .ok_or_else(|| CliError::new(i18n::missing_id(locale, "policies", "a policy id")))?;
     let registration = catalog::official_runtime_policies()
         .into_iter()
         .find(|registration| registration.policy_id == policy_id)
-        .ok_or_else(|| CliError::new(format!("unknown policy: {policy_id}")))?;
+        .ok_or_else(|| CliError::new(i18n::unknown_entity(locale, "policy", policy_id)))?;
 
-    Ok(render_policy_detail(&registration))
+    Ok(render_policy_detail(&registration, locale))
 }
 
-fn render_policy_listing(registrations: &[RuntimePolicyRegistration]) -> String {
+fn render_policy_listing(registrations: &[RuntimePolicyRegistration], locale: &str) -> String {
     if registrations.is_empty() {
-        return "Policies (0)".to_owned();
+        return i18n::list_heading(locale, "Policies", "Policies", 0);
     }
 
     let lines = registrations
@@ -40,17 +46,36 @@ fn render_policy_listing(registrations: &[RuntimePolicyRegistration]) -> String 
         })
         .collect::<Vec<_>>();
 
-    format!("Policies ({})\n{}", registrations.len(), lines.join("\n"))
+    format!(
+        "{}\n{}",
+        i18n::list_heading(locale, "Policies", "Policies", registrations.len()),
+        lines.join("\n")
+    )
 }
 
-fn render_policy_detail(registration: &RuntimePolicyRegistration) -> String {
+fn render_policy_detail(registration: &RuntimePolicyRegistration, locale: &str) -> String {
     [
-        format!("Policy: {}", registration.policy_id),
-        format!("Provider: {}", registration.plugin_id),
-        format!("Activation: {}", registration.activation.as_str()),
-        format!("Load boundary: {}", registration.load_boundary.as_str()),
+        i18n::detail_heading(locale, "Policy", "Policy", registration.policy_id),
+        i18n::detail_heading(locale, "Provider", "Provedor", registration.plugin_id),
+        i18n::detail_heading(
+            locale,
+            "Activation",
+            "Ativação",
+            registration.activation.as_str(),
+        ),
+        i18n::detail_heading(
+            locale,
+            "Load boundary",
+            "Boundary de carga",
+            registration.load_boundary.as_str(),
+        ),
         format!(
-            "Policy enforcement hook: {}",
+            "{}: {}",
+            if i18n::is_pt_br(locale) {
+                "Hook de enforcement de policy"
+            } else {
+                "Policy enforcement hook"
+            },
             registration.enforcement_hook_registered
         ),
     ]
@@ -71,7 +96,7 @@ mod tests {
         let registrations = [];
 
         // Act
-        let rendered = render_policy_listing(&registrations);
+        let rendered = render_policy_listing(&registrations, "en");
 
         // Assert
         assert_eq!(rendered, "Policies (0)");
@@ -89,7 +114,7 @@ mod tests {
         );
 
         // Act
-        let rendered = render_policy_detail(&registration);
+        let rendered = render_policy_detail(&registration, "en");
 
         // Assert
         assert!(rendered.contains("Policy: official.tdd-strict"));

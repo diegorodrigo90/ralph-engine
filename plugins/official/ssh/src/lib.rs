@@ -1,13 +1,14 @@
 //! Official SSH remote-control plugin metadata.
 
 use re_plugin::{
-    PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook,
-    REMOTE_CONTROL,
+    PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
+    PluginRuntimeHook, PluginTrustLevel, REMOTE_CONTROL,
 };
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.ssh";
 const PLUGIN_NAME: &str = "SSH";
+const LOCALIZED_NAMES: &[PluginLocalizedText] = &[];
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[REMOTE_CONTROL];
 const LIFECYCLE: &[PluginLifecycleStage] =
@@ -16,7 +17,9 @@ const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[PluginRuntimeHook::RemoteControlBo
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
     PluginKind::RemoteControl,
+    PluginTrustLevel::Official,
     PLUGIN_NAME,
+    LOCALIZED_NAMES,
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,

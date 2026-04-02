@@ -2,30 +2,35 @@
 
 use re_core::{RuntimeProviderKind, RuntimeProviderRegistration};
 
-use crate::{CliError, catalog};
+use crate::{CliError, catalog, i18n};
 
 /// Executes the providers command tree.
-pub fn execute(args: &[String]) -> Result<String, CliError> {
+pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
         None | Some("list") => Ok(render_provider_listing(
             &catalog::official_runtime_providers(),
+            locale,
         )),
-        Some("show") => show_provider(args.get(1).map(String::as_str)),
-        Some(other) => Err(CliError::new(format!("unknown providers command: {other}"))),
+        Some("show") => show_provider(args.get(1).map(String::as_str), locale),
+        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+            locale,
+            "providers",
+            other,
+        ))),
     }
 }
 
-fn show_provider(provider_kind: Option<&str>) -> Result<String, CliError> {
-    let provider_kind =
-        provider_kind.ok_or_else(|| CliError::new("providers show requires a provider id"))?;
+fn show_provider(provider_kind: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let provider_kind = provider_kind
+        .ok_or_else(|| CliError::new(i18n::missing_id(locale, "providers", "a provider id")))?;
     let kind = parse_provider_kind(provider_kind)
-        .ok_or_else(|| CliError::new(format!("unknown provider: {provider_kind}")))?;
+        .ok_or_else(|| CliError::new(i18n::unknown_entity(locale, "provider", provider_kind)))?;
     let providers = catalog::official_runtime_providers()
         .into_iter()
         .filter(|registration| registration.kind == kind)
         .collect::<Vec<_>>();
 
-    Ok(render_provider_detail(kind, &providers))
+    Ok(render_provider_detail(kind, &providers, locale))
 }
 
 fn parse_provider_kind(value: &str) -> Option<RuntimeProviderKind> {
@@ -38,7 +43,7 @@ fn parse_provider_kind(value: &str) -> Option<RuntimeProviderKind> {
     }
 }
 
-fn render_provider_listing(registrations: &[RuntimeProviderRegistration]) -> String {
+fn render_provider_listing(registrations: &[RuntimeProviderRegistration], locale: &str) -> String {
     let mut seen = Vec::new();
     let mut lines = Vec::new();
 
@@ -69,19 +74,24 @@ fn render_provider_listing(registrations: &[RuntimeProviderRegistration]) -> Str
     }
 
     if lines.is_empty() {
-        "Providers (0)".to_owned()
+        i18n::list_heading(locale, "Providers", "Provedores", 0)
     } else {
-        format!("Providers ({})\n{}", lines.len(), lines.join("\n"))
+        format!(
+            "{}\n{}",
+            i18n::list_heading(locale, "Providers", "Provedores", lines.len()),
+            lines.join("\n")
+        )
     }
 }
 
 fn render_provider_detail(
     provider_kind: RuntimeProviderKind,
     providers: &[RuntimeProviderRegistration],
+    locale: &str,
 ) -> String {
     let mut lines = vec![
-        format!("Provider: {}", provider_kind.as_str()),
-        format!("Providers ({})", providers.len()),
+        i18n::detail_heading(locale, "Provider", "Provedor", provider_kind.as_str()),
+        i18n::providers_heading(locale, providers.len()),
     ];
 
     for provider in providers {
@@ -151,7 +161,7 @@ mod tests {
         let registrations = [];
 
         // Act
-        let rendered = render_provider_listing(&registrations);
+        let rendered = render_provider_listing(&registrations, "en");
 
         // Assert
         assert_eq!(rendered, "Providers (0)");
@@ -178,7 +188,7 @@ mod tests {
         ];
 
         // Act
-        let rendered = render_provider_listing(&registrations);
+        let rendered = render_provider_listing(&registrations, "en");
 
         // Assert
         assert!(rendered.contains("Providers (1)"));
@@ -197,7 +207,7 @@ mod tests {
         )];
 
         // Act
-        let rendered = render_provider_detail(RuntimeProviderKind::DataSource, &providers);
+        let rendered = render_provider_detail(RuntimeProviderKind::DataSource, &providers, "en");
 
         // Assert
         assert!(rendered.contains("Provider: data_source"));

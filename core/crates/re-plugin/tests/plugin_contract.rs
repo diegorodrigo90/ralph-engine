@@ -1,10 +1,12 @@
 //! Integration tests for the shared Ralph Engine plugin contract.
 
 use re_plugin::{
-    AGENT_RUNTIME, ALL_PLUGIN_KINDS, CONTEXT_PROVIDER, DATA_SOURCE, DOCTOR_CHECKS, FORGE_PROVIDER,
-    MCP_CONTRIBUTION, POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCapability, PluginDescriptor,
-    PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook, REMOTE_CONTROL,
-    TEMPLATE, render_plugin_detail, render_plugin_listing,
+    AGENT_RUNTIME, ALL_PLUGIN_KINDS, ALL_PLUGIN_TRUST_LEVELS, CONTEXT_PROVIDER, DATA_SOURCE,
+    DOCTOR_CHECKS, FORGE_PROVIDER, MCP_CONTRIBUTION, POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS,
+    PluginCapability, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
+    PluginLocalizedText, PluginRuntimeHook, PluginTrustLevel, REMOTE_CONTROL, TEMPLATE,
+    render_plugin_detail, render_plugin_detail_for_locale, render_plugin_listing,
+    render_plugin_listing_for_locale,
 };
 
 const BASIC_CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -23,6 +25,8 @@ const GITHUB_LIFECYCLE: &[PluginLifecycleStage] = &[
     PluginLifecycleStage::Load,
 ];
 const BASIC_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[PluginRuntimeHook::Scaffold];
+const BASIC_LOCALIZED_NAMES: &[PluginLocalizedText] =
+    &[PluginLocalizedText::new("pt-br", "Básico")];
 const GITHUB_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
     PluginRuntimeHook::McpRegistration,
     PluginRuntimeHook::DataSourceRegistration,
@@ -33,7 +37,9 @@ fn basic_plugin() -> PluginDescriptor {
     PluginDescriptor::new(
         "official.basic",
         PluginKind::Template,
+        PluginTrustLevel::Official,
         "Basic",
+        BASIC_LOCALIZED_NAMES,
         "0.2.0-alpha.1",
         BASIC_CAPABILITIES,
         BASIC_LIFECYCLE,
@@ -46,7 +52,9 @@ fn github_plugin() -> PluginDescriptor {
     PluginDescriptor::new(
         "official.github",
         PluginKind::DataSource,
+        PluginTrustLevel::Official,
         "GitHub",
+        &[],
         "0.2.0-alpha.1",
         GITHUB_CAPABILITIES,
         GITHUB_LIFECYCLE,
@@ -59,7 +67,9 @@ fn invalid_plugin() -> PluginDescriptor {
     PluginDescriptor::new(
         "basic",
         PluginKind::Template,
+        PluginTrustLevel::Community,
         "Broken",
+        &[],
         "0.2.0-alpha.1",
         &[],
         &[],
@@ -78,6 +88,14 @@ fn capability_display_is_stable() {
 
     // Assert
     assert_eq!(rendered, "template");
+}
+
+#[test]
+fn localized_text_constructor_is_stable() {
+    let entry = PluginLocalizedText::new("pt-br", "Básico");
+
+    assert_eq!(entry.locale, "pt-br");
+    assert_eq!(entry.value, "Básico");
 }
 
 #[test]
@@ -180,6 +198,19 @@ fn kind_as_str_is_stable() {
 }
 
 #[test]
+fn trust_level_as_str_is_stable() {
+    // Arrange
+    let rendered = ALL_PLUGIN_TRUST_LEVELS
+        .iter()
+        .copied()
+        .map(PluginTrustLevel::as_str)
+        .collect::<Vec<_>>();
+
+    // Assert
+    assert_eq!(rendered, vec!["official", "community"]);
+}
+
+#[test]
 fn load_boundary_display_is_stable() {
     // Arrange
     let boundaries = [
@@ -251,6 +282,7 @@ fn descriptor_requires_namespaced_identifier() {
     // Assert
     assert!(namespaced);
     assert_eq!(descriptor.kind, PluginKind::Template);
+    assert_eq!(descriptor.trust_level, PluginTrustLevel::Official);
 }
 
 #[test]
@@ -347,9 +379,12 @@ fn render_plugin_listing_includes_human_readable_lines() {
 
     // Assert
     assert!(listing.contains("Official plugins (2)"));
-    assert!(listing.contains("- official.basic | template | Basic | v0.2.0-alpha.1 | template"));
+    assert!(
+        listing
+            .contains("- official.basic | template | official | Basic | v0.2.0-alpha.1 | template")
+    );
     assert!(listing.contains(
-        "- official.github | data_source | GitHub | v0.2.0-alpha.1 | data_source, forge_provider"
+        "- official.github | data_source | official | GitHub | v0.2.0-alpha.1 | data_source, forge_provider"
     ));
 }
 
@@ -380,6 +415,47 @@ fn render_plugin_detail_includes_runtime_hooks() {
 }
 
 #[test]
+fn render_plugin_listing_supports_pt_br_and_falls_back_to_english() {
+    // Arrange
+    let plugins = [basic_plugin(), github_plugin()];
+
+    // Act
+    let rendered = render_plugin_listing_for_locale(&plugins, "pt-br");
+
+    // Assert
+    assert!(rendered.contains("Plugins oficiais (2)"));
+    assert!(rendered.contains("official.basic | template | official | Básico | v0.2.0-alpha.1"));
+    assert!(
+        rendered.contains("official.github | data_source | official | GitHub | v0.2.0-alpha.1")
+    );
+}
+
+#[test]
+fn render_plugin_detail_supports_pt_br_and_falls_back_to_english() {
+    // Arrange
+    let plugin = basic_plugin();
+
+    // Act
+    let rendered = render_plugin_detail_for_locale(&plugin, "pt-br");
+
+    // Assert
+    assert!(rendered.contains("Plugin: official.basic"));
+    assert!(rendered.contains("Tipo: template"));
+    assert!(rendered.contains("Confiança: official"));
+    assert!(rendered.contains("Nome: Básico"));
+    assert!(rendered.contains("Versão: v0.2.0-alpha.1"));
+    assert!(rendered.contains("Boundary de carga: in_process"));
+    assert!(rendered.contains("Hooks de runtime: scaffold"));
+}
+
+#[test]
+fn plugin_display_name_falls_back_to_english_for_unknown_locale() {
+    let plugin = basic_plugin();
+
+    assert_eq!(plugin.display_name_for_locale("es"), "Basic");
+}
+
+#[test]
 fn render_plugin_detail_includes_capabilities_and_lifecycle() {
     // Arrange
     let plugin = github_plugin();
@@ -390,6 +466,7 @@ fn render_plugin_detail_includes_capabilities_and_lifecycle() {
     // Assert
     assert!(detail.contains("Plugin: official.github"));
     assert!(detail.contains("Kind: data_source"));
+    assert!(detail.contains("Trust: official"));
     assert!(detail.contains("Capabilities: data_source, forge_provider"));
     assert!(detail.contains("Lifecycle: discover -> configure -> load"));
     assert!(detail.contains("Load boundary: in_process"));

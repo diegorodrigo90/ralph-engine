@@ -6,12 +6,14 @@ use re_mcp::{
 };
 use re_plugin::{
     CONTEXT_PROVIDER, DATA_SOURCE, FORGE_PROVIDER, MCP_CONTRIBUTION, PluginDescriptor, PluginKind,
-    PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook,
+    PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginRuntimeHook,
+    PluginTrustLevel,
 };
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.github";
 const PLUGIN_NAME: &str = "GitHub";
+const LOCALIZED_NAMES: &[PluginLocalizedText] = &[];
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[
     DATA_SOURCE,
@@ -33,7 +35,9 @@ const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
     PluginKind::DataSource,
+    PluginTrustLevel::Official,
     PLUGIN_NAME,
+    LOCALIZED_NAMES,
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,

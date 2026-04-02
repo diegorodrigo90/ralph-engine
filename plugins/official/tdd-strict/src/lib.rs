@@ -2,12 +2,13 @@
 
 use re_plugin::{
     POLICY, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
-    PluginRuntimeHook, TEMPLATE,
+    PluginLocalizedText, PluginRuntimeHook, PluginTrustLevel, TEMPLATE,
 };
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.tdd-strict";
 const PLUGIN_NAME: &str = "TDD Strict";
+const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "TDD Estrito")];
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[TEMPLATE, POLICY];
 const LIFECYCLE: &[PluginLifecycleStage] = &[
@@ -23,7 +24,9 @@ const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
     PluginKind::Policy,
+    PluginTrustLevel::Official,
     PLUGIN_NAME,
+    LOCALIZED_NAMES,
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,

@@ -1,13 +1,14 @@
 //! Official basic starter plugin metadata.
 
 use re_plugin::{
-    PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook,
-    TEMPLATE,
+    PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
+    PluginRuntimeHook, PluginTrustLevel, TEMPLATE,
 };
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.basic";
 const PLUGIN_NAME: &str = "Basic";
+const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "Básico")];
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[TEMPLATE];
 const LIFECYCLE: &[PluginLifecycleStage] = &[
@@ -19,7 +20,9 @@ const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[PluginRuntimeHook::Scaffold];
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
     PluginKind::Template,
+    PluginTrustLevel::Official,
     PLUGIN_NAME,
+    LOCALIZED_NAMES,
     PLUGIN_VERSION,
     CAPABILITIES,
     LIFECYCLE,
@@ -85,7 +88,9 @@ mod tests {
         let plugin = descriptor();
 
         // Act
-        let descriptor_matches = plugin.id == PLUGIN_ID && plugin.name == "Basic";
+        let descriptor_matches = plugin.id == PLUGIN_ID
+            && plugin.name == "Basic"
+            && plugin.display_name_for_locale("pt-br") == "Básico";
 
         // Assert
         assert!(descriptor_matches);

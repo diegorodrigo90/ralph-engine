@@ -19,6 +19,36 @@ fn binary_without_args_succeeds() {
 }
 
 #[test]
+fn binary_without_args_succeeds_in_pt_br() {
+    // Arrange
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+
+    // Act
+    let output = command.output().expect("binary should run");
+
+    // Assert
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Fundação Rust inicializada."));
+}
+
+#[test]
+fn binary_rejects_unsupported_locale() {
+    // Arrange
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "es");
+
+    // Act
+    let output = command.output().expect("binary should run");
+
+    // Assert
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
+    assert!(stderr.contains("unsupported locale: es. supported locales: en, pt-br"));
+}
+
+#[test]
 fn binary_with_unknown_command_fails() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
@@ -73,6 +103,21 @@ fn binary_plugins_show_succeeds() {
 }
 
 #[test]
+fn binary_plugins_show_succeeds_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["plugins", "show", "official.basic"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Nome: Básico"));
+    assert!(stdout.contains("Ativação resolvida: enabled"));
+    assert!(stdout.contains("Resolvido de: built_in_defaults"));
+}
+
+#[test]
 fn binary_agents_list_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
@@ -103,6 +148,19 @@ fn binary_agents_show_succeeds() {
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
     assert!(stdout.contains("Agent runtime: official.codex"));
     assert!(stdout.contains("bootstrap_hook=true"));
+}
+
+#[test]
+fn binary_agents_show_rejects_unknown_plugin_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["agents", "show", "official.missing"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
+    assert!(stderr.contains("runtime de agente desconhecido: official.missing"));
 }
 
 #[test]
@@ -139,6 +197,19 @@ fn binary_templates_show_succeeds() {
 }
 
 #[test]
+fn binary_templates_show_rejects_unknown_plugin_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["templates", "show", "official.missing"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
+    assert!(stderr.contains("provedor de template desconhecido: official.missing"));
+}
+
+#[test]
 fn binary_prompts_list_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
@@ -171,6 +242,19 @@ fn binary_prompts_show_succeeds() {
 }
 
 #[test]
+fn binary_prompts_show_rejects_unknown_plugin_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["prompts", "show", "official.missing"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
+    assert!(stderr.contains("provedor de prompt desconhecido: official.missing"));
+}
+
+#[test]
 fn binary_capabilities_list_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
@@ -184,6 +268,19 @@ fn binary_capabilities_list_succeeds() {
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
     assert!(stdout.contains("Capabilities (11)"));
     assert!(stdout.contains("mcp_contribution"));
+}
+
+#[test]
+fn binary_capabilities_show_rejects_unknown_capability_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["capabilities", "show", "missing"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
+    assert!(stderr.contains("capability desconhecido: missing"));
 }
 
 #[test]
@@ -234,6 +331,20 @@ fn binary_checks_show_succeeds() {
     assert!(stdout.contains("Check: prepare"));
     assert!(stdout.contains("official.bmad"));
     assert!(stdout.contains("runtime_hook=true"));
+}
+
+#[test]
+fn binary_policies_show_succeeds_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["policies", "show", "official.tdd-strict"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Policy: official.tdd-strict"));
+    assert!(stdout.contains("Hook de enforcement de policy: true"));
 }
 
 #[test]

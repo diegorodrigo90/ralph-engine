@@ -47,6 +47,15 @@ function requireArray(value, fieldName, errors) {
   return value;
 }
 
+function requireObject(value, fieldName, errors) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    errors.push(`${fieldName} must be a mapping object`);
+    return {};
+  }
+
+  return value;
+}
+
 function validateManifestObject(manifest, sourceLabel = "manifest.yaml") {
   const schema = loadManifestSchema();
   const errors = [];
@@ -89,6 +98,24 @@ function validateManifestObject(manifest, sourceLabel = "manifest.yaml") {
     (typeof manifest.display_name !== "string" || manifest.display_name.trim().length === 0)
   ) {
     errors.push(`display_name must be a non-empty string`);
+  }
+
+  if ("display_name_locales" in manifest) {
+    const displayNameLocales = requireObject(
+      manifest.display_name_locales,
+      "display_name_locales",
+      errors,
+    );
+    const localePattern = schema.properties.display_name_locales.propertyNames.pattern;
+
+    for (const [locale, value] of Object.entries(displayNameLocales)) {
+      if (!validatePattern(locale, localePattern)) {
+        errors.push(`display_name_locales key "${locale}" must be a stable locale identifier`);
+      }
+      if (typeof value !== "string" || value.trim().length === 0) {
+        errors.push(`display_name_locales.${locale} must be a non-empty string`);
+      }
+    }
   }
 
   if ("kind" in manifest && !schema.properties.kind.enum.includes(manifest.kind)) {
