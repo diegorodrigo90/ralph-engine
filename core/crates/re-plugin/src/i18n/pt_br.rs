@@ -1,11 +1,15 @@
-pub(super) const OFFICIAL_PLUGINS: &str = "Plugins oficiais";
-pub(super) const PLUGIN: &str = "Plugin";
-pub(super) const KIND: &str = "Tipo";
-pub(super) const TRUST: &str = "Confiança";
-pub(super) const NAME: &str = "Nome";
-pub(super) const VERSION: &str = "Versão";
-pub(super) const SUMMARY: &str = "Resumo";
-pub(super) const CAPABILITIES: &str = "Capacidades";
-pub(super) const LIFECYCLE: &str = "Ciclo de vida";
-pub(super) const LOAD_BOUNDARY: &str = "Fronteira de carregamento";
-pub(super) const RUNTIME_HOOKS: &str = "Hooks de runtime";
+use super::PluginLocaleCatalog;
+
+pub(super) const LOCALE: PluginLocaleCatalog = PluginLocaleCatalog {
+    official_plugins: "Plugins oficiais",
+    plugin: "Plugin",
+    kind: "Tipo",
+    trust: "Confiança",
+    name: "Nome",
+    version: "Versão",
+    summary: "Resumo",
+    capabilities: "Capacidades",
+    lifecycle: "Ciclo de vida",
+    load_boundary: "Fronteira de carregamento",
+    runtime_hooks: "Hooks de runtime",
+};

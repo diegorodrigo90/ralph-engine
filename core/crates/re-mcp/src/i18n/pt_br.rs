@@ -1,12 +1,16 @@
-pub(super) const OFFICIAL_SERVERS: &str = "Servidores MCP oficiais";
-pub(super) const SERVER: &str = "Servidor MCP";
-pub(super) const NAME: &str = "Nome";
-pub(super) const PLUGIN: &str = "Plugin";
-pub(super) const TRANSPORT: &str = "Transporte";
-pub(super) const PROCESS_MODEL: &str = "Modelo de processo";
-pub(super) const LAUNCH_POLICY: &str = "Política de execução";
-pub(super) const AVAILABILITY: &str = "Disponibilidade";
-pub(super) const COMMAND: &str = "Comando";
-pub(super) const WORKING_DIRECTORY: &str = "Diretório de trabalho";
-pub(super) const ENVIRONMENT: &str = "Ambiente";
-pub(super) const RUNTIME_MANAGED_COMMAND: &str = "gerenciado pelo runtime do plugin";
+use super::McpLocaleCatalog;
+
+pub(super) const LOCALE: McpLocaleCatalog = McpLocaleCatalog {
+    official_servers: "Servidores MCP oficiais",
+    server: "Servidor MCP",
+    name: "Nome",
+    plugin: "Plugin",
+    transport: "Transporte",
+    process_model: "Modelo de processo",
+    launch_policy: "Política de execução",
+    availability: "Disponibilidade",
+    command: "Comando",
+    working_directory: "Diretório de trabalho",
+    environment: "Ambiente",
+    runtime_managed_command: "gerenciado pelo runtime do plugin",
+};
