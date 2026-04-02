@@ -3,6 +3,9 @@ use super::CliLocaleCatalog;
 pub(super) const LOCALE: CliLocaleCatalog = CliLocaleCatalog {
     root_bootstrapped: "Fundação Rust inicializada.",
     providers_label: "Provedores",
+    name_label: "Nome",
+    summary_label: "Resumo",
+    kind_label: "Tipo",
     resolved_activation_label: "Ativação resolvida",
     resolved_from_label: "Resolvido de",
     activation_label: "Ativação",
@@ -16,6 +19,8 @@ pub(super) const LOCALE: CliLocaleCatalog = CliLocaleCatalog {
     checks_label: "Verificações",
     hook_label: "Hook de runtime",
     hooks_label: "Hooks de runtime",
+    registration_hook_label: "Registration hook",
+    assets_label: "Assets",
     provider_label: "Provedor",
     locale_id_entity_label: "um id de idioma",
     mcp_server_id_entity_label: "um id de servidor",

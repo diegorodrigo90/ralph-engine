@@ -126,36 +126,23 @@ fn render_provider_contribution_detail(
     registration: RuntimeProviderRegistration,
     locale: &str,
 ) -> String {
-    let name_label = if i18n::is_pt_br(locale) {
-        "Nome"
-    } else {
-        "Name"
-    };
-    let summary_label = if i18n::is_pt_br(locale) {
-        "Resumo"
-    } else {
-        "Summary"
-    };
-    let kind_label = if i18n::is_pt_br(locale) {
-        "Tipo"
-    } else {
-        "Kind"
-    };
-    let hook_label = "Registration hook";
-
     format!(
-        "{}: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{kind_label}: {}\n{}: {}\n{}: {}\n{hook_label}: {}",
+        "{}: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{kind_label}: {kind}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {registration_hook}",
         i18n::provider_label(locale),
         contribution.descriptor.id,
         contribution.descriptor.display_name_for_locale(locale),
         contribution.descriptor.summary_for_locale(locale),
         contribution.descriptor.plugin_id,
-        contribution.descriptor.kind.as_str(),
-        i18n::activation_label(locale),
-        registration.activation.as_str(),
-        i18n::load_boundary_label(locale),
-        registration.load_boundary.as_str(),
-        registration.registration_hook_registered,
+        name_label = i18n::name_label(locale),
+        summary_label = i18n::summary_label(locale),
+        kind_label = i18n::kind_label(locale),
+        kind = contribution.descriptor.kind.as_str(),
+        activation_label = i18n::activation_label(locale),
+        activation = registration.activation.as_str(),
+        load_boundary_label = i18n::load_boundary_label(locale),
+        load_boundary = registration.load_boundary.as_str(),
+        hook_label = i18n::registration_hook_label(locale),
+        registration_hook = registration.registration_hook_registered,
     )
 }
 

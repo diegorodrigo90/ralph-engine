@@ -98,22 +98,6 @@ fn render_template_listing(registrations: &[OfficialTemplateContribution], local
 }
 
 fn render_template_detail(template: OfficialTemplateContribution, locale: &str) -> String {
-    let name_label = if i18n::is_pt_br(locale) {
-        "Nome"
-    } else {
-        "Name"
-    };
-    let summary_label = if i18n::is_pt_br(locale) {
-        "Resumo"
-    } else {
-        "Summary"
-    };
-    let hook_label = if i18n::is_pt_br(locale) {
-        "Hook de runtime"
-    } else {
-        "Runtime hook"
-    };
-    let assets_label = "Assets";
     let asset_paths = if template.descriptor.has_assets() {
         template
             .descriptor
@@ -127,21 +111,25 @@ fn render_template_detail(template: OfficialTemplateContribution, locale: &str) 
     };
 
     format!(
-        "Template: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{}: {}\n{}: {}\n{hook_label}: {}\n{assets_label}: {}",
+        "Template: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {runtime_hook}\n{assets_label}: {assets}",
         template.descriptor.id,
         template.descriptor.display_name_for_locale(locale),
         template.descriptor.summary_for_locale(locale),
         template.descriptor.plugin_id,
-        i18n::activation_label(locale),
-        template.activation.as_str(),
-        i18n::load_boundary_label(locale),
-        template.load_boundary.as_str(),
-        if template.scaffold_hook_registered {
+        name_label = i18n::name_label(locale),
+        summary_label = i18n::summary_label(locale),
+        activation_label = i18n::activation_label(locale),
+        activation = template.activation.as_str(),
+        load_boundary_label = i18n::load_boundary_label(locale),
+        load_boundary = template.load_boundary.as_str(),
+        hook_label = i18n::hook_label(locale),
+        assets_label = i18n::assets_label(locale),
+        runtime_hook = if template.scaffold_hook_registered {
             "scaffold"
         } else {
             "missing"
         },
-        asset_paths,
+        assets = asset_paths,
     )
 }
 

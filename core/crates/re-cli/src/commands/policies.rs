@@ -73,31 +73,22 @@ fn render_policy_listing(registrations: &[OfficialPolicyContribution], locale: &
 }
 
 fn render_policy_detail(policy: OfficialPolicyContribution, locale: &str) -> String {
-    let name_label = if i18n::is_pt_br(locale) {
-        "Nome"
-    } else {
-        "Name"
-    };
-    let summary_label = if i18n::is_pt_br(locale) {
-        "Resumo"
-    } else {
-        "Summary"
-    };
-
     format!(
-        "{}: {}\n{name_label}: {}\n{summary_label}: {}\n{}: {}\n{}: {}\n{}: {}\n{}: {}",
+        "{}: {}\n{name_label}: {}\n{summary_label}: {}\n{provider_label}: {provider}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{policy_hook_label}: {policy_hook}",
         i18n::policy_label(locale),
         policy.descriptor.id,
         policy.descriptor.display_name_for_locale(locale),
         policy.descriptor.summary_for_locale(locale),
-        i18n::provider_label(locale),
-        policy.descriptor.plugin_id,
-        i18n::activation_label(locale),
-        policy.activation.as_str(),
-        i18n::load_boundary_label(locale),
-        policy.load_boundary.as_str(),
-        i18n::policy_enforcement_hook_label(locale),
-        if policy.enforcement_hook_registered {
+        name_label = i18n::name_label(locale),
+        summary_label = i18n::summary_label(locale),
+        provider_label = i18n::provider_label(locale),
+        provider = policy.descriptor.plugin_id,
+        activation_label = i18n::activation_label(locale),
+        activation = policy.activation.as_str(),
+        load_boundary_label = i18n::load_boundary_label(locale),
+        load_boundary = policy.load_boundary.as_str(),
+        policy_hook_label = i18n::policy_enforcement_hook_label(locale),
+        policy_hook = if policy.enforcement_hook_registered {
             "policy_enforcement"
         } else {
             "missing"
