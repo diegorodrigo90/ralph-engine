@@ -5,18 +5,18 @@ use re_config::{
     default_project_config_layer, resolve_plugin_config,
 };
 use re_core::{
-    RuntimeAgentRegistration, RuntimeCapabilityRegistration, RuntimeCheckRegistration,
-    RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
-    RuntimePolicyRegistration, RuntimePromptRegistration, RuntimeProviderRegistration,
-    RuntimeTemplateRegistration, RuntimeTopology, agent_runtime_hook,
-    capability_activates_agent_surface, capability_activates_policy_surface,
+    RuntimeAgentRegistration, RuntimeCapabilityRegistration, RuntimeCheckKind,
+    RuntimeCheckRegistration, RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase,
+    RuntimePluginRegistration, RuntimePolicyRegistration, RuntimePromptRegistration,
+    RuntimeProviderKind, RuntimeProviderRegistration, RuntimeTemplateRegistration, RuntimeTopology,
+    agent_runtime_hook, capability_activates_agent_surface, capability_activates_policy_surface,
     capability_activates_prompt_surface, capability_activates_template_surface,
     policy_runtime_hook, prompt_runtime_hook, runtime_check_kind_for_capability,
     runtime_hook_for_check, runtime_hook_for_provider, runtime_provider_kind_for_capability,
     template_runtime_hook,
 };
 use re_mcp::McpServerDescriptor;
-use re_plugin::PluginDescriptor;
+use re_plugin::{PluginDescriptor, PluginRuntimeHook};
 
 /// Immutable owned snapshot of the official runtime catalog.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -403,6 +403,17 @@ fn registrations_for_plugin<T: Copy>(
         .collect()
 }
 
+fn registrations_for_key<T: Copy, K: Copy + Eq>(
+    registrations: Vec<T>,
+    key: K,
+    key_of: fn(T) -> K,
+) -> Vec<T> {
+    registrations
+        .into_iter()
+        .filter(|registration| key_of(*registration) == key)
+        .collect()
+}
+
 /// Returns the resolved template registrations for one official plugin identifier.
 #[must_use]
 pub fn find_official_runtime_templates(plugin_id: &str) -> Vec<RuntimeTemplateRegistration> {
@@ -427,17 +438,50 @@ pub fn find_official_runtime_agents(plugin_id: &str) -> Vec<RuntimeAgentRegistra
     })
 }
 
+/// Returns the resolved runtime-hook registrations for one typed hook.
+#[must_use]
+pub fn find_official_runtime_hooks(hook: PluginRuntimeHook) -> Vec<RuntimeHookRegistration> {
+    registrations_for_key(official_runtime_hooks(), hook, |registration| {
+        registration.hook
+    })
+}
+
+/// Returns the resolved runtime check registrations for one typed kind.
+#[must_use]
+pub fn find_official_runtime_checks(kind: RuntimeCheckKind) -> Vec<RuntimeCheckRegistration> {
+    registrations_for_key(official_runtime_checks(), kind, |registration| {
+        registration.kind
+    })
+}
+
+/// Returns the resolved runtime provider registrations for one typed kind.
+#[must_use]
+pub fn find_official_runtime_providers(
+    kind: RuntimeProviderKind,
+) -> Vec<RuntimeProviderRegistration> {
+    registrations_for_key(official_runtime_providers(), kind, |registration| {
+        registration.kind
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
         find_official_mcp_server, find_official_plugin, find_official_runtime_agents,
-        find_official_runtime_prompts, find_official_runtime_templates, official_plugins,
+        find_official_runtime_checks, find_official_runtime_hooks, find_official_runtime_prompts,
+        find_official_runtime_providers, find_official_runtime_templates, official_plugins,
         official_runtime_agents, official_runtime_checks, official_runtime_mcp_registrations,
         official_runtime_policies, official_runtime_prompts, official_runtime_providers,
         official_runtime_snapshot, official_runtime_templates,
     };
-    use re_core::{runtime_check_kind_for_capability, runtime_provider_kind_for_capability};
-    use re_plugin::{ALL_PLUGIN_CAPABILITIES, PluginCapability, runtime_surface_for_capability};
+    use re_core::{
+        RuntimeCheckKind, RuntimeProviderKind, runtime_check_kind_for_capability,
+        runtime_provider_kind_for_capability,
+    };
+    use re_plugin::{
+        ALL_PLUGIN_CAPABILITIES, PluginCapability, PluginRuntimeHook,
+        runtime_surface_for_capability,
+    };
 
     fn capability_names(capabilities: &[PluginCapability]) -> Vec<&'static str> {
         capabilities
@@ -524,5 +568,31 @@ mod tests {
         assert!(find_official_runtime_templates("official.missing").is_empty());
         assert!(find_official_runtime_prompts("official.missing").is_empty());
         assert!(find_official_runtime_agents("official.missing").is_empty());
+    }
+
+    #[test]
+    fn grouped_surface_helpers_filter_typed_keys() {
+        let hooks = find_official_runtime_hooks(PluginRuntimeHook::Scaffold);
+        let checks = find_official_runtime_checks(RuntimeCheckKind::Doctor);
+        let providers = find_official_runtime_providers(RuntimeProviderKind::RemoteControl);
+
+        assert!(!hooks.is_empty());
+        assert!(
+            hooks
+                .iter()
+                .all(|registration| registration.hook == PluginRuntimeHook::Scaffold)
+        );
+        assert!(!checks.is_empty());
+        assert!(
+            checks
+                .iter()
+                .all(|registration| registration.kind == RuntimeCheckKind::Doctor)
+        );
+        assert!(!providers.is_empty());
+        assert!(
+            providers
+                .iter()
+                .all(|registration| registration.kind == RuntimeProviderKind::RemoteControl)
+        );
     }
 }

@@ -209,6 +209,7 @@ catalog_str!(check_label, check_label);
 catalog_str!(checks_label, checks_label);
 catalog_str!(hook_label, hook_label);
 catalog_str!(hooks_label, hooks_label);
+catalog_str!(providers_label, providers_label);
 catalog_str!(provider_label, provider_label);
 catalog_str!(plugin_id_entity_label, plugin_id_entity_label);
 catalog_str!(policy_id_entity_label, policy_id_entity_label);

@@ -2,7 +2,11 @@
 
 use re_core::{RuntimeCheckKind, RuntimeCheckRegistration, parse_runtime_check_kind};
 
-use crate::{CliError, catalog, i18n};
+use crate::{
+    CliError, catalog,
+    commands::grouped_surfaces::{render_grouped_surface_detail, render_grouped_surface_listing},
+    i18n,
+};
 
 /// Executes the checks command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
@@ -33,60 +37,19 @@ fn show_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError
             check_kind,
         ))
     })?;
-    let checks = catalog::official_runtime_checks()
-        .into_iter()
-        .filter(|registration| registration.kind == kind)
-        .collect::<Vec<_>>();
+    let checks = catalog::find_official_runtime_checks(kind);
 
     Ok(render_check_detail(kind, &checks, locale))
 }
 
 fn render_check_listing(registrations: &[RuntimeCheckRegistration], locale: &str) -> String {
-    let mut seen = Vec::new();
-    let mut lines = Vec::new();
-
-    for registration in registrations {
-        let check = registration.kind.as_str();
-
-        if seen.contains(&check) {
-            continue;
-        }
-
-        seen.push(check);
-
-        let checks = registrations
-            .iter()
-            .filter(|candidate| candidate.kind == registration.kind)
-            .collect::<Vec<_>>();
-        let enabled_checks = checks.iter().filter(|check| check.is_enabled()).count();
-
-        lines.push(format!(
-            "- {} | providers={} | enabled={}",
-            check,
-            checks.len(),
-            enabled_checks
-        ));
-    }
-
-    if lines.is_empty() {
-        i18n::list_heading(
-            locale,
-            i18n::checks_label(locale),
-            i18n::checks_label(locale),
-            0,
-        )
-    } else {
-        format!(
-            "{}\n{}",
-            i18n::list_heading(
-                locale,
-                i18n::checks_label(locale),
-                i18n::checks_label(locale),
-                lines.len(),
-            ),
-            lines.join("\n")
-        )
-    }
+    render_grouped_surface_listing(
+        registrations,
+        locale,
+        i18n::checks_label,
+        |registration| registration.kind.as_str(),
+        |registration| registration.is_enabled(),
+    )
 }
 
 fn render_check_detail(
@@ -94,27 +57,15 @@ fn render_check_detail(
     checks: &[RuntimeCheckRegistration],
     locale: &str,
 ) -> String {
-    let mut lines = vec![
-        i18n::detail_heading(
-            locale,
-            i18n::check_label(locale),
-            i18n::check_label(locale),
-            kind.as_str(),
-        ),
-        i18n::providers_heading(locale, checks.len()),
-    ];
-
-    for check in checks {
-        lines.push(format!(
+    render_grouped_surface_detail(kind.as_str(), checks, locale, i18n::check_label, |check| {
+        format!(
             "- {} | activation={} | boundary={} | runtime_hook={}",
             check.plugin_id,
             check.activation.as_str(),
             check.load_boundary.as_str(),
             check.runtime_hook_registered
-        ));
-    }
-
-    lines.join("\n")
+        )
+    })
 }
 
 #[cfg(test)]
