@@ -1177,6 +1177,15 @@ mod tests {
     }
 
     #[test]
+    fn execute_runtime_provider_plans_returns_registration_plans() {
+        let command = args(&["ralph-engine", "runtime", "provider-plans"]);
+
+        let output = execute(command).expect("runtime provider-plans should succeed");
+
+        assert_eq!(output, "Runtime provider registration plans (0)");
+    }
+
+    #[test]
     fn execute_runtime_mcp_plans_returns_launch_plans() {
         let command = args(&["ralph-engine", "runtime", "mcp-plans"]);
 

@@ -8,6 +8,7 @@ pub(super) struct RuntimeLocaleCatalog {
     pub prompts: &'static str,
     pub agent_runtimes: &'static str,
     pub runtime_agent_bootstrap_plans: &'static str,
+    pub runtime_provider_registration_plans: &'static str,
     pub checks: &'static str,
     pub providers: &'static str,
     pub policies: &'static str,
@@ -49,6 +50,10 @@ locale_label!(agent_runtimes_label, agent_runtimes);
 locale_label!(
     runtime_agent_bootstrap_plans_label,
     runtime_agent_bootstrap_plans
+);
+locale_label!(
+    runtime_provider_registration_plans_label,
+    runtime_provider_registration_plans
 );
 locale_label!(checks_label, checks);
 locale_label!(providers_label, providers);

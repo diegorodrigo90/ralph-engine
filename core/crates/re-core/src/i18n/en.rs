@@ -10,6 +10,7 @@ pub(super) const LOCALE: RuntimeLocaleCatalog = RuntimeLocaleCatalog {
     prompts: "Prompts",
     agent_runtimes: "Agent runtimes",
     runtime_agent_bootstrap_plans: "Runtime agent bootstrap plans",
+    runtime_provider_registration_plans: "Runtime provider registration plans",
     checks: "Checks",
     providers: "Providers",
     policies: "Policies",
