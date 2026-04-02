@@ -1,11 +1,61 @@
 //! Shared CLI locale resolution and message helpers.
 
-mod en;
-mod pt_br;
-
 use std::env;
 
 use crate::CliError;
+
+pub(super) struct CliLocaleCatalog {
+    pub root_bootstrapped: &'static str,
+    pub providers_label: &'static str,
+    pub resolved_activation_label: &'static str,
+    pub resolved_from_label: &'static str,
+    pub activation_label: &'static str,
+    pub load_boundary_label: &'static str,
+    pub agent_runtime_label: &'static str,
+    pub agent_runtimes_label: &'static str,
+    pub template_provider_label: &'static str,
+    pub templates_label: &'static str,
+    pub prompt_provider_label: &'static str,
+    pub prompts_label: &'static str,
+    pub policy_label: &'static str,
+    pub policies_label: &'static str,
+    pub policy_enforcement_hook_label: &'static str,
+    pub capability_label: &'static str,
+    pub capabilities_label: &'static str,
+    pub check_label: &'static str,
+    pub checks_label: &'static str,
+    pub hook_label: &'static str,
+    pub hooks_label: &'static str,
+    pub provider_label: &'static str,
+    pub locale_id_entity_label: &'static str,
+    pub mcp_server_id_entity_label: &'static str,
+    pub plugin_config_entity_label: &'static str,
+    pub plugin_id_entity_label: &'static str,
+    pub policy_id_entity_label: &'static str,
+    pub capability_id_entity_label: &'static str,
+    pub check_id_entity_label: &'static str,
+    pub hook_id_entity_label: &'static str,
+    pub provider_id_entity_label: &'static str,
+    pub plugin_entity_label: &'static str,
+    pub agent_runtime_entity_label: &'static str,
+    pub template_provider_entity_label: &'static str,
+    pub prompt_provider_entity_label: &'static str,
+    pub policy_entity_label: &'static str,
+    pub capability_entity_label: &'static str,
+    pub check_entity_label: &'static str,
+    pub hook_entity_label: &'static str,
+    pub provider_entity_label: &'static str,
+    pub locale_entity_label: &'static str,
+    pub mcp_server_entity_label: &'static str,
+    pub unknown_command: fn(&str) -> String,
+    pub unknown_subcommand: fn(&str, &str) -> String,
+    pub missing_id: fn(&str, &str) -> String,
+    pub unknown_entity: fn(&str, &str) -> String,
+}
+
+mod en;
+mod pt_br;
+
 const LOCALE_ENV_KEY: &str = "RALPH_ENGINE_LOCALE";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -33,6 +83,13 @@ fn parse_locale(locale: &str) -> CliLocale {
         CliLocale::PtBr
     } else {
         CliLocale::En
+    }
+}
+
+fn locale_catalog(locale: &str) -> &'static CliLocaleCatalog {
+    match parse_locale(locale) {
+        CliLocale::En => &en::LOCALE,
+        CliLocale::PtBr => &pt_br::LOCALE,
     }
 }
 
@@ -81,389 +138,106 @@ fn supported_locale_ids() -> String {
         .join(", ")
 }
 
+macro_rules! catalog_str {
+    ($name:ident, $field:ident) => {
+        #[must_use]
+        pub fn $name(locale: &str) -> &'static str {
+            locale_catalog(locale).$field
+        }
+    };
+}
+
 #[must_use]
 pub fn root_bootstrapped(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::ROOT_BOOTSTRAPPED,
-        CliLocale::PtBr => pt_br::ROOT_BOOTSTRAPPED,
-    }
+    locale_catalog(locale).root_bootstrapped
 }
 
 #[must_use]
 pub fn unknown_command(locale: &str, command_name: &str) -> String {
-    match parse_locale(locale) {
-        CliLocale::En => en::unknown_command(command_name),
-        CliLocale::PtBr => pt_br::unknown_command(command_name),
-    }
+    (locale_catalog(locale).unknown_command)(command_name)
 }
 
 #[must_use]
 pub fn unknown_subcommand(locale: &str, command_group: &str, command_name: &str) -> String {
-    match parse_locale(locale) {
-        CliLocale::En => en::unknown_subcommand(command_group, command_name),
-        CliLocale::PtBr => pt_br::unknown_subcommand(command_group, command_name),
-    }
+    (locale_catalog(locale).unknown_subcommand)(command_group, command_name)
 }
 
 #[must_use]
 pub fn missing_id(locale: &str, command_group: &str, entity_label: &str) -> String {
-    match parse_locale(locale) {
-        CliLocale::En => en::missing_id(command_group, entity_label),
-        CliLocale::PtBr => pt_br::missing_id(command_group, entity_label),
-    }
+    (locale_catalog(locale).missing_id)(command_group, entity_label)
 }
 
 #[must_use]
 pub fn unknown_entity(locale: &str, entity_label: &str, value: &str) -> String {
-    match parse_locale(locale) {
-        CliLocale::En => en::unknown_entity(entity_label, value),
-        CliLocale::PtBr => pt_br::unknown_entity(entity_label, value),
-    }
+    (locale_catalog(locale).unknown_entity)(entity_label, value)
 }
 
 #[must_use]
 pub fn list_heading(locale: &str, singular_en: &str, singular_pt: &str, count: usize) -> String {
-    match parse_locale(locale) {
-        CliLocale::En => format!("{singular_en} ({count})"),
-        CliLocale::PtBr => format!("{singular_pt} ({count})"),
+    if is_pt_br(locale) {
+        format!("{singular_pt} ({count})")
+    } else {
+        format!("{singular_en} ({count})")
     }
 }
 
 #[must_use]
 pub fn providers_heading(locale: &str, count: usize) -> String {
-    match parse_locale(locale) {
-        CliLocale::En => format!("{} ({count})", en::PROVIDERS_LABEL),
-        CliLocale::PtBr => format!("{} ({count})", pt_br::PROVIDERS_LABEL),
-    }
+    format!("{} ({count})", locale_catalog(locale).providers_label)
 }
 
 #[must_use]
 pub fn detail_heading(locale: &str, label_en: &str, label_pt: &str, value: &str) -> String {
-    match parse_locale(locale) {
-        CliLocale::En => format!("{label_en}: {value}"),
-        CliLocale::PtBr => format!("{label_pt}: {value}"),
+    if is_pt_br(locale) {
+        format!("{label_pt}: {value}")
+    } else {
+        format!("{label_en}: {value}")
     }
 }
 
-#[must_use]
-pub fn resolved_activation_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::RESOLVED_ACTIVATION_LABEL,
-        CliLocale::PtBr => pt_br::RESOLVED_ACTIVATION_LABEL,
-    }
-}
-
-#[must_use]
-pub fn resolved_from_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::RESOLVED_FROM_LABEL,
-        CliLocale::PtBr => pt_br::RESOLVED_FROM_LABEL,
-    }
-}
-
-#[must_use]
-pub fn activation_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::ACTIVATION_LABEL,
-        CliLocale::PtBr => pt_br::ACTIVATION_LABEL,
-    }
-}
-
-#[must_use]
-pub fn load_boundary_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::LOAD_BOUNDARY_LABEL,
-        CliLocale::PtBr => pt_br::LOAD_BOUNDARY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn agent_runtime_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::AGENT_RUNTIME_LABEL,
-        CliLocale::PtBr => pt_br::AGENT_RUNTIME_LABEL,
-    }
-}
-
-#[must_use]
-pub fn agent_runtimes_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::AGENT_RUNTIMES_LABEL,
-        CliLocale::PtBr => pt_br::AGENT_RUNTIMES_LABEL,
-    }
-}
-
-#[must_use]
-pub fn template_provider_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::TEMPLATE_PROVIDER_LABEL,
-        CliLocale::PtBr => pt_br::TEMPLATE_PROVIDER_LABEL,
-    }
-}
-
-#[must_use]
-pub fn templates_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::TEMPLATES_LABEL,
-        CliLocale::PtBr => pt_br::TEMPLATES_LABEL,
-    }
-}
-
-#[must_use]
-pub fn prompt_provider_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::PROMPT_PROVIDER_LABEL,
-        CliLocale::PtBr => pt_br::PROMPT_PROVIDER_LABEL,
-    }
-}
-
-#[must_use]
-pub fn prompts_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::PROMPTS_LABEL,
-        CliLocale::PtBr => pt_br::PROMPTS_LABEL,
-    }
-}
-
-#[must_use]
-pub fn policy_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::POLICY_LABEL,
-        CliLocale::PtBr => pt_br::POLICY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn policies_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::POLICIES_LABEL,
-        CliLocale::PtBr => pt_br::POLICIES_LABEL,
-    }
-}
-
-#[must_use]
-pub fn policy_enforcement_hook_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::POLICY_ENFORCEMENT_HOOK_LABEL,
-        CliLocale::PtBr => pt_br::POLICY_ENFORCEMENT_HOOK_LABEL,
-    }
-}
-
-#[must_use]
-pub fn capability_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::CAPABILITY_LABEL,
-        CliLocale::PtBr => pt_br::CAPABILITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn capabilities_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::CAPABILITIES_LABEL,
-        CliLocale::PtBr => pt_br::CAPABILITIES_LABEL,
-    }
-}
-
-#[must_use]
-pub fn check_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::CHECK_LABEL,
-        CliLocale::PtBr => pt_br::CHECK_LABEL,
-    }
-}
-
-#[must_use]
-pub fn checks_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::CHECKS_LABEL,
-        CliLocale::PtBr => pt_br::CHECKS_LABEL,
-    }
-}
-
-#[must_use]
-pub fn hook_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::HOOK_LABEL,
-        CliLocale::PtBr => pt_br::HOOK_LABEL,
-    }
-}
-
-#[must_use]
-pub fn hooks_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::HOOKS_LABEL,
-        CliLocale::PtBr => pt_br::HOOKS_LABEL,
-    }
-}
-
-#[must_use]
-pub fn provider_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::PROVIDER_LABEL,
-        CliLocale::PtBr => pt_br::PROVIDER_LABEL,
-    }
-}
-
-#[must_use]
-pub fn plugin_id_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::PLUGIN_ID_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::PLUGIN_ID_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn policy_id_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::POLICY_ID_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::POLICY_ID_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn capability_id_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::CAPABILITY_ID_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::CAPABILITY_ID_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn check_id_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::CHECK_ID_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::CHECK_ID_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn hook_id_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::HOOK_ID_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::HOOK_ID_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn provider_id_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::PROVIDER_ID_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::PROVIDER_ID_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn locale_id_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::LOCALE_ID_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::LOCALE_ID_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn mcp_server_id_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::MCP_SERVER_ID_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::MCP_SERVER_ID_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn plugin_config_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::PLUGIN_CONFIG_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::PLUGIN_CONFIG_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn plugin_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::PLUGIN_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::PLUGIN_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn mcp_server_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::MCP_SERVER_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::MCP_SERVER_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn capability_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::CAPABILITY_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::CAPABILITY_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn check_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::CHECK_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::CHECK_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn hook_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::HOOK_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::HOOK_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn provider_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::PROVIDER_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::PROVIDER_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn locale_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::LOCALE_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::LOCALE_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn agent_runtime_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::AGENT_RUNTIME_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::AGENT_RUNTIME_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn template_provider_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::TEMPLATE_PROVIDER_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::TEMPLATE_PROVIDER_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn prompt_provider_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::PROMPT_PROVIDER_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::PROMPT_PROVIDER_ENTITY_LABEL,
-    }
-}
-
-#[must_use]
-pub fn policy_entity_label(locale: &str) -> &'static str {
-    match parse_locale(locale) {
-        CliLocale::En => en::POLICY_ENTITY_LABEL,
-        CliLocale::PtBr => pt_br::POLICY_ENTITY_LABEL,
-    }
-}
+catalog_str!(resolved_activation_label, resolved_activation_label);
+catalog_str!(resolved_from_label, resolved_from_label);
+catalog_str!(activation_label, activation_label);
+catalog_str!(load_boundary_label, load_boundary_label);
+catalog_str!(agent_runtime_label, agent_runtime_label);
+catalog_str!(agent_runtimes_label, agent_runtimes_label);
+catalog_str!(template_provider_label, template_provider_label);
+catalog_str!(templates_label, templates_label);
+catalog_str!(prompt_provider_label, prompt_provider_label);
+catalog_str!(prompts_label, prompts_label);
+catalog_str!(policy_label, policy_label);
+catalog_str!(policies_label, policies_label);
+catalog_str!(policy_enforcement_hook_label, policy_enforcement_hook_label);
+catalog_str!(capability_label, capability_label);
+catalog_str!(capabilities_label, capabilities_label);
+catalog_str!(check_label, check_label);
+catalog_str!(checks_label, checks_label);
+catalog_str!(hook_label, hook_label);
+catalog_str!(hooks_label, hooks_label);
+catalog_str!(provider_label, provider_label);
+catalog_str!(plugin_id_entity_label, plugin_id_entity_label);
+catalog_str!(policy_id_entity_label, policy_id_entity_label);
+catalog_str!(capability_id_entity_label, capability_id_entity_label);
+catalog_str!(check_id_entity_label, check_id_entity_label);
+catalog_str!(hook_id_entity_label, hook_id_entity_label);
+catalog_str!(provider_id_entity_label, provider_id_entity_label);
+catalog_str!(locale_id_entity_label, locale_id_entity_label);
+catalog_str!(mcp_server_id_entity_label, mcp_server_id_entity_label);
+catalog_str!(plugin_config_entity_label, plugin_config_entity_label);
+catalog_str!(plugin_entity_label, plugin_entity_label);
+catalog_str!(mcp_server_entity_label, mcp_server_entity_label);
+catalog_str!(capability_entity_label, capability_entity_label);
+catalog_str!(check_entity_label, check_entity_label);
+catalog_str!(hook_entity_label, hook_entity_label);
+catalog_str!(provider_entity_label, provider_entity_label);
+catalog_str!(locale_entity_label, locale_entity_label);
+catalog_str!(agent_runtime_entity_label, agent_runtime_entity_label);
+catalog_str!(
+    template_provider_entity_label,
+    template_provider_entity_label
+);
+catalog_str!(prompt_provider_entity_label, prompt_provider_entity_label);
+catalog_str!(policy_entity_label, policy_entity_label);
 
 #[cfg(test)]
 mod tests {
