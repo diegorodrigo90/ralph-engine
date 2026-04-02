@@ -92,6 +92,15 @@ mod tests {
     }
 
     #[test]
+    fn execute_version_accepts_global_locale_flag() {
+        let command = args(&["ralph-engine", "--locale", "pt-br", "--version"]);
+
+        let output = execute(command).expect("version with locale flag should succeed");
+
+        assert_eq!(output, env!("CARGO_PKG_VERSION"));
+    }
+
+    #[test]
     fn execute_agents_lists_runtime_agents() {
         // Arrange
         let command = args(&["ralph-engine", "agents", "list"]);
@@ -190,6 +199,41 @@ mod tests {
         let error = execute(command).expect_err("unknown locale should fail");
 
         assert_eq!(error.to_string(), "unknown locale: es");
+    }
+
+    #[test]
+    fn execute_global_locale_flag_switches_command_output() {
+        let command = args(&["ralph-engine", "--locale", "pt-br"]);
+
+        let output = execute(command).expect("global locale flag should localize command output");
+
+        assert!(output.contains("Fundação Rust inicializada."));
+    }
+
+    #[test]
+    fn execute_short_global_locale_flag_switches_command_output() {
+        let command = args(&[
+            "ralph-engine",
+            "-L",
+            "pt-br",
+            "providers",
+            "show",
+            "official.github.data",
+        ]);
+
+        let output = execute(command).expect("short locale flag should localize command output");
+
+        assert!(output.contains("Provedor: official.github.data"));
+        assert!(output.contains("Ativação:"));
+    }
+
+    #[test]
+    fn execute_global_locale_flag_requires_locale_id() {
+        let command = args(&["ralph-engine", "--locale"]);
+
+        let error = execute(command).expect_err("missing locale flag value should fail");
+
+        assert_eq!(error.to_string(), "--locale requires a locale id");
     }
 
     #[test]

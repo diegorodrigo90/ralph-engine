@@ -63,6 +63,14 @@ mod en;
 mod pt_br;
 
 const LOCALE_ENV_KEY: &str = "RALPH_ENGINE_LOCALE";
+const LOCALE_FLAG: &str = "--locale";
+const LOCALE_SHORT_FLAG: &str = "-L";
+
+#[derive(Debug)]
+pub struct ResolvedCliInvocation {
+    pub locale: &'static str,
+    pub command_index: usize,
+}
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum CliLocale {
@@ -100,6 +108,25 @@ fn locale_catalog(locale: &str) -> &'static CliLocaleCatalog {
 
 pub fn resolve_cli_locale() -> Result<&'static str, CliError> {
     resolve_cli_locale_from_env_result(env::var(LOCALE_ENV_KEY))
+}
+
+pub fn resolve_cli_invocation(args: &[String]) -> Result<ResolvedCliInvocation, CliError> {
+    match args.get(1).map(String::as_str) {
+        Some(LOCALE_FLAG | LOCALE_SHORT_FLAG) => {
+            let locale_value = args
+                .get(2)
+                .ok_or_else(|| CliError::new(format!("{LOCALE_FLAG} requires a locale id")))?;
+
+            Ok(ResolvedCliInvocation {
+                locale: normalize_cli_locale(locale_value)?,
+                command_index: 3,
+            })
+        }
+        _ => Ok(ResolvedCliInvocation {
+            locale: resolve_cli_locale()?,
+            command_index: 1,
+        }),
+    }
 }
 
 fn resolve_cli_locale_from_env_result(
@@ -258,10 +285,13 @@ catalog_str!(policy_entity_label, policy_entity_label);
 mod tests {
     use std::{env, ffi::OsString};
 
+    use crate::CliError;
+
     use super::{
-        activation_label, detail_heading, list_heading, load_boundary_label, missing_id,
-        normalize_cli_locale, providers_heading, resolve_cli_locale_from_env_result,
-        root_bootstrapped, unknown_command, unknown_entity, unknown_subcommand,
+        LOCALE_FLAG, activation_label, detail_heading, list_heading, load_boundary_label,
+        missing_id, normalize_cli_locale, providers_heading, resolve_cli_invocation,
+        resolve_cli_locale_from_env_result, root_bootstrapped, unknown_command, unknown_entity,
+        unknown_subcommand,
     };
 
     #[test]
@@ -360,6 +390,48 @@ mod tests {
             resolve_cli_locale_from_env_result(Err(env::VarError::NotPresent)),
             Ok("en")
         ));
+    }
+
+    #[test]
+    fn resolve_cli_invocation_prefers_global_locale_flag() {
+        let args = vec![
+            String::from("ralph-engine"),
+            String::from("--locale"),
+            String::from("pt-BR"),
+            String::from("plugins"),
+        ];
+
+        let resolved =
+            resolve_cli_invocation(&args).map(|value| (value.locale, value.command_index));
+
+        assert_eq!(resolved, Ok(("pt-br", 3)));
+    }
+
+    #[test]
+    fn resolve_cli_invocation_accepts_short_global_locale_flag() {
+        let args = vec![
+            String::from("ralph-engine"),
+            String::from("-L"),
+            String::from("pt-BR"),
+            String::from("plugins"),
+        ];
+
+        let resolved =
+            resolve_cli_invocation(&args).map(|value| (value.locale, value.command_index));
+
+        assert_eq!(resolved, Ok(("pt-br", 3)));
+    }
+
+    #[test]
+    fn resolve_cli_invocation_requires_locale_flag_value() {
+        let args = vec![String::from("ralph-engine"), String::from("--locale")];
+
+        let error = resolve_cli_invocation(&args).map(|_| ());
+
+        assert_eq!(
+            error,
+            Err(CliError::new(format!("{LOCALE_FLAG} requires a locale id")))
+        );
     }
 
     #[cfg(unix)]

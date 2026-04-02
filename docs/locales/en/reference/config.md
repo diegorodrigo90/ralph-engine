@@ -40,6 +40,8 @@ The `config locale` command renders the typed default locale contract so CLI loc
 
 `re-config` now also owns the shared typed locale contract used by `re-cli`, `re-core`, `re-plugin`, and `re-mcp`, so locale resolution grows by extending one canonical foundation instead of re-implementing locale parsing per crate.
 
+The CLI now accepts a global `--locale <locale-id>` or `-L <locale-id>` flag for one-off language selection. When that flag is absent, locale resolution falls back to `RALPH_ENGINE_LOCALE` and then to the typed default locale declared by `re-config`.
+
 The `locales` command family renders the canonical supported locale catalog, including the native name of each locale and whether it falls back to English. This keeps locale expansion explicit and versioned instead of scattering support assumptions across the runtime.
 
 The `config budgets` command renders the canonical typed prompt and context budget contract so token ceilings stay explicit in the shared runtime configuration instead of being inferred later from provider-local defaults.
