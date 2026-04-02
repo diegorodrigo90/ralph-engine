@@ -82,8 +82,8 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 - `packaging/` SHALL own npm and Homebrew packaging.
 - `tools/create-ralph-engine/` SHALL own plugin scaffolding for `npx create-ralph-engine-plugin`. Runtime catalog surfaces SHALL NOT turn scaffolding into a generic runtime responsibility.
 - CLI surfaces SHALL support `en` and `pt-br` through typed locale helpers, and new locales SHALL be additive rather than requiring handler rewrites.
-- Plugin metadata SHALL support locale-aware display names with English fallback when a requested locale is missing.
-- Third-party plugin manifests SHALL carry locale-aware display metadata through the versioned `manifest.yaml` contract owned by `tools/create-ralph-engine/`.
+- Plugin metadata SHALL support locale-aware display names and summaries with English fallback when a requested locale is missing.
+- Third-party plugin manifests SHALL carry locale-aware display metadata through the versioned `manifest.yaml` contract owned by `tools/create-ralph-engine/`, including required English summaries plus optional localized summaries.
 - `core/crates/re-plugin/` SHALL own typed plugin kind contracts for the runtime and tooling.
 - The plugin scaffolder SHALL only accept kinds and capabilities that already exist in the typed runtime and plugin contracts. Future surfaces SHALL stay rejected until the core defines them explicitly.
 - Scaffolded and official plugin identifiers SHALL use the same dotted namespace contract, such as `official.basic` or `acme.jira-suite`.
