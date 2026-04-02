@@ -444,7 +444,7 @@ impl PluginDescriptor {
     /// Resolves the display name for a locale with English fallback.
     #[must_use]
     pub fn display_name_for_locale(&self, locale: &str) -> &'static str {
-        let locale = re_config::resolve_locale_or_default(locale.trim());
+        let locale = re_config::resolve_supported_locale_or_default(locale.trim()).as_str();
 
         self.localized_names
             .iter()
@@ -455,7 +455,7 @@ impl PluginDescriptor {
     /// Resolves the plugin summary for a locale with English fallback.
     #[must_use]
     pub fn summary_for_locale(&self, locale: &str) -> &'static str {
-        let locale = re_config::resolve_locale_or_default(locale.trim());
+        let locale = re_config::resolve_supported_locale_or_default(locale.trim()).as_str();
 
         self.localized_summaries
             .iter()
