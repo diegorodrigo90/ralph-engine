@@ -464,6 +464,41 @@ impl RuntimeCheckExecutionPlan {
     }
 }
 
+/// One executable policy-enforcement plan derived from the resolved runtime.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct RuntimePolicyEnforcementPlan {
+    /// Stable policy identifier.
+    pub policy_id: &'static str,
+    /// Owning plugin identifier.
+    pub plugin_id: &'static str,
+    /// Declared load boundary for the policy provider.
+    pub load_boundary: PluginLoadBoundary,
+    /// Runtime hook responsible for policy enforcement.
+    pub enforcement_hook: PluginRuntimeHook,
+    /// Whether the enforcement hook is registered for this policy.
+    pub enforcement_hook_registered: bool,
+}
+
+impl RuntimePolicyEnforcementPlan {
+    /// Creates a new immutable policy-enforcement plan.
+    #[must_use]
+    pub const fn new(
+        policy_id: &'static str,
+        plugin_id: &'static str,
+        load_boundary: PluginLoadBoundary,
+        enforcement_hook: PluginRuntimeHook,
+        enforcement_hook_registered: bool,
+    ) -> Self {
+        Self {
+            policy_id,
+            plugin_id,
+            load_boundary,
+            enforcement_hook,
+            enforcement_hook_registered,
+        }
+    }
+}
+
 /// Typed runtime check-kind identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RuntimeCheckKind {
@@ -998,6 +1033,8 @@ pub struct RuntimeSnapshot<'a> {
     pub provider_registration_plans: Vec<RuntimeProviderRegistrationPlan>,
     /// Derived executable check execution plans for enabled checks.
     pub check_execution_plans: Vec<RuntimeCheckExecutionPlan>,
+    /// Derived executable policy-enforcement plans for enabled policies.
+    pub policy_enforcement_plans: Vec<RuntimePolicyEnforcementPlan>,
     /// Derived executable MCP launch plans for enabled servers.
     pub mcp_launch_plans: Vec<McpLaunchPlan>,
     /// Derived configuration patch that remediates the snapshot.
@@ -1019,6 +1056,8 @@ pub struct RuntimeSnapshotDerived {
     pub provider_registration_plans: Vec<RuntimeProviderRegistrationPlan>,
     /// Derived executable check execution plans for enabled checks.
     pub check_execution_plans: Vec<RuntimeCheckExecutionPlan>,
+    /// Derived executable policy-enforcement plans for enabled policies.
+    pub policy_enforcement_plans: Vec<RuntimePolicyEnforcementPlan>,
     /// Derived executable MCP launch plans for enabled servers.
     pub mcp_launch_plans: Vec<McpLaunchPlan>,
     /// Derived configuration patch that remediates the snapshot.
@@ -1037,6 +1076,7 @@ impl<'a> RuntimeSnapshot<'a> {
             agent_bootstrap_plans: derived.agent_bootstrap_plans,
             provider_registration_plans: derived.provider_registration_plans,
             check_execution_plans: derived.check_execution_plans,
+            policy_enforcement_plans: derived.policy_enforcement_plans,
             mcp_launch_plans: derived.mcp_launch_plans,
             config_patch: derived.config_patch,
         }
@@ -1737,6 +1777,64 @@ pub fn render_runtime_check_execution_plans_for_locale(
     lines.join("\n")
 }
 
+/// Builds the executable plans for enabled policies.
+#[must_use]
+pub fn build_runtime_policy_enforcement_plans(
+    topology: &RuntimeTopology<'_>,
+) -> Vec<RuntimePolicyEnforcementPlan> {
+    topology
+        .policies
+        .iter()
+        .filter(|policy| policy.is_enabled())
+        .map(|policy| {
+            RuntimePolicyEnforcementPlan::new(
+                policy.policy_id,
+                policy.plugin_id,
+                policy.load_boundary,
+                policy_runtime_hook(),
+                policy.enforcement_hook_registered,
+            )
+        })
+        .collect()
+}
+
+/// Renders the runtime policy-enforcement plans in English.
+#[must_use]
+pub fn render_runtime_policy_enforcement_plans(plans: &[RuntimePolicyEnforcementPlan]) -> String {
+    render_runtime_policy_enforcement_plans_for_locale(plans, "en")
+}
+
+/// Renders the runtime policy-enforcement plans for one locale.
+#[must_use]
+pub fn render_runtime_policy_enforcement_plans_for_locale(
+    plans: &[RuntimePolicyEnforcementPlan],
+    locale: &str,
+) -> String {
+    if plans.is_empty() {
+        return format!(
+            "{} (0)",
+            i18n::runtime_policy_enforcement_plans_label(locale)
+        );
+    }
+
+    let mut lines = vec![format!(
+        "{} ({})",
+        i18n::runtime_policy_enforcement_plans_label(locale),
+        plans.len()
+    )];
+    for plan in plans {
+        lines.push(format!(
+            "- {} | plugin={} | boundary={} | enforcement_hook={}",
+            plan.policy_id,
+            plan.plugin_id,
+            plan.load_boundary,
+            plan.enforcement_hook.as_str()
+        ));
+    }
+
+    lines.join("\n")
+}
+
 /// Builds the executable MCP launch plans for enabled runtime servers.
 #[must_use]
 pub fn build_runtime_mcp_launch_plans(topology: &RuntimeTopology<'_>) -> Vec<McpLaunchPlan> {
@@ -1991,6 +2089,7 @@ pub fn build_runtime_snapshot<'a>(topology: &'a RuntimeTopology<'a>) -> RuntimeS
     let agent_bootstrap_plans = build_runtime_agent_bootstrap_plans(topology);
     let provider_registration_plans = build_runtime_provider_registration_plans(topology);
     let check_execution_plans = build_runtime_check_execution_plans(topology);
+    let policy_enforcement_plans = build_runtime_policy_enforcement_plans(topology);
     let mcp_launch_plans = build_runtime_mcp_launch_plans(topology);
     let config_patch = build_runtime_config_patch(topology);
 
@@ -2003,6 +2102,7 @@ pub fn build_runtime_snapshot<'a>(topology: &'a RuntimeTopology<'a>) -> RuntimeS
             agent_bootstrap_plans,
             provider_registration_plans,
             check_execution_plans,
+            policy_enforcement_plans,
             mcp_launch_plans,
             config_patch,
         },
@@ -2057,18 +2157,21 @@ mod tests {
         RuntimeTopology, agent_runtime_hook, banner, build_runtime_action_plan,
         build_runtime_agent_bootstrap_plans, build_runtime_check_execution_plans,
         build_runtime_config_patch, build_runtime_doctor_report, build_runtime_mcp_launch_plans,
-        build_runtime_patched_config, build_runtime_provider_registration_plans,
-        build_runtime_snapshot, capability_activates_agent_surface,
-        capability_activates_policy_surface, capability_activates_prompt_surface,
-        capability_activates_template_surface, collect_runtime_issues, evaluate_runtime_status,
-        parse_runtime_check_kind, parse_runtime_provider_kind, policy_runtime_hook,
-        prompt_runtime_hook, render_runtime_action_plan, render_runtime_action_plan_for_locale,
+        build_runtime_patched_config, build_runtime_policy_enforcement_plans,
+        build_runtime_provider_registration_plans, build_runtime_snapshot,
+        capability_activates_agent_surface, capability_activates_policy_surface,
+        capability_activates_prompt_surface, capability_activates_template_surface,
+        collect_runtime_issues, evaluate_runtime_status, parse_runtime_check_kind,
+        parse_runtime_provider_kind, policy_runtime_hook, prompt_runtime_hook,
+        render_runtime_action_plan, render_runtime_action_plan_for_locale,
         render_runtime_agent_bootstrap_plans, render_runtime_agent_bootstrap_plans_for_locale,
         render_runtime_check_execution_plans, render_runtime_check_execution_plans_for_locale,
         render_runtime_config_patch_yaml, render_runtime_doctor_report,
         render_runtime_doctor_report_for_locale, render_runtime_issues,
         render_runtime_issues_for_locale, render_runtime_mcp_launch_plans,
-        render_runtime_mcp_launch_plans_for_locale, render_runtime_provider_registration_plans,
+        render_runtime_mcp_launch_plans_for_locale, render_runtime_policy_enforcement_plans,
+        render_runtime_policy_enforcement_plans_for_locale,
+        render_runtime_provider_registration_plans,
         render_runtime_provider_registration_plans_for_locale, render_runtime_status,
         render_runtime_status_for_locale, render_runtime_topology,
         render_runtime_topology_for_locale, template_runtime_hook,
@@ -2547,6 +2650,10 @@ mod tests {
             build_runtime_check_execution_plans(&topology)
         );
         assert_eq!(
+            snapshot.policy_enforcement_plans,
+            build_runtime_policy_enforcement_plans(&topology)
+        );
+        assert_eq!(
             snapshot.mcp_launch_plans,
             build_runtime_mcp_launch_plans(&topology)
         );
@@ -2765,6 +2872,78 @@ mod tests {
     }
 
     #[test]
+    fn build_runtime_policy_enforcement_plans_only_includes_enabled_policies() {
+        let enabled = RuntimePolicyRegistration::new(
+            POLICY_PLUGIN_ID,
+            POLICY_PLUGIN_ID,
+            PluginActivation::Enabled,
+            PluginLoadBoundary::InProcess,
+            true,
+        );
+        let disabled = RuntimePolicyRegistration::new(
+            "test.policies.disabled",
+            POLICY_PLUGIN_ID,
+            PluginActivation::Disabled,
+            PluginLoadBoundary::InProcess,
+            false,
+        );
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[],
+            policies: &[enabled, disabled],
+            hooks: &[],
+            mcp_servers: &[],
+        };
+
+        let plans = build_runtime_policy_enforcement_plans(&topology);
+
+        assert_eq!(plans.len(), 1);
+        assert_eq!(plans[0].policy_id, POLICY_PLUGIN_ID);
+        assert_eq!(plans[0].plugin_id, POLICY_PLUGIN_ID);
+        assert_eq!(
+            plans[0].enforcement_hook,
+            PluginRuntimeHook::PolicyEnforcement
+        );
+    }
+
+    #[test]
+    fn render_runtime_policy_enforcement_plans_is_human_readable() {
+        let plans = build_runtime_policy_enforcement_plans(&RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[],
+            policies: &[RuntimePolicyRegistration::new(
+                POLICY_PLUGIN_ID,
+                POLICY_PLUGIN_ID,
+                PluginActivation::Enabled,
+                PluginLoadBoundary::InProcess,
+                true,
+            )],
+            hooks: &[],
+            mcp_servers: &[],
+        });
+
+        let rendered = render_runtime_policy_enforcement_plans(&plans);
+
+        assert!(rendered.contains("Runtime policy enforcement plans (1)"));
+        assert!(rendered.contains("test.policies | plugin=test.policies"));
+        assert!(rendered.contains("enforcement_hook=policy_enforcement"));
+    }
+
+    #[test]
     fn build_runtime_mcp_launch_plans_only_includes_enabled_servers() {
         let enabled = RuntimeMcpRegistration::new(mcp_descriptor(), true);
         let disabled = RuntimeMcpRegistration::new(mcp_descriptor(), false);
@@ -2867,6 +3046,7 @@ mod tests {
                 agent_bootstrap_plans: Vec::new(),
                 provider_registration_plans: Vec::new(),
                 check_execution_plans: Vec::new(),
+                policy_enforcement_plans: Vec::new(),
                 mcp_launch_plans: Vec::new(),
                 config_patch: RuntimeConfigPatch::new(
                     vec![PluginConfig::new(
@@ -4366,5 +4546,35 @@ mod tests {
         assert!(rendered.contains("Planos de execução de verificações do runtime (1)"));
         assert!(rendered.contains("prepare | plugin=test.prompts"));
         assert!(rendered.contains("runtime_hook=prepare"));
+    }
+
+    #[test]
+    fn render_runtime_policy_enforcement_plans_supports_pt_br() {
+        let plans = build_runtime_policy_enforcement_plans(&RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "pt-br",
+            plugins: &[],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[],
+            providers: &[],
+            policies: &[RuntimePolicyRegistration::new(
+                POLICY_PLUGIN_ID,
+                POLICY_PLUGIN_ID,
+                PluginActivation::Enabled,
+                PluginLoadBoundary::InProcess,
+                true,
+            )],
+            hooks: &[],
+            mcp_servers: &[],
+        });
+
+        let rendered = render_runtime_policy_enforcement_plans_for_locale(&plans, "pt-br");
+
+        assert!(rendered.contains("Planos de enforcement de políticas do runtime (1)"));
+        assert!(rendered.contains("test.policies | plugin=test.policies"));
+        assert!(rendered.contains("enforcement_hook=policy_enforcement"));
     }
 }

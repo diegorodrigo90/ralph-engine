@@ -1,5 +1,10 @@
 //! Template command handlers.
 
+use std::{
+    fs,
+    path::{Component, Path, PathBuf},
+};
+
 use crate::{CliError, catalog, i18n};
 
 use catalog::OfficialTemplateContribution;
@@ -13,6 +18,11 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         )),
         Some("show") => show_template(args.get(1).map(String::as_str), locale),
         Some("asset") => show_template_asset(
+            args.get(1).map(String::as_str),
+            args.get(2).map(String::as_str),
+            locale,
+        ),
+        Some("materialize") => materialize_template(
             args.get(1).map(String::as_str),
             args.get(2).map(String::as_str),
             locale,
@@ -73,6 +83,89 @@ fn show_template_asset(
         .ok_or_else(|| CliError::new(i18n::unknown_template_asset(locale, asset_path)))?;
 
     Ok(asset.contents.to_owned())
+}
+
+fn materialize_template(
+    template_id: Option<&str>,
+    output_dir: Option<&str>,
+    locale: &str,
+) -> Result<String, CliError> {
+    let template_id = template_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "templates materialize",
+            i18n::template_id_entity_label(locale),
+        ))
+    })?;
+    let output_dir = output_dir.ok_or_else(|| {
+        CliError::new(i18n::missing_output_directory(
+            locale,
+            "templates materialize",
+        ))
+    })?;
+    let template = catalog::find_official_template_contribution(template_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::template_entity_label(locale),
+            template_id,
+        ))
+    })?;
+
+    materialize_assets(template.descriptor.assets, Path::new(output_dir), locale)
+}
+
+fn materialize_assets(
+    assets: &[re_plugin::PluginTemplateAsset],
+    output_dir: &Path,
+    locale: &str,
+) -> Result<String, CliError> {
+    let mut lines = vec![i18n::materialized_assets_heading(locale, assets.len())];
+
+    for asset in assets {
+        let output_path = resolve_safe_output_path(output_dir, asset.path, locale)?;
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent).map_err(|error| {
+                CliError::new(i18n::failed_to_write_output(
+                    locale,
+                    &output_path.display().to_string(),
+                    &error.to_string(),
+                ))
+            })?;
+        }
+        fs::write(&output_path, asset.contents).map_err(|error| {
+            CliError::new(i18n::failed_to_write_output(
+                locale,
+                &output_path.display().to_string(),
+                &error.to_string(),
+            ))
+        })?;
+        lines.push(output_path.display().to_string());
+    }
+
+    Ok(lines.join("\n"))
+}
+
+fn resolve_safe_output_path(
+    output_dir: &Path,
+    asset_path: &str,
+    locale: &str,
+) -> Result<PathBuf, CliError> {
+    let relative_path = Path::new(asset_path);
+    let mut output_path = PathBuf::from(output_dir);
+
+    for component in relative_path.components() {
+        match component {
+            Component::Normal(segment) => output_path.push(segment),
+            Component::CurDir => {}
+            Component::ParentDir | Component::RootDir | Component::Prefix(_) => {
+                return Err(CliError::new(i18n::invalid_embedded_asset_path(
+                    locale, asset_path,
+                )));
+            }
+        }
+    }
+
+    Ok(output_path)
 }
 
 fn render_template_listing(registrations: &[OfficialTemplateContribution], locale: &str) -> String {
@@ -243,5 +336,31 @@ mod tests {
                 .unwrap_or_default()
                 .contains("# ralph-engine basic template")
         );
+    }
+
+    #[test]
+    fn execute_template_materialize_writes_embedded_assets() {
+        let base = std::env::temp_dir().join(format!(
+            "ralph-engine-template-materialize-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&base);
+
+        let output = execute(
+            &[
+                "materialize".to_owned(),
+                "official.basic.starter".to_owned(),
+                base.display().to_string(),
+            ],
+            "en",
+        );
+
+        assert!(output.is_ok());
+        let rendered = output.unwrap_or_default();
+        assert!(rendered.contains("Materialized assets (4)"));
+        assert!(base.join(".ralph-engine/config.yaml").exists());
+        assert!(base.join(".ralph-engine/README.md").exists());
+
+        let _ = std::fs::remove_dir_all(base);
     }
 }
