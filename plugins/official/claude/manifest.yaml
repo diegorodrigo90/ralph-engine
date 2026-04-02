@@ -1,5 +1,7 @@
 id: official.claude
 name: claude
+display_name: Claude
+summary: Claude agent runtime and MCP session integration.
 publisher: ralph-engine
 version: 0.2.0-alpha.1
 capabilities:

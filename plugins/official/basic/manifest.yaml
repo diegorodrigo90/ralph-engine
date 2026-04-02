@@ -1,5 +1,11 @@
 id: official.basic
 name: basic
+display_name: Basic
+display_name_locales:
+  pt-br: Básico
+summary: Foundation plugin for starter templates.
+summary_locales:
+  pt-br: Plugin base para templates iniciais.
 publisher: ralph-engine
 version: 0.2.0-alpha.1
 capabilities:

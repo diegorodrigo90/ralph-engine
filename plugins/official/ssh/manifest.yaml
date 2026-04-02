@@ -1,5 +1,7 @@
 id: official.ssh
 name: ssh
+display_name: SSH
+summary: SSH remote control integration.
 publisher: ralph-engine
 version: 0.2.0-alpha.1
 capabilities:

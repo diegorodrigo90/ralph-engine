@@ -1,5 +1,7 @@
 id: official.github
 name: github
+display_name: GitHub
+summary: GitHub data, context, forge, and MCP integration.
 publisher: ralph-engine
 version: 0.2.0-alpha.1
 capabilities:
