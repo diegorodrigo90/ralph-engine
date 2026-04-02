@@ -25,6 +25,7 @@ git clone https://github.com/diegorodrigo90/ralph-engine.git
 cd ralph-engine
 ./scripts/bootstrap-dev.sh
 cargo run -p re-cli -- --version
+cargo run -p re-cli -- --locale pt-br
 ```
 
 `bootstrap-dev.sh` is the supported entry point for local setup. It installs repository dependencies, docs dependencies, hooks, and the reviewed developer tooling required by the current contract.
@@ -43,7 +44,8 @@ Use them in this order:
 
 1. `validate.sh` proves the local foundation matches the repository contract.
 2. `cargo run -p re-cli` confirms the CLI is wired correctly.
-3. `validate-ci-local.sh` gives you a local smoke run of the GitHub Actions workflow when `act` is installed.
+3. `cargo run -p re-cli -- --locale pt-br` proves one-off CLI localization without relying on environment state.
+4. `validate-ci-local.sh` gives you a local smoke run of the GitHub Actions workflow when `act` is installed.
 
 ## Planned official channels
 

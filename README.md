@@ -55,6 +55,7 @@ Current public install channels are being wired through the hardened release pip
 ```bash
 ./scripts/bootstrap-dev.sh
 ./scripts/validate.sh --mode local
+cargo run -p re-cli -- --locale pt-br
 ./scripts/validate-ci-local.sh
 npm run contracts:verify
 cargo test --workspace --all-targets --all-features
