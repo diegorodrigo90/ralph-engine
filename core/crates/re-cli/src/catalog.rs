@@ -119,19 +119,100 @@ impl OfficialRuntimeSnapshot {
     }
 }
 
+#[derive(Clone, Copy)]
+struct OfficialPluginBundle {
+    descriptor: PluginDescriptor,
+    templates: &'static [PluginTemplateDescriptor],
+    prompts: &'static [PluginPromptDescriptor],
+    agents: &'static [PluginAgentDescriptor],
+    policies: &'static [PluginPolicyDescriptor],
+    mcp_servers: &'static [McpServerDescriptor],
+}
+
+const fn official_plugin_bundle(
+    descriptor: PluginDescriptor,
+    templates: &'static [PluginTemplateDescriptor],
+    prompts: &'static [PluginPromptDescriptor],
+    agents: &'static [PluginAgentDescriptor],
+    policies: &'static [PluginPolicyDescriptor],
+    mcp_servers: &'static [McpServerDescriptor],
+) -> OfficialPluginBundle {
+    OfficialPluginBundle {
+        descriptor,
+        templates,
+        prompts,
+        agents,
+        policies,
+        mcp_servers,
+    }
+}
+
+fn official_plugin_bundles() -> [OfficialPluginBundle; 8] {
+    [
+        official_plugin_bundle(
+            re_plugin_basic::descriptor(),
+            re_plugin_basic::templates(),
+            &[],
+            &[],
+            &[],
+            &[],
+        ),
+        official_plugin_bundle(
+            re_plugin_bmad::descriptor(),
+            re_plugin_bmad::templates(),
+            re_plugin_bmad::prompts(),
+            &[],
+            &[],
+            &[],
+        ),
+        official_plugin_bundle(
+            re_plugin_claude::descriptor(),
+            &[],
+            &[],
+            re_plugin_claude::agents(),
+            &[],
+            re_plugin_claude::mcp_servers(),
+        ),
+        official_plugin_bundle(
+            re_plugin_claudebox::descriptor(),
+            &[],
+            &[],
+            re_plugin_claudebox::agents(),
+            &[],
+            re_plugin_claudebox::mcp_servers(),
+        ),
+        official_plugin_bundle(
+            re_plugin_codex::descriptor(),
+            &[],
+            &[],
+            re_plugin_codex::agents(),
+            &[],
+            re_plugin_codex::mcp_servers(),
+        ),
+        official_plugin_bundle(
+            re_plugin_github::descriptor(),
+            &[],
+            &[],
+            &[],
+            &[],
+            re_plugin_github::mcp_servers(),
+        ),
+        official_plugin_bundle(re_plugin_ssh::descriptor(), &[], &[], &[], &[], &[]),
+        official_plugin_bundle(
+            re_plugin_tdd_strict::descriptor(),
+            re_plugin_tdd_strict::templates(),
+            &[],
+            &[],
+            re_plugin_tdd_strict::policies(),
+            &[],
+        ),
+    ]
+}
+
 /// Returns the immutable catalog of official plugins.
 #[must_use]
 pub fn official_plugins() -> [PluginDescriptor; 8] {
-    [
-        re_plugin_basic::descriptor(),
-        re_plugin_bmad::descriptor(),
-        re_plugin_claude::descriptor(),
-        re_plugin_claudebox::descriptor(),
-        re_plugin_codex::descriptor(),
-        re_plugin_github::descriptor(),
-        re_plugin_ssh::descriptor(),
-        re_plugin_tdd_strict::descriptor(),
-    ]
+    official_plugin_bundles().map(|bundle| bundle.descriptor)
 }
 
 /// Returns one immutable official plugin descriptor by identifier.
@@ -145,11 +226,12 @@ pub fn find_official_plugin(plugin_id: &str) -> Option<PluginDescriptor> {
 /// Returns the immutable catalog of official MCP server contributions.
 #[must_use]
 pub fn official_mcp_servers() -> [McpServerDescriptor; 4] {
+    let bundles = official_plugin_bundles();
     [
-        re_plugin_claude::mcp_servers()[0],
-        re_plugin_claudebox::mcp_servers()[0],
-        re_plugin_codex::mcp_servers()[0],
-        re_plugin_github::mcp_servers()[0],
+        bundles[2].mcp_servers[0],
+        bundles[3].mcp_servers[0],
+        bundles[4].mcp_servers[0],
+        bundles[5].mcp_servers[0],
     ]
 }
 
@@ -261,15 +343,10 @@ pub fn official_runtime_templates() -> Vec<RuntimeTemplateRegistration> {
 pub fn official_template_contributions() -> Vec<OfficialTemplateContribution> {
     official_runtime_plugins()
         .into_iter()
-        .flat_map(|plugin| {
-            let templates: &'static [PluginTemplateDescriptor] = match plugin.descriptor.id {
-                re_plugin_basic::PLUGIN_ID => re_plugin_basic::templates(),
-                re_plugin_bmad::PLUGIN_ID => re_plugin_bmad::templates(),
-                re_plugin_tdd_strict::PLUGIN_ID => re_plugin_tdd_strict::templates(),
-                _ => &[],
-            };
-
-            templates
+        .zip(official_plugin_bundles())
+        .flat_map(|(plugin, bundle)| {
+            bundle
+                .templates
                 .iter()
                 .copied()
                 .map(move |descriptor| OfficialTemplateContribution {
@@ -317,13 +394,10 @@ pub fn official_runtime_prompts() -> Vec<RuntimePromptRegistration> {
 pub fn official_prompt_contributions() -> Vec<OfficialPromptContribution> {
     official_runtime_plugins()
         .into_iter()
-        .flat_map(|plugin| {
-            let prompts: &'static [PluginPromptDescriptor] = match plugin.descriptor.id {
-                re_plugin_bmad::PLUGIN_ID => re_plugin_bmad::prompts(),
-                _ => &[],
-            };
-
-            prompts
+        .zip(official_plugin_bundles())
+        .flat_map(|(plugin, bundle)| {
+            bundle
+                .prompts
                 .iter()
                 .copied()
                 .map(move |descriptor| OfficialPromptContribution {
@@ -371,15 +445,10 @@ pub fn official_runtime_agents() -> Vec<RuntimeAgentRegistration> {
 pub fn official_agent_contributions() -> Vec<OfficialAgentContribution> {
     official_runtime_plugins()
         .into_iter()
-        .flat_map(|plugin| {
-            let agents: &'static [PluginAgentDescriptor] = match plugin.descriptor.id {
-                re_plugin_claude::PLUGIN_ID => re_plugin_claude::agents(),
-                re_plugin_claudebox::PLUGIN_ID => re_plugin_claudebox::agents(),
-                re_plugin_codex::PLUGIN_ID => re_plugin_codex::agents(),
-                _ => &[],
-            };
-
-            agents
+        .zip(official_plugin_bundles())
+        .flat_map(|(plugin, bundle)| {
+            bundle
+                .agents
                 .iter()
                 .copied()
                 .map(move |descriptor| OfficialAgentContribution {
@@ -509,13 +578,10 @@ pub fn official_runtime_policies() -> Vec<RuntimePolicyRegistration> {
 pub fn official_policy_contributions() -> Vec<OfficialPolicyContribution> {
     official_runtime_plugins()
         .into_iter()
-        .flat_map(|plugin| {
-            let policies: &'static [PluginPolicyDescriptor] = match plugin.descriptor.id {
-                re_plugin_tdd_strict::PLUGIN_ID => re_plugin_tdd_strict::policies(),
-                _ => &[],
-            };
-
-            policies
+        .zip(official_plugin_bundles())
+        .flat_map(|(plugin, bundle)| {
+            bundle
+                .policies
                 .iter()
                 .copied()
                 .map(move |descriptor| OfficialPolicyContribution {
@@ -649,10 +715,10 @@ mod tests {
         find_official_policy_contribution, find_official_prompt_contribution,
         find_official_runtime_capabilities, find_official_runtime_checks,
         find_official_runtime_hooks, find_official_runtime_providers,
-        find_official_template_contribution, official_plugins, official_runtime_agents,
-        official_runtime_checks, official_runtime_mcp_registrations, official_runtime_policies,
-        official_runtime_prompts, official_runtime_providers, official_runtime_snapshot,
-        official_runtime_templates,
+        find_official_template_contribution, official_plugin_bundles, official_plugins,
+        official_runtime_agents, official_runtime_checks, official_runtime_mcp_registrations,
+        official_runtime_policies, official_runtime_prompts, official_runtime_providers,
+        official_runtime_snapshot, official_runtime_templates,
     };
     use re_core::{
         RuntimeCheckKind, RuntimeProviderKind, runtime_check_kind_for_capability,
@@ -708,6 +774,35 @@ mod tests {
         for (surface, size) in surface_sizes {
             let _ = surface;
             assert!(size > 0);
+        }
+    }
+
+    #[test]
+    fn official_plugin_bundles_stay_descriptor_aligned() {
+        let bundles = official_plugin_bundles();
+
+        assert_eq!(bundles.len(), official_plugins().len());
+
+        for bundle in bundles {
+            for template in bundle.templates {
+                assert_eq!(template.plugin_id, bundle.descriptor.id);
+            }
+
+            for prompt in bundle.prompts {
+                assert_eq!(prompt.plugin_id, bundle.descriptor.id);
+            }
+
+            for agent in bundle.agents {
+                assert_eq!(agent.plugin_id, bundle.descriptor.id);
+            }
+
+            for policy in bundle.policies {
+                assert_eq!(policy.plugin_id, bundle.descriptor.id);
+            }
+
+            for server in bundle.mcp_servers {
+                assert_eq!(server.plugin_id, bundle.descriptor.id);
+            }
         }
     }
 

@@ -8,4 +8,4 @@ Updated: 2026-04-02
 - Restore rich docs examples once the runtime contracts are back.
 - Add performance, accessibility, and SEO budgets for public surfaces so site, docs, and plugins stay at an A-grade baseline.
 - Track the `vitepress`/`vite`/`esbuild` moderate advisory on the docs toolchain and upgrade to the next reviewed stable line when a non-breaking fix becomes available.
-- Consider promoting shared runtime surface catalogs further so scaffolder/runtime/plugin tests derive more checks from one canonical source.
+- Continue promoting shared runtime surface catalogs where they remove central plugin-id branching without weakening plugin autonomy or crate ownership.
