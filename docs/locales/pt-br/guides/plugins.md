@@ -14,6 +14,7 @@ O reboot mantém estas regras arquiteturais:
 - metadados de exibição de plugins suportam nomes e resumos localizados, começando por `en` e `pt-br`
 - quando um locale de plugin não existir, as superfícies do runtime fazem fallback para o nome e o resumo em inglês em vez de falhar
 - crates que renderizam saída pública voltada a plugins devem manter strings de locale em módulos ou arquivos por idioma, para que adicionar um novo locale continue sendo uma mudança aditiva em vez de reescrever handlers de comando
+- cada módulo de locale deve expor um catálogo tipado do idioma, em vez de constantes soltas ou branching por locale espalhado pelos handlers
 - os crates de plugins oficiais agora seguem essa regra com `src/i18n/en.rs`, `src/i18n/pt_br.rs` e `src/i18n/mod.rs`; crates comunitários gerados pelo scaffold devem seguir o mesmo layout
 - `npx create-ralph-engine-plugin` é a porta de entrada de scaffolding e deve concentrar a geração de projeto, em vez de empurrar scaffolding para o core do runtime
 - o scaffolder gera um esqueleto de crate Rust junto com `manifest.yaml` localizado, para que novos projetos de plugin já nasçam alinhados ao contrato tipado do runtime
