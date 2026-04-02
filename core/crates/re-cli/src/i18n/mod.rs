@@ -53,6 +53,7 @@ pub(super) struct CliLocaleCatalog {
     pub unknown_command: fn(&str) -> String,
     pub unknown_subcommand: fn(&str, &str) -> String,
     pub missing_id: fn(&str, &str) -> String,
+    pub missing_argument: fn(&str, &str) -> String,
     pub unknown_entity: fn(&str, &str) -> String,
     pub missing_asset_path: fn(&str) -> String,
     #[allow(dead_code)]
@@ -67,6 +68,8 @@ pub(super) struct CliLocaleCatalog {
     pub wrote_output: fn(&str) -> String,
     pub unknown_template_asset: fn(&str) -> String,
     pub unknown_prompt_asset: fn(&str) -> String,
+    pub unknown_check_asset: fn(&str) -> String,
+    pub unknown_policy_asset: fn(&str) -> String,
     #[allow(dead_code)]
     pub materialized_assets_heading: &'static str,
 }
@@ -210,6 +213,11 @@ pub fn missing_id(locale: &str, command_group: &str, entity_label: &str) -> Stri
 }
 
 #[must_use]
+pub fn missing_argument(locale: &str, command_path: &str, entity_label: &str) -> String {
+    (locale_catalog(locale).missing_argument)(command_path, entity_label)
+}
+
+#[must_use]
 pub fn unknown_entity(locale: &str, entity_label: &str, value: &str) -> String {
     (locale_catalog(locale).unknown_entity)(entity_label, value)
 }
@@ -257,6 +265,16 @@ pub fn unknown_template_asset(locale: &str, value: &str) -> String {
 #[must_use]
 pub fn unknown_prompt_asset(locale: &str, value: &str) -> String {
     (locale_catalog(locale).unknown_prompt_asset)(value)
+}
+
+#[must_use]
+pub fn unknown_check_asset(locale: &str, value: &str) -> String {
+    (locale_catalog(locale).unknown_check_asset)(value)
+}
+
+#[must_use]
+pub fn unknown_policy_asset(locale: &str, value: &str) -> String {
+    (locale_catalog(locale).unknown_policy_asset)(value)
 }
 
 #[must_use]

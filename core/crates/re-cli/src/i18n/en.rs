@@ -48,6 +48,7 @@ pub(super) const LOCALE: CliLocaleCatalog = CliLocaleCatalog {
     unknown_command,
     unknown_subcommand,
     missing_id,
+    missing_argument,
     unknown_entity,
     missing_asset_path,
     missing_output_directory,
@@ -57,6 +58,8 @@ pub(super) const LOCALE: CliLocaleCatalog = CliLocaleCatalog {
     wrote_output,
     unknown_template_asset,
     unknown_prompt_asset,
+    unknown_check_asset,
+    unknown_policy_asset,
     materialized_assets_heading: "Materialized assets",
 };
 
@@ -70,6 +73,10 @@ fn unknown_subcommand(command_group: &str, command_name: &str) -> String {
 
 fn missing_id(command_group: &str, entity_label: &str) -> String {
     format!("{command_group} show requires {entity_label}")
+}
+
+fn missing_argument(command_path: &str, entity_label: &str) -> String {
+    format!("{command_path} requires {entity_label}")
 }
 
 fn unknown_entity(entity_label: &str, value: &str) -> String {
@@ -106,4 +113,12 @@ fn unknown_template_asset(value: &str) -> String {
 
 fn unknown_prompt_asset(value: &str) -> String {
     format!("unknown prompt asset: {value}")
+}
+
+fn unknown_check_asset(value: &str) -> String {
+    format!("unknown check asset: {value}")
+}
+
+fn unknown_policy_asset(value: &str) -> String {
+    format!("unknown policy asset: {value}")
 }

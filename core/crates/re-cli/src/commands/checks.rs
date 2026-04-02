@@ -1,10 +1,17 @@
 //! Runtime check command handlers.
 
-use re_core::{RuntimeCheckKind, RuntimeCheckRegistration, parse_runtime_check_kind};
+use std::path::Path;
+
+use re_core::{
+    RuntimeCheckKind, RuntimeCheckRegistration, build_runtime_check_result,
+    parse_runtime_check_kind, render_runtime_check_result_for_locale,
+};
 
 use crate::{
     CliError, catalog,
+    commands::embedded_assets::{MaterializedAsset, materialize_assets},
     commands::grouped_surfaces::{render_grouped_surface_detail, render_grouped_surface_listing},
+    commands::runtime_state::with_official_runtime_snapshot,
     i18n,
 };
 
@@ -16,10 +23,118 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
             locale,
         )),
         Some("show") => show_check(args.get(1).map(String::as_str), locale),
+        Some("asset") => show_check_asset(
+            args.get(1).map(String::as_str),
+            args.get(2).map(String::as_str),
+            locale,
+        ),
+        Some("materialize") => materialize_check(
+            args.get(1).map(String::as_str),
+            args.get(2).map(String::as_str),
+            locale,
+        ),
+        Some("run") => run_check(args.get(1).map(String::as_str), locale),
         Some(other) => Err(CliError::new(i18n::unknown_subcommand(
             locale, "checks", other,
         ))),
     }
+}
+
+fn show_check_asset(
+    check_id: Option<&str>,
+    asset_path: Option<&str>,
+    locale: &str,
+) -> Result<String, CliError> {
+    let check_id = check_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "checks asset",
+            i18n::check_id_entity_label(locale),
+        ))
+    })?;
+    let asset_path = asset_path
+        .ok_or_else(|| CliError::new(i18n::missing_asset_path(locale, "checks asset")))?;
+    let surface = catalog::find_official_check_surface(check_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::check_entity_label(locale),
+            check_id,
+        ))
+    })?;
+    let asset = surface
+        .contribution
+        .descriptor
+        .assets
+        .iter()
+        .find(|asset| asset.path == asset_path)
+        .ok_or_else(|| CliError::new(i18n::unknown_check_asset(locale, asset_path)))?;
+
+    Ok(asset.contents.to_owned())
+}
+
+fn materialize_check(
+    check_id: Option<&str>,
+    output_dir: Option<&str>,
+    locale: &str,
+) -> Result<String, CliError> {
+    let check_id = check_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "checks materialize",
+            i18n::check_id_entity_label(locale),
+        ))
+    })?;
+    let output_dir = output_dir.ok_or_else(|| {
+        CliError::new(i18n::missing_output_directory(locale, "checks materialize"))
+    })?;
+    let surface = catalog::find_official_check_surface(check_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::check_entity_label(locale),
+            check_id,
+        ))
+    })?;
+    let assets = surface
+        .contribution
+        .descriptor
+        .assets
+        .iter()
+        .map(|asset| MaterializedAsset {
+            path: asset.path,
+            contents: asset.contents,
+        })
+        .collect::<Vec<_>>();
+
+    materialize_assets(&assets, Path::new(output_dir), locale)
+}
+
+fn run_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let check_id = check_kind.ok_or_else(|| {
+        CliError::new(i18n::missing_argument(
+            locale,
+            "checks run",
+            i18n::check_id_entity_label(locale),
+        ))
+    })?;
+
+    let kind = if let Some(surface) = catalog::find_official_check_surface(check_id) {
+        surface.registration.kind
+    } else {
+        parse_runtime_check_kind(check_id).ok_or_else(|| {
+            CliError::new(i18n::unknown_entity(
+                locale,
+                i18n::check_entity_label(locale),
+                check_id,
+            ))
+        })?
+    };
+
+    Ok(with_official_runtime_snapshot(|runtime| {
+        render_runtime_check_result_for_locale(
+            &build_runtime_check_result(kind, &runtime.topology),
+            locale,
+        )
+    }))
 }
 
 fn show_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError> {
@@ -93,8 +208,20 @@ fn render_check_contribution_detail(
     registration: RuntimeCheckRegistration,
     locale: &str,
 ) -> String {
+    let asset_paths = if contribution.descriptor.has_assets() {
+        contribution
+            .descriptor
+            .assets
+            .iter()
+            .map(|asset| asset.path)
+            .collect::<Vec<_>>()
+            .join(", ")
+    } else {
+        "none".to_owned()
+    };
+
     format!(
-        "{}: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{kind_label}: {kind}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {runtime_hook}",
+        "{}: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{kind_label}: {kind}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {runtime_hook}\n{assets_label}: {assets}",
         i18n::check_label(locale),
         contribution.descriptor.id,
         contribution.descriptor.display_name_for_locale(locale),
@@ -110,6 +237,8 @@ fn render_check_contribution_detail(
         load_boundary = registration.load_boundary.as_str(),
         hook_label = i18n::hook_label(locale),
         runtime_hook = registration.runtime_hook_registered,
+        assets_label = i18n::assets_label(locale),
+        assets = asset_paths,
     )
 }
 
@@ -119,10 +248,11 @@ mod tests {
     use re_config::PluginActivation;
     use re_core::{RuntimeCheckKind, RuntimeCheckRegistration};
     use re_plugin::{
-        PluginCheckDescriptor, PluginCheckKind, PluginLoadBoundary, PluginLocalizedText,
+        PluginCheckAsset, PluginCheckDescriptor, PluginCheckKind, PluginLoadBoundary,
+        PluginLocalizedText,
     };
 
-    use super::{render_check_detail, render_check_listing};
+    use super::{render_check_contribution_detail, render_check_detail, render_check_listing};
     use re_core::parse_runtime_check_kind;
 
     const CHECK_LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
@@ -136,6 +266,10 @@ mod tests {
     const CHECK_ID: &str = "fixture.bmad.prepare";
     const PRIMARY_PLUGIN_ID: &str = "fixture.bmad";
     const SECONDARY_PLUGIN_ID: &str = "fixture.other";
+    const CHECK_ASSETS: &[PluginCheckAsset] = &[PluginCheckAsset::new(
+        "checks/prepare.md",
+        "# BMAD Prepare Check\n",
+    )];
 
     #[test]
     fn parse_check_kind_supports_stable_identifiers() {
@@ -230,6 +364,7 @@ mod tests {
                 CHECK_LOCALIZED_NAMES,
                 "Runs typed prepare-time validation for BMAD workflows.",
                 CHECK_LOCALIZED_SUMMARIES,
+                CHECK_ASSETS,
             ),
             activation: PluginActivation::Enabled,
             load_boundary: PluginLoadBoundary::InProcess,
@@ -266,6 +401,7 @@ mod tests {
                 CHECK_LOCALIZED_NAMES,
                 "Runs typed prepare-time validation for BMAD workflows.",
                 CHECK_LOCALIZED_SUMMARIES,
+                CHECK_ASSETS,
             ),
             activation: PluginActivation::Enabled,
             load_boundary: PluginLoadBoundary::InProcess,
@@ -278,5 +414,36 @@ mod tests {
         assert!(rendered.contains("Verificação: prepare"));
         assert!(rendered.contains("Provedores (1)"));
         assert!(rendered.contains("name=Verificação de preparo BMAD"));
+    }
+
+    #[test]
+    fn render_check_contribution_detail_lists_assets() {
+        let rendered = render_check_contribution_detail(
+            OfficialCheckContribution {
+                descriptor: PluginCheckDescriptor::new(
+                    CHECK_ID,
+                    PRIMARY_PLUGIN_ID,
+                    PluginCheckKind::Prepare,
+                    "BMAD prepare check",
+                    CHECK_LOCALIZED_NAMES,
+                    "Runs typed prepare-time validation for BMAD workflows.",
+                    CHECK_LOCALIZED_SUMMARIES,
+                    CHECK_ASSETS,
+                ),
+                activation: PluginActivation::Enabled,
+                load_boundary: PluginLoadBoundary::InProcess,
+                runtime_hook_registered: true,
+            },
+            RuntimeCheckRegistration::new(
+                RuntimeCheckKind::Prepare,
+                PRIMARY_PLUGIN_ID,
+                PluginActivation::Enabled,
+                PluginLoadBoundary::InProcess,
+                true,
+            ),
+            "en",
+        );
+
+        assert!(rendered.contains("Assets: checks/prepare.md"));
     }
 }

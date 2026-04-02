@@ -3,10 +3,10 @@
 mod i18n;
 
 use re_plugin::{
-    DOCTOR_CHECKS, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCheckDescriptor, PluginCheckKind,
-    PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
-    PluginPromptAsset, PluginPromptDescriptor, PluginRuntimeHook, PluginTemplateAsset,
-    PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
+    DOCTOR_CHECKS, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCheckAsset, PluginCheckDescriptor,
+    PluginCheckKind, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
+    PluginLocalizedText, PluginPromptAsset, PluginPromptDescriptor, PluginRuntimeHook,
+    PluginTemplateAsset, PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
 };
 
 /// Stable plugin identifier.
@@ -84,6 +84,14 @@ const PROMPTS: &[PluginPromptDescriptor] = &[PluginPromptDescriptor::new(
     i18n::localized_prompt_summaries(),
     PROMPT_ASSETS,
 )];
+const PREPARE_CHECK_ASSETS: &[PluginCheckAsset] = &[PluginCheckAsset::new(
+    "checks/prepare.md",
+    include_str!("../checks/prepare.md"),
+)];
+const DOCTOR_CHECK_ASSETS: &[PluginCheckAsset] = &[PluginCheckAsset::new(
+    "checks/doctor.md",
+    include_str!("../checks/doctor.md"),
+)];
 const CHECKS: &[PluginCheckDescriptor] = &[
     PluginCheckDescriptor::new(
         "official.bmad.prepare",
@@ -93,6 +101,7 @@ const CHECKS: &[PluginCheckDescriptor] = &[
         i18n::localized_prepare_check_names(),
         i18n::default_prepare_check_summary(),
         i18n::localized_prepare_check_summaries(),
+        PREPARE_CHECK_ASSETS,
     ),
     PluginCheckDescriptor::new(
         "official.bmad.doctor",
@@ -102,6 +111,7 @@ const CHECKS: &[PluginCheckDescriptor] = &[
         i18n::localized_doctor_check_names(),
         i18n::default_doctor_check_summary(),
         i18n::localized_doctor_check_summaries(),
+        DOCTOR_CHECK_ASSETS,
     ),
 ];
 
@@ -236,6 +246,7 @@ mod tests {
             "Template inicial para projetos Ralph Engine guiados por BMAD."
         );
         assert_eq!(template.display_name_for_locale("es"), "BMAD starter");
+        assert!(!template.assets[0].contents.contains("Placeholder"));
     }
 
     #[test]
@@ -283,6 +294,16 @@ mod tests {
             "Runs typed prepare-time validation for BMAD workflows."
         );
         assert_eq!(checks[1].display_name_for_locale("es"), "BMAD doctor check");
+        assert!(checks[0].has_assets());
+        assert_eq!(checks[0].assets[0].path, "checks/prepare.md");
+        assert!(
+            checks[0].assets[0]
+                .contents
+                .contains("# BMAD Prepare Check")
+        );
+        assert!(checks[1].has_assets());
+        assert_eq!(checks[1].assets[0].path, "checks/doctor.md");
+        assert!(checks[1].assets[0].contents.contains("# BMAD Doctor Check"));
     }
 
     #[test]

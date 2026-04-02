@@ -306,6 +306,40 @@ impl PluginPromptAsset {
     }
 }
 
+/// One immutable check asset entry owned by one check contribution.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PluginCheckAsset {
+    /// Stable relative asset path exposed by the check contribution.
+    pub path: &'static str,
+    /// Immutable embedded check contents.
+    pub contents: &'static str,
+}
+
+impl PluginCheckAsset {
+    /// Creates a new immutable check asset entry.
+    #[must_use]
+    pub const fn new(path: &'static str, contents: &'static str) -> Self {
+        Self { path, contents }
+    }
+}
+
+/// One immutable policy asset entry owned by one policy contribution.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct PluginPolicyAsset {
+    /// Stable relative asset path exposed by the policy contribution.
+    pub path: &'static str,
+    /// Immutable embedded policy contents.
+    pub contents: &'static str,
+}
+
+impl PluginPolicyAsset {
+    /// Creates a new immutable policy asset entry.
+    #[must_use]
+    pub const fn new(path: &'static str, contents: &'static str) -> Self {
+        Self { path, contents }
+    }
+}
+
 /// Typed plugin-owned check kind.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PluginCheckKind {
@@ -381,11 +415,14 @@ pub struct PluginCheckDescriptor {
     pub summary: &'static str,
     /// Optional localized check summaries keyed by locale.
     pub localized_summaries: &'static [PluginLocalizedText],
+    /// Immutable embedded assets exposed by this check contribution.
+    pub assets: &'static [PluginCheckAsset],
 }
 
 impl PluginCheckDescriptor {
     /// Creates a new immutable check descriptor.
     #[must_use]
+    #[allow(clippy::too_many_arguments)]
     pub const fn new(
         id: &'static str,
         plugin_id: &'static str,
@@ -394,6 +431,7 @@ impl PluginCheckDescriptor {
         localized_names: &'static [PluginLocalizedText],
         summary: &'static str,
         localized_summaries: &'static [PluginLocalizedText],
+        assets: &'static [PluginCheckAsset],
     ) -> Self {
         Self {
             id,
@@ -403,6 +441,7 @@ impl PluginCheckDescriptor {
             localized_names,
             summary,
             localized_summaries,
+            assets,
         }
     }
 
@@ -416,6 +455,12 @@ impl PluginCheckDescriptor {
     #[must_use]
     pub fn summary_for_locale(&self, locale: &str) -> &'static str {
         resolve_localized_text(self.localized_summaries, locale, self.summary)
+    }
+
+    /// Returns whether the check exposes embedded assets.
+    #[must_use]
+    pub const fn has_assets(&self) -> bool {
+        !self.assets.is_empty()
     }
 }
 
@@ -662,6 +707,8 @@ pub struct PluginPolicyDescriptor {
     pub summary: &'static str,
     /// Optional localized policy summaries keyed by locale.
     pub localized_summaries: &'static [PluginLocalizedText],
+    /// Immutable embedded assets exposed by this policy contribution.
+    pub assets: &'static [PluginPolicyAsset],
 }
 
 impl PluginPolicyDescriptor {
@@ -674,6 +721,7 @@ impl PluginPolicyDescriptor {
         localized_names: &'static [PluginLocalizedText],
         summary: &'static str,
         localized_summaries: &'static [PluginLocalizedText],
+        assets: &'static [PluginPolicyAsset],
     ) -> Self {
         Self {
             id,
@@ -682,6 +730,7 @@ impl PluginPolicyDescriptor {
             localized_names,
             summary,
             localized_summaries,
+            assets,
         }
     }
 
@@ -695,6 +744,12 @@ impl PluginPolicyDescriptor {
     #[must_use]
     pub fn summary_for_locale(&self, locale: &str) -> &'static str {
         resolve_localized_text(self.localized_summaries, locale, self.summary)
+    }
+
+    /// Returns whether the policy exposes embedded assets.
+    #[must_use]
+    pub const fn has_assets(&self) -> bool {
+        !self.assets.is_empty()
     }
 }
 

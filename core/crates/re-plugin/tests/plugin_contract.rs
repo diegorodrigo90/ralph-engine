@@ -4,14 +4,14 @@ use re_plugin::{
     AGENT_RUNTIME, ALL_PLUGIN_CAPABILITIES, ALL_PLUGIN_KINDS, ALL_PLUGIN_RUNTIME_HOOKS,
     ALL_PLUGIN_RUNTIME_SURFACES, ALL_PLUGIN_TRUST_LEVELS, CONTEXT_PROVIDER, DATA_SOURCE,
     DOCTOR_CHECKS, FORGE_PROVIDER, MCP_CONTRIBUTION, POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS,
-    PluginAgentDescriptor, PluginCapability, PluginCheckDescriptor, PluginCheckKind,
-    PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
-    PluginPolicyDescriptor, PluginPromptAsset, PluginPromptDescriptor, PluginProviderDescriptor,
-    PluginProviderKind, PluginRuntimeHook, PluginRuntimeSurface, PluginTemplateAsset,
-    PluginTemplateDescriptor, PluginTrustLevel, REMOTE_CONTROL, TEMPLATE,
-    parse_plugin_runtime_hook, parse_reviewed_plugin_capability, render_plugin_detail,
-    render_plugin_detail_for_locale, render_plugin_listing, render_plugin_listing_for_locale,
-    runtime_surface_for_capability,
+    PluginAgentDescriptor, PluginCapability, PluginCheckAsset, PluginCheckDescriptor,
+    PluginCheckKind, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
+    PluginLocalizedText, PluginPolicyAsset, PluginPolicyDescriptor, PluginPromptAsset,
+    PluginPromptDescriptor, PluginProviderDescriptor, PluginProviderKind, PluginRuntimeHook,
+    PluginRuntimeSurface, PluginTemplateAsset, PluginTemplateDescriptor, PluginTrustLevel,
+    REMOTE_CONTROL, TEMPLATE, parse_plugin_runtime_hook, parse_reviewed_plugin_capability,
+    render_plugin_detail, render_plugin_detail_for_locale, render_plugin_listing,
+    render_plugin_listing_for_locale, runtime_surface_for_capability,
 };
 
 const BASIC_CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -90,6 +90,12 @@ const PROMPT_ASSETS: &[PluginPromptAsset] = &[PluginPromptAsset::new(
     "prompts/workflow.md",
     "# workflow\n",
 )];
+const POLICY_ASSETS: &[PluginPolicyAsset] = &[PluginPolicyAsset::new(
+    "policies/guardrails.md",
+    "# guardrails\n",
+)];
+const CHECK_ASSETS: &[PluginCheckAsset] =
+    &[PluginCheckAsset::new("checks/prepare.md", "# prepare\n")];
 
 fn basic_plugin() -> PluginDescriptor {
     PluginDescriptor::new(
@@ -254,6 +260,7 @@ fn policy_descriptor_resolves_locales_with_english_fallback() {
         TDD_POLICY_LOCALIZED_NAMES,
         "Fixture policy with strict testing guardrails.",
         TDD_POLICY_LOCALIZED_SUMMARIES,
+        POLICY_ASSETS,
     );
 
     assert_eq!(
@@ -280,6 +287,7 @@ fn check_descriptor_resolves_locales_with_english_fallback() {
         BMAD_CHECK_LOCALIZED_NAMES,
         "Runs typed prepare-time validation for the fixture workflow.",
         BMAD_CHECK_LOCALIZED_SUMMARIES,
+        CHECK_ASSETS,
     );
 
     assert_eq!(

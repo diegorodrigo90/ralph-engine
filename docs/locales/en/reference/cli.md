@@ -18,9 +18,11 @@ ralph-engine capabilities show <capability-id>
 ralph-engine checks
 ralph-engine checks list
 ralph-engine checks show <check-id>
+ralph-engine checks run <check-id>
 ralph-engine doctor
 ralph-engine doctor runtime
 ralph-engine doctor config
+ralph-engine doctor write-config <output-path>
 ralph-engine hooks
 ralph-engine hooks list
 ralph-engine hooks show <hook-id>
@@ -93,9 +95,13 @@ The `prompts materialize` command writes the embedded asset bundle owned by one 
 
 The `checks` command family prints the typed runtime check registry so prepare-time and doctor-time validation contributions stay explicit instead of hiding only as generic capabilities.
 
+The `checks run` command executes one typed runtime check against the canonical resolved topology and returns a localized pass/fail result with the current runtime findings and remediation actions, so official check providers stop at being metadata and become an executable runtime surface.
+
 The `doctor` command family prints the typed runtime diagnostic report by composing runtime status, unresolved issues, and remediation actions from one shared runtime snapshot instead of spreading diagnosis across ad hoc command logic.
 
 The `doctor config` command renders the same owned project configuration that results from applying the runtime remediation patch to the current defaults, so the doctor flow can point directly at an inspectable remediation target instead of stopping at diagnosis.
+
+The `doctor write-config` command persists that same remediation target to one output path, so the diagnostic flow can produce a concrete next-step artifact instead of stopping at rendered YAML.
 
 The `config locale` command prints the typed default locale contract so CLI i18n stays inspectable instead of remaining implicit in the runtime defaults.
 

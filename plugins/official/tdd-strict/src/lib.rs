@@ -4,8 +4,8 @@ mod i18n;
 
 use re_plugin::{
     POLICY, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
-    PluginLocalizedText, PluginPolicyDescriptor, PluginRuntimeHook, PluginTemplateAsset,
-    PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
+    PluginLocalizedText, PluginPolicyAsset, PluginPolicyDescriptor, PluginRuntimeHook,
+    PluginTemplateAsset, PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
 };
 
 /// Stable plugin identifier.
@@ -67,6 +67,10 @@ const TEMPLATES: &[PluginTemplateDescriptor] = &[PluginTemplateDescriptor::new(
     i18n::localized_template_summaries(),
     TEMPLATE_ASSETS,
 )];
+const POLICY_ASSETS: &[PluginPolicyAsset] = &[PluginPolicyAsset::new(
+    "policies/guardrails.md",
+    include_str!("../policies/guardrails.md"),
+)];
 const POLICIES: &[PluginPolicyDescriptor] = &[PluginPolicyDescriptor::new(
     "official.tdd-strict.guardrails",
     PLUGIN_ID,
@@ -74,6 +78,7 @@ const POLICIES: &[PluginPolicyDescriptor] = &[PluginPolicyDescriptor::new(
     i18n::localized_policy_names(),
     i18n::default_policy_summary(),
     i18n::localized_policy_summaries(),
+    POLICY_ASSETS,
 )];
 
 /// Declared capabilities for the official plugin foundation.
@@ -204,6 +209,7 @@ mod tests {
             "Template inicial com guardrails estritos de TDD ativados."
         );
         assert_eq!(template.display_name_for_locale("es"), "TDD strict starter");
+        assert!(!template.assets[0].contents.contains("Placeholder"));
     }
 
     #[test]
@@ -223,6 +229,13 @@ mod tests {
         assert_eq!(
             policy.summary_for_locale("es"),
             "Official policy with strict TDD guardrails."
+        );
+        assert!(policy.has_assets());
+        assert_eq!(policy.assets[0].path, "policies/guardrails.md");
+        assert!(
+            policy.assets[0]
+                .contents
+                .contains("# TDD Strict Guardrails")
         );
     }
 
