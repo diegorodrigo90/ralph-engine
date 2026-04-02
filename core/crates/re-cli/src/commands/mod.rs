@@ -5,6 +5,7 @@ mod capabilities;
 mod checks;
 mod config;
 mod doctor;
+mod grouped_surfaces;
 mod hooks;
 mod locales;
 mod mcp;

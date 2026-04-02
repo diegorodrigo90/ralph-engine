@@ -2,7 +2,11 @@
 
 use re_core::{RuntimeProviderKind, RuntimeProviderRegistration, parse_runtime_provider_kind};
 
-use crate::{CliError, catalog, i18n};
+use crate::{
+    CliError, catalog,
+    commands::grouped_surfaces::{render_grouped_surface_detail, render_grouped_surface_listing},
+    i18n,
+};
 
 /// Executes the providers command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
@@ -35,53 +39,19 @@ fn show_provider(provider_kind: Option<&str>, locale: &str) -> Result<String, Cl
             provider_kind,
         ))
     })?;
-    let providers = catalog::official_runtime_providers()
-        .into_iter()
-        .filter(|registration| registration.kind == kind)
-        .collect::<Vec<_>>();
+    let providers = catalog::find_official_runtime_providers(kind);
 
     Ok(render_provider_detail(kind, &providers, locale))
 }
 
 fn render_provider_listing(registrations: &[RuntimeProviderRegistration], locale: &str) -> String {
-    let mut seen = Vec::new();
-    let mut lines = Vec::new();
-
-    for registration in registrations {
-        let provider = registration.kind.as_str();
-
-        if seen.contains(&provider) {
-            continue;
-        }
-
-        seen.push(provider);
-
-        let providers = registrations
-            .iter()
-            .filter(|candidate| candidate.kind == registration.kind)
-            .collect::<Vec<_>>();
-        let enabled_providers = providers
-            .iter()
-            .filter(|provider| provider.is_enabled())
-            .count();
-
-        lines.push(format!(
-            "- {} | providers={} | enabled={}",
-            provider,
-            providers.len(),
-            enabled_providers
-        ));
-    }
-
-    if lines.is_empty() {
-        i18n::providers_heading(locale, 0)
-    } else {
-        format!(
-            "{}\n{}",
-            i18n::providers_heading(locale, lines.len()),
-            lines.join("\n")
-        )
-    }
+    render_grouped_surface_listing(
+        registrations,
+        locale,
+        i18n::providers_label,
+        |registration| registration.kind.as_str(),
+        |registration| registration.is_enabled(),
+    )
 }
 
 fn render_provider_detail(
@@ -89,27 +59,21 @@ fn render_provider_detail(
     providers: &[RuntimeProviderRegistration],
     locale: &str,
 ) -> String {
-    let mut lines = vec![
-        i18n::detail_heading(
-            locale,
-            i18n::provider_label(locale),
-            i18n::provider_label(locale),
-            provider_kind.as_str(),
-        ),
-        i18n::providers_heading(locale, providers.len()),
-    ];
-
-    for provider in providers {
-        lines.push(format!(
-            "- {} | activation={} | boundary={} | registration_hook={}",
-            provider.plugin_id,
-            provider.activation.as_str(),
-            provider.load_boundary.as_str(),
-            provider.registration_hook_registered
-        ));
-    }
-
-    lines.join("\n")
+    render_grouped_surface_detail(
+        provider_kind.as_str(),
+        providers,
+        locale,
+        i18n::provider_label,
+        |provider| {
+            format!(
+                "- {} | activation={} | boundary={} | registration_hook={}",
+                provider.plugin_id,
+                provider.activation.as_str(),
+                provider.load_boundary.as_str(),
+                provider.registration_hook_registered
+            )
+        },
+    )
 }
 
 #[cfg(test)]
