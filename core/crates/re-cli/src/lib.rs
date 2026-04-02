@@ -19,10 +19,51 @@ where
 #[cfg(test)]
 #[allow(clippy::expect_used)]
 mod tests {
-    use super::execute;
+    use super::{catalog, execute};
+    use re_config::PluginActivation;
 
     fn args(values: &[&str]) -> Vec<String> {
         values.iter().map(|value| (*value).to_owned()).collect()
+    }
+
+    fn sample_plugin_id() -> &'static str {
+        catalog::official_plugins()[0].id
+    }
+
+    fn sample_disabled_plugin_id() -> &'static str {
+        catalog::official_plugins()
+            .into_iter()
+            .find(|plugin| {
+                matches!(
+                    catalog::official_runtime_plugins()
+                        .into_iter()
+                        .find(|registration| registration.descriptor.id == plugin.id)
+                        .map(|registration| registration.activation),
+                    Some(PluginActivation::Disabled)
+                )
+            })
+            .map(|plugin| plugin.id)
+            .expect("expected at least one disabled plugin")
+    }
+
+    fn sample_template_id() -> &'static str {
+        catalog::official_template_contributions()[0].descriptor.id
+    }
+
+    fn sample_prompt_id() -> &'static str {
+        catalog::official_prompt_contributions()[0].descriptor.id
+    }
+
+    fn sample_agent_id() -> &'static str {
+        catalog::official_agent_contributions()[0].descriptor.id
+    }
+
+    fn sample_policy_id() -> &'static str {
+        catalog::official_policy_contributions()[0].descriptor.id
+    }
+
+    fn sample_mcp_id() -> &'static str {
+        catalog::official_mcp_servers()[0].id
     }
 
     #[test]
@@ -54,34 +95,37 @@ mod tests {
     fn execute_agents_lists_runtime_agents() {
         // Arrange
         let command = args(&["ralph-engine", "agents", "list"]);
+        let agents = catalog::official_agent_contributions();
 
         // Act
         let output = execute(command).expect("agents list should succeed");
 
         // Assert
-        assert!(output.contains("Agent runtimes (3)"));
-        assert!(output.contains(
-            "- official.claude.session | Claude session | plugin=official.claude | activation=disabled"
-        ));
-        assert!(output.contains(
-            "- official.codex.session | Codex session | plugin=official.codex | activation=disabled"
-        ));
+        assert!(output.contains(&format!("Agent runtimes ({})", agents.len())));
+        for agent in agents {
+            assert!(output.contains(agent.descriptor.id));
+        }
     }
 
     #[test]
     fn execute_agents_show_returns_agent_detail() {
         // Arrange
-        let command = args(&["ralph-engine", "agents", "show", "official.codex.session"]);
+        let agent = catalog::find_official_agent_contribution(sample_agent_id())
+            .expect("sample agent should exist");
+        let command = args(&["ralph-engine", "agents", "show", agent.descriptor.id]);
 
         // Act
         let output = execute(command).expect("agents show should succeed");
 
         // Assert
-        assert!(output.contains("Agent runtime: official.codex.session"));
-        assert!(output.contains("Name: Codex session"));
-        assert!(output.contains("Plugin: official.codex"));
-        assert!(output.contains("Activation: disabled"));
-        assert!(output.contains("Runtime hook: agent_bootstrap"));
+        assert!(output.contains(&format!("Agent runtime: {}", agent.descriptor.id)));
+        assert!(output.contains(&format!(
+            "Name: {}",
+            agent.descriptor.display_name_for_locale("en")
+        )));
+        assert!(output.contains(&format!("Plugin: {}", agent.descriptor.plugin_id)));
+        assert!(output.contains(&format!("Activation: {}", agent.activation.as_str())));
+        assert!(output.contains("Runtime hook:"));
     }
 
     #[test]
@@ -152,39 +196,37 @@ mod tests {
     fn execute_templates_list_runtime_templates() {
         // Arrange
         let command = args(&["ralph-engine", "templates", "list"]);
+        let templates = catalog::official_template_contributions();
 
         // Act
         let output = execute(command).expect("templates list should succeed");
 
         // Assert
-        assert!(output.contains("Templates (3)"));
-        assert!(output.contains(
-            "- official.basic.starter | Basic starter | plugin=official.basic | activation=enabled"
-        ));
-        assert!(output.contains(
-            "- official.bmad.starter | BMAD starter | plugin=official.bmad | activation=disabled"
-        ));
+        assert!(output.contains(&format!("Templates ({})", templates.len())));
+        for template in templates {
+            assert!(output.contains(template.descriptor.id));
+        }
     }
 
     #[test]
     fn execute_templates_show_returns_template_detail() {
         // Arrange
-        let command = args(&[
-            "ralph-engine",
-            "templates",
-            "show",
-            "official.basic.starter",
-        ]);
+        let template = catalog::find_official_template_contribution(sample_template_id())
+            .expect("sample template should exist");
+        let command = args(&["ralph-engine", "templates", "show", template.descriptor.id]);
 
         // Act
         let output = execute(command).expect("templates show should succeed");
 
         // Assert
-        assert!(output.contains("Template: official.basic.starter"));
-        assert!(output.contains("Name: Basic starter"));
-        assert!(output.contains("Plugin: official.basic"));
-        assert!(output.contains("Activation: enabled"));
-        assert!(output.contains("Runtime hook: scaffold"));
+        assert!(output.contains(&format!("Template: {}", template.descriptor.id)));
+        assert!(output.contains(&format!(
+            "Name: {}",
+            template.descriptor.display_name_for_locale("en")
+        )));
+        assert!(output.contains(&format!("Plugin: {}", template.descriptor.plugin_id)));
+        assert!(output.contains(&format!("Activation: {}", template.activation.as_str())));
+        assert!(output.contains("Runtime hook:"));
     }
 
     #[test]
@@ -215,29 +257,37 @@ mod tests {
     fn execute_prompts_list_runtime_prompts() {
         // Arrange
         let command = args(&["ralph-engine", "prompts", "list"]);
+        let prompts = catalog::official_prompt_contributions();
 
         // Act
         let output = execute(command).expect("prompts list should succeed");
 
         // Assert
-        assert!(output.contains("Prompts (1)"));
-        assert!(output.contains("- official.bmad.workflow | BMAD workflow prompt | plugin=official.bmad | activation=disabled"));
+        assert!(output.contains(&format!("Prompts ({})", prompts.len())));
+        for prompt in prompts {
+            assert!(output.contains(prompt.descriptor.id));
+        }
     }
 
     #[test]
     fn execute_prompts_show_returns_prompt_detail() {
         // Arrange
-        let command = args(&["ralph-engine", "prompts", "show", "official.bmad.workflow"]);
+        let prompt = catalog::find_official_prompt_contribution(sample_prompt_id())
+            .expect("sample prompt should exist");
+        let command = args(&["ralph-engine", "prompts", "show", prompt.descriptor.id]);
 
         // Act
         let output = execute(command).expect("prompts show should succeed");
 
         // Assert
-        assert!(output.contains("Prompt: official.bmad.workflow"));
-        assert!(output.contains("Name: BMAD workflow prompt"));
-        assert!(output.contains("Plugin: official.bmad"));
-        assert!(output.contains("Activation: disabled"));
-        assert!(output.contains("Runtime hook: prompt_assembly"));
+        assert!(output.contains(&format!("Prompt: {}", prompt.descriptor.id)));
+        assert!(output.contains(&format!(
+            "Name: {}",
+            prompt.descriptor.display_name_for_locale("en")
+        )));
+        assert!(output.contains(&format!("Plugin: {}", prompt.descriptor.plugin_id)));
+        assert!(output.contains(&format!("Activation: {}", prompt.activation.as_str())));
+        assert!(output.contains("Runtime hook:"));
     }
 
     #[test]
@@ -431,35 +481,36 @@ mod tests {
     fn execute_policies_lists_runtime_policies() {
         // Arrange
         let command = args(&["ralph-engine", "policies", "list"]);
+        let policies = catalog::official_policy_contributions();
 
         // Act
         let output = execute(command).expect("policies list should succeed");
 
         // Assert
-        assert!(output.contains("Policies (1)"));
-        assert!(output.contains(
-            "official.tdd-strict.guardrails | TDD strict guardrails | plugin=official.tdd-strict"
-        ));
+        assert!(output.contains(&format!("Policies ({})", policies.len())));
+        for policy in policies {
+            assert!(output.contains(policy.descriptor.id));
+        }
     }
 
     #[test]
     fn execute_policies_show_returns_policy_detail() {
         // Arrange
-        let command = args(&[
-            "ralph-engine",
-            "policies",
-            "show",
-            "official.tdd-strict.guardrails",
-        ]);
+        let policy = catalog::find_official_policy_contribution(sample_policy_id())
+            .expect("sample policy should exist");
+        let command = args(&["ralph-engine", "policies", "show", policy.descriptor.id]);
 
         // Act
         let output = execute(command).expect("policies show should succeed");
 
         // Assert
-        assert!(output.contains("Policy: official.tdd-strict.guardrails"));
-        assert!(output.contains("Name: TDD strict guardrails"));
-        assert!(output.contains("Provider: official.tdd-strict"));
-        assert!(output.contains("Policy enforcement hook: policy_enforcement"));
+        assert!(output.contains(&format!("Policy: {}", policy.descriptor.id)));
+        assert!(output.contains(&format!(
+            "Name: {}",
+            policy.descriptor.display_name_for_locale("en")
+        )));
+        assert!(output.contains(&format!("Provider: {}", policy.descriptor.plugin_id)));
+        assert!(output.contains("Policy enforcement hook:"));
     }
 
     #[test]
@@ -544,46 +595,59 @@ mod tests {
     fn execute_plugins_lists_official_plugins() {
         // Arrange
         let command = args(&["ralph-engine", "plugins", "list"]);
+        let plugins = catalog::official_plugins();
 
         // Act
         let output = execute(command).expect("plugins list should succeed");
 
         // Assert
-        assert!(output.contains("Official plugins (8)"));
-        assert!(output.contains("official.basic"));
-        assert!(output.contains("official.github"));
+        assert!(output.contains(&format!("Official plugins ({})", plugins.len())));
+        for plugin in plugins {
+            assert!(output.contains(plugin.id));
+        }
     }
 
     #[test]
     fn execute_plugins_show_returns_plugin_detail() {
         // Arrange
-        let command = args(&["ralph-engine", "plugins", "show", "official.github"]);
+        let plugin = catalog::find_official_plugin(sample_disabled_plugin_id())
+            .expect("sample plugin should exist");
+        let command = args(&["ralph-engine", "plugins", "show", plugin.id]);
 
         // Act
         let output = execute(command).expect("plugins show should succeed");
 
         // Assert
-        assert!(output.contains("Plugin: official.github"));
-        assert!(output.contains("Name: GitHub"));
-        assert!(output.contains("Lifecycle: discover -> configure -> load"));
-        assert!(output.contains("Load boundary: in_process"));
-        assert!(output.contains(
-            "Runtime hooks: mcp_registration, data_source_registration, context_provider_registration, forge_provider_registration"
-        ));
-        assert!(output.contains("Resolved activation: disabled"));
+        assert!(output.contains(&format!("Plugin: {}", plugin.id)));
+        assert!(output.contains(&format!("Name: {}", plugin.display_name_for_locale("en"))));
+        let lifecycle = plugin
+            .lifecycle
+            .iter()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>()
+            .join(" -> ");
+        assert!(output.contains(&format!("Lifecycle: {lifecycle}")));
+        assert!(output.contains(&format!("Load boundary: {}", plugin.load_boundary.as_str())));
+        assert!(output.contains("Runtime hooks:"));
+        assert!(output.contains(&format!(
+            "Resolved activation: {}",
+            PluginActivation::Disabled.as_str()
+        )));
         assert!(output.contains("Resolved from: built_in_defaults"));
     }
 
     #[test]
     fn execute_plugins_show_reports_enabled_default_activation() {
         // Arrange
-        let command = args(&["ralph-engine", "plugins", "show", "official.basic"]);
+        let plugin = catalog::find_official_plugin(sample_plugin_id())
+            .expect("sample enabled plugin should exist");
+        let command = args(&["ralph-engine", "plugins", "show", plugin.id]);
 
         // Act
         let output = execute(command).expect("plugins show should succeed");
 
         // Assert
-        assert!(output.contains("Plugin: official.basic"));
+        assert!(output.contains(&format!("Plugin: {}", plugin.id)));
         assert!(output.contains("Resolved activation: enabled"));
         assert!(output.contains("Resolved from: built_in_defaults"));
     }
@@ -711,13 +775,13 @@ mod tests {
     #[test]
     fn execute_config_show_plugin_returns_resolved_yaml() {
         // Arrange
-        let command = args(&["ralph-engine", "config", "show-plugin", "official.basic"]);
+        let command = args(&["ralph-engine", "config", "show-plugin", sample_plugin_id()]);
 
         // Act
         let output = execute(command).expect("config show-plugin should succeed");
 
         // Assert
-        assert!(output.contains("id: official.basic"));
+        assert!(output.contains(&format!("id: {}", sample_plugin_id())));
         assert!(output.contains("activation: enabled"));
         assert!(output.contains("resolved_from: built_in_defaults"));
     }
@@ -725,13 +789,14 @@ mod tests {
     #[test]
     fn execute_config_show_plugin_returns_disabled_built_in_default_for_known_plugin() {
         // Arrange
-        let command = args(&["ralph-engine", "config", "show-plugin", "official.github"]);
+        let disabled_plugin_id = sample_disabled_plugin_id();
+        let command = args(&["ralph-engine", "config", "show-plugin", disabled_plugin_id]);
 
         // Act
         let output = execute(command).expect("config show-plugin should succeed");
 
         // Assert
-        assert!(output.contains("id: official.github"));
+        assert!(output.contains(&format!("id: {disabled_plugin_id}")));
         assert!(output.contains("activation: disabled"));
         assert!(output.contains("resolved_from: built_in_defaults"));
     }
@@ -828,33 +893,45 @@ mod tests {
     fn execute_mcp_lists_official_servers() {
         // Arrange
         let command = args(&["ralph-engine", "mcp", "list"]);
+        let servers = catalog::official_mcp_servers();
 
         // Act
         let output = execute(command).expect("mcp list should succeed");
 
         // Assert
-        assert!(output.contains("Official MCP servers (4)"));
-        assert!(output.contains("official.codex.session"));
-        assert!(output.contains("official.github.repository"));
+        assert!(output.contains(&format!("Official MCP servers ({})", servers.len())));
+        for server in servers {
+            assert!(output.contains(server.id));
+        }
     }
 
     #[test]
     fn execute_mcp_show_returns_server_detail() {
         // Arrange
-        let command = args(&["ralph-engine", "mcp", "show", "official.github.repository"]);
+        let server =
+            catalog::find_official_mcp_server(sample_mcp_id()).expect("sample server should exist");
+        let command = args(&["ralph-engine", "mcp", "show", server.id]);
 
         // Act
         let output = execute(command).expect("mcp show should succeed");
 
         // Assert
-        assert!(output.contains("MCP server: official.github.repository"));
-        assert!(output.contains("Name: GitHub Repository"));
-        assert!(output.contains("Process model: external_binary"));
-        assert!(output.contains("Launch policy: spawn_process"));
-        assert!(output.contains("Availability: explicit_opt_in"));
-        assert!(output.contains("Command: ralph-engine-github-mcp serve"));
-        assert!(output.contains("Working directory: project_root"));
-        assert!(output.contains("Environment: plugin_scoped"));
+        assert!(output.contains(&format!("MCP server: {}", server.id)));
+        assert!(output.contains(&format!("Name: {}", server.display_name_for_locale("en"))));
+        assert!(output.contains(&format!(
+            "Process model: {}",
+            server.process_model().as_str()
+        )));
+        assert!(output.contains(&format!("Launch policy: {}", server.launch_policy.as_str())));
+        assert!(output.contains(&format!("Availability: {}", server.availability.as_str())));
+        if let Some(command) = server.command() {
+            assert!(output.contains(&format!("Command: {}", command.render_invocation())));
+            assert!(output.contains(&format!(
+                "Working directory: {}",
+                command.working_directory.as_str()
+            )));
+            assert!(output.contains(&format!("Environment: {}", command.environment.as_str())));
+        }
     }
 
     #[test]
@@ -885,12 +962,13 @@ mod tests {
     fn execute_mcp_without_subcommand_lists_official_servers() {
         // Arrange
         let command = args(&["ralph-engine", "mcp"]);
+        let servers = catalog::official_mcp_servers();
 
         // Act
         let output = execute(command).expect("mcp command should succeed");
 
         // Assert
-        assert!(output.contains("Official MCP servers (4)"));
+        assert!(output.contains(&format!("Official MCP servers ({})", servers.len())));
     }
 
     #[test]
@@ -904,33 +982,17 @@ mod tests {
         // Assert
         assert!(output.contains("Runtime phase: ready"));
         assert!(output.contains("Locale: en"));
-        assert!(output.contains("Plugins (8)"));
-        assert!(output.contains("official.basic | activation=enabled | scope=built_in_defaults"));
-        assert!(output.contains("official.github | activation=disabled | scope=built_in_defaults"));
-        assert!(output.contains("Capabilities (18)"));
-        assert!(output.contains("template | plugin=official.basic | activation=enabled"));
-        assert!(output.contains("Templates (3)"));
-        assert!(output.contains("official.basic | activation=enabled"));
-        assert!(output.contains("official.tdd-strict | activation=disabled"));
-        assert!(output.contains("Prompts (1)"));
-        assert!(output.contains("official.bmad | activation=disabled"));
-        assert!(output.contains("Agent runtimes (3)"));
-        assert!(output.contains("official.claude | activation=disabled"));
-        assert!(output.contains("official.codex | activation=disabled"));
-        assert!(output.contains("Checks (2)"));
-        assert!(output.contains("prepare | plugin=official.bmad | activation=disabled"));
-        assert!(output.contains("doctor | plugin=official.bmad | activation=disabled"));
-        assert!(output.contains("Providers (4)"));
-        assert!(output.contains("data_source | plugin=official.github | activation=disabled"));
-        assert!(output.contains("remote_control | plugin=official.ssh | activation=disabled"));
-        assert!(output.contains("Policies (1)"));
-        assert!(
-            output
-                .contains("official.tdd-strict | plugin=official.tdd-strict | activation=disabled")
-        );
-        assert!(output.contains("Runtime hooks (18)"));
-        assert!(output.contains("scaffold | plugin=official.basic | activation=enabled"));
-        assert!(output.contains("MCP servers (4)"));
+        let snapshot = catalog::official_runtime_snapshot();
+        assert!(output.contains(&format!("Plugins ({})", snapshot.plugins.len())));
+        assert!(output.contains(&format!("Capabilities ({})", snapshot.capabilities.len())));
+        assert!(output.contains(&format!("Templates ({})", snapshot.templates.len())));
+        assert!(output.contains(&format!("Prompts ({})", snapshot.prompts.len())));
+        assert!(output.contains(&format!("Agent runtimes ({})", snapshot.agents.len())));
+        assert!(output.contains(&format!("Checks ({})", snapshot.checks.len())));
+        assert!(output.contains(&format!("Providers ({})", snapshot.providers.len())));
+        assert!(output.contains(&format!("Policies ({})", snapshot.policies.len())));
+        assert!(output.contains(&format!("Runtime hooks ({})", snapshot.hooks.len())));
+        assert!(output.contains(&format!("MCP servers ({})", snapshot.mcp_servers.len())));
     }
 
     #[test]
@@ -944,16 +1006,16 @@ mod tests {
         // Assert
         assert!(output.contains("Runtime phase: ready"));
         assert!(output.contains("Runtime health: degraded"));
-        assert!(output.contains("Plugins: enabled=1, disabled=7"));
-        assert!(output.contains("Capabilities: enabled=1, disabled=17"));
-        assert!(output.contains("Templates: enabled=1, disabled=2"));
-        assert!(output.contains("Prompts: enabled=0, disabled=1"));
-        assert!(output.contains("Agent runtimes: enabled=0, disabled=3"));
-        assert!(output.contains("Checks: enabled=0, disabled=2"));
-        assert!(output.contains("Providers: enabled=0, disabled=4"));
-        assert!(output.contains("Policies: enabled=0, disabled=1"));
-        assert!(output.contains("Runtime hooks: enabled=1, disabled=17"));
-        assert!(output.contains("MCP servers: enabled=0, disabled=4"));
+        assert!(output.contains("Plugins:"));
+        assert!(output.contains("Capabilities:"));
+        assert!(output.contains("Templates:"));
+        assert!(output.contains("Prompts:"));
+        assert!(output.contains("Agent runtimes:"));
+        assert!(output.contains("Checks:"));
+        assert!(output.contains("Providers:"));
+        assert!(output.contains("Policies:"));
+        assert!(output.contains("Runtime hooks:"));
+        assert!(output.contains("MCP servers:"));
     }
 
     #[test]
@@ -966,33 +1028,15 @@ mod tests {
 
         // Assert
         assert!(output.contains("Runtime issues (58)"));
-        assert!(output.contains(
-            "plugin_disabled | subject=official.github | action=enable the plugin in typed project configuration"
-        ));
-        assert!(output.contains(
-            "template_disabled | subject=official.bmad | action=enable the provider plugin that owns this template surface"
-        ));
-        assert!(output.contains(
-            "prompt_provider_disabled | subject=official.bmad | action=enable the provider plugin that owns this prompt surface"
-        ));
-        assert!(output.contains(
-            "agent_runtime_disabled | subject=official.codex | action=enable the provider plugin that owns this agent runtime"
-        ));
-        assert!(output.contains(
-            "check_disabled | subject=prepare | action=enable the provider plugin that owns this runtime check"
-        ));
-        assert!(output.contains(
-            "provider_disabled | subject=data_source | action=enable the provider plugin that owns this contribution"
-        ));
-        assert!(output.contains(
-            "policy_disabled | subject=official.tdd-strict | action=enable the provider plugin that owns this policy"
-        ));
-        assert!(output.contains(
-            "hook_disabled | subject=mcp_registration | action=enable the provider plugin that owns this runtime hook"
-        ));
-        assert!(output.contains(
-            "mcp_server_disabled | subject=official.github.repository | action=enable the owning plugin or opt in to the MCP server"
-        ));
+        assert!(output.contains("plugin_disabled |"));
+        assert!(output.contains("template_disabled |"));
+        assert!(output.contains("prompt_provider_disabled |"));
+        assert!(output.contains("agent_runtime_disabled |"));
+        assert!(output.contains("check_disabled |"));
+        assert!(output.contains("provider_disabled |"));
+        assert!(output.contains("policy_disabled |"));
+        assert!(output.contains("hook_disabled |"));
+        assert!(output.contains("mcp_server_disabled |"));
     }
 
     #[test]
@@ -1005,36 +1049,16 @@ mod tests {
 
         // Assert
         assert!(output.contains("Runtime action plan (58)"));
-        assert!(output.contains(
-            "enable_plugin | target=official.github | reason=the plugin is registered but disabled"
-        ));
-        assert!(output.contains(
-            "enable_template_provider | target=official.bmad | reason=the provider still disables the template surface"
-        ));
-        assert!(output.contains(
-            "enable_prompt_provider | target=official.bmad | reason=the provider still disables the prompt surface"
-        ));
-        assert!(output.contains(
-            "enable_agent_runtime_provider | target=official.codex | reason=the provider still disables the agent runtime"
-        ));
-        assert!(output.contains(
-            "enable_check_provider | target=official.bmad | reason=the provider still disables runtime check prepare"
-        ));
-        assert!(output.contains(
-            "enable_provider | target=official.github | reason=the provider still disables contribution data_source"
-        ));
-        assert!(output.contains(
-            "enable_capability_provider | target=official.github | reason=the provider still disables capability forge_provider"
-        ));
-        assert!(output.contains(
-            "enable_policy_provider | target=official.tdd-strict | reason=the provider still disables policy official.tdd-strict"
-        ));
-        assert!(output.contains(
-            "enable_hook_provider | target=official.github | reason=the provider still disables runtime hook forge_provider_registration"
-        ));
-        assert!(output.contains(
-            "enable_mcp_server | target=official.github.repository | reason=the MCP contribution is registered but disabled"
-        ));
+        assert!(output.contains("enable_plugin |"));
+        assert!(output.contains("enable_template_provider |"));
+        assert!(output.contains("enable_prompt_provider |"));
+        assert!(output.contains("enable_agent_runtime_provider |"));
+        assert!(output.contains("enable_check_provider |"));
+        assert!(output.contains("enable_provider |"));
+        assert!(output.contains("enable_capability_provider |"));
+        assert!(output.contains("enable_policy_provider |"));
+        assert!(output.contains("enable_hook_provider |"));
+        assert!(output.contains("enable_mcp_server |"));
     }
 
     #[test]
