@@ -2,7 +2,13 @@
 
 use re_core::RuntimeTemplateRegistration;
 
-use crate::{CliError, catalog, i18n};
+use crate::{
+    CliError, catalog,
+    commands::plugin_surfaces::{
+        render_plugin_owned_surface_detail, render_plugin_owned_surface_listing,
+    },
+    i18n,
+};
 
 /// Executes the templates command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
@@ -42,37 +48,11 @@ fn show_template(plugin_id: Option<&str>, locale: &str) -> Result<String, CliErr
 }
 
 fn render_template_listing(registrations: &[RuntimeTemplateRegistration], locale: &str) -> String {
-    if registrations.is_empty() {
-        return i18n::list_heading(
-            locale,
-            i18n::templates_label(locale),
-            i18n::templates_label(locale),
-            0,
-        );
-    }
-
-    let lines = registrations
-        .iter()
-        .map(|registration| {
-            format!(
-                "- {} | activation={} | boundary={} | scaffold_hook={}",
-                registration.plugin_id,
-                registration.activation.as_str(),
-                registration.load_boundary.as_str(),
-                registration.scaffold_hook_registered
-            )
-        })
-        .collect::<Vec<_>>();
-
-    format!(
-        "{}\n{}",
-        i18n::list_heading(
-            locale,
-            i18n::templates_label(locale),
-            i18n::templates_label(locale),
-            lines.len()
-        ),
-        lines.join("\n")
+    render_plugin_owned_surface_listing(
+        registrations,
+        locale,
+        i18n::templates_label,
+        render_template_registration,
     )
 }
 
@@ -81,27 +61,23 @@ fn render_template_detail(
     templates: &[RuntimeTemplateRegistration],
     locale: &str,
 ) -> String {
-    let mut lines = vec![
-        i18n::detail_heading(
-            locale,
-            i18n::template_provider_label(locale),
-            i18n::template_provider_label(locale),
-            plugin_id,
-        ),
-        i18n::providers_heading(locale, templates.len()),
-    ];
+    render_plugin_owned_surface_detail(
+        plugin_id,
+        templates,
+        locale,
+        i18n::template_provider_label,
+        render_template_registration,
+    )
+}
 
-    for template in templates {
-        lines.push(format!(
-            "- {} | activation={} | boundary={} | scaffold_hook={}",
-            template.plugin_id,
-            template.activation.as_str(),
-            template.load_boundary.as_str(),
-            template.scaffold_hook_registered
-        ));
-    }
-
-    lines.join("\n")
+fn render_template_registration(registration: &RuntimeTemplateRegistration) -> String {
+    format!(
+        "- {} | activation={} | boundary={} | scaffold_hook={}",
+        registration.plugin_id,
+        registration.activation.as_str(),
+        registration.load_boundary.as_str(),
+        registration.scaffold_hook_registered
+    )
 }
 
 #[cfg(test)]
