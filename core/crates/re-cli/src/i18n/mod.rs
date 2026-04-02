@@ -499,6 +499,10 @@ mod tests {
             "plugin desconhecido: official.missing"
         );
         assert_eq!(
+            unknown_entity("pt-br", "capacidade", "template"),
+            "capacidade desconhecida: template"
+        );
+        assert_eq!(
             list_heading("pt-br", "Plugins", "Plugins", 3),
             "Plugins (3)"
         );

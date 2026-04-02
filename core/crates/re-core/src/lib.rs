@@ -2716,7 +2716,7 @@ mod tests {
         let rendered = render_runtime_topology_for_locale(&topology, "pt-br");
 
         assert!(rendered.contains("Fase do runtime: ready"));
-        assert!(rendered.contains("Locale: pt-br"));
+        assert!(rendered.contains("Idioma: pt-br"));
         assert!(rendered.contains("Plugins (1)"));
         assert!(rendered.contains("Runtimes de agente (0)"));
         assert!(rendered.contains("Provedores (0)"));
@@ -2833,8 +2833,11 @@ mod tests {
 
         assert!(rendered.contains("Plano de ação do runtime (6)"));
         assert!(rendered.contains("reason=o plugin está registrado, mas desabilitado"));
-        assert!(rendered.contains("reason=o provedor ainda desabilita a capability template"));
-        assert!(rendered.contains("reason=o provedor ainda desabilita o check de runtime prepare"));
+        assert!(rendered.contains("reason=o provedor ainda desabilita a capacidade template"));
+        assert!(
+            rendered
+                .contains("reason=o provedor ainda desabilita a verificação de runtime prepare")
+        );
         assert!(rendered.contains("reason=o provedor ainda desabilita a contribuição data_source"));
         assert!(rendered.contains("reason=o provedor ainda desabilita a política official.basic"));
         assert!(rendered.contains("reason=o provedor ainda desabilita o hook de runtime scaffold"));
@@ -2897,7 +2900,7 @@ mod tests {
         let rendered = render_runtime_issues_for_locale(&issues, "pt-br");
 
         assert!(
-            rendered.contains("action=ative o plugin provedor responsável por esta capability")
+            rendered.contains("action=ative o plugin provedor responsável por esta capacidade")
         );
         assert!(rendered.contains(
             "action=ative o plugin provedor responsável por esta superfície de template"
@@ -2911,10 +2914,9 @@ mod tests {
             rendered
                 .contains("action=ative o plugin provedor responsável por este runtime de agente")
         );
-        assert!(
-            rendered
-                .contains("action=ative o plugin provedor responsável por este check de runtime")
-        );
+        assert!(rendered.contains(
+            "action=ative o plugin provedor responsável por esta verificação de runtime"
+        ));
         assert!(
             rendered.contains("action=ative o plugin provedor responsável por esta contribuição")
         );

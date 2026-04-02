@@ -175,7 +175,7 @@ mod tests {
 
         let rendered = render_capability_detail("template", &providers, "pt-br");
 
-        assert!(rendered.contains("Capability: template"));
+        assert!(rendered.contains("Capacidade: template"));
         assert!(rendered.contains("Provedores (1)"));
     }
 }

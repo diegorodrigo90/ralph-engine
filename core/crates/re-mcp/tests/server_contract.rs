@@ -378,7 +378,7 @@ fn render_mcp_server_detail_supports_pt_br_and_runtime_fallback_text() {
     assert!(rendered.contains("Servidor MCP: official.claude.session"));
     assert!(rendered.contains("Nome: Claude Session"));
     assert!(rendered.contains("Transporte: stdio"));
-    assert!(rendered.contains("Política de launch: plugin_runtime"));
+    assert!(rendered.contains("Política de execução: plugin_runtime"));
     assert!(rendered.contains("Comando: gerenciado pelo runtime do plugin"));
     assert!(rendered.contains("Diretório de trabalho: runtime_managed"));
     assert!(rendered.contains("Ambiente: minimal_runtime"));

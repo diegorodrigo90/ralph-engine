@@ -458,7 +458,7 @@ fn render_plugin_detail_supports_pt_br_and_falls_back_to_english() {
     assert!(rendered.contains("Nome: Básico"));
     assert!(rendered.contains("Versão: v0.2.0-alpha.1"));
     assert!(rendered.contains("Resumo: Plugin base para templates iniciais."));
-    assert!(rendered.contains("Boundary de carga: in_process"));
+    assert!(rendered.contains("Fronteira de carregamento: in_process"));
     assert!(rendered.contains("Hooks de runtime: scaffold"));
 }
 

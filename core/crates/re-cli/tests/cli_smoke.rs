@@ -324,7 +324,7 @@ fn binary_capabilities_show_rejects_unknown_capability_in_pt_br() {
 
     assert_eq!(output.status.code(), Some(2));
     let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
-    assert!(stderr.contains("capability desconhecido: missing"));
+    assert!(stderr.contains("capacidade desconhecida: missing"));
 }
 
 #[test]
@@ -387,8 +387,8 @@ fn binary_policies_show_succeeds_in_pt_br() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    assert!(stdout.contains("Policy: official.tdd-strict"));
-    assert!(stdout.contains("Hook de enforcement de policy: true"));
+    assert!(stdout.contains("Política: official.tdd-strict"));
+    assert!(stdout.contains("Hook de aplicação de política: true"));
 }
 
 #[test]

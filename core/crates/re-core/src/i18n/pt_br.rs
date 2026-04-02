@@ -1,14 +1,14 @@
 pub(super) const RUNTIME_PHASE: &str = "Fase do runtime";
 pub(super) const RUNTIME_HEALTH: &str = "Saúde do runtime";
-pub(super) const LOCALE: &str = "Locale";
+pub(super) const LOCALE: &str = "Idioma";
 pub(super) const PLUGINS: &str = "Plugins";
-pub(super) const CAPABILITIES: &str = "Capabilities";
+pub(super) const CAPABILITIES: &str = "Capacidades";
 pub(super) const TEMPLATES: &str = "Templates";
 pub(super) const PROMPTS: &str = "Prompts";
 pub(super) const AGENT_RUNTIMES: &str = "Runtimes de agente";
-pub(super) const CHECKS: &str = "Checks";
+pub(super) const CHECKS: &str = "Verificações";
 pub(super) const PROVIDERS: &str = "Provedores";
-pub(super) const POLICIES: &str = "Policies";
+pub(super) const POLICIES: &str = "Políticas";
 pub(super) const RUNTIME_HOOKS: &str = "Hooks de runtime";
 pub(super) const MCP_SERVERS: &str = "Servidores MCP";
 pub(super) const RUNTIME_ISSUES: &str = "Problemas do runtime";
@@ -17,11 +17,11 @@ pub(super) const RUNTIME_DOCTOR: &str = "Diagnóstico do runtime";
 
 pub(super) fn translate_runtime_reason(reason: &str) -> String {
     if let Some(capability) = reason.strip_prefix("the provider still disables capability ") {
-        return format!("o provedor ainda desabilita a capability {capability}");
+        return format!("o provedor ainda desabilita a capacidade {capability}");
     }
 
     if let Some(check_kind) = reason.strip_prefix("the provider still disables runtime check ") {
-        return format!("o provedor ainda desabilita o check de runtime {check_kind}");
+        return format!("o provedor ainda desabilita a verificação de runtime {check_kind}");
     }
 
     if let Some(provider_kind) = reason.strip_prefix("the provider still disables contribution ") {
@@ -41,7 +41,7 @@ pub(super) fn translate_runtime_reason(reason: &str) -> String {
             "ative o plugin na configuração tipada do projeto".to_owned()
         }
         "enable the provider plugin that owns this capability" => {
-            "ative o plugin provedor responsável por esta capability".to_owned()
+            "ative o plugin provedor responsável por esta capacidade".to_owned()
         }
         "enable the provider plugin that owns this template surface" => {
             "ative o plugin provedor responsável por esta superfície de template".to_owned()
@@ -53,7 +53,7 @@ pub(super) fn translate_runtime_reason(reason: &str) -> String {
             "ative o plugin provedor responsável por este runtime de agente".to_owned()
         }
         "enable the provider plugin that owns this runtime check" => {
-            "ative o plugin provedor responsável por este check de runtime".to_owned()
+            "ative o plugin provedor responsável por esta verificação de runtime".to_owned()
         }
         "enable the provider plugin that owns this contribution" => {
             "ative o plugin provedor responsável por esta contribuição".to_owned()
