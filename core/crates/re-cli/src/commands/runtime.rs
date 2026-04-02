@@ -1,5 +1,8 @@
 //! Runtime command handlers.
 
+use re_config::{
+    apply_project_config_patch, default_project_config, render_owned_project_config_yaml,
+};
 use re_core::{
     build_runtime_snapshot, render_runtime_action_plan_for_locale,
     render_runtime_config_patch_yaml, render_runtime_issues_for_locale,
@@ -14,6 +17,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         None | Some("show") => Ok(show_runtime(locale)),
         Some("issues") => Ok(show_runtime_issues(locale)),
         Some("patch") => Ok(show_runtime_config_patch()),
+        Some("patched-config") => Ok(show_runtime_patched_config()),
         Some("plan") => Ok(show_runtime_action_plan(locale)),
         Some("status") => Ok(show_runtime_status(locale)),
         Some(other) => Err(CliError::new(i18n::unknown_subcommand(
@@ -60,4 +64,17 @@ fn show_runtime_config_patch() -> String {
     let runtime = build_runtime_snapshot(&topology);
 
     render_runtime_config_patch_yaml(&runtime.config_patch)
+}
+
+fn show_runtime_patched_config() -> String {
+    let snapshot = catalog::official_runtime_snapshot();
+    let topology = snapshot.topology();
+    let runtime = build_runtime_snapshot(&topology);
+    let config = apply_project_config_patch(
+        &default_project_config(),
+        &runtime.config_patch.plugins,
+        &runtime.config_patch.mcp_servers,
+    );
+
+    render_owned_project_config_yaml(&config)
 }

@@ -49,6 +49,7 @@ ralph-engine runtime status
 ralph-engine runtime issues
 ralph-engine runtime plan
 ralph-engine runtime patch
+ralph-engine runtime patched-config
 ralph-engine prompts
 ralph-engine prompts list
 ralph-engine prompts show <plugin-id>
@@ -97,3 +98,5 @@ O comando `runtime issues` imprime a lista tipada de issues pendentes do runtime
 O comando `runtime plan` imprime o plano tipado de remediação derivado da topologia resolvida, incluindo enablement de templates, de prompts, de agent runtimes tipados, de checks tipados, de providers tipados, de policy e de hook, para que o próximo passo de enablement permaneça explícito e modular em vez de ser inferido ad hoc na CLI.
 
 O comando `runtime patch` renderiza o patch tipado de configuração que remedia a topologia degradada atual, incluindo ativações de plugin e enablement por servidor MCP, para que a recuperação do runtime permaneça explícita e reutilizável em vez de ficar apenas como plano textual.
+
+O comando `runtime patched-config` renderiza a configuração de projeto resultante da aplicação do patch tipado de runtime sobre os defaults atuais, para que o operador possa inspecionar o resultado efetivo da remediação antes de persistir essa configuração em outro lugar.

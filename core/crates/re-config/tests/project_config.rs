@@ -4,13 +4,15 @@ use re_config::{
     CANONICAL_CONFIG_LAYERS, CANONICAL_SUPPORTED_LOCALES, ConfigScope, DEFAULT_LOCALE, McpConfig,
     McpDiscovery, McpServerConfig, PluginActivation, PluginConfig, ProjectConfig,
     ProjectConfigLayer, ResolvedMcpServerConfig, ResolvedPluginConfig, RuntimeBudgetConfig,
-    SupportedLocale, canonical_config_layers, default_project_config, default_project_config_layer,
-    find_locale_descriptor, find_mcp_server_config, find_plugin_config, parse_supported_locale,
+    SupportedLocale, apply_project_config_patch, canonical_config_layers, default_project_config,
+    default_project_config_layer, find_locale_descriptor, find_mcp_server_config,
+    find_plugin_config, materialize_project_config, parse_supported_locale,
     render_config_layers_yaml, render_default_locale_yaml, render_locale_descriptor_yaml,
-    render_project_config_yaml, render_resolved_mcp_server_config_yaml,
-    render_resolved_plugin_config_yaml, render_runtime_budgets_yaml, render_supported_locales_yaml,
-    resolve_locale_or_default, resolve_mcp_server_config, resolve_plugin_config,
-    resolve_supported_locale_or_default, supported_locales,
+    render_owned_project_config_yaml, render_project_config_yaml,
+    render_resolved_mcp_server_config_yaml, render_resolved_plugin_config_yaml,
+    render_runtime_budgets_yaml, render_supported_locales_yaml, resolve_locale_or_default,
+    resolve_mcp_server_config, resolve_plugin_config, resolve_supported_locale_or_default,
+    supported_locales,
 };
 
 const TEST_DEFAULT_PLUGIN_ID: &str = "test.defaults";
@@ -79,6 +81,63 @@ fn render_project_config_yaml_is_human_readable() {
     assert!(yaml.contains("budgets:"));
     assert!(yaml.contains("  prompt_tokens: 8192"));
     assert!(yaml.contains("  context_tokens: 32768"));
+}
+
+#[test]
+fn materialize_project_config_creates_owned_patchable_document() {
+    let owned = materialize_project_config(&default_project_config());
+
+    assert_eq!(owned.schema_version, 1);
+    assert_eq!(owned.default_locale, "en");
+    assert_eq!(owned.plugins.len(), 1);
+    assert_eq!(owned.plugins[0].id, "official.basic");
+    assert!(owned.mcp.enabled);
+    assert!(owned.mcp.servers.is_empty());
+}
+
+#[test]
+fn apply_project_config_patch_merges_plugin_and_mcp_entries_by_identifier() {
+    let owned = apply_project_config_patch(
+        &default_project_config(),
+        &[
+            PluginConfig::new("official.basic", PluginActivation::Disabled),
+            PluginConfig::new("official.github", PluginActivation::Enabled),
+        ],
+        &[McpServerConfig::new("official.github.repository", true)],
+    );
+
+    assert_eq!(
+        owned.plugins,
+        vec![
+            PluginConfig::new("official.basic", PluginActivation::Disabled),
+            PluginConfig::new("official.github", PluginActivation::Enabled),
+        ]
+    );
+    assert_eq!(
+        owned.mcp.servers,
+        vec![McpServerConfig::new("official.github.repository", true)]
+    );
+}
+
+#[test]
+fn render_owned_project_config_yaml_is_human_readable() {
+    let owned = apply_project_config_patch(
+        &default_project_config(),
+        &[PluginConfig::new(
+            "official.github",
+            PluginActivation::Enabled,
+        )],
+        &[McpServerConfig::new("official.github.repository", true)],
+    );
+
+    let yaml = render_owned_project_config_yaml(&owned);
+
+    assert!(yaml.contains("plugins:"));
+    assert!(yaml.contains("  - id: official.basic"));
+    assert!(yaml.contains("  - id: official.github"));
+    assert!(yaml.contains("  servers:"));
+    assert!(yaml.contains("    - id: official.github.repository"));
+    assert!(yaml.contains("      enabled: true"));
 }
 
 #[test]
