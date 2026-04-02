@@ -43,6 +43,37 @@ pub(super) fn materialize_assets(
     Ok(lines.join("\n"))
 }
 
+pub(super) fn write_text_output(
+    output_path: &Path,
+    contents: &str,
+    locale: &str,
+) -> Result<String, CliError> {
+    if let Some(parent) = output_path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        fs::create_dir_all(parent).map_err(|error| {
+            CliError::new(i18n::failed_to_write_output(
+                locale,
+                &output_path.display().to_string(),
+                &error.to_string(),
+            ))
+        })?;
+    }
+
+    fs::write(output_path, contents).map_err(|error| {
+        CliError::new(i18n::failed_to_write_output(
+            locale,
+            &output_path.display().to_string(),
+            &error.to_string(),
+        ))
+    })?;
+
+    Ok(i18n::wrote_output(
+        locale,
+        &output_path.display().to_string(),
+    ))
+}
+
 fn resolve_safe_output_path(
     output_dir: &Path,
     asset_path: &str,

@@ -1118,6 +1118,27 @@ fn binary_runtime_patched_config_succeeds() {
 }
 
 #[test]
+fn binary_runtime_write_patched_config_succeeds() {
+    let output_path = unique_temp_dir("runtime-write-config").with_extension("yaml");
+    let output_path_str = output_path.to_string_lossy().into_owned();
+    let _ = std::fs::remove_file(&output_path);
+
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["runtime", "write-patched-config", &output_path_str]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert_eq!(stdout.trim(), format!("Wrote output: {output_path_str}"));
+    let persisted = std::fs::read_to_string(&output_path).expect("config file should exist");
+    assert!(persisted.contains("schema_version: 1"));
+    assert!(persisted.contains("- id: official.github"));
+
+    std::fs::remove_file(&output_path).expect("temporary config file should be removable");
+}
+
+#[test]
 fn binary_config_show_defaults_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
