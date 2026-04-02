@@ -205,6 +205,9 @@ fn render_hook_plan(hook: re_plugin::PluginRuntimeHook, locale: &str) -> String 
                 ));
             }
         }
+        _ => {
+            lines.push(format!("(unknown hook: {})", hook.as_str()));
+        }
     }
 
     lines.join("\n")

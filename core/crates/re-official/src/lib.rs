@@ -204,19 +204,21 @@ const fn official_plugin_bundle(
     }
 }
 
-const fn runtime_check_kind_for_descriptor(kind: PluginCheckKind) -> RuntimeCheckKind {
+fn runtime_check_kind_for_descriptor(kind: PluginCheckKind) -> RuntimeCheckKind {
     match kind {
         PluginCheckKind::Prepare => RuntimeCheckKind::Prepare,
         PluginCheckKind::Doctor => RuntimeCheckKind::Doctor,
+        _ => unreachable!("unexpected PluginCheckKind variant"),
     }
 }
 
-const fn runtime_provider_kind_for_descriptor(kind: PluginProviderKind) -> RuntimeProviderKind {
+fn runtime_provider_kind_for_descriptor(kind: PluginProviderKind) -> RuntimeProviderKind {
     match kind {
         PluginProviderKind::DataSource => RuntimeProviderKind::DataSource,
         PluginProviderKind::ContextProvider => RuntimeProviderKind::ContextProvider,
         PluginProviderKind::ForgeProvider => RuntimeProviderKind::ForgeProvider,
         PluginProviderKind::RemoteControl => RuntimeProviderKind::RemoteControl,
+        _ => unreachable!("unexpected PluginProviderKind variant"),
     }
 }
 
