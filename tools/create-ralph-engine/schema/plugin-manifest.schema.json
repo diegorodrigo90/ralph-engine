@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ralphengine.com/schemas/plugin-manifest.schema.json",
+  "title": "Ralph Engine Plugin Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "kind",
+    "display_name",
+    "publisher",
+    "trust_level",
+    "plugin_version"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*\\.[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "agent_runtime",
+        "forge_provider",
+        "context_provider",
+        "data_source",
+        "template",
+        "remote_control",
+        "mcp_contribution",
+        "policy"
+      ]
+    },
+    "display_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "publisher": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "trust_level": {
+      "type": "string",
+      "enum": [
+        "community"
+      ]
+    },
+    "plugin_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "plugin_api_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "engine_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "agent_runtime",
+          "data_source",
+          "context_provider",
+          "forge_provider",
+          "doctor_checks",
+          "prepare_checks",
+          "prompt_fragments",
+          "template",
+          "remote_control",
+          "mcp_contribution",
+          "policy"
+        ]
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required_files"
+      ],
+      "properties": {
+        "required_files": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  }
+}

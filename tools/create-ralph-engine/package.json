@@ -18,6 +18,8 @@
   "files": [
     "README.md",
     "bin/",
+    "lib/",
+    "schema/",
     "test/"
   ],
   "keywords": [
