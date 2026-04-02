@@ -6,6 +6,10 @@ const readline = require("node:readline/promises");
 const { stdin, stdout, stderr, exit } = require("node:process");
 const { validateManifestDocument } = require("../lib/manifest-contract.js");
 const { resolveLocaleCatalog } = require("../lib/i18n/index.js");
+const {
+  capabilityImportName,
+  runtimeHooksForCapabilities,
+} = require("../lib/runtime-surfaces.js");
 
 const DEFAULT_KIND = "mcp_contribution";
 const DEFAULT_ENGINE_VERSION = ">=0.1.0";
@@ -610,81 +614,6 @@ function pluginKindVariant(kind) {
     default:
       return "PluginKind::McpContribution";
   }
-}
-
-function capabilityImportName(capability) {
-  switch (capability) {
-    case "template":
-      return "TEMPLATE";
-    case "prompt_fragments":
-      return "PROMPT_FRAGMENTS";
-    case "prepare_checks":
-      return "PREPARE_CHECKS";
-    case "doctor_checks":
-      return "DOCTOR_CHECKS";
-    case "agent_runtime":
-      return "AGENT_RUNTIME";
-    case "mcp_contribution":
-      return "MCP_CONTRIBUTION";
-    case "data_source":
-      return "DATA_SOURCE";
-    case "context_provider":
-      return "CONTEXT_PROVIDER";
-    case "forge_provider":
-      return "FORGE_PROVIDER";
-    case "remote_control":
-      return "REMOTE_CONTROL";
-    case "policy":
-      return "POLICY";
-    default:
-      return capability.toUpperCase();
-  }
-}
-
-function runtimeHooksForCapabilities(capabilities) {
-  const hooks = new Set();
-
-  for (const capability of capabilities) {
-    switch (capability) {
-      case "template":
-        hooks.add("PluginRuntimeHook::Scaffold");
-        break;
-      case "prompt_fragments":
-        hooks.add("PluginRuntimeHook::PromptAssembly");
-        break;
-      case "prepare_checks":
-        hooks.add("PluginRuntimeHook::Prepare");
-        break;
-      case "doctor_checks":
-        hooks.add("PluginRuntimeHook::Doctor");
-        break;
-      case "agent_runtime":
-        hooks.add("PluginRuntimeHook::AgentBootstrap");
-        break;
-      case "mcp_contribution":
-        hooks.add("PluginRuntimeHook::McpRegistration");
-        break;
-      case "data_source":
-        hooks.add("PluginRuntimeHook::DataSourceRegistration");
-        break;
-      case "context_provider":
-        hooks.add("PluginRuntimeHook::ContextProviderRegistration");
-        break;
-      case "forge_provider":
-        hooks.add("PluginRuntimeHook::ForgeProviderRegistration");
-        break;
-      case "remote_control":
-        hooks.add("PluginRuntimeHook::RemoteControlBootstrap");
-        break;
-      case "policy":
-        hooks.add("PluginRuntimeHook::PolicyEnforcement");
-        break;
-      default:
-        break;
-    }
-  }
-
-  return [...hooks];
 }
 
 async function ask(rl, label, fallback) {
