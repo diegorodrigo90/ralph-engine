@@ -66,6 +66,25 @@ pub const ALL_PLUGIN_CAPABILITIES: &[PluginCapability] = &[
     POLICY,
 ];
 
+/// Parses one reviewed plugin capability identifier.
+#[must_use]
+pub fn parse_reviewed_plugin_capability(value: &str) -> Option<PluginCapability> {
+    match value {
+        "template" => Some(TEMPLATE),
+        "prompt_fragments" => Some(PROMPT_FRAGMENTS),
+        "prepare_checks" => Some(PREPARE_CHECKS),
+        "doctor_checks" => Some(DOCTOR_CHECKS),
+        "agent_runtime" => Some(AGENT_RUNTIME),
+        "mcp_contribution" => Some(MCP_CONTRIBUTION),
+        "data_source" => Some(DATA_SOURCE),
+        "context_provider" => Some(CONTEXT_PROVIDER),
+        "forge_provider" => Some(FORGE_PROVIDER),
+        "remote_control" => Some(REMOTE_CONTROL),
+        "policy" => Some(POLICY),
+        _ => None,
+    }
+}
+
 /// Typed runtime surface identifier owned by reviewed plugin capabilities.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PluginRuntimeSurface {

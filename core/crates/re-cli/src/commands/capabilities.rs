@@ -1,6 +1,7 @@
 //! Capability command handlers.
 
 use re_core::RuntimeCapabilityRegistration;
+use re_plugin::parse_reviewed_plugin_capability;
 
 use crate::{CliError, catalog, i18n};
 
@@ -28,18 +29,17 @@ fn show_capability(capability_id: Option<&str>, locale: &str) -> Result<String, 
             i18n::capability_id_entity_label(locale),
         ))
     })?;
-    let providers = catalog::official_runtime_capabilities()
-        .into_iter()
-        .filter(|registration| registration.capability.as_str() == capability_id)
-        .collect::<Vec<_>>();
-
-    if providers.is_empty() {
-        return Err(CliError::new(i18n::unknown_entity(
+    let capability = parse_reviewed_plugin_capability(capability_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
             locale,
             i18n::capability_entity_label(locale),
             capability_id,
-        )));
-    }
+        ))
+    })?;
+    let providers = catalog::official_runtime_capabilities()
+        .into_iter()
+        .filter(|registration| registration.capability == capability)
+        .collect::<Vec<_>>();
 
     Ok(render_capability_detail(capability_id, &providers, locale))
 }
