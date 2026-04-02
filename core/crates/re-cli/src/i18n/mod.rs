@@ -106,11 +106,14 @@ fn locale_catalog(locale: &str) -> &'static CliLocaleCatalog {
     }
 }
 
-pub fn resolve_cli_locale() -> Result<&'static str, CliError> {
-    resolve_cli_locale_from_env_result(env::var(LOCALE_ENV_KEY))
+pub fn resolve_cli_invocation(args: &[String]) -> Result<ResolvedCliInvocation, CliError> {
+    resolve_cli_invocation_from_env_result(args, env::var(LOCALE_ENV_KEY))
 }
 
-pub fn resolve_cli_invocation(args: &[String]) -> Result<ResolvedCliInvocation, CliError> {
+fn resolve_cli_invocation_from_env_result(
+    args: &[String],
+    env_result: Result<String, env::VarError>,
+) -> Result<ResolvedCliInvocation, CliError> {
     match args.get(1).map(String::as_str) {
         Some(LOCALE_FLAG | LOCALE_SHORT_FLAG) => {
             let locale_value = args
@@ -123,7 +126,7 @@ pub fn resolve_cli_invocation(args: &[String]) -> Result<ResolvedCliInvocation, 
             })
         }
         _ => Ok(ResolvedCliInvocation {
-            locale: resolve_cli_locale()?,
+            locale: resolve_cli_locale_from_env_result(env_result)?,
             command_index: 1,
         }),
     }
@@ -290,8 +293,8 @@ mod tests {
     use super::{
         LOCALE_FLAG, activation_label, detail_heading, list_heading, load_boundary_label,
         missing_id, normalize_cli_locale, providers_heading, resolve_cli_invocation,
-        resolve_cli_locale_from_env_result, root_bootstrapped, unknown_command, unknown_entity,
-        unknown_subcommand,
+        resolve_cli_invocation_from_env_result, resolve_cli_locale_from_env_result,
+        root_bootstrapped, unknown_command, unknown_entity, unknown_subcommand,
     };
 
     #[test]
@@ -418,6 +421,21 @@ mod tests {
 
         let resolved =
             resolve_cli_invocation(&args).map(|value| (value.locale, value.command_index));
+
+        assert_eq!(resolved, Ok(("pt-br", 3)));
+    }
+
+    #[test]
+    fn resolve_cli_invocation_prioritizes_global_locale_flag_over_environment() {
+        let args = vec![
+            String::from("ralph-engine"),
+            String::from("--locale"),
+            String::from("pt-BR"),
+            String::from("plugins"),
+        ];
+
+        let resolved = resolve_cli_invocation_from_env_result(&args, Ok(String::from("en")))
+            .map(|value| (value.locale, value.command_index));
 
         assert_eq!(resolved, Ok(("pt-br", 3)));
     }
