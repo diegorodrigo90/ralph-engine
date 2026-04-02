@@ -1,0 +1,11 @@
+pub(super) const OFFICIAL_PLUGINS: &str = "Plugins oficiais";
+pub(super) const PLUGIN: &str = "Plugin";
+pub(super) const KIND: &str = "Tipo";
+pub(super) const TRUST: &str = "Confiança";
+pub(super) const NAME: &str = "Nome";
+pub(super) const VERSION: &str = "Versão";
+pub(super) const SUMMARY: &str = "Resumo";
+pub(super) const CAPABILITIES: &str = "Capabilities";
+pub(super) const LIFECYCLE: &str = "Lifecycle";
+pub(super) const LOAD_BOUNDARY: &str = "Boundary de carga";
+pub(super) const RUNTIME_HOOKS: &str = "Hooks de runtime";
