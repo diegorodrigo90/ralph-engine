@@ -1,9 +1,11 @@
 //! Integration tests for the shared Ralph Engine MCP contract.
 
 use re_mcp::{
-    McpAvailability, McpCommandDescriptor, McpEnvironmentPolicy, McpLaunchPolicy, McpLocalizedText,
-    McpProcessModel, McpServerDescriptor, McpTransport, McpWorkingDirectoryPolicy,
-    render_mcp_server_detail, render_mcp_server_detail_for_locale, render_mcp_server_listing,
+    McpAvailability, McpCommandDescriptor, McpEnvironmentPolicy, McpLaunchPolicy, McpLaunchStep,
+    McpLocalizedText, McpProcessModel, McpServerDescriptor, McpTransport,
+    McpWorkingDirectoryPolicy, build_mcp_launch_plan, render_mcp_launch_plan,
+    render_mcp_launch_plan_for_locale, render_mcp_server_detail,
+    render_mcp_server_detail_for_locale, render_mcp_server_listing,
     render_mcp_server_listing_for_locale,
 };
 
@@ -284,6 +286,44 @@ fn launch_policy_reports_no_spawn_command_for_plugin_runtime() {
 }
 
 #[test]
+fn build_mcp_launch_plan_preserves_plugin_runtime_bootstrap() {
+    let plan = build_mcp_launch_plan(&fixture_server());
+
+    assert_eq!(plan.server_id, "test.runtime.session");
+    assert_eq!(plan.plugin_id, "test.runtime");
+    assert_eq!(plan.transport, McpTransport::Stdio);
+    assert_eq!(
+        plan.step,
+        McpLaunchStep::PluginRuntimeBootstrap {
+            plugin_id: "test.runtime"
+        }
+    );
+    assert_eq!(plan.command(), None);
+}
+
+#[test]
+fn build_mcp_launch_plan_preserves_spawn_process_contract() {
+    let plan = build_mcp_launch_plan(&invalid_server());
+
+    assert_eq!(plan.server_id, "broken");
+    assert_eq!(
+        plan.step,
+        McpLaunchStep::SpawnProcess {
+            command: McpCommandDescriptor::new(
+                "broken-mcp",
+                &["serve"],
+                McpWorkingDirectoryPolicy::ProjectRoot,
+                McpEnvironmentPolicy::PluginScoped,
+            )
+        }
+    );
+    assert_eq!(
+        plan.command().map(|command| command.render_invocation()),
+        Some("broken-mcp serve".to_owned())
+    );
+}
+
+#[test]
 fn server_descriptor_reports_on_demand_availability() {
     // Arrange
     let server = fixture_server();
@@ -392,4 +432,24 @@ fn render_mcp_server_detail_supports_pt_br_for_spawn_process() {
     assert!(rendered.contains("Comando: broken-mcp serve"));
     assert!(rendered.contains("Diretório de trabalho: project_root"));
     assert!(rendered.contains("Ambiente: plugin_scoped"));
+}
+
+#[test]
+fn render_mcp_launch_plan_is_human_readable() {
+    let rendered = render_mcp_launch_plan(&build_mcp_launch_plan(&fixture_server()));
+
+    assert!(rendered.contains("MCP launch plan: test.runtime.session"));
+    assert!(rendered.contains("Launch step: plugin_runtime_bootstrap"));
+    assert!(rendered.contains("Command: managed by plugin runtime"));
+}
+
+#[test]
+fn render_mcp_launch_plan_supports_pt_br_for_spawn_process() {
+    let rendered =
+        render_mcp_launch_plan_for_locale(&build_mcp_launch_plan(&invalid_server()), "pt-br");
+
+    assert!(rendered.contains("Plano de lançamento MCP: broken"));
+    assert!(rendered.contains("Etapa de lançamento: spawn_process"));
+    assert!(rendered.contains("Comando: broken-mcp serve"));
+    assert!(rendered.contains("Diretório de trabalho: project_root"));
 }

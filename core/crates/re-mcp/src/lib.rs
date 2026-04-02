@@ -332,6 +332,83 @@ impl McpServerDescriptor {
     }
 }
 
+/// One typed execution step for an MCP launch plan.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum McpLaunchStep {
+    /// The plugin runtime owns bootstrap and process orchestration.
+    PluginRuntimeBootstrap {
+        /// Owning plugin identifier.
+        plugin_id: &'static str,
+    },
+    /// The runtime spawns an external process from a typed command contract.
+    SpawnProcess {
+        /// Typed command contract.
+        command: McpCommandDescriptor,
+    },
+}
+
+impl McpLaunchStep {
+    /// Returns the stable launch-step identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::PluginRuntimeBootstrap { .. } => "plugin_runtime_bootstrap",
+            Self::SpawnProcess { .. } => "spawn_process",
+        }
+    }
+}
+
+impl fmt::Display for McpLaunchStep {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Immutable execution plan derived from one MCP server descriptor.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct McpLaunchPlan {
+    /// Target server identifier.
+    pub server_id: &'static str,
+    /// Owning plugin identifier.
+    pub plugin_id: &'static str,
+    /// Declared transport kind.
+    pub transport: McpTransport,
+    /// Derived launch step.
+    pub step: McpLaunchStep,
+    /// Availability policy preserved for operator-facing decisions.
+    pub availability: McpAvailability,
+}
+
+impl McpLaunchPlan {
+    /// Returns the typed spawn command when direct process launch is required.
+    #[must_use]
+    pub const fn command(self) -> Option<McpCommandDescriptor> {
+        match self.step {
+            McpLaunchStep::PluginRuntimeBootstrap { .. } => None,
+            McpLaunchStep::SpawnProcess { command } => Some(command),
+        }
+    }
+}
+
+/// Builds a typed launch plan for one MCP server descriptor.
+#[must_use]
+pub const fn build_mcp_launch_plan(server: &McpServerDescriptor) -> McpLaunchPlan {
+    let step = match server.launch_policy {
+        McpLaunchPolicy::PluginRuntime => McpLaunchStep::PluginRuntimeBootstrap {
+            plugin_id: server.plugin_id,
+        },
+        McpLaunchPolicy::SpawnProcess(command) => McpLaunchStep::SpawnProcess { command },
+    };
+
+    McpLaunchPlan {
+        server_id: server.id,
+        plugin_id: server.plugin_id,
+        transport: server.transport,
+        step,
+        availability: server.availability,
+    }
+}
+
 /// Renders a human-readable MCP server listing.
 #[must_use]
 pub fn render_mcp_server_listing(servers: &[McpServerDescriptor]) -> String {
@@ -400,6 +477,65 @@ pub fn render_mcp_server_detail_for_locale(server: &McpServerDescriptor, locale:
     ];
 
     match server.command() {
+        Some(command) => {
+            lines.push(format!(
+                "{}: {}",
+                i18n::command_label(locale),
+                command.render_invocation()
+            ));
+            lines.push(format!(
+                "{}: {}",
+                i18n::working_directory_label(locale),
+                command.working_directory
+            ));
+            lines.push(format!(
+                "{}: {}",
+                i18n::environment_label(locale),
+                command.environment
+            ));
+        }
+        None => {
+            lines.push(format!(
+                "{}: {}",
+                i18n::command_label(locale),
+                i18n::runtime_managed_command_label(locale)
+            ));
+            lines.push(format!(
+                "{}: runtime_managed",
+                i18n::working_directory_label(locale)
+            ));
+            lines.push(format!(
+                "{}: minimal_runtime",
+                i18n::environment_label(locale)
+            ));
+        }
+    }
+
+    lines.join("\n")
+}
+
+/// Renders a human-readable MCP launch plan.
+#[must_use]
+pub fn render_mcp_launch_plan(plan: &McpLaunchPlan) -> String {
+    render_mcp_launch_plan_for_locale(plan, "en")
+}
+
+/// Renders a human-readable MCP launch plan for one locale.
+#[must_use]
+pub fn render_mcp_launch_plan_for_locale(plan: &McpLaunchPlan, locale: &str) -> String {
+    let mut lines = vec![
+        format!("{}: {}", i18n::launch_plan_label(locale), plan.server_id),
+        format!("{}: {}", i18n::plugin_label(locale), plan.plugin_id),
+        format!("{}: {}", i18n::transport_label(locale), plan.transport),
+        format!("{}: {}", i18n::launch_step_label(locale), plan.step),
+        format!(
+            "{}: {}",
+            i18n::availability_label(locale),
+            plan.availability
+        ),
+    ];
+
+    match plan.command() {
         Some(command) => {
             lines.push(format!(
                 "{}: {}",

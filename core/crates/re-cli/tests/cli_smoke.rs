@@ -693,6 +693,35 @@ fn binary_mcp_show_succeeds() {
 }
 
 #[test]
+fn binary_mcp_plan_succeeds() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["mcp", "plan", "official.codex.session"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("MCP launch plan: official.codex.session"));
+    assert!(stdout.contains("Launch step: plugin_runtime_bootstrap"));
+    assert!(stdout.contains("Command: managed by plugin runtime"));
+}
+
+#[test]
+fn binary_mcp_plan_succeeds_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["mcp", "plan", "official.codex.session"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Plano de lançamento MCP: official.codex.session"));
+    assert!(stdout.contains("Etapa de lançamento: plugin_runtime_bootstrap"));
+    assert!(stdout.contains("Comando: gerenciado pelo runtime do plugin"));
+}
+
+#[test]
 fn binary_runtime_show_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));

@@ -96,6 +96,8 @@ The `providers` command family prints the typed runtime provider registry so dat
 
 The `mcp show` command prints the typed MCP launch contract, including process model, launch policy, command boundaries, working-directory policy, environment policy, and availability.
 
+The `mcp plan` command prints the typed MCP launch plan derived from that contract, so plugin-managed bootstrap and spawn-process execution stay reusable outside command-local formatting.
+
 The `runtime show` command prints the resolved runtime topology, including effective plugin activation, capability registration, template registration, prompt registration, agent registration, check registration, provider registration, policy registration, runtime-hook registration, and MCP enablement.
 
 The `runtime status` command prints the typed runtime health summary, including enabled and disabled providers across plugins, capabilities, templates, prompts, agent registrations, check registrations, provider registrations, policies, runtime hooks, and MCP servers.

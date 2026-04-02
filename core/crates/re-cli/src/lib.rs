@@ -1014,6 +1014,24 @@ mod tests {
     }
 
     #[test]
+    fn execute_mcp_plan_returns_launch_plan() {
+        let server =
+            catalog::find_official_mcp_server(sample_mcp_id()).expect("sample server should exist");
+        let command = args(&["ralph-engine", "mcp", "plan", server.id]);
+
+        let output = execute(command).expect("mcp plan should succeed");
+
+        assert!(output.contains(&format!("MCP launch plan: {}", server.id)));
+        assert!(output.contains(&format!("Plugin: {}", server.plugin_id)));
+        assert!(output.contains("Launch step:"));
+        if let Some(command) = server.command() {
+            assert!(output.contains(&format!("Command: {}", command.render_invocation())));
+        } else {
+            assert!(output.contains("Command: managed by plugin runtime"));
+        }
+    }
+
+    #[test]
     fn execute_mcp_show_requires_server_id() {
         // Arrange
         let command = args(&["ralph-engine", "mcp", "show"]);
@@ -1034,6 +1052,15 @@ mod tests {
         let error = execute(command).expect_err("unknown server id should fail");
 
         // Assert
+        assert_eq!(error.to_string(), "unknown mcp server: fixture.unknown");
+    }
+
+    #[test]
+    fn execute_mcp_plan_rejects_unknown_server() {
+        let command = args(&["ralph-engine", "mcp", "plan", "fixture.unknown"]);
+
+        let error = execute(command).expect_err("unknown mcp plan target should fail");
+
         assert_eq!(error.to_string(), "unknown mcp server: fixture.unknown");
     }
 

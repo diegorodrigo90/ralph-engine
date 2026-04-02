@@ -1,5 +1,7 @@
 pub(super) struct McpLocaleCatalog {
     pub official_servers: &'static str,
+    pub launch_plan: &'static str,
+    pub launch_step: &'static str,
     pub server: &'static str,
     pub name: &'static str,
     pub plugin: &'static str,
@@ -32,6 +34,8 @@ macro_rules! locale_label {
 }
 
 locale_label!(official_servers_label, official_servers);
+locale_label!(launch_plan_label, launch_plan);
+locale_label!(launch_step_label, launch_step);
 locale_label!(server_label, server);
 locale_label!(name_label, name);
 locale_label!(plugin_label, plugin);
