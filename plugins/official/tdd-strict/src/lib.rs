@@ -203,6 +203,7 @@ mod tests {
             template.summary_for_locale("pt-br"),
             "Template inicial com guardrails estritos de TDD ativados."
         );
+        assert_eq!(template.display_name_for_locale("es"), "TDD strict starter");
     }
 
     #[test]
@@ -218,6 +219,10 @@ mod tests {
         assert_eq!(
             policy.summary_for_locale("pt-br"),
             "Política oficial com guardrails estritos de TDD."
+        );
+        assert_eq!(
+            policy.summary_for_locale("es"),
+            "Official policy with strict TDD guardrails."
         );
     }
 

@@ -195,6 +195,10 @@ mod tests {
             servers[0].display_name_for_locale("pt-br"),
             "Repositório GitHub"
         );
+        assert_eq!(
+            servers[0].display_name_for_locale("es"),
+            i18n::en::MCP_SERVER_LOCALE.name
+        );
     }
 
     #[test]
@@ -208,10 +212,22 @@ mod tests {
             providers[0].display_name_for_locale("pt-br"),
             "Fonte de dados GitHub"
         );
+        assert_eq!(
+            providers[0].summary_for_locale("es"),
+            i18n::en::DATA_SOURCE_LOCALE.summary
+        );
         assert_eq!(providers[1].id, "official.github.context");
         assert_eq!(providers[1].kind.as_str(), "context_provider");
+        assert_eq!(
+            providers[1].display_name_for_locale("es"),
+            i18n::en::CONTEXT_PROVIDER_LOCALE.name
+        );
         assert_eq!(providers[2].id, "official.github.forge");
         assert_eq!(providers[2].kind.as_str(), "forge_provider");
+        assert_eq!(
+            providers[2].summary_for_locale("es"),
+            i18n::en::FORGE_PROVIDER_LOCALE.summary
+        );
     }
 
     #[test]

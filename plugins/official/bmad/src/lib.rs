@@ -235,6 +235,7 @@ mod tests {
             template.summary_for_locale("pt-br"),
             "Template inicial para projetos Ralph Engine guiados por BMAD."
         );
+        assert_eq!(template.display_name_for_locale("es"), "BMAD starter");
     }
 
     #[test]
@@ -257,6 +258,7 @@ mod tests {
             prompt.summary_for_locale("es"),
             "Prompt bundle for BMAD workflow assembly."
         );
+        assert_eq!(prompt.display_name_for_locale("es"), "BMAD workflow prompt");
     }
 
     #[test]
@@ -276,6 +278,11 @@ mod tests {
             checks[1].summary_for_locale("pt-br"),
             "Executa validação tipada de diagnóstico para workflows BMAD."
         );
+        assert_eq!(
+            checks[0].summary_for_locale("es"),
+            "Runs typed prepare-time validation for BMAD workflows."
+        );
+        assert_eq!(checks[1].display_name_for_locale("es"), "BMAD doctor check");
     }
 
     #[test]
