@@ -158,6 +158,133 @@ impl RuntimeActionKind {
     }
 }
 
+/// Typed runtime-check outcome identifier.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RuntimeCheckOutcome {
+    /// The check completed without unresolved findings.
+    Passed,
+    /// The check completed with unresolved findings.
+    Failed,
+}
+
+impl RuntimeCheckOutcome {
+    /// Returns the stable runtime-check outcome identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Passed => "passed",
+            Self::Failed => "failed",
+        }
+    }
+}
+
+/// Typed runtime-policy outcome identifier.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RuntimePolicyOutcome {
+    /// The policy can be enforced from the resolved runtime topology.
+    Passed,
+    /// The policy still depends on operator action or a missing hook.
+    Failed,
+}
+
+impl RuntimePolicyOutcome {
+    /// Returns the stable runtime-policy outcome identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Passed => "passed",
+            Self::Failed => "failed",
+        }
+    }
+}
+
+/// One executable runtime-check result derived from the resolved topology.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RuntimeCheckResult {
+    /// Stable check kind that was executed.
+    pub kind: RuntimeCheckKind,
+    /// Final typed outcome for the check.
+    pub outcome: RuntimeCheckOutcome,
+    /// Runtime health observed while executing the check.
+    pub health: RuntimeHealth,
+    /// Unresolved findings reported by the check.
+    pub issues: Vec<RuntimeIssue>,
+    /// Recommended remediation actions derived from the same snapshot.
+    pub actions: Vec<RuntimeAction>,
+}
+
+impl RuntimeCheckResult {
+    /// Creates a new immutable runtime-check result.
+    #[must_use]
+    pub fn new(
+        kind: RuntimeCheckKind,
+        outcome: RuntimeCheckOutcome,
+        health: RuntimeHealth,
+        issues: Vec<RuntimeIssue>,
+        actions: Vec<RuntimeAction>,
+    ) -> Self {
+        Self {
+            kind,
+            outcome,
+            health,
+            issues,
+            actions,
+        }
+    }
+}
+
+/// One executable runtime-policy result derived from the resolved topology.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RuntimePolicyResult {
+    /// Stable policy identifier that was executed.
+    pub policy_id: &'static str,
+    /// Owning plugin identifier for the policy provider.
+    pub plugin_id: &'static str,
+    /// Final typed outcome for the policy execution.
+    pub outcome: RuntimePolicyOutcome,
+    /// Policy-scoped runtime health observed while executing the policy.
+    pub health: RuntimeHealth,
+    /// Declared load boundary for the policy provider.
+    pub load_boundary: PluginLoadBoundary,
+    /// Runtime hook responsible for policy enforcement.
+    pub enforcement_hook: PluginRuntimeHook,
+    /// Whether the policy provider registered its enforcement hook.
+    pub enforcement_hook_registered: bool,
+    /// Unresolved policy-scoped findings reported by the runtime.
+    pub issues: Vec<RuntimeIssue>,
+    /// Recommended remediation actions derived from the same snapshot.
+    pub actions: Vec<RuntimeAction>,
+}
+
+impl RuntimePolicyResult {
+    /// Creates a new immutable runtime-policy result.
+    #[must_use]
+    #[allow(clippy::too_many_arguments)]
+    pub fn new(
+        policy_id: &'static str,
+        plugin_id: &'static str,
+        outcome: RuntimePolicyOutcome,
+        health: RuntimeHealth,
+        load_boundary: PluginLoadBoundary,
+        enforcement_hook: PluginRuntimeHook,
+        enforcement_hook_registered: bool,
+        issues: Vec<RuntimeIssue>,
+        actions: Vec<RuntimeAction>,
+    ) -> Self {
+        Self {
+            policy_id,
+            plugin_id,
+            outcome,
+            health,
+            load_boundary,
+            enforcement_hook,
+            enforcement_hook_registered,
+            issues,
+            actions,
+        }
+    }
+}
+
 /// One typed plugin registration in the resolved runtime topology.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RuntimePluginRegistration {
@@ -1743,6 +1870,184 @@ pub fn build_runtime_check_execution_plans(
         .collect()
 }
 
+/// Executes one typed runtime check against the resolved topology.
+#[must_use]
+pub fn build_runtime_check_result(
+    kind: RuntimeCheckKind,
+    topology: &RuntimeTopology<'_>,
+) -> RuntimeCheckResult {
+    let snapshot = build_runtime_snapshot(topology);
+    let outcome = if snapshot.issues.is_empty() && snapshot.status.health == RuntimeHealth::Healthy
+    {
+        RuntimeCheckOutcome::Passed
+    } else {
+        RuntimeCheckOutcome::Failed
+    };
+
+    RuntimeCheckResult::new(
+        kind,
+        outcome,
+        snapshot.status.health,
+        snapshot.issues,
+        snapshot.actions,
+    )
+}
+
+/// Executes one typed runtime policy against the resolved topology.
+#[must_use]
+pub fn build_runtime_policy_result(
+    policy_id: &'static str,
+    topology: &RuntimeTopology<'_>,
+) -> Option<RuntimePolicyResult> {
+    let policy = topology
+        .policies
+        .iter()
+        .find(|policy| policy.policy_id == policy_id)?;
+    let snapshot = build_runtime_snapshot(topology);
+    let issues = snapshot
+        .issues
+        .into_iter()
+        .filter(|issue| match issue.kind {
+            RuntimeIssueKind::PluginDisabled => issue.subject == policy.plugin_id,
+            RuntimeIssueKind::PolicyDisabled => issue.subject == policy.policy_id,
+            RuntimeIssueKind::HookDisabled => {
+                issue.subject == PluginRuntimeHook::PolicyEnforcement.as_str()
+            }
+            _ => false,
+        })
+        .collect::<Vec<_>>();
+    let actions = snapshot
+        .actions
+        .into_iter()
+        .filter(|action| match action.kind {
+            RuntimeActionKind::EnablePlugin => action.target == policy.plugin_id,
+            RuntimeActionKind::EnablePolicyProvider => {
+                action.target == policy.plugin_id && action.reason.contains(policy.policy_id)
+            }
+            RuntimeActionKind::EnableHookProvider => {
+                action.target == policy.plugin_id
+                    && action
+                        .reason
+                        .contains(PluginRuntimeHook::PolicyEnforcement.as_str())
+            }
+            _ => false,
+        })
+        .collect::<Vec<_>>();
+    let outcome = if policy.is_enabled() && policy.enforcement_hook_registered && issues.is_empty()
+    {
+        RuntimePolicyOutcome::Passed
+    } else {
+        RuntimePolicyOutcome::Failed
+    };
+    let health = if outcome == RuntimePolicyOutcome::Passed {
+        RuntimeHealth::Healthy
+    } else {
+        RuntimeHealth::Degraded
+    };
+
+    Some(RuntimePolicyResult::new(
+        policy.policy_id,
+        policy.plugin_id,
+        outcome,
+        health,
+        policy.load_boundary,
+        PluginRuntimeHook::PolicyEnforcement,
+        policy.enforcement_hook_registered,
+        issues,
+        actions,
+    ))
+}
+
+/// Renders one typed runtime-check result in English.
+#[must_use]
+pub fn render_runtime_check_result(result: &RuntimeCheckResult) -> String {
+    render_runtime_check_result_for_locale(result, "en")
+}
+
+/// Renders one typed runtime-check result for one locale.
+#[must_use]
+pub fn render_runtime_check_result_for_locale(result: &RuntimeCheckResult, locale: &str) -> String {
+    let outcome = match result.outcome {
+        RuntimeCheckOutcome::Passed => i18n::runtime_check_passed_label(locale),
+        RuntimeCheckOutcome::Failed => i18n::runtime_check_failed_label(locale),
+    };
+
+    [
+        format!(
+            "{}: {}",
+            i18n::runtime_check_label(locale),
+            result.kind.as_str()
+        ),
+        format!("{}: {}", i18n::runtime_check_outcome_label(locale), outcome),
+        format!(
+            "{}: {}",
+            i18n::runtime_health_label(locale),
+            result.health.as_str()
+        ),
+        String::new(),
+        render_runtime_issues_for_locale(&result.issues, locale),
+        String::new(),
+        render_runtime_action_plan_for_locale(&result.actions, locale),
+    ]
+    .join("\n")
+}
+
+/// Renders one typed runtime-policy result in English.
+#[must_use]
+pub fn render_runtime_policy_result(result: &RuntimePolicyResult) -> String {
+    render_runtime_policy_result_for_locale(result, "en")
+}
+
+/// Renders one typed runtime-policy result for one locale.
+#[must_use]
+pub fn render_runtime_policy_result_for_locale(
+    result: &RuntimePolicyResult,
+    locale: &str,
+) -> String {
+    let outcome = match result.outcome {
+        RuntimePolicyOutcome::Passed => i18n::runtime_policy_passed_label(locale),
+        RuntimePolicyOutcome::Failed => i18n::runtime_policy_failed_label(locale),
+    };
+
+    [
+        format!(
+            "{}: {}",
+            i18n::runtime_policy_label(locale),
+            result.policy_id
+        ),
+        format!("{}: {}", i18n::provider_label(locale), result.plugin_id),
+        format!(
+            "{}: {}",
+            i18n::runtime_policy_outcome_label(locale),
+            outcome
+        ),
+        format!(
+            "{}: {}",
+            i18n::runtime_health_label(locale),
+            result.health.as_str()
+        ),
+        format!(
+            "{}: {}",
+            i18n::load_boundary_label(locale),
+            result.load_boundary.as_str()
+        ),
+        format!(
+            "{}: {}",
+            i18n::policy_enforcement_hook_label(locale),
+            if result.enforcement_hook_registered {
+                result.enforcement_hook.as_str()
+            } else {
+                "missing"
+            }
+        ),
+        String::new(),
+        render_runtime_issues_for_locale(&result.issues, locale),
+        String::new(),
+        render_runtime_action_plan_for_locale(&result.actions, locale),
+    ]
+    .join("\n")
+}
+
 /// Renders the runtime check execution plans in English.
 #[must_use]
 pub fn render_runtime_check_execution_plans(plans: &[RuntimeCheckExecutionPlan]) -> String {
@@ -2149,13 +2454,14 @@ mod tests {
     use super::{
         ALL_RUNTIME_CHECK_KINDS, ALL_RUNTIME_PROVIDER_KINDS, PRODUCT_NAME, PRODUCT_TAGLINE,
         RuntimeAction, RuntimeActionKind, RuntimeAgentRegistration, RuntimeCapabilityRegistration,
-        RuntimeCheckKind, RuntimeCheckRegistration, RuntimeConfigPatch, RuntimeDoctorReport,
-        RuntimeHealth, RuntimeHookRegistration, RuntimeIssue, RuntimeIssueKind,
-        RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration, RuntimePolicyRegistration,
-        RuntimePromptRegistration, RuntimeProviderKind, RuntimeProviderRegistration,
-        RuntimeSnapshot, RuntimeSnapshotDerived, RuntimeStatus, RuntimeTemplateRegistration,
-        RuntimeTopology, agent_runtime_hook, banner, build_runtime_action_plan,
-        build_runtime_agent_bootstrap_plans, build_runtime_check_execution_plans,
+        RuntimeCheckKind, RuntimeCheckOutcome, RuntimeCheckRegistration, RuntimeCheckResult,
+        RuntimeConfigPatch, RuntimeDoctorReport, RuntimeHealth, RuntimeHookRegistration,
+        RuntimeIssue, RuntimeIssueKind, RuntimeMcpRegistration, RuntimePhase,
+        RuntimePluginRegistration, RuntimePolicyRegistration, RuntimePromptRegistration,
+        RuntimeProviderKind, RuntimeProviderRegistration, RuntimeSnapshot, RuntimeSnapshotDerived,
+        RuntimeStatus, RuntimeTemplateRegistration, RuntimeTopology, agent_runtime_hook, banner,
+        build_runtime_action_plan, build_runtime_agent_bootstrap_plans,
+        build_runtime_check_execution_plans, build_runtime_check_result,
         build_runtime_config_patch, build_runtime_doctor_report, build_runtime_mcp_launch_plans,
         build_runtime_patched_config, build_runtime_policy_enforcement_plans,
         build_runtime_provider_registration_plans, build_runtime_snapshot,
@@ -2166,9 +2472,9 @@ mod tests {
         render_runtime_action_plan, render_runtime_action_plan_for_locale,
         render_runtime_agent_bootstrap_plans, render_runtime_agent_bootstrap_plans_for_locale,
         render_runtime_check_execution_plans, render_runtime_check_execution_plans_for_locale,
-        render_runtime_config_patch_yaml, render_runtime_doctor_report,
-        render_runtime_doctor_report_for_locale, render_runtime_issues,
-        render_runtime_issues_for_locale, render_runtime_mcp_launch_plans,
+        render_runtime_check_result_for_locale, render_runtime_config_patch_yaml,
+        render_runtime_doctor_report, render_runtime_doctor_report_for_locale,
+        render_runtime_issues, render_runtime_issues_for_locale, render_runtime_mcp_launch_plans,
         render_runtime_mcp_launch_plans_for_locale, render_runtime_policy_enforcement_plans,
         render_runtime_policy_enforcement_plans_for_locale,
         render_runtime_provider_registration_plans,
@@ -2869,6 +3175,74 @@ mod tests {
         assert!(rendered.contains("Runtime check execution plans (1)"));
         assert!(rendered.contains("prepare | plugin=test.prompts"));
         assert!(rendered.contains("runtime_hook=prepare"));
+    }
+
+    #[test]
+    fn build_runtime_check_result_reports_failed_when_issues_exist() {
+        let topology = RuntimeTopology {
+            phase: RuntimePhase::Ready,
+            locale: "en",
+            plugins: &[RuntimePluginRegistration::new(
+                plugin_descriptor(),
+                PluginActivation::Disabled,
+                ConfigScope::BuiltInDefaults,
+            )],
+            capabilities: &[],
+            templates: &[],
+            prompts: &[],
+            agents: &[],
+            checks: &[RuntimeCheckRegistration::new(
+                RuntimeCheckKind::Prepare,
+                PRIMARY_PLUGIN_ID,
+                PluginActivation::Enabled,
+                PluginLoadBoundary::InProcess,
+                true,
+            )],
+            providers: &[],
+            policies: &[],
+            hooks: &[],
+            mcp_servers: &[],
+        };
+
+        let result = build_runtime_check_result(RuntimeCheckKind::Prepare, &topology);
+
+        assert_eq!(
+            result,
+            RuntimeCheckResult::new(
+                RuntimeCheckKind::Prepare,
+                RuntimeCheckOutcome::Failed,
+                RuntimeHealth::Degraded,
+                collect_runtime_issues(&topology),
+                build_runtime_action_plan(&topology),
+            )
+        );
+    }
+
+    #[test]
+    fn render_runtime_check_result_supports_pt_br() {
+        let result = RuntimeCheckResult::new(
+            RuntimeCheckKind::Doctor,
+            RuntimeCheckOutcome::Failed,
+            RuntimeHealth::Degraded,
+            vec![RuntimeIssue::new(
+                RuntimeIssueKind::PluginDisabled,
+                PRIMARY_PLUGIN_ID,
+                "enable the plugin in typed project configuration",
+            )],
+            vec![RuntimeAction::new(
+                RuntimeActionKind::EnablePlugin,
+                PRIMARY_PLUGIN_ID,
+                "the plugin is registered but disabled",
+            )],
+        );
+
+        let rendered = render_runtime_check_result_for_locale(&result, "pt-br");
+
+        assert!(rendered.contains("Verificação de runtime: doctor"));
+        assert!(rendered.contains("Resultado: reprovada"));
+        assert!(rendered.contains("Saúde do runtime: degraded"));
+        assert!(rendered.contains("Problemas do runtime (1)"));
+        assert!(rendered.contains("Plano de ação do runtime (1)"));
     }
 
     #[test]

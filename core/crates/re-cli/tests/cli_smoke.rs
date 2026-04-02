@@ -596,6 +596,35 @@ fn binary_checks_show_by_id_succeeds() {
 }
 
 #[test]
+fn binary_checks_run_succeeds() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["checks", "run", "prepare"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Runtime check: prepare"));
+    assert!(stdout.contains("Outcome: failed"));
+    assert!(stdout.contains("Runtime issues (58)"));
+}
+
+#[test]
+fn binary_checks_run_succeeds_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args(["checks", "run", "official.bmad.prepare"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Verificação de runtime: prepare"));
+    assert!(stdout.contains("Resultado: reprovada"));
+    assert!(stdout.contains("Problemas do runtime (58)"));
+}
+
+#[test]
 fn binary_policies_show_succeeds_in_pt_br() {
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
@@ -1274,6 +1303,27 @@ fn binary_doctor_config_succeeds() {
     assert!(stdout.contains("- id: official.github"));
     assert!(stdout.contains("- id: official.github.repository"));
     assert!(stdout.contains("enabled: true"));
+}
+
+#[test]
+fn binary_doctor_write_config_succeeds() {
+    let output_path = unique_temp_dir("doctor-write-config").with_extension("yaml");
+    let output_path_str = output_path.to_string_lossy().into_owned();
+    let _ = std::fs::remove_file(&output_path);
+
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args(["doctor", "write-config", &output_path_str]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert_eq!(stdout.trim(), format!("Wrote output: {output_path_str}"));
+    let persisted = std::fs::read_to_string(&output_path).expect("config file should exist");
+    assert!(persisted.contains("schema_version: 1"));
+    assert!(persisted.contains("- id: official.github"));
+
+    std::fs::remove_file(&output_path).expect("temporary config file should be removable");
 }
 
 #[test]

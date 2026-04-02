@@ -456,6 +456,27 @@ mod tests {
     }
 
     #[test]
+    fn execute_checks_run_returns_typed_check_result() {
+        let command = args(&["ralph-engine", "checks", "run", "prepare"]);
+
+        let output = execute(command).expect("checks run should succeed");
+
+        assert!(output.contains("Runtime check: prepare"));
+        assert!(output.contains("Outcome: failed"));
+        assert!(output.contains("Runtime issues (58)"));
+        assert!(output.contains("Runtime action plan (58)"));
+    }
+
+    #[test]
+    fn execute_checks_run_accepts_check_contribution_id() {
+        let command = args(&["ralph-engine", "checks", "run", "official.bmad.prepare"]);
+
+        let output = execute(command).expect("checks run by id should succeed");
+
+        assert!(output.contains("Runtime check: prepare"));
+    }
+
+    #[test]
     fn execute_checks_show_requires_check_id() {
         // Arrange
         let command = args(&["ralph-engine", "checks", "show"]);
@@ -465,6 +486,15 @@ mod tests {
 
         // Assert
         assert_eq!(error.to_string(), "checks show requires a check id");
+    }
+
+    #[test]
+    fn execute_checks_run_requires_check_id() {
+        let command = args(&["ralph-engine", "checks", "run"]);
+
+        let error = execute(command).expect_err("missing check id should fail");
+
+        assert_eq!(error.to_string(), "checks run requires a check id");
     }
 
     #[test]
@@ -590,6 +620,29 @@ mod tests {
 
         // Assert
         assert_eq!(error.to_string(), "unknown policy: fixture.unknown");
+    }
+
+    #[test]
+    fn execute_policies_run_returns_typed_policy_result() {
+        let policy = catalog::find_official_policy_contribution(sample_policy_id())
+            .expect("sample policy should exist");
+        let command = args(&["ralph-engine", "policies", "run", policy.descriptor.id]);
+
+        let output = execute(command).expect("policies run should succeed");
+
+        assert!(output.contains(&format!("Runtime policy: {}", policy.descriptor.id)));
+        assert!(output.contains(&format!("Provider: {}", policy.descriptor.plugin_id)));
+        assert!(output.contains("Outcome:"));
+        assert!(output.contains("Policy enforcement hook:"));
+    }
+
+    #[test]
+    fn execute_policies_run_requires_policy_id() {
+        let command = args(&["ralph-engine", "policies", "run"]);
+
+        let error = execute(command).expect_err("missing policy id should fail");
+
+        assert_eq!(error.to_string(), "policies run requires a policy id");
     }
 
     #[test]
@@ -942,6 +995,27 @@ mod tests {
         assert!(output.contains("- id: official.github"));
         assert!(output.contains("- id: official.github.repository"));
         assert!(output.contains("enabled: true"));
+    }
+
+    #[test]
+    fn execute_doctor_write_config_persists_yaml() {
+        let output_path = std::env::temp_dir().join(format!(
+            "ralph-engine-doctor-write-config-{}.yaml",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&output_path);
+        let output_path_str = output_path.display().to_string();
+
+        let command = args(&["ralph-engine", "doctor", "write-config", &output_path_str]);
+
+        let output = execute(command).expect("doctor write-config should succeed");
+
+        assert_eq!(output, format!("Wrote output: {output_path_str}"));
+        let persisted = std::fs::read_to_string(&output_path).expect("config file should exist");
+        assert!(persisted.contains("schema_version: 1"));
+        assert!(persisted.contains("- id: official.github"));
+
+        let _ = std::fs::remove_file(output_path);
     }
 
     #[test]

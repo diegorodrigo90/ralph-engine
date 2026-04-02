@@ -10,10 +10,9 @@ use re_core::{
     RuntimeCheckRegistration, RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase,
     RuntimePluginRegistration, RuntimePolicyRegistration, RuntimePromptRegistration,
     RuntimeProviderKind, RuntimeProviderRegistration, RuntimeTemplateRegistration, RuntimeTopology,
-    agent_runtime_hook, capability_activates_agent_surface, capability_activates_policy_surface,
-    capability_activates_prompt_surface, capability_activates_template_surface,
-    policy_runtime_hook, prompt_runtime_hook, runtime_hook_for_check, runtime_hook_for_provider,
-    template_runtime_hook,
+    agent_runtime_hook, capability_activates_agent_surface, capability_activates_prompt_surface,
+    capability_activates_template_surface, policy_runtime_hook, prompt_runtime_hook,
+    runtime_hook_for_check, runtime_hook_for_provider, template_runtime_hook,
 };
 use re_mcp::{McpAvailability, McpServerDescriptor};
 use re_plugin::{
@@ -711,27 +710,20 @@ pub fn official_runtime_providers() -> Vec<RuntimeProviderRegistration> {
 pub fn official_runtime_policies() -> Vec<RuntimePolicyRegistration> {
     resolved_official_plugin_bundles()
         .into_iter()
-        .filter(|bundle| {
-            bundle
-                .plugin
-                .descriptor
-                .capabilities
-                .iter()
-                .copied()
-                .any(capability_activates_policy_surface)
-        })
-        .map(|bundle| {
-            RuntimePolicyRegistration::new(
-                bundle.plugin.descriptor.id,
-                bundle.plugin.descriptor.id,
-                bundle.plugin.activation,
-                bundle.plugin.descriptor.load_boundary,
-                bundle
-                    .plugin
-                    .descriptor
-                    .runtime_hooks
-                    .contains(&policy_runtime_hook()),
-            )
+        .flat_map(|bundle| {
+            bundle.bundle.policies.iter().copied().map(move |policy| {
+                RuntimePolicyRegistration::new(
+                    policy.id,
+                    bundle.plugin.descriptor.id,
+                    bundle.plugin.activation,
+                    bundle.plugin.descriptor.load_boundary,
+                    bundle
+                        .plugin
+                        .descriptor
+                        .runtime_hooks
+                        .contains(&policy_runtime_hook()),
+                )
+            })
         })
         .collect()
 }

@@ -1,6 +1,17 @@
 pub(super) struct RuntimeLocaleCatalog {
+    pub runtime_check: &'static str,
+    pub runtime_check_outcome: &'static str,
+    pub runtime_check_passed: &'static str,
+    pub runtime_check_failed: &'static str,
+    pub runtime_policy: &'static str,
+    pub runtime_policy_outcome: &'static str,
+    pub runtime_policy_passed: &'static str,
+    pub runtime_policy_failed: &'static str,
     pub runtime_phase: &'static str,
     pub runtime_health: &'static str,
+    pub provider: &'static str,
+    pub load_boundary: &'static str,
+    pub policy_enforcement_hook: &'static str,
     pub locale: &'static str,
     pub plugins: &'static str,
     pub capabilities: &'static str,
@@ -43,7 +54,14 @@ macro_rules! locale_label {
 
 locale_label!(runtime_phase_label, runtime_phase);
 locale_label!(runtime_health_label, runtime_health);
+locale_label!(runtime_check_label, runtime_check);
+locale_label!(runtime_check_outcome_label, runtime_check_outcome);
+locale_label!(runtime_policy_label, runtime_policy);
+locale_label!(runtime_policy_outcome_label, runtime_policy_outcome);
 locale_label!(locale_label, locale);
+locale_label!(provider_label, provider);
+locale_label!(load_boundary_label, load_boundary);
+locale_label!(policy_enforcement_hook_label, policy_enforcement_hook);
 locale_label!(plugins_label, plugins);
 locale_label!(capabilities_label, capabilities);
 locale_label!(templates_label, templates);
@@ -74,6 +92,10 @@ locale_label!(runtime_mcp_launch_plans_label, runtime_mcp_launch_plans);
 locale_label!(runtime_issues_label, runtime_issues);
 locale_label!(runtime_action_plan_label, runtime_action_plan);
 locale_label!(runtime_doctor_label, runtime_doctor);
+locale_label!(runtime_check_passed_label, runtime_check_passed);
+locale_label!(runtime_check_failed_label, runtime_check_failed);
+locale_label!(runtime_policy_passed_label, runtime_policy_passed);
+locale_label!(runtime_policy_failed_label, runtime_policy_failed);
 
 pub(crate) fn translate_runtime_reason(locale: &str, reason: &str) -> String {
     (locale_catalog(locale).translate_runtime_reason)(reason)

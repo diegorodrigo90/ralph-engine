@@ -1,8 +1,19 @@
 use super::RuntimeLocaleCatalog;
 
 pub(super) const LOCALE: RuntimeLocaleCatalog = RuntimeLocaleCatalog {
+    runtime_check: "Runtime check",
+    runtime_check_outcome: "Outcome",
+    runtime_check_passed: "passed",
+    runtime_check_failed: "failed",
+    runtime_policy: "Runtime policy",
+    runtime_policy_outcome: "Outcome",
+    runtime_policy_passed: "passed",
+    runtime_policy_failed: "failed",
     runtime_phase: "Runtime phase",
     runtime_health: "Runtime health",
+    provider: "Provider",
+    load_boundary: "Load boundary",
+    policy_enforcement_hook: "Policy enforcement hook",
     locale: "Locale",
     plugins: "Plugins",
     capabilities: "Capabilities",
