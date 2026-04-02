@@ -17,6 +17,10 @@ The generated `manifest.yaml` follows the versioned manifest contract shipped in
 `schema/plugin-manifest.schema.json`, and the scaffolder validates that manifest
 before writing it to disk.
 
+The generated Rust crate keeps locale-aware plugin metadata under `src/i18n/`
+so new plugin projects start with the same additive locale structure used by
+the runtime and official plugins.
+
 ## Usage
 
 ```bash

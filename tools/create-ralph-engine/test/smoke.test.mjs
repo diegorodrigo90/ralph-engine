@@ -37,6 +37,9 @@ test("creates a non-interactive plugin scaffold", () => {
   const manifest = fs.readFileSync(path.join(targetDir, "manifest.yaml"), "utf8");
   const cargoToml = fs.readFileSync(path.join(targetDir, "Cargo.toml"), "utf8");
   const rustLib = fs.readFileSync(path.join(targetDir, "src", "lib.rs"), "utf8");
+  const rustI18nMod = fs.readFileSync(path.join(targetDir, "src", "i18n", "mod.rs"), "utf8");
+  const rustI18nEn = fs.readFileSync(path.join(targetDir, "src", "i18n", "en.rs"), "utf8");
+  const rustI18nPtBr = fs.readFileSync(path.join(targetDir, "src", "i18n", "pt_br.rs"), "utf8");
   validateManifestDocument(manifest);
   assert.match(manifest, /id: acme\.jira-suite/);
   assert.match(manifest, /kind: mcp_contribution/);
@@ -48,11 +51,18 @@ test("creates a non-interactive plugin scaffold", () => {
   assert.match(manifest, /- data_source/);
   assert.match(cargoToml, /name = "re-plugin-acme-jira-suite"/);
   assert.match(cargoToml, /re-plugin = \{ git = "https:\/\/github\.com\/diegorodrigo90\/ralph-engine\.git", tag = "v0\.2\.0-alpha\.1", package = "re-plugin" \}/);
+  assert.match(rustLib, /mod i18n;/);
   assert.match(rustLib, /pub const PLUGIN_ID: &str = "acme\.jira-suite";/);
+  assert.match(rustLib, /const PLUGIN_NAME: &str = i18n::default_name\(\);/);
+  assert.match(rustLib, /const LOCALIZED_NAMES: &\[PluginLocalizedText\] = i18n::localized_names\(\);/);
   assert.match(rustLib, /PluginTrustLevel::Community/);
   assert.match(rustLib, /PluginRuntimeHook::McpRegistration/);
   assert.match(rustLib, /PluginRuntimeHook::ContextProviderRegistration/);
   assert.match(rustLib, /PluginRuntimeHook::DataSourceRegistration/);
+  assert.match(rustI18nMod, /pub mod en;/);
+  assert.match(rustI18nMod, /pub mod pt_br;/);
+  assert.match(rustI18nEn, /pub const NAME: &str = "Jira Suite";/);
+  assert.match(rustI18nPtBr, /pub const SUMMARY: &str = "Plugin Jira Suite para o Ralph Engine\.";?/);
 });
 
 test("renders help in pt-br when locale is configured", () => {
@@ -94,11 +104,13 @@ test("creates template assets when template capability is present", () => {
   assert.equal(result.status, 0, result.stderr);
   const manifest = fs.readFileSync(path.join(targetDir, "manifest.yaml"), "utf8");
   const rustLib = fs.readFileSync(path.join(targetDir, "src", "lib.rs"), "utf8");
+  const rustI18nMod = fs.readFileSync(path.join(targetDir, "src", "i18n", "mod.rs"), "utf8");
   validateManifestDocument(manifest);
   assert.equal(fs.existsSync(path.join(targetDir, "template", "config.yaml")), true);
   assert.equal(fs.existsSync(path.join(targetDir, "template", "hooks.yaml")), true);
   assert.equal(fs.existsSync(path.join(targetDir, "template", "prompt.md")), true);
   assert.match(rustLib, /PluginRuntimeHook::Scaffold/);
+  assert.match(rustI18nMod, /localized_summaries/);
 });
 
 test("rejects manifests that drift from the typed contract", () => {

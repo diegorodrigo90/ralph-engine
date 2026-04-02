@@ -215,6 +215,13 @@ function createScaffold(scaffold) {
   writeFile(scaffold.targetDir, "Cargo.toml", renderCargoToml(scaffold));
   writeFile(scaffold.targetDir, "README.md", renderREADME(scaffold));
   writeFile(scaffold.targetDir, path.join("src", "lib.rs"), renderRustPluginLib(scaffold));
+  writeFile(scaffold.targetDir, path.join("src", "i18n", "mod.rs"), renderRustPluginI18nMod());
+  writeFile(scaffold.targetDir, path.join("src", "i18n", "en.rs"), renderRustPluginI18nEn(scaffold));
+  writeFile(
+    scaffold.targetDir,
+    path.join("src", "i18n", "pt_br.rs"),
+    renderRustPluginI18nPtBr(scaffold),
+  );
 
   if (scaffold.capabilities.includes("template")) {
     writeFile(scaffold.targetDir, path.join("template", "config.yaml"), renderTemplateConfig(scaffold));
@@ -280,7 +287,7 @@ function renderREADME(scaffold) {
     "## Next Steps",
     "",
     "1. Edit `manifest.yaml` to match your real compatibility and capabilities.",
-    "2. Refine `Cargo.toml` and `src/lib.rs` so the crate matches your real runtime behavior.",
+    "2. Refine `Cargo.toml`, `src/lib.rs`, and the files under `src/i18n/` so the crate matches your real runtime behavior and locale coverage.",
     "3. Implement the runtime, MCP bridge, or assets that your manifest declares.",
     "4. Add tests and release metadata before publishing.",
   ];
@@ -330,6 +337,8 @@ function renderRustPluginLib(scaffold) {
 
   return `//! Community plugin metadata for ${scaffold.id}.
 
+mod i18n;
+
 use re_plugin::{
     ${[
       ...capabilityImports,
@@ -345,13 +354,10 @@ use re_plugin::{
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "${scaffold.id}";
-const PLUGIN_NAME: &str = "${humanize(scaffold.name)}";
-const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "${humanize(scaffold.name)}")];
-const PLUGIN_SUMMARY: &str = "${humanize(scaffold.name)} plugin for Ralph Engine.";
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
-    "pt-br",
-    "Plugin ${humanize(scaffold.name)} para o Ralph Engine.",
-)];
+const PLUGIN_NAME: &str = i18n::default_name();
+const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_names();
+const PLUGIN_SUMMARY: &str = i18n::default_summary();
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_summaries();
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[${scaffold.capabilities
     .map(capabilityImportName)
@@ -422,9 +428,9 @@ mod tests {
         let plugin = descriptor();
 
         let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == "${humanize(scaffold.name)}"
-            && plugin.display_name_for_locale("pt-br") == "${humanize(scaffold.name)}"
-            && plugin.summary_for_locale("pt-br") == "Plugin ${humanize(scaffold.name)} para o Ralph Engine."
+            && plugin.name == i18n::default_name()
+            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::NAME
+            && plugin.summary_for_locale("pt-br") == i18n::pt_br::SUMMARY
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         assert!(descriptor_matches);
@@ -440,6 +446,50 @@ mod tests {
         assert!(!runtime_hooks().is_empty());
     }
 }
+`;
+}
+
+function renderRustPluginI18nMod() {
+  return `pub mod en;
+pub mod pt_br;
+
+use re_plugin::PluginLocalizedText;
+
+/// Returns the default English plugin name.
+#[must_use]
+pub const fn default_name() -> &'static str {
+    en::NAME
+}
+
+/// Returns the default English plugin summary.
+#[must_use]
+pub const fn default_summary() -> &'static str {
+    en::SUMMARY
+}
+
+/// Returns localized plugin names beyond the default English value.
+#[must_use]
+pub const fn localized_names() -> &'static [PluginLocalizedText] {
+    &[PluginLocalizedText::new("pt-br", pt_br::NAME)]
+}
+
+/// Returns localized plugin summaries beyond the default English value.
+#[must_use]
+pub const fn localized_summaries() -> &'static [PluginLocalizedText] {
+    &[PluginLocalizedText::new("pt-br", pt_br::SUMMARY)]
+}
+`;
+}
+
+function renderRustPluginI18nEn(scaffold) {
+  return `pub const NAME: &str = "${humanize(scaffold.name)}";
+pub const SUMMARY: &str = "${humanize(scaffold.name)} plugin for Ralph Engine.";
+`;
+}
+
+function renderRustPluginI18nPtBr(scaffold) {
+  return `pub const NAME: &str = "${humanize(scaffold.name)}";
+pub const SUMMARY: &str = "Plugin ${humanize(scaffold.name)} para o Ralph Engine.";
 `;
 }
 
