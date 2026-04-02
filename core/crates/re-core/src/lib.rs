@@ -392,6 +392,24 @@ pub const fn runtime_hook_for_check(kind: RuntimeCheckKind) -> PluginRuntimeHook
     }
 }
 
+/// Returns the runtime hook that activates the template surface.
+#[must_use]
+pub const fn template_runtime_hook() -> PluginRuntimeHook {
+    PluginRuntimeHook::Scaffold
+}
+
+/// Returns the runtime hook that activates the prompt surface.
+#[must_use]
+pub const fn prompt_runtime_hook() -> PluginRuntimeHook {
+    PluginRuntimeHook::PromptAssembly
+}
+
+/// Returns the runtime hook that activates the agent runtime surface.
+#[must_use]
+pub const fn agent_runtime_hook() -> PluginRuntimeHook {
+    PluginRuntimeHook::AgentBootstrap
+}
+
 /// One typed runtime check registration in the resolved runtime topology.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct RuntimeCheckRegistration {
@@ -482,6 +500,12 @@ pub const fn runtime_hook_for_provider(kind: RuntimeProviderKind) -> PluginRunti
         RuntimeProviderKind::ForgeProvider => PluginRuntimeHook::ForgeProviderRegistration,
         RuntimeProviderKind::RemoteControl => PluginRuntimeHook::RemoteControlBootstrap,
     }
+}
+
+/// Returns the runtime hook that activates the policy surface.
+#[must_use]
+pub const fn policy_runtime_hook() -> PluginRuntimeHook {
+    PluginRuntimeHook::PolicyEnforcement
 }
 
 /// One typed provider registration in the resolved runtime topology.

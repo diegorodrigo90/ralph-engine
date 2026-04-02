@@ -8,13 +8,12 @@ use re_core::{
     RuntimeAgentRegistration, RuntimeCapabilityRegistration, RuntimeCheckRegistration,
     RuntimeHookRegistration, RuntimeMcpRegistration, RuntimePhase, RuntimePluginRegistration,
     RuntimePolicyRegistration, RuntimePromptRegistration, RuntimeProviderRegistration,
-    RuntimeTemplateRegistration, RuntimeTopology, runtime_check_kind_for_capability,
-    runtime_hook_for_check, runtime_hook_for_provider, runtime_provider_kind_for_capability,
+    RuntimeTemplateRegistration, RuntimeTopology, agent_runtime_hook, policy_runtime_hook,
+    prompt_runtime_hook, runtime_check_kind_for_capability, runtime_hook_for_check,
+    runtime_hook_for_provider, runtime_provider_kind_for_capability, template_runtime_hook,
 };
 use re_mcp::McpServerDescriptor;
-use re_plugin::{
-    AGENT_RUNTIME, POLICY, PROMPT_FRAGMENTS, PluginDescriptor, PluginRuntimeHook, TEMPLATE,
-};
+use re_plugin::{AGENT_RUNTIME, POLICY, PROMPT_FRAGMENTS, PluginDescriptor, TEMPLATE};
 
 /// Immutable owned snapshot of the official runtime catalog.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -186,7 +185,7 @@ pub fn official_runtime_templates() -> Vec<RuntimeTemplateRegistration> {
                 plugin
                     .descriptor
                     .runtime_hooks
-                    .contains(&PluginRuntimeHook::Scaffold),
+                    .contains(&template_runtime_hook()),
             )
         })
         .collect()
@@ -206,7 +205,7 @@ pub fn official_runtime_prompts() -> Vec<RuntimePromptRegistration> {
                 plugin
                     .descriptor
                     .runtime_hooks
-                    .contains(&PluginRuntimeHook::PromptAssembly),
+                    .contains(&prompt_runtime_hook()),
             )
         })
         .collect()
@@ -226,7 +225,7 @@ pub fn official_runtime_agents() -> Vec<RuntimeAgentRegistration> {
                 plugin
                     .descriptor
                     .runtime_hooks
-                    .contains(&PluginRuntimeHook::AgentBootstrap),
+                    .contains(&agent_runtime_hook()),
             )
         })
         .collect()
@@ -328,7 +327,7 @@ pub fn official_runtime_policies() -> Vec<RuntimePolicyRegistration> {
                 plugin
                     .descriptor
                     .runtime_hooks
-                    .contains(&PluginRuntimeHook::PolicyEnforcement),
+                    .contains(&policy_runtime_hook()),
             )
         })
         .collect()
