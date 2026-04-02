@@ -80,6 +80,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 - `packaging/` SHALL own npm and Homebrew packaging.
 - `tools/create-ralph-engine/` SHALL own plugin scaffolding for `npx create-ralph-engine-plugin`. Runtime catalog surfaces SHALL NOT turn scaffolding into a generic runtime responsibility.
 - The plugin scaffolder SHALL only accept kinds and capabilities that already exist in the typed runtime and plugin contracts. Future surfaces SHALL stay rejected until the core defines them explicitly.
+- Cross-language plugin contracts SHALL stay verified. Changes to reviewed Rust capabilities, official plugin descriptors, or scaffolder-supported surfaces SHALL update the explicit contract checks rather than relying on drift-prone manual synchronization.
 - `scripts/` SHALL own shared bootstrap, install, validation, and release scripts.
 
 ## Commands
@@ -95,6 +96,7 @@ cargo llvm-cov --workspace --all-features --lcov --output-path coverage/lcov.inf
 cargo doc --workspace --no-deps
 cargo deny check
 cargo audit
+npm run contracts:verify
 ```
 
 For public-surface-only change sets, the `public` validation step SHALL cover both:

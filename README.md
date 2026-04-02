@@ -23,6 +23,7 @@ Those public surfaces also follow a shared UX contract: consistent navigation, s
 ./scripts/bootstrap-dev.sh
 ./scripts/validate.sh --mode local
 ./scripts/validate-ci-local.sh
+npm run contracts:verify
 cargo test --workspace --all-targets --all-features
 ```
 
@@ -36,6 +37,7 @@ cargo test --workspace --all-targets --all-features
 - Runtime registration stays typed: the resolved runtime topology, capability registry, template registry, prompt registry, agent registry, check registry, provider registry, policy registry, runtime-hook registry, runtime health, runtime issues, runtime action plans, and MCP contributions are expected to evolve through shared contracts rather than implicit command-local catalog traversal, and disabled capabilities, templates, prompt providers, agent runtimes, checks, providers, policies, or hooks remain visible in health plus remediation output
 - Developer scaffolding stays tooling-owned: `tools/create-ralph-engine/` is the home of plugin scaffold generation through `npx create-ralph-engine-plugin`, while runtime surfaces stay focused on typed runtime contracts instead of turning scaffolding into a generic runtime responsibility
 - The plugin scaffolder only accepts kinds and capabilities that the typed runtime already defines; future surfaces stay rejected until the core contracts exist for them
+- Cross-language plugin contracts are verified explicitly so Rust capability contracts and `create-ralph-engine-plugin` supported surfaces cannot drift silently
 - Runtime diagnostics stay typed: doctor-style reporting is expected to compose status, unresolved issues, and remediation actions from one shared runtime snapshot instead of re-deriving them ad hoc in separate commands
 - The repository enforces `fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, docs build, and public-surface assembly from the same validation contract
 - SonarCloud is configured as the final coverage gate for analyzed code, and the release path is blocked unless that gate stays at `100%`
