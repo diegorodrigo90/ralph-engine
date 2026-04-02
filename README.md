@@ -3,8 +3,14 @@
 [![CI](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/ci.yml)
 [![Pages](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/pages.yml/badge.svg)](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/pages.yml)
 [![Release Automation](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/release-plz.yml/badge.svg)](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/release-plz.yml)
+[![Sonar Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=ralph-engine_ralph-engine&metric=alert_status)](https://sonarcloud.io/project/overview?id=ralph-engine_ralph-engine)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=ralph-engine_ralph-engine&metric=coverage)](https://sonarcloud.io/project/overview?id=ralph-engine_ralph-engine)
 [![Latest Release](https://img.shields.io/github/v/release/diegorodrigo90/ralph-engine?display_name=tag)](https://github.com/diegorodrigo90/ralph-engine/releases)
+[![Rust](https://img.shields.io/badge/rust-1.91.1-93450a.svg)](rust-toolchain.toml)
+[![Node](https://img.shields.io/badge/node-20.19%2B-339933.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![npm Channel](https://img.shields.io/badge/npm-gated-lightgrey.svg)](packaging/npm/README.md)
+[![Homebrew Channel](https://img.shields.io/badge/homebrew-gated-lightgrey.svg)](packaging/homebrew/README.md)
 
 Ralph Engine is an open-source plugin-first runtime for agentic coding workflows.
 
