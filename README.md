@@ -1,5 +1,11 @@
 # Ralph Engine
 
+[![CI](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/ci.yml)
+[![Pages](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/pages.yml/badge.svg)](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/pages.yml)
+[![Release Automation](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/release-plz.yml/badge.svg)](https://github.com/diegorodrigo90/ralph-engine/actions/workflows/release-plz.yml)
+[![Latest Release](https://img.shields.io/github/v/release/diegorodrigo90/ralph-engine?display_name=tag)](https://github.com/diegorodrigo90/ralph-engine/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Ralph Engine is an open-source plugin-first runtime for agentic coding workflows.
 
 This repository has been rebooted onto a Rust-first foundation. The core runtime and official plugins now evolve in Rust, while docs, site, and developer scaffolding keep the stacks that fit them best.
@@ -7,7 +13,28 @@ This repository has been rebooted onto a Rust-first foundation. The core runtime
 Public product surfaces are being prepared for bilingual operation in English and pt-BR, including the CLI, docs, and site.
 Those public surfaces also follow a shared UX contract: consistent navigation, stable public paths, and A-grade accessibility, performance, and SEO targets.
 
-## Repository shape
+- Website: https://ralphengine.com
+- Docs: https://ralphengine.com/docs/
+- Plugins: https://ralphengine.com/plugins/
+- Releases: https://github.com/diegorodrigo90/ralph-engine/releases
+
+## Why Ralph Engine
+
+- Rust-first runtime and CLI foundation
+- plugin-first architecture with typed capability contracts
+- MCP-aware official integrations
+- hardened CI and release gates with build-once promote-later publishing
+- bilingual public surfaces for `en` and `pt-BR`
+
+## Install
+
+Current public install channels are being wired through the hardened release pipeline.
+
+- GitHub Releases are the canonical reviewed artifact source
+- npm and Homebrew are prepared but still intentionally gated during the reboot
+- `npx create-ralph-engine-plugin` is the supported scaffolder entrypoint for plugin authors
+
+## Repository Layout
 
 - `core/` — Rust crates for the runtime and CLI
 - `plugins/official/` — Rust-first official plugins
@@ -17,7 +44,7 @@ Those public surfaces also follow a shared UX contract: consistent navigation, s
 - `tools/create-ralph-engine/` — plugin scaffolder (`npx create-ralph-engine-plugin`)
 - `scripts/` — shared bootstrap, validation, and release scripts
 
-## Development baseline
+## Quickstart
 
 ```bash
 ./scripts/bootstrap-dev.sh
@@ -27,7 +54,15 @@ npm run contracts:verify
 cargo test --workspace --all-targets --all-features
 ```
 
-## Coding standards
+## Open Source Contract
+
+- typed runtime and plugin contracts come before string-coupled branching
+- changes are gated by `fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, docs build, and public-surface assembly
+- release artifacts are only promoted from a green `main` SHA after `Quality`, `Security`, and `SonarCloud`
+- docs and public site publish from published releases so the public surface follows released application state
+- locale expansion is additive and English remains the fallback when a locale catalog is incomplete
+
+## Engineering Rules
 
 - Public Rust APIs are documented with `rustdoc`
 - Rust tests prefer Arrange, Act, Assert
@@ -49,7 +84,7 @@ cargo test --workspace --all-targets --all-features
 - SonarCloud is configured as the final coverage gate for analyzed code, and the release path is blocked unless that gate stays at `100%`
 - `./scripts/validate-ci-local.sh` provides a supported local smoke run for the GitHub Actions CI workflow when `act` is installed
 
-## Release model
+## Release Model
 
 - SemVer 2.0.0
 - Conventional Commits
