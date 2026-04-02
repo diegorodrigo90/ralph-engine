@@ -5,11 +5,12 @@ use re_plugin::{
     ALL_PLUGIN_RUNTIME_SURFACES, ALL_PLUGIN_TRUST_LEVELS, CONTEXT_PROVIDER, DATA_SOURCE,
     DOCTOR_CHECKS, FORGE_PROVIDER, MCP_CONTRIBUTION, POLICY, PREPARE_CHECKS, PROMPT_FRAGMENTS,
     PluginAgentDescriptor, PluginCapability, PluginDescriptor, PluginKind, PluginLifecycleStage,
-    PluginLoadBoundary, PluginLocalizedText, PluginPolicyDescriptor, PluginPromptDescriptor,
-    PluginRuntimeHook, PluginRuntimeSurface, PluginTemplateAsset, PluginTemplateDescriptor,
-    PluginTrustLevel, REMOTE_CONTROL, TEMPLATE, parse_plugin_runtime_hook,
-    parse_reviewed_plugin_capability, render_plugin_detail, render_plugin_detail_for_locale,
-    render_plugin_listing, render_plugin_listing_for_locale, runtime_surface_for_capability,
+    PluginLoadBoundary, PluginLocalizedText, PluginPolicyDescriptor, PluginPromptAsset,
+    PluginPromptDescriptor, PluginRuntimeHook, PluginRuntimeSurface, PluginTemplateAsset,
+    PluginTemplateDescriptor, PluginTrustLevel, REMOTE_CONTROL, TEMPLATE,
+    parse_plugin_runtime_hook, parse_reviewed_plugin_capability, render_plugin_detail,
+    render_plugin_detail_for_locale, render_plugin_listing, render_plugin_listing_for_locale,
+    runtime_surface_for_capability,
 };
 
 const BASIC_CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -69,6 +70,10 @@ const GITHUB_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
 const TEMPLATE_ASSETS: &[PluginTemplateAsset] = &[PluginTemplateAsset::new(
     ".ralph-engine/config.yaml",
     "schema_version: 1\n",
+)];
+const PROMPT_ASSETS: &[PluginPromptAsset] = &[PluginPromptAsset::new(
+    "prompts/workflow.md",
+    "# workflow\n",
 )];
 
 fn basic_plugin() -> PluginDescriptor {
@@ -180,6 +185,7 @@ fn prompt_descriptor_resolves_locales_with_english_fallback() {
         BMAD_PROMPT_LOCALIZED_NAMES,
         "Prompt bundle for fixture workflow assembly.",
         BMAD_PROMPT_LOCALIZED_SUMMARIES,
+        PROMPT_ASSETS,
     );
 
     assert_eq!(
@@ -198,6 +204,8 @@ fn prompt_descriptor_resolves_locales_with_english_fallback() {
         descriptor.summary_for_locale("fr"),
         "Prompt bundle for fixture workflow assembly."
     );
+    assert!(descriptor.has_assets());
+    assert_eq!(descriptor.assets[0].path, "prompts/workflow.md");
 }
 
 #[test]

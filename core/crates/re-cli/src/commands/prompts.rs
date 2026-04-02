@@ -75,9 +75,21 @@ fn render_prompt_detail(prompt: OfficialPromptContribution, locale: &str) -> Str
     } else {
         "Runtime hook"
     };
+    let assets_label = "Assets";
+    let asset_paths = if prompt.descriptor.has_assets() {
+        prompt
+            .descriptor
+            .assets
+            .iter()
+            .map(|asset| asset.path)
+            .collect::<Vec<_>>()
+            .join(", ")
+    } else {
+        "none".to_owned()
+    };
 
     format!(
-        "Prompt: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{}: {}\n{}: {}\n{hook_label}: {}",
+        "Prompt: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{}: {}\n{}: {}\n{hook_label}: {}\n{assets_label}: {}",
         prompt.descriptor.id,
         prompt.descriptor.display_name_for_locale(locale),
         prompt.descriptor.summary_for_locale(locale),
@@ -91,13 +103,16 @@ fn render_prompt_detail(prompt: OfficialPromptContribution, locale: &str) -> Str
         } else {
             "missing"
         },
+        asset_paths,
     )
 }
 
 #[cfg(test)]
 mod tests {
     use re_config::PluginActivation;
-    use re_plugin::{PluginLoadBoundary, PluginLocalizedText, PluginPromptDescriptor};
+    use re_plugin::{
+        PluginLoadBoundary, PluginLocalizedText, PluginPromptAsset, PluginPromptDescriptor,
+    };
 
     use super::{OfficialPromptContribution, render_prompt_detail, render_prompt_listing};
 
@@ -106,6 +121,10 @@ mod tests {
     const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
         "pt-br",
         "Pacote de prompts para montar workflows BMAD.",
+    )];
+    const PROMPT_ASSETS: &[PluginPromptAsset] = &[PluginPromptAsset::new(
+        "prompts/workflow.md",
+        "# workflow\n",
     )];
 
     fn prompt_descriptor() -> PluginPromptDescriptor {
@@ -116,6 +135,7 @@ mod tests {
             LOCALIZED_NAMES,
             "Prompt bundle for BMAD workflow assembly.",
             LOCALIZED_SUMMARIES,
+            PROMPT_ASSETS,
         )
     }
 
@@ -154,6 +174,7 @@ mod tests {
         assert!(rendered.contains("Plugin: official.bmad"));
         assert!(rendered.contains("Activation: disabled"));
         assert!(rendered.contains("Runtime hook: prompt_assembly"));
+        assert!(rendered.contains("Assets: prompts/workflow.md"));
     }
 
     #[test]
@@ -172,5 +193,6 @@ mod tests {
         assert!(rendered.contains("Nome: Prompt de workflow BMAD"));
         assert!(rendered.contains("Resumo: Pacote de prompts para montar workflows BMAD."));
         assert!(rendered.contains("Plugin: official.bmad"));
+        assert!(rendered.contains("Assets: prompts/workflow.md"));
     }
 }

@@ -4,8 +4,9 @@ mod i18n;
 
 use re_plugin::{
     DOCTOR_CHECKS, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginDescriptor, PluginKind,
-    PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginPromptDescriptor,
-    PluginRuntimeHook, PluginTemplateAsset, PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
+    PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginPromptAsset,
+    PluginPromptDescriptor, PluginRuntimeHook, PluginTemplateAsset, PluginTemplateDescriptor,
+    PluginTrustLevel, TEMPLATE,
 };
 
 /// Stable plugin identifier.
@@ -70,6 +71,10 @@ const TEMPLATES: &[PluginTemplateDescriptor] = &[PluginTemplateDescriptor::new(
     i18n::localized_template_summaries(),
     TEMPLATE_ASSETS,
 )];
+const PROMPT_ASSETS: &[PluginPromptAsset] = &[PluginPromptAsset::new(
+    "prompts/workflow.md",
+    include_str!("../template/prompt.md"),
+)];
 const PROMPTS: &[PluginPromptDescriptor] = &[PluginPromptDescriptor::new(
     "official.bmad.workflow",
     PLUGIN_ID,
@@ -77,6 +82,7 @@ const PROMPTS: &[PluginPromptDescriptor] = &[PluginPromptDescriptor::new(
     i18n::localized_prompt_names(),
     i18n::default_prompt_summary(),
     i18n::localized_prompt_summaries(),
+    PROMPT_ASSETS,
 )];
 
 /// Declared capabilities for the official plugin foundation.
@@ -211,6 +217,8 @@ mod tests {
 
         assert_eq!(prompt.id, "official.bmad.workflow");
         assert_eq!(prompt.plugin_id, PLUGIN_ID);
+        assert!(prompt.has_assets());
+        assert_eq!(prompt.assets[0].path, "prompts/workflow.md");
         assert_eq!(
             prompt.display_name_for_locale("pt-br"),
             "Prompt de workflow BMAD"
