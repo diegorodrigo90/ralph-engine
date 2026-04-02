@@ -1,7 +1,8 @@
 //! Official basic starter plugin metadata.
 
 use re_plugin::{
-    PluginDescriptor, PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook, TEMPLATE,
+    PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook,
+    TEMPLATE,
 };
 
 /// Stable plugin identifier.
@@ -17,6 +18,7 @@ const LIFECYCLE: &[PluginLifecycleStage] = &[
 const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[PluginRuntimeHook::Scaffold];
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
+    PluginKind::Template,
     PLUGIN_NAME,
     PLUGIN_VERSION,
     CAPABILITIES,

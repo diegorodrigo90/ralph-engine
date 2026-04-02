@@ -1,7 +1,8 @@
 //! Official TDD strict policy plugin metadata.
 
 use re_plugin::{
-    POLICY, PluginDescriptor, PluginLifecycleStage, PluginLoadBoundary, PluginRuntimeHook, TEMPLATE,
+    POLICY, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
+    PluginRuntimeHook, TEMPLATE,
 };
 
 /// Stable plugin identifier.
@@ -21,6 +22,7 @@ const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
 ];
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
+    PluginKind::Policy,
     PLUGIN_NAME,
     PLUGIN_VERSION,
     CAPABILITIES,

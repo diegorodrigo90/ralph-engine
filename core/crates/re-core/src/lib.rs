@@ -1297,7 +1297,7 @@ mod tests {
     use re_config::{ConfigScope, PluginActivation};
     use re_mcp::{McpAvailability, McpLaunchPolicy, McpServerDescriptor, McpTransport};
     use re_plugin::{
-        PluginCapability, PluginDescriptor, PluginLifecycleStage, PluginLoadBoundary,
+        PluginCapability, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
         PluginRuntimeHook,
     };
 
@@ -1320,6 +1320,7 @@ mod tests {
     fn plugin_descriptor() -> PluginDescriptor {
         PluginDescriptor::new(
             "official.basic",
+            PluginKind::Template,
             "Basic",
             "0.2.0-alpha.1",
             CAPABILITIES,

@@ -2,8 +2,8 @@
 
 use re_mcp::{McpAvailability, McpLaunchPolicy, McpServerDescriptor, McpTransport};
 use re_plugin::{
-    AGENT_RUNTIME, MCP_CONTRIBUTION, PluginDescriptor, PluginLifecycleStage, PluginLoadBoundary,
-    PluginRuntimeHook,
+    AGENT_RUNTIME, MCP_CONTRIBUTION, PluginDescriptor, PluginKind, PluginLifecycleStage,
+    PluginLoadBoundary, PluginRuntimeHook,
 };
 
 /// Stable plugin identifier.
@@ -19,6 +19,7 @@ const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
 ];
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
+    PluginKind::AgentRuntime,
     PLUGIN_NAME,
     PLUGIN_VERSION,
     CAPABILITIES,

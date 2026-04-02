@@ -64,6 +64,62 @@ pub const ALL_PLUGIN_CAPABILITIES: &[PluginCapability] = &[
     POLICY,
 ];
 
+/// Typed primary plugin kind identifier.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PluginKind {
+    /// Template-oriented plugin.
+    Template,
+    /// Agent runtime plugin.
+    AgentRuntime,
+    /// Forge provider plugin.
+    ForgeProvider,
+    /// Context provider plugin.
+    ContextProvider,
+    /// Data source plugin.
+    DataSource,
+    /// Remote control plugin.
+    RemoteControl,
+    /// MCP contribution plugin.
+    McpContribution,
+    /// Policy plugin.
+    Policy,
+}
+
+impl PluginKind {
+    /// Returns the stable plugin kind identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Template => "template",
+            Self::AgentRuntime => "agent_runtime",
+            Self::ForgeProvider => "forge_provider",
+            Self::ContextProvider => "context_provider",
+            Self::DataSource => "data_source",
+            Self::RemoteControl => "remote_control",
+            Self::McpContribution => "mcp_contribution",
+            Self::Policy => "policy",
+        }
+    }
+}
+
+impl fmt::Display for PluginKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Canonical ordered list of reviewed plugin kinds.
+pub const ALL_PLUGIN_KINDS: &[PluginKind] = &[
+    PluginKind::Template,
+    PluginKind::AgentRuntime,
+    PluginKind::ForgeProvider,
+    PluginKind::ContextProvider,
+    PluginKind::DataSource,
+    PluginKind::RemoteControl,
+    PluginKind::McpContribution,
+    PluginKind::Policy,
+];
+
 /// Typed plugin lifecycle stage identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PluginLifecycleStage {
@@ -183,6 +239,8 @@ impl fmt::Display for PluginRuntimeHook {
 pub struct PluginDescriptor {
     /// Stable plugin identifier.
     pub id: &'static str,
+    /// Stable primary plugin kind.
+    pub kind: PluginKind,
     /// Human-readable plugin name.
     pub name: &'static str,
     /// Published plugin version.
@@ -200,8 +258,10 @@ pub struct PluginDescriptor {
 impl PluginDescriptor {
     /// Creates a new immutable plugin descriptor.
     #[must_use]
+    #[allow(clippy::too_many_arguments)]
     pub const fn new(
         id: &'static str,
+        kind: PluginKind,
         name: &'static str,
         version: &'static str,
         capabilities: &'static [PluginCapability],
@@ -211,6 +271,7 @@ impl PluginDescriptor {
     ) -> Self {
         Self {
             id,
+            kind,
             name,
             version,
             capabilities,
@@ -260,8 +321,8 @@ pub fn render_plugin_listing(plugins: &[PluginDescriptor]) -> String {
             .join(", ");
 
         lines.push(format!(
-            "- {} | {} | v{} | {}",
-            plugin.id, plugin.name, plugin.version, capabilities
+            "- {} | {} | {} | v{} | {}",
+            plugin.id, plugin.kind, plugin.name, plugin.version, capabilities
         ));
     }
 
@@ -291,8 +352,9 @@ pub fn render_plugin_detail(plugin: &PluginDescriptor) -> String {
         .join(", ");
 
     format!(
-        "Plugin: {}\nName: {}\nVersion: v{}\nCapabilities: {}\nLifecycle: {}\nLoad boundary: {}\nRuntime hooks: {}",
+        "Plugin: {}\nKind: {}\nName: {}\nVersion: v{}\nCapabilities: {}\nLifecycle: {}\nLoad boundary: {}\nRuntime hooks: {}",
         plugin.id,
+        plugin.kind,
         plugin.name,
         plugin.version,
         capabilities,

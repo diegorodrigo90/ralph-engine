@@ -31,7 +31,7 @@ cargo test --workspace --all-targets --all-features
 
 - Public Rust APIs are documented with `rustdoc`
 - Rust tests prefer Arrange, Act, Assert
-- Plugin and MCP extensibility stays typed: capabilities, lifecycle stages, runtime hooks, configuration scopes, launch policy, command boundaries, and future contributions are expected to evolve through shared contracts rather than string-coupled runtime branches
+- Plugin and MCP extensibility stays typed: plugin kinds, capabilities, lifecycle stages, runtime hooks, configuration scopes, launch policy, command boundaries, and future contributions are expected to evolve through shared contracts rather than string-coupled runtime branches
 - Configuration layering stays typed and explicit: canonical defaults, future workspace settings, project settings, and user overrides are expected to evolve through shared layer contracts and inspectable CLI output rather than hidden precedence rules
 - Prompt and context budgets stay typed and explicit: shared runtime budget contracts and CLI inspection are expected to carry token ceilings instead of scattering implicit defaults through providers
 - Runtime registration stays typed: the resolved runtime topology, capability registry, template registry, prompt registry, agent registry, check registry, provider registry, policy registry, runtime-hook registry, runtime health, runtime issues, runtime action plans, and MCP contributions are expected to evolve through shared contracts rather than implicit command-local catalog traversal, and disabled capabilities, templates, prompt providers, agent runtimes, checks, providers, policies, or hooks remain visible in health plus remediation output
