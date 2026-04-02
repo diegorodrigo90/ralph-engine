@@ -1,2 +1,6 @@
-pub const NAME: &str = "TDD Strict";
-pub const SUMMARY: &str = "Strict TDD policy and template guardrails.";
+use super::PluginLocaleCatalog;
+
+pub const LOCALE: PluginLocaleCatalog = PluginLocaleCatalog {
+    name: "TDD Strict",
+    summary: "Strict TDD policy and template guardrails.",
+};

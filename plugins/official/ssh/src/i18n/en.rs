@@ -1,2 +1,6 @@
-pub const NAME: &str = "SSH";
-pub const SUMMARY: &str = "SSH remote control integration.";
+use super::PluginLocaleCatalog;
+
+pub const LOCALE: PluginLocaleCatalog = PluginLocaleCatalog {
+    name: "SSH",
+    summary: "SSH remote control integration.",
+};

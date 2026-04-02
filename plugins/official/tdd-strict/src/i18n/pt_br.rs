@@ -1,2 +1,6 @@
-pub const NAME: &str = "TDD Estrito";
-pub const SUMMARY: &str = "Política estrita de TDD com guardrails de template.";
+use super::PluginLocaleCatalog;
+
+pub const LOCALE: PluginLocaleCatalog = PluginLocaleCatalog {
+    name: "TDD Estrito",
+    summary: "Política estrita de TDD com guardrails de template.",
+};

@@ -97,9 +97,9 @@ mod tests {
 
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == i18n::en::NAME
-            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::NAME
-            && plugin.summary_for_locale("pt-br") == i18n::pt_br::SUMMARY
+            && plugin.name == i18n::en::LOCALE.name
+            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::LOCALE.name
+            && plugin.summary_for_locale("pt-br") == i18n::pt_br::LOCALE.summary
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert

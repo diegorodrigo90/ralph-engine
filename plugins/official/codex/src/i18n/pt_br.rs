@@ -1,2 +1,6 @@
-pub const NAME: &str = "Codex";
-pub const SUMMARY: &str = "Integração do runtime Codex com sessão MCP.";
+use super::PluginLocaleCatalog;
+
+pub const LOCALE: PluginLocaleCatalog = PluginLocaleCatalog {
+    name: "Codex",
+    summary: "Integração do runtime Codex com sessão MCP.",
+};

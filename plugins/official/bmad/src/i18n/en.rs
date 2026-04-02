@@ -1,2 +1,6 @@
-pub const NAME: &str = "BMAD";
-pub const SUMMARY: &str = "Workflow plugin for BMAD scaffolding and prompts.";
+use super::PluginLocaleCatalog;
+
+pub const LOCALE: PluginLocaleCatalog = PluginLocaleCatalog {
+    name: "BMAD",
+    summary: "Workflow plugin for BMAD scaffolding and prompts.",
+};
