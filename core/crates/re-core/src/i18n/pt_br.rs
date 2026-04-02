@@ -1,21 +1,26 @@
-pub(super) const RUNTIME_PHASE: &str = "Fase do runtime";
-pub(super) const RUNTIME_HEALTH: &str = "Saúde do runtime";
-pub(super) const LOCALE: &str = "Idioma";
-pub(super) const PLUGINS: &str = "Plugins";
-pub(super) const CAPABILITIES: &str = "Capacidades";
-pub(super) const TEMPLATES: &str = "Templates";
-pub(super) const PROMPTS: &str = "Prompts";
-pub(super) const AGENT_RUNTIMES: &str = "Runtimes de agente";
-pub(super) const CHECKS: &str = "Verificações";
-pub(super) const PROVIDERS: &str = "Provedores";
-pub(super) const POLICIES: &str = "Políticas";
-pub(super) const RUNTIME_HOOKS: &str = "Hooks de runtime";
-pub(super) const MCP_SERVERS: &str = "Servidores MCP";
-pub(super) const RUNTIME_ISSUES: &str = "Problemas do runtime";
-pub(super) const RUNTIME_ACTION_PLAN: &str = "Plano de ação do runtime";
-pub(super) const RUNTIME_DOCTOR: &str = "Diagnóstico do runtime";
+use super::RuntimeLocaleCatalog;
 
-pub(super) fn translate_runtime_reason(reason: &str) -> String {
+pub(super) const LOCALE: RuntimeLocaleCatalog = RuntimeLocaleCatalog {
+    runtime_phase: "Fase do runtime",
+    runtime_health: "Saúde do runtime",
+    locale: "Idioma",
+    plugins: "Plugins",
+    capabilities: "Capacidades",
+    templates: "Templates",
+    prompts: "Prompts",
+    agent_runtimes: "Runtimes de agente",
+    checks: "Verificações",
+    providers: "Provedores",
+    policies: "Políticas",
+    runtime_hooks: "Hooks de runtime",
+    mcp_servers: "Servidores MCP",
+    runtime_issues: "Problemas do runtime",
+    runtime_action_plan: "Plano de ação do runtime",
+    runtime_doctor: "Diagnóstico do runtime",
+    translate_runtime_reason,
+};
+
+fn translate_runtime_reason(reason: &str) -> String {
     if let Some(capability) = reason.strip_prefix("the provider still disables capability ") {
         return format!("o provedor ainda desabilita a capacidade {capability}");
     }
