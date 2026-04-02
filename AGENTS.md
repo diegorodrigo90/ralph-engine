@@ -85,6 +85,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 - Locale-aware crates and public surfaces SHALL organize translation strings per locale module or file set instead of scattering inline locale branches across handlers.
 - Plugin metadata SHALL support locale-aware display names and summaries with English fallback when a requested locale is missing.
 - Plugins that expose public CLI-facing output SHALL own their locale catalogs alongside the plugin/runtime crate that renders that output, with English fallback when a requested locale is missing.
+- Per-locale modules SHALL expose one typed locale catalog object instead of scattered string constants, so core, official plugins, and scaffolded plugins can add a new locale without rewriting handlers.
 - Third-party plugin manifests SHALL carry locale-aware display metadata through the versioned `manifest.yaml` contract owned by `tools/create-ralph-engine/`, including required English summaries plus optional localized summaries.
 - `core/crates/re-plugin/` SHALL own typed plugin kind contracts for the runtime and tooling.
 - The plugin scaffolder SHALL only accept kinds and capabilities that already exist in the typed runtime and plugin contracts. Future surfaces SHALL stay rejected until the core defines them explicitly.

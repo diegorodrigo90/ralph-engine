@@ -33,3 +33,7 @@ mode is driven by flags and is suitable for automation.
 The scaffolder resolves user-facing CLI text through locale catalogs and
 currently supports `en` plus `pt-br` via `RALPH_ENGINE_LOCALE`, falling back to
 English when an unsupported locale is requested.
+
+Generated Rust plugin crates also start with per-locale catalog modules in
+`src/i18n/`, so localized names and summaries can grow by adding locale files
+instead of rewriting runtime-facing handlers.
