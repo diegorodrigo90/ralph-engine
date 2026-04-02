@@ -106,6 +106,8 @@ O comando `runtime issues` imprime a lista tipada de issues pendentes do runtime
 
 O comando `runtime plan` imprime o plano tipado de remediação derivado da topologia resolvida, incluindo enablement de templates, de prompts, de agent runtimes tipados, de checks tipados, de providers tipados, de policy e de hook, para que o próximo passo de enablement permaneça explícito e modular em vez de ser inferido ad hoc na CLI.
 
+O comando `runtime agent-plans` imprime os planos executáveis de bootstrap de agentes que permanecem habilitados no snapshot resolvido do runtime, para que os passos operacionais de inicialização de agentes fiquem visíveis ao lado de topologia, health, issues e remediação.
+
 O comando `runtime mcp-plans` imprime os planos executáveis de lançamento MCP que permanecem habilitados no snapshot resolvido do runtime, para que os passos operacionais de lançamento fiquem visíveis ao lado de topologia, health, issues e remediação.
 
 O comando `runtime patch` renderiza o patch tipado de configuração que remedia a topologia degradada atual, incluindo ativações de plugin e enablement por servidor MCP, para que a recuperação do runtime permaneça explícita e reutilizável em vez de ficar apenas como plano textual.
