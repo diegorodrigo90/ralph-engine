@@ -44,6 +44,9 @@ pub(super) const LOCALE: CliLocaleCatalog = CliLocaleCatalog {
     unknown_subcommand,
     missing_id,
     unknown_entity,
+    missing_asset_path,
+    unknown_template_asset,
+    unknown_prompt_asset,
 };
 
 fn unknown_command(command_name: &str) -> String {
@@ -60,4 +63,16 @@ fn missing_id(command_group: &str, entity_label: &str) -> String {
 
 fn unknown_entity(entity_label: &str, value: &str) -> String {
     format!("unknown {entity_label}: {value}")
+}
+
+fn missing_asset_path(command_group: &str) -> String {
+    format!("subcommand `{command_group}` requires an asset path")
+}
+
+fn unknown_template_asset(value: &str) -> String {
+    format!("unknown template asset: {value}")
+}
+
+fn unknown_prompt_asset(value: &str) -> String {
+    format!("unknown prompt asset: {value}")
 }

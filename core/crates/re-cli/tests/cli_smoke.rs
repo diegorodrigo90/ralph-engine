@@ -241,6 +241,41 @@ fn binary_templates_show_rejects_unknown_plugin_in_pt_br() {
 }
 
 #[test]
+fn binary_templates_asset_succeeds() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args([
+        "templates",
+        "asset",
+        "official.basic.starter",
+        ".ralph-engine/config.yaml",
+    ]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("# ralph-engine basic template"));
+}
+
+#[test]
+fn binary_templates_asset_rejects_unknown_asset_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args([
+        "templates",
+        "asset",
+        "official.basic.starter",
+        ".ralph-engine/missing.yaml",
+    ]);
+
+    let output = command.output().expect("binary should run");
+
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
+    assert!(stderr.contains("asset de template desconhecido: .ralph-engine/missing.yaml"));
+}
+
+#[test]
 fn binary_prompts_list_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
@@ -298,6 +333,41 @@ fn binary_prompts_show_rejects_unknown_plugin_in_pt_br() {
     assert_eq!(output.status.code(), Some(2));
     let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
     assert!(stderr.contains("prompt desconhecido: official.missing"));
+}
+
+#[test]
+fn binary_prompts_asset_succeeds() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.args([
+        "prompts",
+        "asset",
+        "official.bmad.workflow",
+        "prompts/workflow.md",
+    ]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("# Ralph Engine — BMAD Template"));
+}
+
+#[test]
+fn binary_prompts_asset_rejects_unknown_asset_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.args([
+        "prompts",
+        "asset",
+        "official.bmad.workflow",
+        "prompts/missing.md",
+    ]);
+
+    let output = command.output().expect("binary should run");
+
+    assert_eq!(output.status.code(), Some(2));
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
+    assert!(stderr.contains("asset de prompt desconhecido: prompts/missing.md"));
 }
 
 #[test]

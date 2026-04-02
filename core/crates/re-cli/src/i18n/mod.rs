@@ -49,6 +49,9 @@ pub(super) struct CliLocaleCatalog {
     pub unknown_subcommand: fn(&str, &str) -> String,
     pub missing_id: fn(&str, &str) -> String,
     pub unknown_entity: fn(&str, &str) -> String,
+    pub missing_asset_path: fn(&str) -> String,
+    pub unknown_template_asset: fn(&str) -> String,
+    pub unknown_prompt_asset: fn(&str) -> String,
 }
 
 mod en;
@@ -162,6 +165,21 @@ pub fn missing_id(locale: &str, command_group: &str, entity_label: &str) -> Stri
 #[must_use]
 pub fn unknown_entity(locale: &str, entity_label: &str, value: &str) -> String {
     (locale_catalog(locale).unknown_entity)(entity_label, value)
+}
+
+#[must_use]
+pub fn missing_asset_path(locale: &str, command_group: &str) -> String {
+    (locale_catalog(locale).missing_asset_path)(command_group)
+}
+
+#[must_use]
+pub fn unknown_template_asset(locale: &str, value: &str) -> String {
+    (locale_catalog(locale).unknown_template_asset)(value)
+}
+
+#[must_use]
+pub fn unknown_prompt_asset(locale: &str, value: &str) -> String {
+    (locale_catalog(locale).unknown_prompt_asset)(value)
 }
 
 #[must_use]

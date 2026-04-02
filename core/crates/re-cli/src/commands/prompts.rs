@@ -54,9 +54,8 @@ fn show_prompt_asset(
             i18n::prompt_id_entity_label(locale),
         ))
     })?;
-    let asset_path = asset_path.ok_or_else(|| {
-        CliError::new("subcommand `prompts asset` requires an asset path".to_owned())
-    })?;
+    let asset_path = asset_path
+        .ok_or_else(|| CliError::new(i18n::missing_asset_path(locale, "prompts asset")))?;
     let prompt = catalog::find_official_prompt_contribution(prompt_id).ok_or_else(|| {
         CliError::new(i18n::unknown_entity(
             locale,
@@ -69,13 +68,7 @@ fn show_prompt_asset(
         .assets
         .iter()
         .find(|asset| asset.path == asset_path)
-        .ok_or_else(|| {
-            CliError::new(if i18n::is_pt_br(locale) {
-                format!("asset de prompt desconhecido: {asset_path}")
-            } else {
-                format!("unknown prompt asset: {asset_path}")
-            })
-        })?;
+        .ok_or_else(|| CliError::new(i18n::unknown_prompt_asset(locale, asset_path)))?;
 
     Ok(asset.contents.to_owned())
 }

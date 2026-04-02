@@ -56,9 +56,8 @@ fn show_template_asset(
             i18n::template_id_entity_label(locale),
         ))
     })?;
-    let asset_path = asset_path.ok_or_else(|| {
-        CliError::new("subcommand `templates asset` requires an asset path".to_owned())
-    })?;
+    let asset_path = asset_path
+        .ok_or_else(|| CliError::new(i18n::missing_asset_path(locale, "templates asset")))?;
     let template = catalog::find_official_template_contribution(template_id).ok_or_else(|| {
         CliError::new(i18n::unknown_entity(
             locale,
@@ -71,13 +70,7 @@ fn show_template_asset(
         .assets
         .iter()
         .find(|asset| asset.path == asset_path)
-        .ok_or_else(|| {
-            CliError::new(if i18n::is_pt_br(locale) {
-                format!("asset de template desconhecido: {asset_path}")
-            } else {
-                format!("unknown template asset: {asset_path}")
-            })
-        })?;
+        .ok_or_else(|| CliError::new(i18n::unknown_template_asset(locale, asset_path)))?;
 
     Ok(asset.contents.to_owned())
 }
