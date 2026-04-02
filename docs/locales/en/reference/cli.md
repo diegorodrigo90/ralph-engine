@@ -21,6 +21,9 @@ ralph-engine doctor runtime
 ralph-engine hooks
 ralph-engine hooks list
 ralph-engine hooks show <hook-id>
+ralph-engine locales
+ralph-engine locales list
+ralph-engine locales show <locale-id>
 ralph-engine policies
 ralph-engine policies list
 ralph-engine policies show <policy-id>
@@ -70,6 +73,8 @@ The `checks` command family prints the typed runtime check registry so prepare-t
 The `doctor` command family prints the typed runtime diagnostic report by composing runtime status, unresolved issues, and remediation actions from one shared runtime snapshot instead of spreading diagnosis across ad hoc command logic.
 
 The `config locale` command prints the typed default locale contract so CLI i18n stays inspectable instead of remaining implicit in the runtime defaults.
+
+The `locales` command family prints the typed supported locale catalog so runtime locale coverage, native names, and English fallback rules stay explicit and versioned.
 
 The `config budgets` command prints the typed prompt and context budget contract so token ceilings remain explicit in the runtime foundation instead of hiding in future provider-specific logic.
 

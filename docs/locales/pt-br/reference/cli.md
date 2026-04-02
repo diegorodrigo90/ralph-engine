@@ -21,6 +21,9 @@ ralph-engine doctor runtime
 ralph-engine hooks
 ralph-engine hooks list
 ralph-engine hooks show <hook-id>
+ralph-engine locales
+ralph-engine locales list
+ralph-engine locales show <locale-id>
 ralph-engine policies
 ralph-engine policies list
 ralph-engine policies show <policy-id>
@@ -70,6 +73,8 @@ A família `checks` imprime o registro tipado de checks do runtime para que cont
 A família `doctor` imprime o relatório tipado de diagnóstico do runtime, compondo status, issues pendentes e ações de remediação a partir de um snapshot compartilhado do runtime, em vez de espalhar o diagnóstico por lógicas ad hoc em cada comando.
 
 A família `config locale` imprime o contrato tipado do locale padrão, para que o i18n da CLI permaneça inspecionável em vez de ficar implícito nos defaults do runtime.
+
+A família `locales` imprime o catálogo tipado de locales suportados, para que cobertura de idioma, nome nativo e regra de fallback para inglês permaneçam explícitos e versionados.
 
 A família `config budgets` imprime o contrato tipado de limites de prompt e contexto, para que os tetos de tokens permaneçam explícitos na fundação do runtime em vez de ficarem escondidos em lógica futura de provider.
 
