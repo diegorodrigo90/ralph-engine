@@ -73,6 +73,7 @@ cargo test --workspace --all-targets --all-features
 - Public Rust APIs are documented with `rustdoc`
 - Rust tests prefer Arrange, Act, Assert
 - Plugin and MCP extensibility stays typed: plugin kinds, capabilities, lifecycle stages, runtime hooks, configuration scopes, launch policy, command boundaries, and future contributions are expected to evolve through shared contracts rather than string-coupled runtime branches
+- Shared contract tests stay neutral by default: shared crates use synthetic fixtures for contract coverage, while official plugin crates own the nearest manifest and contribution checks for their own behavior
 - Plugin trust stays typed and explicit: official/runtime-owned plugins and community manifests are expected to flow through shared trust-level contracts instead of ad hoc YAML strings or CLI-only labels
 - Configuration layering stays typed and explicit: canonical defaults, future workspace settings, project settings, and user overrides are expected to evolve through shared layer contracts and inspectable CLI output rather than hidden precedence rules
 - Prompt and context budgets stay typed and explicit: shared runtime budget contracts and CLI inspection are expected to carry token ceilings instead of scattering implicit defaults through providers

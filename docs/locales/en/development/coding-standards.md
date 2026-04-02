@@ -49,6 +49,10 @@ In practice, prefer:
 
 Rust tests prefer the Arrange, Act, Assert structure.
 
+- Shared-crate contract tests should prefer neutral synthetic fixtures over official plugin identifiers when the behavior under test is generic.
+- Official plugin crates should own the closest tests for their own manifests, localized metadata, and contribution details.
+- Integration and smoke tests may still exercise the shipped official catalog when the goal is to validate the public packaged runtime rather than a generic shared contract.
+
 ```rust
 #[test]
 fn example() {
