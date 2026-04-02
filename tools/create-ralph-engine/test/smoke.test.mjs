@@ -267,11 +267,9 @@ test("official manifests keep localized display metadata aligned with plugin met
     assert.equal(typeof manifest.summary, "string");
     assert.equal(manifest.summary.length > 0, true);
 
-    if (manifest.id === "official.basic" || manifest.id === "official.tdd-strict") {
-      assert.equal(typeof manifest.display_name_locales, "object");
-      assert.equal(typeof manifest.summary_locales, "object");
-      assert.equal(typeof manifest.display_name_locales["pt-br"], "string");
-      assert.equal(typeof manifest.summary_locales["pt-br"], "string");
-    }
+    assert.equal(typeof manifest.display_name_locales, "object");
+    assert.equal(typeof manifest.summary_locales, "object");
+    assert.equal(typeof manifest.display_name_locales["pt-br"], "string");
+    assert.equal(typeof manifest.summary_locales["pt-br"], "string");
   }
 });

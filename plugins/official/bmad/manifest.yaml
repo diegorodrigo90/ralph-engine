@@ -1,7 +1,11 @@
 id: official.bmad
 name: bmad
 display_name: BMAD
+display_name_locales:
+  pt-br: BMAD
 summary: Workflow plugin for BMAD scaffolding and prompts.
+summary_locales:
+  pt-br: Plugin de workflow para scaffolding e prompts do BMAD.
 publisher: ralph-engine
 version: 0.2.0-alpha.1
 capabilities:

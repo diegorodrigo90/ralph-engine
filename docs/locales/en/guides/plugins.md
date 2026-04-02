@@ -14,3 +14,5 @@ The reboot keeps these architectural rules:
 - plugin display metadata supports localized names and summaries, starting with `en` and `pt-br`
 - when a plugin locale is missing, runtime-facing surfaces fall back to the English name and summary instead of failing closed
 - crates that render public plugin-facing output should keep locale strings in per-locale modules or files, so adding a new locale stays additive instead of rewriting command handlers
+- `npx create-ralph-engine-plugin` is the scaffolding entrypoint and should own project generation concerns instead of pushing scaffolding into the runtime core
+- the scaffolder generates a Rust plugin crate skeleton plus localized `manifest.yaml` metadata so new plugin projects start aligned with the typed runtime contract

@@ -1,7 +1,11 @@
 id: official.claude
 name: claude
 display_name: Claude
+display_name_locales:
+  pt-br: Claude
 summary: Claude agent runtime and MCP session integration.
+summary_locales:
+  pt-br: Integração do runtime de agente Claude com sessão MCP.
 publisher: ralph-engine
 version: 0.2.0-alpha.1
 capabilities:
