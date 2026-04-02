@@ -9,7 +9,7 @@ import { createRequire } from "node:module";
 const rootDir = path.resolve(import.meta.dirname, "..");
 const binPath = path.join(rootDir, "bin", "create-ralph-engine-plugin.js");
 const require = createRequire(import.meta.url);
-const { validateManifestDocument } = require("../lib/manifest-contract.js");
+const { parseManifestDocument, validateManifestDocument } = require("../lib/manifest-contract.js");
 
 test("creates a non-interactive plugin scaffold", () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-ralph-engine-plugin-"));
@@ -250,4 +250,28 @@ capabilities:
       ),
     /missing required field "summary"/,
   );
+});
+
+test("official manifests keep localized display metadata aligned with plugin metadata", () => {
+  const officialPluginDir = path.resolve(rootDir, "..", "..", "plugins", "official");
+  const manifestFiles = fs.readdirSync(officialPluginDir)
+    .map((pluginDir) => path.join(officialPluginDir, pluginDir, "manifest.yaml"));
+
+  for (const manifestFile of manifestFiles) {
+    const manifest = parseManifestDocument(fs.readFileSync(manifestFile, "utf8"), manifestFile);
+
+    assert.equal(typeof manifest.id, "string");
+    assert.equal(typeof manifest.name, "string");
+    assert.equal(typeof manifest.display_name, "string");
+    assert.equal(manifest.display_name.length > 0, true);
+    assert.equal(typeof manifest.summary, "string");
+    assert.equal(manifest.summary.length > 0, true);
+
+    if (manifest.id === "official.basic" || manifest.id === "official.tdd-strict") {
+      assert.equal(typeof manifest.display_name_locales, "object");
+      assert.equal(typeof manifest.summary_locales, "object");
+      assert.equal(typeof manifest.display_name_locales["pt-br"], "string");
+      assert.equal(typeof manifest.summary_locales["pt-br"], "string");
+    }
+  }
 });
