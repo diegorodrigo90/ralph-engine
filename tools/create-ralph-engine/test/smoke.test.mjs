@@ -35,6 +35,8 @@ test("creates a non-interactive plugin scaffold", () => {
   assert.equal(result.status, 0, result.stderr);
 
   const manifest = fs.readFileSync(path.join(targetDir, "manifest.yaml"), "utf8");
+  const cargoToml = fs.readFileSync(path.join(targetDir, "Cargo.toml"), "utf8");
+  const rustLib = fs.readFileSync(path.join(targetDir, "src", "lib.rs"), "utf8");
   validateManifestDocument(manifest);
   assert.match(manifest, /id: acme\.jira-suite/);
   assert.match(manifest, /kind: mcp_contribution/);
@@ -44,6 +46,13 @@ test("creates a non-interactive plugin scaffold", () => {
   assert.match(manifest, /- mcp_contribution/);
   assert.match(manifest, /- context_provider/);
   assert.match(manifest, /- data_source/);
+  assert.match(cargoToml, /name = "re-plugin-acme-jira-suite"/);
+  assert.match(cargoToml, /re-plugin = \{ git = "https:\/\/github\.com\/diegorodrigo90\/ralph-engine\.git", tag = "v0\.2\.0-alpha\.1", package = "re-plugin" \}/);
+  assert.match(rustLib, /pub const PLUGIN_ID: &str = "acme\.jira-suite";/);
+  assert.match(rustLib, /PluginTrustLevel::Community/);
+  assert.match(rustLib, /PluginRuntimeHook::McpRegistration/);
+  assert.match(rustLib, /PluginRuntimeHook::ContextProviderRegistration/);
+  assert.match(rustLib, /PluginRuntimeHook::DataSourceRegistration/);
 });
 
 test("renders help in pt-br when locale is configured", () => {
@@ -84,10 +93,12 @@ test("creates template assets when template capability is present", () => {
 
   assert.equal(result.status, 0, result.stderr);
   const manifest = fs.readFileSync(path.join(targetDir, "manifest.yaml"), "utf8");
+  const rustLib = fs.readFileSync(path.join(targetDir, "src", "lib.rs"), "utf8");
   validateManifestDocument(manifest);
   assert.equal(fs.existsSync(path.join(targetDir, "template", "config.yaml")), true);
   assert.equal(fs.existsSync(path.join(targetDir, "template", "hooks.yaml")), true);
   assert.equal(fs.existsSync(path.join(targetDir, "template", "prompt.md")), true);
+  assert.match(rustLib, /PluginRuntimeHook::Scaffold/);
 });
 
 test("rejects manifests that drift from the typed contract", () => {

@@ -212,7 +212,9 @@ function createScaffold(scaffold) {
   const manifest = renderManifest(scaffold);
   validateManifestDocument(manifest, "manifest.yaml");
   writeFile(scaffold.targetDir, "manifest.yaml", manifest);
+  writeFile(scaffold.targetDir, "Cargo.toml", renderCargoToml(scaffold));
   writeFile(scaffold.targetDir, "README.md", renderREADME(scaffold));
+  writeFile(scaffold.targetDir, path.join("src", "lib.rs"), renderRustPluginLib(scaffold));
 
   if (scaffold.capabilities.includes("template")) {
     writeFile(scaffold.targetDir, path.join("template", "config.yaml"), renderTemplateConfig(scaffold));
@@ -278,15 +280,167 @@ function renderREADME(scaffold) {
     "## Next Steps",
     "",
     "1. Edit `manifest.yaml` to match your real compatibility and capabilities.",
-    "2. Implement the runtime, MCP bridge, or assets that your manifest declares.",
-    "3. Add tests and release metadata before publishing.",
+    "2. Refine `Cargo.toml` and `src/lib.rs` so the crate matches your real runtime behavior.",
+    "3. Implement the runtime, MCP bridge, or assets that your manifest declares.",
+    "4. Add tests and release metadata before publishing.",
   ];
 
   if (scaffold.capabilities.includes("template")) {
-    lines.push("4. Refine the files under `template/` so the starter experience is non-destructive and useful.");
+    lines.push("5. Refine the files under `template/` so the starter experience is non-destructive and useful.");
   }
 
   return `${lines.join("\n")}\n`;
+}
+
+function renderCargoToml(scaffold) {
+  return `[package]
+name = "${cargoPackageName(scaffold)}"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.91"
+license = "MIT"
+repository = "https://github.com/your-org/${scaffold.name}"
+homepage = "https://ralphengine.com"
+authors = ["Your Name <you@example.com>"]
+
+[dependencies]
+re-plugin = { git = "https://github.com/diegorodrigo90/ralph-engine.git", tag = "v0.2.0-alpha.1", package = "re-plugin" }
+
+[lints.rust]
+missing_docs = "deny"
+unsafe_code = "forbid"
+
+[lints.clippy]
+panic = "deny"
+unwrap_used = "deny"
+expect_used = "deny"
+todo = "deny"
+unimplemented = "deny"
+`;
+}
+
+function renderRustPluginLib(scaffold) {
+  const capabilityImports = [...new Set(scaffold.capabilities.map(capabilityImportName))].sort();
+  const runtimeHooks = runtimeHooksForCapabilities(scaffold.capabilities);
+  const lifecycle = [
+    "PluginLifecycleStage::Discover",
+    "PluginLifecycleStage::Configure",
+    "PluginLifecycleStage::Load",
+  ];
+
+  return `//! Community plugin metadata for ${scaffold.id}.
+
+use re_plugin::{
+    ${[
+      ...capabilityImports,
+      "PluginDescriptor",
+      "PluginKind",
+      "PluginLifecycleStage",
+      "PluginLoadBoundary",
+      "PluginLocalizedText",
+      "PluginRuntimeHook",
+      "PluginTrustLevel",
+    ].join(",\n    ")},
+};
+
+/// Stable plugin identifier.
+pub const PLUGIN_ID: &str = "${scaffold.id}";
+const PLUGIN_NAME: &str = "${humanize(scaffold.name)}";
+const LOCALIZED_NAMES: &[PluginLocalizedText] = &[PluginLocalizedText::new("pt-br", "${humanize(scaffold.name)}")];
+const PLUGIN_SUMMARY: &str = "${humanize(scaffold.name)} plugin for Ralph Engine.";
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = &[PluginLocalizedText::new(
+    "pt-br",
+    "Plugin ${humanize(scaffold.name)} para o Ralph Engine.",
+)];
+const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
+const CAPABILITIES: &[re_plugin::PluginCapability] = &[${scaffold.capabilities
+    .map(capabilityImportName)
+    .join(", ")}];
+const LIFECYCLE: &[PluginLifecycleStage] = &[
+    ${lifecycle.join(",\n    ")},
+];
+const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
+    ${runtimeHooks.join(",\n    ")},
+];
+const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
+    PLUGIN_ID,
+    ${pluginKindVariant(scaffold.kind)},
+    PluginTrustLevel::Community,
+    PLUGIN_NAME,
+    LOCALIZED_NAMES,
+    PLUGIN_SUMMARY,
+    LOCALIZED_SUMMARIES,
+    PLUGIN_VERSION,
+    CAPABILITIES,
+    LIFECYCLE,
+    PluginLoadBoundary::InProcess,
+    RUNTIME_HOOKS,
+);
+
+/// Declared capabilities for the plugin.
+#[must_use]
+pub fn capabilities() -> &'static [re_plugin::PluginCapability] {
+    DESCRIPTOR.capabilities
+}
+
+/// Declared lifecycle stages for the plugin.
+#[must_use]
+pub fn lifecycle() -> &'static [PluginLifecycleStage] {
+    DESCRIPTOR.lifecycle
+}
+
+/// Declared runtime hooks for the plugin.
+#[must_use]
+pub fn runtime_hooks() -> &'static [PluginRuntimeHook] {
+    DESCRIPTOR.runtime_hooks
+}
+
+/// Returns the immutable plugin descriptor.
+#[must_use]
+pub const fn descriptor() -> PluginDescriptor {
+    DESCRIPTOR
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, lifecycle, runtime_hooks};
+
+    #[test]
+    fn plugin_id_is_namespaced() {
+        let plugin_id = PLUGIN_ID;
+
+        assert!(plugin_id.contains('.'));
+    }
+
+    #[test]
+    fn plugin_declares_at_least_one_capability() {
+        assert!(!capabilities().is_empty());
+    }
+
+    #[test]
+    fn plugin_descriptor_is_consistent() {
+        let plugin = descriptor();
+
+        let descriptor_matches = plugin.id == PLUGIN_ID
+            && plugin.name == "${humanize(scaffold.name)}"
+            && plugin.display_name_for_locale("pt-br") == "${humanize(scaffold.name)}"
+            && plugin.summary_for_locale("pt-br") == "Plugin ${humanize(scaffold.name)} para o Ralph Engine."
+            && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
+
+        assert!(descriptor_matches);
+    }
+
+    #[test]
+    fn plugin_declares_lifecycle_stages() {
+        assert!(!lifecycle().is_empty());
+    }
+
+    #[test]
+    fn plugin_declares_runtime_hooks() {
+        assert!(!runtime_hooks().is_empty());
+    }
+}
+`;
 }
 
 function renderTemplateConfig(scaffold) {
@@ -357,6 +511,108 @@ function humanize(value) {
     .filter(Boolean)
     .map((part) => part[0].toUpperCase() + part.slice(1))
     .join(" ");
+}
+
+function cargoPackageName(scaffold) {
+  return `re-plugin-${scaffold.publisher}-${scaffold.name}`.replace(/[^a-z0-9-]+/g, "-");
+}
+
+function pluginKindVariant(kind) {
+  switch (kind) {
+    case "template":
+      return "PluginKind::Template";
+    case "agent_runtime":
+      return "PluginKind::AgentRuntime";
+    case "forge_provider":
+      return "PluginKind::ForgeProvider";
+    case "context_provider":
+      return "PluginKind::ContextProvider";
+    case "data_source":
+      return "PluginKind::DataSource";
+    case "remote_control":
+      return "PluginKind::RemoteControl";
+    case "mcp_contribution":
+      return "PluginKind::McpContribution";
+    case "policy":
+      return "PluginKind::Policy";
+    default:
+      return "PluginKind::McpContribution";
+  }
+}
+
+function capabilityImportName(capability) {
+  switch (capability) {
+    case "template":
+      return "TEMPLATE";
+    case "prompt_fragments":
+      return "PROMPT_FRAGMENTS";
+    case "prepare_checks":
+      return "PREPARE_CHECKS";
+    case "doctor_checks":
+      return "DOCTOR_CHECKS";
+    case "agent_runtime":
+      return "AGENT_RUNTIME";
+    case "mcp_contribution":
+      return "MCP_CONTRIBUTION";
+    case "data_source":
+      return "DATA_SOURCE";
+    case "context_provider":
+      return "CONTEXT_PROVIDER";
+    case "forge_provider":
+      return "FORGE_PROVIDER";
+    case "remote_control":
+      return "REMOTE_CONTROL";
+    case "policy":
+      return "POLICY";
+    default:
+      return capability.toUpperCase();
+  }
+}
+
+function runtimeHooksForCapabilities(capabilities) {
+  const hooks = new Set();
+
+  for (const capability of capabilities) {
+    switch (capability) {
+      case "template":
+        hooks.add("PluginRuntimeHook::Scaffold");
+        break;
+      case "prompt_fragments":
+        hooks.add("PluginRuntimeHook::PromptAssembly");
+        break;
+      case "prepare_checks":
+        hooks.add("PluginRuntimeHook::Prepare");
+        break;
+      case "doctor_checks":
+        hooks.add("PluginRuntimeHook::Doctor");
+        break;
+      case "agent_runtime":
+        hooks.add("PluginRuntimeHook::AgentBootstrap");
+        break;
+      case "mcp_contribution":
+        hooks.add("PluginRuntimeHook::McpRegistration");
+        break;
+      case "data_source":
+        hooks.add("PluginRuntimeHook::DataSourceRegistration");
+        break;
+      case "context_provider":
+        hooks.add("PluginRuntimeHook::ContextProviderRegistration");
+        break;
+      case "forge_provider":
+        hooks.add("PluginRuntimeHook::ForgeProviderRegistration");
+        break;
+      case "remote_control":
+        hooks.add("PluginRuntimeHook::RemoteControlBootstrap");
+        break;
+      case "policy":
+        hooks.add("PluginRuntimeHook::PolicyEnforcement");
+        break;
+      default:
+        break;
+    }
+  }
+
+  return [...hooks];
 }
 
 async function ask(rl, label, fallback) {
