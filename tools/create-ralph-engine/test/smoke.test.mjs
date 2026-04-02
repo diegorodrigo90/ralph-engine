@@ -117,6 +117,36 @@ project:
   );
 });
 
+test("renders manifest contract errors in pt-br when locale is configured", () => {
+  const previousLocale = process.env.RALPH_ENGINE_LOCALE;
+  process.env.RALPH_ENGINE_LOCALE = "pt-br";
+
+  try {
+    assert.throws(
+      () =>
+        validateManifestDocument(
+          `id: acme.jira-suite
+kind: data_source
+display_name: Jira Suite
+publisher: acme
+trust_level: community
+plugin_version: 0.1.0
+capabilities:
+  - data_source
+`,
+          "manifest.yaml",
+        ),
+      /campo obrigatório ausente: "summary"/,
+    );
+  } finally {
+    if (previousLocale === undefined) {
+      delete process.env.RALPH_ENGINE_LOCALE;
+    } else {
+      process.env.RALPH_ENGINE_LOCALE = previousLocale;
+    }
+  }
+});
+
 test("rejects reserved publisher", () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "create-ralph-engine-plugin-"));
   const result = spawnSync(process.execPath, [
