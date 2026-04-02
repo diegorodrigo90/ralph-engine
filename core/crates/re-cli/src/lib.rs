@@ -105,6 +105,46 @@ mod tests {
     }
 
     #[test]
+    fn execute_locales_lists_supported_locale_catalog() {
+        let command = args(&["ralph-engine", "locales", "list"]);
+
+        let output = execute(command).expect("locales list should succeed");
+
+        assert!(output.contains("supported_locales:"));
+        assert!(output.contains("  - id: en"));
+        assert!(output.contains("  - id: pt-br"));
+    }
+
+    #[test]
+    fn execute_locales_show_returns_locale_detail() {
+        let command = args(&["ralph-engine", "locales", "show", "pt-br"]);
+
+        let output = execute(command).expect("locales show should succeed");
+
+        assert!(output.contains("id: pt-br"));
+        assert!(output.contains("english_name: Portuguese (Brazil)"));
+        assert!(output.contains("native_name: Português (Brasil)"));
+    }
+
+    #[test]
+    fn execute_locales_show_requires_locale_id() {
+        let command = args(&["ralph-engine", "locales", "show"]);
+
+        let error = execute(command).expect_err("missing locale id should fail");
+
+        assert_eq!(error.to_string(), "locales show requires a locale id");
+    }
+
+    #[test]
+    fn execute_locales_show_rejects_unknown_locale() {
+        let command = args(&["ralph-engine", "locales", "show", "es"]);
+
+        let error = execute(command).expect_err("unknown locale should fail");
+
+        assert_eq!(error.to_string(), "unknown locale: es");
+    }
+
+    #[test]
     fn execute_templates_list_runtime_templates() {
         // Arrange
         let command = args(&["ralph-engine", "templates", "list"]);

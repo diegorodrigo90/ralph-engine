@@ -6,8 +6,6 @@ mod pt_br;
 use std::env;
 
 use crate::CliError;
-
-const SUPPORTED_LOCALES: &[&str] = &["en", "pt-br"];
 const LOCALE_ENV_KEY: &str = "RALPH_ENGINE_LOCALE";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -63,7 +61,11 @@ fn normalize_cli_locale(value: &str) -> Result<&'static str, CliError> {
         "pt-br" => Ok(CliLocale::PtBr.as_str()),
         other => Err(CliError::new(format!(
             "unsupported locale: {other}. supported locales: {}",
-            SUPPORTED_LOCALES.join(", ")
+            re_config::supported_locales()
+                .iter()
+                .map(|locale| locale.id)
+                .collect::<Vec<_>>()
+                .join(", ")
         ))),
     }
 }
@@ -325,6 +327,14 @@ pub fn provider_id_entity_label(locale: &str) -> &'static str {
 }
 
 #[must_use]
+pub fn locale_id_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::LOCALE_ID_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::LOCALE_ID_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
 pub fn mcp_server_id_entity_label(locale: &str) -> &'static str {
     match parse_locale(locale) {
         CliLocale::En => en::MCP_SERVER_ID_ENTITY_LABEL,
@@ -385,6 +395,14 @@ pub fn provider_entity_label(locale: &str) -> &'static str {
     match parse_locale(locale) {
         CliLocale::En => en::PROVIDER_ENTITY_LABEL,
         CliLocale::PtBr => pt_br::PROVIDER_ENTITY_LABEL,
+    }
+}
+
+#[must_use]
+pub fn locale_entity_label(locale: &str) -> &'static str {
+    match parse_locale(locale) {
+        CliLocale::En => en::LOCALE_ENTITY_LABEL,
+        CliLocale::PtBr => pt_br::LOCALE_ENTITY_LABEL,
     }
 }
 

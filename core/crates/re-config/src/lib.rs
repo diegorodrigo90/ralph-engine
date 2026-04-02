@@ -3,6 +3,37 @@
 /// Supported locale identifiers for runtime defaults.
 pub const DEFAULT_LOCALE: &str = "en";
 
+/// Typed supported locale descriptor.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct LocaleDescriptor {
+    /// Stable locale identifier.
+    pub id: &'static str,
+    /// English display name for the locale.
+    pub english_name: &'static str,
+    /// Native display name for the locale.
+    pub native_name: &'static str,
+    /// Whether English is the fallback source for this locale catalog.
+    pub falls_back_to_english: bool,
+}
+
+impl LocaleDescriptor {
+    /// Creates a new immutable locale descriptor.
+    #[must_use]
+    pub const fn new(
+        id: &'static str,
+        english_name: &'static str,
+        native_name: &'static str,
+        falls_back_to_english: bool,
+    ) -> Self {
+        Self {
+            id,
+            english_name,
+            native_name,
+            falls_back_to_english,
+        }
+    }
+}
+
 /// Typed project configuration contract.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ProjectConfig {
@@ -160,6 +191,10 @@ const DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
     "official.basic",
     PluginActivation::Enabled,
 )];
+const SUPPORTED_LOCALES: &[LocaleDescriptor] = &[
+    LocaleDescriptor::new("en", "English", "English", false),
+    LocaleDescriptor::new("pt-br", "Portuguese (Brazil)", "Português (Brasil)", true),
+];
 const DEFAULT_MCP: McpConfig = McpConfig {
     enabled: true,
     discovery: McpDiscovery::OfficialOnly,
@@ -181,6 +216,9 @@ const DEFAULT_PROJECT_CONFIG_LAYER: ProjectConfigLayer =
 /// Canonical typed configuration layers in resolution order.
 pub const CANONICAL_CONFIG_LAYERS: &[ProjectConfigLayer] = &[DEFAULT_PROJECT_CONFIG_LAYER];
 
+/// Canonical supported locale catalog for runtime-facing surfaces.
+pub const CANONICAL_SUPPORTED_LOCALES: &[LocaleDescriptor] = SUPPORTED_LOCALES;
+
 /// Returns the default project configuration contract.
 #[must_use]
 pub const fn default_project_config() -> ProjectConfig {
@@ -197,6 +235,21 @@ pub const fn default_project_config_layer() -> ProjectConfigLayer {
 #[must_use]
 pub const fn canonical_config_layers() -> &'static [ProjectConfigLayer] {
     CANONICAL_CONFIG_LAYERS
+}
+
+/// Returns the canonical supported locale catalog.
+#[must_use]
+pub const fn supported_locales() -> &'static [LocaleDescriptor] {
+    CANONICAL_SUPPORTED_LOCALES
+}
+
+/// Returns one immutable supported locale entry by identifier.
+#[must_use]
+pub fn find_locale_descriptor(locale_id: &str) -> Option<LocaleDescriptor> {
+    supported_locales()
+        .iter()
+        .find(|locale| locale.id == locale_id)
+        .copied()
 }
 
 /// Returns one immutable plugin config entry by identifier.
@@ -259,6 +312,36 @@ pub fn render_project_config_yaml(config: &ProjectConfig) -> String {
 #[must_use]
 pub fn render_default_locale_yaml(config: &ProjectConfig) -> String {
     format!("default_locale: {}", config.default_locale)
+}
+
+/// Renders the supported locale catalog as YAML.
+#[must_use]
+pub fn render_supported_locales_yaml(locales: &[LocaleDescriptor]) -> String {
+    let mut lines = vec!["supported_locales:".to_owned()];
+
+    for locale in locales {
+        lines.push(format!("  - id: {}", locale.id));
+        lines.push(format!("    english_name: {}", locale.english_name));
+        lines.push(format!("    native_name: {}", locale.native_name));
+        lines.push(format!(
+            "    falls_back_to_english: {}",
+            locale.falls_back_to_english
+        ));
+    }
+
+    lines.join("\n")
+}
+
+/// Renders one supported locale descriptor as YAML.
+#[must_use]
+pub fn render_locale_descriptor_yaml(locale: &LocaleDescriptor) -> String {
+    [
+        format!("id: {}", locale.id),
+        format!("english_name: {}", locale.english_name),
+        format!("native_name: {}", locale.native_name),
+        format!("falls_back_to_english: {}", locale.falls_back_to_english),
+    ]
+    .join("\n")
 }
 
 /// Renders one resolved plugin configuration block as YAML.
