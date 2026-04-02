@@ -1019,6 +1019,27 @@ mod tests {
     }
 
     #[test]
+    fn execute_doctor_apply_config_persists_yaml() {
+        let output_path = std::env::temp_dir().join(format!(
+            "ralph-engine-doctor-apply-config-{}.yaml",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&output_path);
+        let output_path_str = output_path.display().to_string();
+
+        let command = args(&["ralph-engine", "doctor", "apply-config", &output_path_str]);
+
+        let output = execute(command).expect("doctor apply-config should succeed");
+
+        assert_eq!(output, format!("Wrote output: {output_path_str}"));
+        let persisted = std::fs::read_to_string(&output_path).expect("config file should exist");
+        assert!(persisted.contains("schema_version: 1"));
+        assert!(persisted.contains("- id: official.github"));
+
+        let _ = std::fs::remove_file(output_path);
+    }
+
+    #[test]
     fn execute_unknown_doctor_subcommand_fails() {
         // Arrange
         let command = args(&["ralph-engine", "doctor", "plugins"]);
@@ -1332,6 +1353,27 @@ mod tests {
         ]);
 
         let output = execute(command).expect("runtime write-patched-config should succeed");
+
+        assert_eq!(output, format!("Wrote output: {output_path_str}"));
+        let persisted = std::fs::read_to_string(&output_path).expect("config file should exist");
+        assert!(persisted.contains("schema_version: 1"));
+        assert!(persisted.contains("- id: official.github"));
+
+        let _ = std::fs::remove_file(output_path);
+    }
+
+    #[test]
+    fn execute_runtime_apply_config_persists_yaml() {
+        let output_path = std::env::temp_dir().join(format!(
+            "ralph-engine-runtime-apply-config-{}.yaml",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&output_path);
+        let output_path_str = output_path.display().to_string();
+
+        let command = args(&["ralph-engine", "runtime", "apply-config", &output_path_str]);
+
+        let output = execute(command).expect("runtime apply-config should succeed");
 
         assert_eq!(output, format!("Wrote output: {output_path_str}"));
         let persisted = std::fs::read_to_string(&output_path).expect("config file should exist");
