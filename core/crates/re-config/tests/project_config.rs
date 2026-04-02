@@ -1,12 +1,13 @@
 //! Integration tests for the shared Ralph Engine config contract.
 
 use re_config::{
-    CANONICAL_CONFIG_LAYERS, ConfigScope, DEFAULT_LOCALE, McpConfig, McpDiscovery,
-    PluginActivation, PluginConfig, ProjectConfig, ProjectConfigLayer, ResolvedPluginConfig,
-    RuntimeBudgetConfig, canonical_config_layers, default_project_config,
-    default_project_config_layer, find_plugin_config, render_config_layers_yaml,
+    CANONICAL_CONFIG_LAYERS, CANONICAL_SUPPORTED_LOCALES, ConfigScope, DEFAULT_LOCALE, McpConfig,
+    McpDiscovery, PluginActivation, PluginConfig, ProjectConfig, ProjectConfigLayer,
+    ResolvedPluginConfig, RuntimeBudgetConfig, canonical_config_layers, default_project_config,
+    default_project_config_layer, find_locale_descriptor, find_plugin_config,
+    render_config_layers_yaml, render_default_locale_yaml, render_locale_descriptor_yaml,
     render_project_config_yaml, render_resolved_plugin_config_yaml, render_runtime_budgets_yaml,
-    resolve_plugin_config,
+    render_supported_locales_yaml, resolve_plugin_config, supported_locales,
 };
 
 #[test]
@@ -60,6 +61,67 @@ fn render_project_config_yaml_is_human_readable() {
     assert!(yaml.contains("budgets:"));
     assert!(yaml.contains("  prompt_tokens: 8192"));
     assert!(yaml.contains("  context_tokens: 32768"));
+}
+
+#[test]
+fn supported_locales_returns_stable_catalog() {
+    let locales = supported_locales();
+
+    assert_eq!(locales, CANONICAL_SUPPORTED_LOCALES);
+    assert_eq!(locales.len(), 2);
+    assert_eq!(locales[0].id, "en");
+    assert_eq!(locales[1].id, "pt-br");
+    assert!(locales[1].falls_back_to_english);
+}
+
+#[test]
+fn find_locale_descriptor_returns_matching_locale() {
+    let locale = find_locale_descriptor("pt-br");
+
+    assert_eq!(
+        locale.map(|entry| entry.native_name),
+        Some("Português (Brasil)")
+    );
+}
+
+#[test]
+fn find_locale_descriptor_returns_none_for_unknown_locale() {
+    assert!(find_locale_descriptor("es").is_none());
+}
+
+#[test]
+fn render_default_locale_yaml_is_human_readable() {
+    let yaml = render_default_locale_yaml(&default_project_config());
+
+    assert_eq!(yaml, "default_locale: en");
+}
+
+#[test]
+fn render_supported_locales_yaml_is_human_readable() {
+    let yaml = render_supported_locales_yaml(supported_locales());
+
+    assert!(yaml.contains("supported_locales:"));
+    assert!(yaml.contains("  - id: en"));
+    assert!(yaml.contains("    native_name: English"));
+    assert!(yaml.contains("  - id: pt-br"));
+    assert!(yaml.contains("    native_name: Português (Brasil)"));
+    assert!(yaml.contains("    falls_back_to_english: true"));
+}
+
+#[test]
+fn render_locale_descriptor_yaml_is_human_readable() {
+    let locale = find_locale_descriptor("pt-br");
+
+    assert!(locale.is_some());
+
+    let yaml = locale
+        .map(|entry| render_locale_descriptor_yaml(&entry))
+        .unwrap_or_default();
+
+    assert!(yaml.contains("id: pt-br"));
+    assert!(yaml.contains("english_name: Portuguese (Brazil)"));
+    assert!(yaml.contains("native_name: Português (Brasil)"));
+    assert!(yaml.contains("falls_back_to_english: true"));
 }
 
 #[test]

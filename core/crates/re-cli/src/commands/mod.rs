@@ -6,6 +6,7 @@ mod checks;
 mod config;
 mod doctor;
 mod hooks;
+mod locales;
 mod mcp;
 mod plugins;
 mod policies;
@@ -45,6 +46,10 @@ const COMMANDS: &[CommandDescriptor] = &[
     CommandDescriptor {
         name: "hooks",
         handler: hooks::execute,
+    },
+    CommandDescriptor {
+        name: "locales",
+        handler: locales::execute,
     },
     CommandDescriptor {
         name: "mcp",

@@ -18,6 +18,7 @@ pub(super) const CHECKS_LABEL: &str = "Checks";
 pub(super) const HOOK_LABEL: &str = "Runtime hook";
 pub(super) const HOOKS_LABEL: &str = "Runtime hooks";
 pub(super) const PROVIDER_LABEL: &str = "Provider";
+pub(super) const LOCALE_ID_ENTITY_LABEL: &str = "a locale id";
 pub(super) const MCP_SERVER_ID_ENTITY_LABEL: &str = "a server id";
 pub(super) const PLUGIN_CONFIG_ENTITY_LABEL: &str = "plugin config";
 pub(super) const PLUGIN_ID_ENTITY_LABEL: &str = "a plugin id";
@@ -35,6 +36,7 @@ pub(super) const CAPABILITY_ENTITY_LABEL: &str = "capability";
 pub(super) const CHECK_ENTITY_LABEL: &str = "check";
 pub(super) const HOOK_ENTITY_LABEL: &str = "hook";
 pub(super) const PROVIDER_ENTITY_LABEL: &str = "provider";
+pub(super) const LOCALE_ENTITY_LABEL: &str = "locale";
 pub(super) const MCP_SERVER_ENTITY_LABEL: &str = "mcp server";
 
 pub(super) fn unknown_command(command_name: &str) -> String {

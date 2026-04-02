@@ -22,6 +22,9 @@ The broader target architecture still includes:
 The current CLI can render the default typed contract with:
 
 ```bash
+ralph-engine locales
+ralph-engine locales list
+ralph-engine locales show <locale-id>
 ralph-engine config budgets
 ralph-engine config layers
 ralph-engine config locale
@@ -33,6 +36,8 @@ ralph-engine config show-plugin <plugin-id>
 ```
 
 The `config locale` command renders the typed default locale contract so CLI localization stays visible and versioned instead of remaining only an internal default.
+
+The `locales` command family renders the canonical supported locale catalog, including the native name of each locale and whether it falls back to English. This keeps locale expansion explicit and versioned instead of scattering support assumptions across the runtime.
 
 The `config budgets` command renders the canonical typed prompt and context budget contract so token ceilings stay explicit in the shared runtime configuration instead of being inferred later from provider-local defaults.
 
