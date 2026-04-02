@@ -16,6 +16,7 @@ If you come from TypeScript, Go, Java, or another language, read these notes as 
 - Public Rust APIs use `rustdoc` comments with `///` or `//!`.
 - Public undocumented items fail the repository lint contract.
 - `cargo fmt`, `clippy`, tests, coverage, `rustdoc`, `cargo deny`, `cargo audit`, cross-language plugin-contract verification, docs build, and public-surface assembly are mandatory.
+- Official plugin crates should own their nearest contract tests locally: descriptor consistency, manifest alignment, and localized contribution behavior should fail inside the plugin crate before a shared smoke layer catches drift.
 - CI caches should be keyed by runner, toolchain, and lockfile inputs instead of using one blind global cache.
 - Expensive checks should run once in the right job instead of being duplicated across the workflow graph.
 - Cross-platform product behavior should be proven in the quality matrix, while platform-independent security scanners may stay centralized on the canonical Linux runner.
