@@ -66,6 +66,77 @@ pub const ALL_PLUGIN_CAPABILITIES: &[PluginCapability] = &[
     POLICY,
 ];
 
+/// Typed runtime surface identifier owned by reviewed plugin capabilities.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum PluginRuntimeSurface {
+    /// Template-provider runtime surface.
+    Templates,
+    /// Prompt-provider runtime surface.
+    Prompts,
+    /// Runtime-check surface.
+    Checks,
+    /// Agent-runtime surface.
+    Agents,
+    /// MCP server contribution surface.
+    Mcp,
+    /// Shared provider surface for data, context, forge, and remote control.
+    Providers,
+    /// Policy-provider surface.
+    Policies,
+}
+
+impl PluginRuntimeSurface {
+    /// Returns the stable runtime-surface identifier.
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Templates => "templates",
+            Self::Prompts => "prompts",
+            Self::Checks => "checks",
+            Self::Agents => "agents",
+            Self::Mcp => "mcp",
+            Self::Providers => "providers",
+            Self::Policies => "policies",
+        }
+    }
+}
+
+impl fmt::Display for PluginRuntimeSurface {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+/// Canonical ordered list of reviewed runtime surfaces owned by plugin capabilities.
+pub const ALL_PLUGIN_RUNTIME_SURFACES: &[PluginRuntimeSurface] = &[
+    PluginRuntimeSurface::Templates,
+    PluginRuntimeSurface::Prompts,
+    PluginRuntimeSurface::Checks,
+    PluginRuntimeSurface::Agents,
+    PluginRuntimeSurface::Mcp,
+    PluginRuntimeSurface::Providers,
+    PluginRuntimeSurface::Policies,
+];
+
+/// Resolves the dedicated runtime surface that owns one reviewed capability.
+#[must_use]
+pub fn runtime_surface_for_capability(
+    capability: PluginCapability,
+) -> Option<PluginRuntimeSurface> {
+    match capability {
+        TEMPLATE => Some(PluginRuntimeSurface::Templates),
+        PROMPT_FRAGMENTS => Some(PluginRuntimeSurface::Prompts),
+        PREPARE_CHECKS | DOCTOR_CHECKS => Some(PluginRuntimeSurface::Checks),
+        AGENT_RUNTIME => Some(PluginRuntimeSurface::Agents),
+        MCP_CONTRIBUTION => Some(PluginRuntimeSurface::Mcp),
+        DATA_SOURCE | CONTEXT_PROVIDER | FORGE_PROVIDER | REMOTE_CONTROL => {
+            Some(PluginRuntimeSurface::Providers)
+        }
+        POLICY => Some(PluginRuntimeSurface::Policies),
+        _ => None,
+    }
+}
+
 /// Typed primary plugin kind identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PluginKind {
