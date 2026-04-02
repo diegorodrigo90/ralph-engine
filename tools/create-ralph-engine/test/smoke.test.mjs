@@ -61,6 +61,8 @@ test("creates a non-interactive plugin scaffold", () => {
   assert.match(rustLib, /PluginRuntimeHook::McpRegistration/);
   assert.match(rustLib, /PluginRuntimeHook::ContextProviderRegistration/);
   assert.match(rustLib, /PluginRuntimeHook::DataSourceRegistration/);
+  assert.match(rustLib, /const PROVIDERS: &\[PluginProviderDescriptor\]/);
+  assert.match(rustLib, /pub const fn providers\(\) -> &'static \[PluginProviderDescriptor\]/);
   assert.match(rustI18nMod, /pub mod en;/);
   assert.match(rustI18nMod, /pub mod pt_br;/);
   assert.match(rustI18nMod, /const LOCALIZED_NAMES: &\[PluginLocalizedText\]/);
@@ -164,12 +166,18 @@ test("creates typed contribution sections for runtime-facing capabilities", () =
 
   assert.equal(result.status, 0, result.stderr);
   const manifest = fs.readFileSync(path.join(targetDir, "manifest.yaml"), "utf8");
+  const rustLib = fs.readFileSync(path.join(targetDir, "src", "lib.rs"), "utf8");
   validateManifestDocument(manifest);
   assert.match(manifest, /agents:\n  - id: acme\.codex-suite\.session/);
   assert.match(manifest, /prompts:\n  - id: acme\.codex-suite\.workflow/);
   assert.match(manifest, /checks:\n  - id: acme\.codex-suite\.prepare\n    kind: prepare/);
   assert.match(manifest, /- id: acme\.codex-suite\.doctor\n    kind: doctor/);
   assert.match(manifest, /policies:\n  - id: acme\.codex-suite\.guardrails/);
+  assert.match(rustLib, /const CHECKS: &\[PluginCheckDescriptor\]/);
+  assert.match(rustLib, /pub const fn checks\(\) -> &'static \[PluginCheckDescriptor\]/);
+  assert.match(rustLib, /pub const fn prompts\(\) -> &'static \[PluginPromptDescriptor\]/);
+  assert.match(rustLib, /pub const fn agents\(\) -> &'static \[PluginAgentDescriptor\]/);
+  assert.match(rustLib, /pub const fn policies\(\) -> &'static \[PluginPolicyDescriptor\]/);
 });
 
 test("rejects manifests that drift from the typed contract", () => {

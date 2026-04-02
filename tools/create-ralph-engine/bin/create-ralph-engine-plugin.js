@@ -397,6 +397,131 @@ function renderContributionSection(fieldName, entries) {
   return lines;
 }
 
+function buildRuntimeContributionDefinitions(scaffold) {
+  const definitions = {
+    templates: [],
+    prompts: [],
+    agents: [],
+    checks: [],
+    providers: [],
+    policies: [],
+  };
+
+  if (scaffold.capabilities.includes("template")) {
+    definitions.templates.push({
+      id: `${scaffold.id}.starter`,
+      displayName: `${humanize(scaffold.name)} Starter`,
+      displayNamePtBr: `Starter ${humanize(scaffold.name)}`,
+      summary: `Starter template for ${humanize(scaffold.name)} workflows.`,
+      summaryPtBr: `Template inicial para workflows ${humanize(scaffold.name)}.`,
+    });
+  }
+
+  if (scaffold.capabilities.includes("prompt_fragments")) {
+    definitions.prompts.push({
+      id: `${scaffold.id}.workflow`,
+      displayName: `${humanize(scaffold.name)} workflow prompt`,
+      displayNamePtBr: `Prompt de workflow ${humanize(scaffold.name)}`,
+      summary: `Prompt bundle for ${humanize(scaffold.name)} workflow assembly.`,
+      summaryPtBr: `Pacote de prompts para montar workflows ${humanize(scaffold.name)}.`,
+    });
+  }
+
+  if (scaffold.capabilities.includes("agent_runtime")) {
+    definitions.agents.push({
+      id: `${scaffold.id}.session`,
+      displayName: `${humanize(scaffold.name)} session`,
+      displayNamePtBr: `Sessão ${humanize(scaffold.name)}`,
+      summary: `${humanize(scaffold.name)} runtime session for Ralph Engine.`,
+      summaryPtBr: `Sessão de runtime do ${humanize(scaffold.name)} para o Ralph Engine.`,
+    });
+  }
+
+  if (scaffold.capabilities.includes("prepare_checks")) {
+    definitions.checks.push({
+      id: `${scaffold.id}.prepare`,
+      kind: "prepare",
+      checkKindVariant: "PluginCheckKind::Prepare",
+      displayName: `${humanize(scaffold.name)} prepare check`,
+      displayNamePtBr: `Verificação de preparo ${humanize(scaffold.name)}`,
+      summary: `Runs typed prepare-time validation for ${humanize(scaffold.name)} workflows.`,
+      summaryPtBr: `Executa validação tipada de preparo para workflows ${humanize(scaffold.name)}.`,
+    });
+  }
+
+  if (scaffold.capabilities.includes("doctor_checks")) {
+    definitions.checks.push({
+      id: `${scaffold.id}.doctor`,
+      kind: "doctor",
+      checkKindVariant: "PluginCheckKind::Doctor",
+      displayName: `${humanize(scaffold.name)} doctor check`,
+      displayNamePtBr: `Verificação de diagnóstico ${humanize(scaffold.name)}`,
+      summary: `Runs typed doctor-time validation for ${humanize(scaffold.name)} workflows.`,
+      summaryPtBr: `Executa validação tipada de diagnóstico para workflows ${humanize(scaffold.name)}.`,
+    });
+  }
+
+  if (scaffold.capabilities.includes("data_source")) {
+    definitions.providers.push({
+      id: `${scaffold.id}.data`,
+      kind: "data_source",
+      providerKindVariant: "PluginProviderKind::DataSource",
+      displayName: `${humanize(scaffold.name)} data source`,
+      displayNamePtBr: `Fonte de dados ${humanize(scaffold.name)}`,
+      summary: `Exposes typed data-source capabilities for ${humanize(scaffold.name)} workflows.`,
+      summaryPtBr: `Expõe capacidades tipadas de fonte de dados para workflows ${humanize(scaffold.name)}.`,
+    });
+  }
+
+  if (scaffold.capabilities.includes("context_provider")) {
+    definitions.providers.push({
+      id: `${scaffold.id}.context`,
+      kind: "context_provider",
+      providerKindVariant: "PluginProviderKind::ContextProvider",
+      displayName: `${humanize(scaffold.name)} context provider`,
+      displayNamePtBr: `Provedor de contexto ${humanize(scaffold.name)}`,
+      summary: `Exposes typed context-provider capabilities for ${humanize(scaffold.name)} workflows.`,
+      summaryPtBr: `Expõe capacidades tipadas de provedor de contexto para workflows ${humanize(scaffold.name)}.`,
+    });
+  }
+
+  if (scaffold.capabilities.includes("forge_provider")) {
+    definitions.providers.push({
+      id: `${scaffold.id}.forge`,
+      kind: "forge_provider",
+      providerKindVariant: "PluginProviderKind::ForgeProvider",
+      displayName: `${humanize(scaffold.name)} forge provider`,
+      displayNamePtBr: `Provedor forge ${humanize(scaffold.name)}`,
+      summary: `Exposes typed forge-provider capabilities for ${humanize(scaffold.name)} workflows.`,
+      summaryPtBr: `Expõe capacidades tipadas de provedor forge para workflows ${humanize(scaffold.name)}.`,
+    });
+  }
+
+  if (scaffold.capabilities.includes("remote_control")) {
+    definitions.providers.push({
+      id: `${scaffold.id}.remote`,
+      kind: "remote_control",
+      providerKindVariant: "PluginProviderKind::RemoteControl",
+      displayName: `${humanize(scaffold.name)} remote control`,
+      displayNamePtBr: `Controle remoto ${humanize(scaffold.name)}`,
+      summary: `Exposes typed remote-control capabilities for ${humanize(scaffold.name)} workflows.`,
+      summaryPtBr: `Expõe capacidades tipadas de controle remoto para workflows ${humanize(scaffold.name)}.`,
+    });
+  }
+
+  if (scaffold.capabilities.includes("policy")) {
+    definitions.policies.push({
+      id: `${scaffold.id}.guardrails`,
+      displayName: `${humanize(scaffold.name)} guardrails`,
+      displayNamePtBr: `Guardrails ${humanize(scaffold.name)}`,
+      summary: `Policy guardrails shipped by ${humanize(scaffold.name)}.`,
+      summaryPtBr: `Guardrails de política distribuídos por ${humanize(scaffold.name)}.`,
+    });
+  }
+
+  return definitions;
+}
+
 function renderREADME(scaffold) {
   const lines = [
     `# ${scaffold.id}`,
@@ -451,7 +576,15 @@ unimplemented = "deny"
 }
 
 function renderRustPluginLib(scaffold) {
+  const contributions = buildRuntimeContributionDefinitions(scaffold);
   const capabilityImports = [...new Set(scaffold.capabilities.map(capabilityImportName))].sort();
+  const descriptorImports = [];
+  if (contributions.templates.length > 0) descriptorImports.push("PluginTemplateAsset", "PluginTemplateDescriptor");
+  if (contributions.prompts.length > 0) descriptorImports.push("PluginPromptAsset", "PluginPromptDescriptor");
+  if (contributions.agents.length > 0) descriptorImports.push("PluginAgentDescriptor");
+  if (contributions.checks.length > 0) descriptorImports.push("PluginCheckDescriptor", "PluginCheckKind");
+  if (contributions.providers.length > 0) descriptorImports.push("PluginProviderDescriptor", "PluginProviderKind");
+  if (contributions.policies.length > 0) descriptorImports.push("PluginPolicyDescriptor");
   const runtimeHooks = runtimeHooksForCapabilities(scaffold.capabilities);
   const lifecycle = [
     "PluginLifecycleStage::Discover",
@@ -466,6 +599,7 @@ mod i18n;
 use re_plugin::{
     ${[
       ...capabilityImports,
+      ...descriptorImports,
       "PluginDescriptor",
       "PluginKind",
       "PluginLifecycleStage",
@@ -506,6 +640,76 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PluginLoadBoundary::InProcess,
     RUNTIME_HOOKS,
 );
+${contributions.templates.length > 0 ? `const TEMPLATE_ASSETS: &[PluginTemplateAsset] = &[
+    PluginTemplateAsset::new(".ralph-engine/config.yaml", include_str!("../template/config.yaml")),
+    PluginTemplateAsset::new(".ralph-engine/hooks.yaml", include_str!("../template/hooks.yaml")),
+    PluginTemplateAsset::new(".ralph-engine/prompt.md", include_str!("../template/prompt.md")),
+];
+const TEMPLATES: &[PluginTemplateDescriptor] = &[
+${contributions.templates.map((entry) => `    PluginTemplateDescriptor::new(
+        "${entry.id}",
+        PLUGIN_ID,
+        "${entry.displayName}",
+        &[PluginLocalizedText::new("pt-br", "${entry.displayNamePtBr}")],
+        "${entry.summary}",
+        &[PluginLocalizedText::new("pt-br", "${entry.summaryPtBr}")],
+        TEMPLATE_ASSETS,
+    ),`).join("\n")}
+];` : ""}
+${contributions.prompts.length > 0 ? `const PROMPT_ASSETS: &[PluginPromptAsset] = &[];
+const PROMPTS: &[PluginPromptDescriptor] = &[
+${contributions.prompts.map((entry) => `    PluginPromptDescriptor::new(
+        "${entry.id}",
+        PLUGIN_ID,
+        "${entry.displayName}",
+        &[PluginLocalizedText::new("pt-br", "${entry.displayNamePtBr}")],
+        "${entry.summary}",
+        &[PluginLocalizedText::new("pt-br", "${entry.summaryPtBr}")],
+        PROMPT_ASSETS,
+    ),`).join("\n")}
+];` : ""}
+${contributions.agents.length > 0 ? `const AGENTS: &[PluginAgentDescriptor] = &[
+${contributions.agents.map((entry) => `    PluginAgentDescriptor::new(
+        "${entry.id}",
+        PLUGIN_ID,
+        "${entry.displayName}",
+        &[PluginLocalizedText::new("pt-br", "${entry.displayNamePtBr}")],
+        "${entry.summary}",
+        &[PluginLocalizedText::new("pt-br", "${entry.summaryPtBr}")],
+    ),`).join("\n")}
+];` : ""}
+${contributions.checks.length > 0 ? `const CHECKS: &[PluginCheckDescriptor] = &[
+${contributions.checks.map((entry) => `    PluginCheckDescriptor::new(
+        "${entry.id}",
+        PLUGIN_ID,
+        ${entry.checkKindVariant},
+        "${entry.displayName}",
+        &[PluginLocalizedText::new("pt-br", "${entry.displayNamePtBr}")],
+        "${entry.summary}",
+        &[PluginLocalizedText::new("pt-br", "${entry.summaryPtBr}")],
+    ),`).join("\n")}
+];` : ""}
+${contributions.providers.length > 0 ? `const PROVIDERS: &[PluginProviderDescriptor] = &[
+${contributions.providers.map((entry) => `    PluginProviderDescriptor::new(
+        "${entry.id}",
+        PLUGIN_ID,
+        ${entry.providerKindVariant},
+        "${entry.displayName}",
+        &[PluginLocalizedText::new("pt-br", "${entry.displayNamePtBr}")],
+        "${entry.summary}",
+        &[PluginLocalizedText::new("pt-br", "${entry.summaryPtBr}")],
+    ),`).join("\n")}
+];` : ""}
+${contributions.policies.length > 0 ? `const POLICIES: &[PluginPolicyDescriptor] = &[
+${contributions.policies.map((entry) => `    PluginPolicyDescriptor::new(
+        "${entry.id}",
+        PLUGIN_ID,
+        "${entry.displayName}",
+        &[PluginLocalizedText::new("pt-br", "${entry.displayNamePtBr}")],
+        "${entry.summary}",
+        &[PluginLocalizedText::new("pt-br", "${entry.summaryPtBr}")],
+    ),`).join("\n")}
+];` : ""}
 
 /// Declared capabilities for the plugin.
 #[must_use]
@@ -530,10 +734,16 @@ pub fn runtime_hooks() -> &'static [PluginRuntimeHook] {
 pub const fn descriptor() -> PluginDescriptor {
     DESCRIPTOR
 }
+${contributions.templates.length > 0 ? `\n/// Returns the immutable template contributions declared by the plugin.\n#[must_use]\npub const fn templates() -> &'static [PluginTemplateDescriptor] {\n    TEMPLATES\n}\n` : ""}
+${contributions.prompts.length > 0 ? `\n/// Returns the immutable prompt contributions declared by the plugin.\n#[must_use]\npub const fn prompts() -> &'static [PluginPromptDescriptor] {\n    PROMPTS\n}\n` : ""}
+${contributions.agents.length > 0 ? `\n/// Returns the immutable agent contributions declared by the plugin.\n#[must_use]\npub const fn agents() -> &'static [PluginAgentDescriptor] {\n    AGENTS\n}\n` : ""}
+${contributions.checks.length > 0 ? `\n/// Returns the immutable check contributions declared by the plugin.\n#[must_use]\npub const fn checks() -> &'static [PluginCheckDescriptor] {\n    CHECKS\n}\n` : ""}
+${contributions.providers.length > 0 ? `\n/// Returns the immutable provider contributions declared by the plugin.\n#[must_use]\npub const fn providers() -> &'static [PluginProviderDescriptor] {\n    PROVIDERS\n}\n` : ""}
+${contributions.policies.length > 0 ? `\n/// Returns the immutable policy contributions declared by the plugin.\n#[must_use]\npub const fn policies() -> &'static [PluginPolicyDescriptor] {\n    POLICIES\n}\n` : ""}
 
 #[cfg(test)]
 mod tests {
-    use super::{PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, lifecycle, runtime_hooks};
+    use super::{PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, lifecycle, runtime_hooks${contributions.templates.length > 0 ? ", templates" : ""}${contributions.prompts.length > 0 ? ", prompts" : ""}${contributions.agents.length > 0 ? ", agents" : ""}${contributions.checks.length > 0 ? ", checks" : ""}${contributions.providers.length > 0 ? ", providers" : ""}${contributions.policies.length > 0 ? ", policies" : ""}};
 
     fn manifest_document() -> &'static str {
         include_str!("../manifest.yaml")
@@ -573,6 +783,12 @@ mod tests {
     fn plugin_declares_runtime_hooks() {
         assert!(!runtime_hooks().is_empty());
     }
+${contributions.templates.length > 0 ? `\n    #[test]\n    fn plugin_declares_template_contributions() {\n        assert_eq!(templates()[0].id, "${contributions.templates[0].id}");\n    }\n` : ""}
+${contributions.prompts.length > 0 ? `\n    #[test]\n    fn plugin_declares_prompt_contributions() {\n        assert_eq!(prompts()[0].id, "${contributions.prompts[0].id}");\n    }\n` : ""}
+${contributions.agents.length > 0 ? `\n    #[test]\n    fn plugin_declares_agent_contributions() {\n        assert_eq!(agents()[0].id, "${contributions.agents[0].id}");\n    }\n` : ""}
+${contributions.checks.length > 0 ? `\n    #[test]\n    fn plugin_declares_check_contributions() {\n        assert_eq!(checks()[0].id, "${contributions.checks[0].id}");\n    }\n` : ""}
+${contributions.providers.length > 0 ? `\n    #[test]\n    fn plugin_declares_provider_contributions() {\n        assert_eq!(providers()[0].id, "${contributions.providers[0].id}");\n    }\n` : ""}
+${contributions.policies.length > 0 ? `\n    #[test]\n    fn plugin_declares_policy_contributions() {\n        assert_eq!(policies()[0].id, "${contributions.policies[0].id}");\n    }\n` : ""}
 
     #[test]
     fn plugin_manifest_matches_typed_contract_surface() {
@@ -582,6 +798,14 @@ mod tests {
         assert!(manifest.contains("kind: ${scaffold.kind}"));
         assert!(manifest.contains("trust_level: community"));
 ${scaffold.capabilities.map((capability) => `        assert!(manifest.contains("- ${capability}"));`).join("\n")}
+${[
+  ...contributions.templates,
+  ...contributions.prompts,
+  ...contributions.agents,
+  ...contributions.checks,
+  ...contributions.providers,
+  ...contributions.policies,
+].map((entry) => `        assert!(manifest.contains("id: ${entry.id}"));`).join("\n")}
     }
 }
 `;
