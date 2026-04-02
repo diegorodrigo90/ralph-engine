@@ -14,3 +14,7 @@ pub(super) const MCP_SERVERS: &str = "MCP servers";
 pub(super) const RUNTIME_ISSUES: &str = "Runtime issues";
 pub(super) const RUNTIME_ACTION_PLAN: &str = "Runtime action plan";
 pub(super) const RUNTIME_DOCTOR: &str = "Runtime doctor";
+
+pub(super) fn translate_runtime_reason(reason: &str) -> String {
+    reason.to_owned()
+}

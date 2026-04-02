@@ -1408,78 +1408,7 @@ pub fn render_runtime_doctor_report_for_locale(
 }
 
 fn translate_runtime_reason(locale: &str, reason: &str) -> String {
-    if !locale.eq_ignore_ascii_case("pt-br") {
-        return reason.to_owned();
-    }
-
-    if let Some(capability) = reason.strip_prefix("the provider still disables capability ") {
-        return format!("o provedor ainda desabilita a capability {capability}");
-    }
-
-    if let Some(check_kind) = reason.strip_prefix("the provider still disables runtime check ") {
-        return format!("o provedor ainda desabilita o check de runtime {check_kind}");
-    }
-
-    if let Some(provider_kind) = reason.strip_prefix("the provider still disables contribution ") {
-        return format!("o provedor ainda desabilita a contribuição {provider_kind}");
-    }
-
-    if let Some(policy_id) = reason.strip_prefix("the provider still disables policy ") {
-        return format!("o provedor ainda desabilita a policy {policy_id}");
-    }
-
-    if let Some(hook_id) = reason.strip_prefix("the provider still disables runtime hook ") {
-        return format!("o provedor ainda desabilita o hook de runtime {hook_id}");
-    }
-
-    match reason {
-        "enable the plugin in typed project configuration" => {
-            "ative o plugin na configuração tipada do projeto".to_owned()
-        }
-        "enable the provider plugin that owns this capability" => {
-            "ative o plugin provedor dono desta capability".to_owned()
-        }
-        "enable the provider plugin that owns this template surface" => {
-            "ative o plugin provedor dono desta surface de template".to_owned()
-        }
-        "enable the provider plugin that owns this prompt surface" => {
-            "ative o plugin provedor dono desta surface de prompt".to_owned()
-        }
-        "enable the provider plugin that owns this agent runtime" => {
-            "ative o plugin provedor dono deste runtime de agente".to_owned()
-        }
-        "enable the provider plugin that owns this runtime check" => {
-            "ative o plugin provedor dono deste check de runtime".to_owned()
-        }
-        "enable the provider plugin that owns this contribution" => {
-            "ative o plugin provedor dono desta contribuição".to_owned()
-        }
-        "enable the provider plugin that owns this policy" => {
-            "ative o plugin provedor dono desta policy".to_owned()
-        }
-        "enable the provider plugin that owns this runtime hook" => {
-            "ative o plugin provedor dono deste hook de runtime".to_owned()
-        }
-        "enable the owning plugin or opt in to the MCP server" => {
-            "ative o plugin dono ou faça opt-in no servidor MCP".to_owned()
-        }
-        "the plugin is registered but disabled" => {
-            "o plugin está registrado, mas desabilitado".to_owned()
-        }
-        "the provider still disables the template surface" => {
-            "o provedor ainda desabilita a surface de template".to_owned()
-        }
-        "the provider still disables the prompt surface" => {
-            "o provedor ainda desabilita a surface de prompt".to_owned()
-        }
-        "the provider still disables the agent runtime" => {
-            "o provedor ainda desabilita o runtime de agente".to_owned()
-        }
-        "the MCP contribution is registered but disabled" => {
-            "a contribuição MCP está registrada, mas desabilitada".to_owned()
-        }
-        _ => reason.to_owned(),
-    }
+    i18n::translate_runtime_reason(locale, reason)
 }
 
 #[cfg(test)]
@@ -2851,7 +2780,7 @@ mod tests {
 
         assert!(rendered.contains("Problemas do runtime (2)"));
         assert!(rendered.contains("action=ative o plugin na configuração tipada do projeto"));
-        assert!(rendered.contains("action=ative o plugin dono ou faça opt-in no servidor MCP"));
+        assert!(rendered.contains("action=ative o plugin responsável ou faça opt-in no servidor MCP"));
     }
 
     #[test]
@@ -2905,7 +2834,7 @@ mod tests {
         assert!(rendered.contains("reason=o provedor ainda desabilita a capability template"));
         assert!(rendered.contains("reason=o provedor ainda desabilita o check de runtime prepare"));
         assert!(rendered.contains("reason=o provedor ainda desabilita a contribuição data_source"));
-        assert!(rendered.contains("reason=o provedor ainda desabilita a policy official.basic"));
+        assert!(rendered.contains("reason=o provedor ainda desabilita a política official.basic"));
         assert!(rendered.contains("reason=o provedor ainda desabilita o hook de runtime scaffold"));
     }
 
@@ -2965,14 +2894,14 @@ mod tests {
 
         let rendered = render_runtime_issues_for_locale(&issues, "pt-br");
 
-        assert!(rendered.contains("action=ative o plugin provedor dono desta capability"));
-        assert!(rendered.contains("action=ative o plugin provedor dono desta surface de template"));
-        assert!(rendered.contains("action=ative o plugin provedor dono desta surface de prompt"));
-        assert!(rendered.contains("action=ative o plugin provedor dono deste runtime de agente"));
-        assert!(rendered.contains("action=ative o plugin provedor dono deste check de runtime"));
-        assert!(rendered.contains("action=ative o plugin provedor dono desta contribuição"));
-        assert!(rendered.contains("action=ative o plugin provedor dono desta policy"));
-        assert!(rendered.contains("action=ative o plugin provedor dono deste hook de runtime"));
+        assert!(rendered.contains("action=ative o plugin provedor responsável por esta capability"));
+        assert!(rendered.contains("action=ative o plugin provedor responsável por esta superfície de template"));
+        assert!(rendered.contains("action=ative o plugin provedor responsável por esta superfície de prompt"));
+        assert!(rendered.contains("action=ative o plugin provedor responsável por este runtime de agente"));
+        assert!(rendered.contains("action=ative o plugin provedor responsável por este check de runtime"));
+        assert!(rendered.contains("action=ative o plugin provedor responsável por esta contribuição"));
+        assert!(rendered.contains("action=ative o plugin provedor responsável por esta política"));
+        assert!(rendered.contains("action=ative o plugin provedor responsável por este hook de runtime"));
     }
 
     #[test]
@@ -3002,8 +2931,8 @@ mod tests {
 
         let rendered = render_runtime_action_plan_for_locale(&actions, "pt-br");
 
-        assert!(rendered.contains("reason=o provedor ainda desabilita a surface de template"));
-        assert!(rendered.contains("reason=o provedor ainda desabilita a surface de prompt"));
+        assert!(rendered.contains("reason=o provedor ainda desabilita a superfície de template"));
+        assert!(rendered.contains("reason=o provedor ainda desabilita a superfície de prompt"));
         assert!(rendered.contains("reason=o provedor ainda desabilita o runtime de agente"));
         assert!(rendered.contains("reason=a contribuição MCP está registrada, mas desabilitada"));
     }
@@ -3062,7 +2991,7 @@ mod tests {
 
         let rendered = render_runtime_doctor_report_for_locale(&report, "pt-br");
 
-        assert!(rendered.contains("Doctor do runtime"));
+        assert!(rendered.contains("Diagnóstico do runtime"));
         assert!(rendered.contains("Problemas do runtime (1)"));
         assert!(rendered.contains("Plano de ação do runtime (1)"));
     }

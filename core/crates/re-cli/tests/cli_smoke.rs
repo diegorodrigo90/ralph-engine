@@ -688,6 +688,22 @@ fn binary_doctor_succeeds() {
 }
 
 #[test]
+fn binary_doctor_succeeds_in_pt_br() {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));
+    command.env("RALPH_ENGINE_LOCALE", "pt-br");
+    command.arg("doctor");
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Diagnóstico do runtime"));
+    assert!(stdout.contains("Problemas do runtime (58)"));
+    assert!(stdout.contains("Plano de ação do runtime (58)"));
+    assert!(stdout.contains("ative o plugin provedor responsável por esta contribuição"));
+}
+
+#[test]
 fn binary_config_show_plugin_succeeds() {
     // Arrange
     let mut command = Command::new(env!("CARGO_BIN_EXE_ralph-engine"));

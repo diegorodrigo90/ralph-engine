@@ -13,4 +13,75 @@ pub(super) const RUNTIME_HOOKS: &str = "Hooks de runtime";
 pub(super) const MCP_SERVERS: &str = "Servidores MCP";
 pub(super) const RUNTIME_ISSUES: &str = "Problemas do runtime";
 pub(super) const RUNTIME_ACTION_PLAN: &str = "Plano de ação do runtime";
-pub(super) const RUNTIME_DOCTOR: &str = "Doctor do runtime";
+pub(super) const RUNTIME_DOCTOR: &str = "Diagnóstico do runtime";
+
+pub(super) fn translate_runtime_reason(reason: &str) -> String {
+    if let Some(capability) = reason.strip_prefix("the provider still disables capability ") {
+        return format!("o provedor ainda desabilita a capability {capability}");
+    }
+
+    if let Some(check_kind) = reason.strip_prefix("the provider still disables runtime check ") {
+        return format!("o provedor ainda desabilita o check de runtime {check_kind}");
+    }
+
+    if let Some(provider_kind) = reason.strip_prefix("the provider still disables contribution ") {
+        return format!("o provedor ainda desabilita a contribuição {provider_kind}");
+    }
+
+    if let Some(policy_id) = reason.strip_prefix("the provider still disables policy ") {
+        return format!("o provedor ainda desabilita a política {policy_id}");
+    }
+
+    if let Some(hook_id) = reason.strip_prefix("the provider still disables runtime hook ") {
+        return format!("o provedor ainda desabilita o hook de runtime {hook_id}");
+    }
+
+    match reason {
+        "enable the plugin in typed project configuration" => {
+            "ative o plugin na configuração tipada do projeto".to_owned()
+        }
+        "enable the provider plugin that owns this capability" => {
+            "ative o plugin provedor responsável por esta capability".to_owned()
+        }
+        "enable the provider plugin that owns this template surface" => {
+            "ative o plugin provedor responsável por esta superfície de template".to_owned()
+        }
+        "enable the provider plugin that owns this prompt surface" => {
+            "ative o plugin provedor responsável por esta superfície de prompt".to_owned()
+        }
+        "enable the provider plugin that owns this agent runtime" => {
+            "ative o plugin provedor responsável por este runtime de agente".to_owned()
+        }
+        "enable the provider plugin that owns this runtime check" => {
+            "ative o plugin provedor responsável por este check de runtime".to_owned()
+        }
+        "enable the provider plugin that owns this contribution" => {
+            "ative o plugin provedor responsável por esta contribuição".to_owned()
+        }
+        "enable the provider plugin that owns this policy" => {
+            "ative o plugin provedor responsável por esta política".to_owned()
+        }
+        "enable the provider plugin that owns this runtime hook" => {
+            "ative o plugin provedor responsável por este hook de runtime".to_owned()
+        }
+        "enable the owning plugin or opt in to the MCP server" => {
+            "ative o plugin responsável ou faça opt-in no servidor MCP".to_owned()
+        }
+        "the plugin is registered but disabled" => {
+            "o plugin está registrado, mas desabilitado".to_owned()
+        }
+        "the provider still disables the template surface" => {
+            "o provedor ainda desabilita a superfície de template".to_owned()
+        }
+        "the provider still disables the prompt surface" => {
+            "o provedor ainda desabilita a superfície de prompt".to_owned()
+        }
+        "the provider still disables the agent runtime" => {
+            "o provedor ainda desabilita o runtime de agente".to_owned()
+        }
+        "the MCP contribution is registered but disabled" => {
+            "a contribuição MCP está registrada, mas desabilitada".to_owned()
+        }
+        _ => reason.to_owned(),
+    }
+}
