@@ -131,12 +131,82 @@ fn run_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError>
         })?
     };
 
-    Ok(with_official_runtime_snapshot(|runtime| {
+    let topology_output = with_official_runtime_snapshot(|runtime| {
         render_runtime_check_result_for_locale(
             &build_runtime_check_result(kind, &runtime.topology),
             locale,
         )
-    }))
+    });
+
+    let cwd = std::env::current_dir().unwrap_or_default();
+    let filesystem_output = run_filesystem_checks(kind, &cwd, locale);
+
+    if filesystem_output.is_empty() {
+        Ok(topology_output)
+    } else {
+        Ok(format!("{topology_output}\n\n{filesystem_output}"))
+    }
+}
+
+/// Project files that must exist for the prepare check to pass.
+const PREPARE_REQUIRED_FILES: &[&str] = &[".ralph-engine/config.yaml"];
+
+/// Project files that must exist for the doctor check to pass.
+const DOCTOR_REQUIRED_FILES: &[&str] = &[".ralph-engine/config.yaml", ".ralph-engine/prompt.md"];
+
+/// Runs filesystem validations for the given check kind against a project root.
+fn run_filesystem_checks(kind: RuntimeCheckKind, project_root: &Path, locale: &str) -> String {
+    let required_files = match kind {
+        RuntimeCheckKind::Prepare => PREPARE_REQUIRED_FILES,
+        RuntimeCheckKind::Doctor => DOCTOR_REQUIRED_FILES,
+    };
+
+    let mut missing: Vec<&str> = Vec::new();
+    let mut found: Vec<&str> = Vec::new();
+
+    for path in required_files {
+        if project_root.join(path).exists() {
+            found.push(path);
+        } else {
+            missing.push(path);
+        }
+    }
+
+    if found.is_empty() && missing.is_empty() {
+        return String::new();
+    }
+
+    let heading = if locale == "pt-br" {
+        "Validação de arquivos do projeto"
+    } else {
+        "Project file validation"
+    };
+
+    let mut lines = vec![format!("--- {heading} ---")];
+
+    for path in &found {
+        lines.push(format!("  [OK] {path}"));
+    }
+    for path in &missing {
+        let label = if locale == "pt-br" {
+            "FALTANDO"
+        } else {
+            "MISSING"
+        };
+        lines.push(format!("  [{label}] {path}"));
+    }
+
+    if !missing.is_empty() {
+        let hint = if locale == "pt-br" {
+            "Dica: execute 'ralph-engine templates scaffold basic' para gerar os arquivos iniciais"
+        } else {
+            "Hint: run 'ralph-engine templates scaffold basic' to generate initial files"
+        };
+        lines.push(String::new());
+        lines.push(hint.to_owned());
+    }
+
+    lines.join("\n")
 }
 
 fn show_check_plan(check_kind: Option<&str>, locale: &str) -> Result<String, CliError> {
@@ -498,5 +568,60 @@ mod tests {
         );
 
         assert!(rendered.contains("Assets: checks/prepare.md"));
+    }
+
+    #[test]
+    fn filesystem_checks_reports_missing_files_for_prepare() {
+        let tmp = std::env::temp_dir().join("re-fs-check-test-prepare");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).ok();
+
+        let output = super::run_filesystem_checks(RuntimeCheckKind::Prepare, &tmp, "en");
+        assert!(output.contains("[MISSING]"));
+        assert!(output.contains(".ralph-engine/config.yaml"));
+        assert!(output.contains("Hint:"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn filesystem_checks_reports_ok_when_files_exist() {
+        let tmp = std::env::temp_dir().join("re-fs-check-test-ok");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(tmp.join(".ralph-engine/config.yaml"), "# test").ok();
+
+        let output = super::run_filesystem_checks(RuntimeCheckKind::Prepare, &tmp, "en");
+        assert!(output.contains("[OK]"));
+        assert!(!output.contains("[MISSING]"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn filesystem_checks_supports_pt_br_locale() {
+        let tmp = std::env::temp_dir().join("re-fs-check-test-ptbr");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).ok();
+
+        let output = super::run_filesystem_checks(RuntimeCheckKind::Prepare, &tmp, "pt-br");
+        assert!(output.contains("[FALTANDO]"));
+        assert!(output.contains("Dica:"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn filesystem_checks_doctor_requires_both_config_and_prompt() {
+        let tmp = std::env::temp_dir().join("re-fs-check-test-doctor");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(tmp.join(".ralph-engine/config.yaml"), "# test").ok();
+
+        let output = super::run_filesystem_checks(RuntimeCheckKind::Doctor, &tmp, "en");
+        assert!(output.contains("[OK] .ralph-engine/config.yaml"));
+        assert!(output.contains("[MISSING] .ralph-engine/prompt.md"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
     }
 }
