@@ -20,10 +20,10 @@ const { lang } = Astro.props;
           <input type="radio" name="hero-install" id="hi-cargo" checked />
           <input type="radio" name="hero-install" id="hi-npm" />
           <input type="radio" name="hero-install" id="hi-brew" />
-          <div class="tab-list" role="tablist">
-            <label for="hi-cargo" role="tab">Cargo</label>
-            <label for="hi-npm" role="tab">npm</label>
-            <label for="hi-brew" role="tab">Homebrew</label>
+          <div class="tab-list" aria-label="Package managers">
+            <label for="hi-cargo">Cargo</label>
+            <label for="hi-npm">npm</label>
+            <label for="hi-brew">Homebrew</label>
           </div>
           <div class="tab-panel">
             <div class="dark-cmd">
@@ -133,6 +133,11 @@ const { lang } = Astro.props;
   .copy-btn:hover {
     background: var(--re-bg-soft);
     color: var(--re-text-primary);
+  }
+
+  .copy-btn:focus-visible {
+    outline: 2px solid var(--re-brand-500);
+    outline-offset: 2px;
   }
 
   .copy-btn.copied {

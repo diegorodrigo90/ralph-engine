@@ -32,6 +32,11 @@ const ICON_CANDIDATES = ['icon.svg', 'icon.png', 'icon.jpg', 'icon.jpeg', 'icon.
 function sanitizeSvg(content) {
   let clean = content;
   clean = clean.replace(/<script[\s\S]*?<\/script>/gi, '');
+  clean = clean.replace(/<style[\s\S]*?<\/style>/gi, '');
+  clean = clean.replace(/<a[\s\S]*?<\/a>/gi, '');
+  clean = clean.replace(/<animate[^>]*\/?>/gi, '');
+  clean = clean.replace(/<animateTransform[^>]*\/?>/gi, '');
+  clean = clean.replace(/<set[^>]*\/?>/gi, '');
   clean = clean.replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '');
   clean = clean.replace(/javascript\s*:/gi, 'blocked:');
   clean = clean.replace(/data\s*:\s*(?!image\/(svg\+xml|png|jpeg|webp|gif))/gi, 'blocked:');
@@ -112,12 +117,17 @@ function markdownToSafeHtml(text) {
   clean = clean.replace(/<iframe[\s\S]*?<\/iframe>/gi, '');
   clean = clean.replace(/<object[\s\S]*?<\/object>/gi, '');
   clean = clean.replace(/<embed[^>]*>/gi, '');
+  clean = clean.replace(/<form[\s\S]*?<\/form>/gi, '');
+  clean = clean.replace(/<meta[^>]*>/gi, '');
+  clean = clean.replace(/<svg[\s\S]*?<\/svg>/gi, '');
   // Step 2: parse markdown to HTML
   let html = marked.parse(clean, { async: false, gfm: true, breaks: false });
-  // Step 3: strip dangerous attributes from output
+  // Step 3: strip dangerous attributes/protocols from output
   html = html.replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '');
   html = html.replace(/javascript\s*:/gi, 'blocked:');
   html = html.replace(/data\s*:\s*(?!image\/(png|jpeg|gif|webp|svg\+xml))/gi, 'blocked:');
+  html = html.replace(/<form[\s\S]*?<\/form>/gi, '');
+  html = html.replace(/<meta[^>]*>/gi, '');
   return html.trim();
 }
 
@@ -176,7 +186,7 @@ function sanitizeLocales(locales, maxLength = 2000) {
  * - JS protocol stripped
  * - Total README limited to 50KB per file (prevents build DoS)
  * - Max 50 sections per plugin per locale
- * - Rendered as plain text in Astro (auto-escaped, never set:html)
+ * - Body rendered as sanitized HTML via set:html in Astro (markdownToSafeHtml pipeline)
  */
 const SUPPORTED_LOCALES = ['pt-br'];
 
