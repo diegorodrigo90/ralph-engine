@@ -306,7 +306,7 @@ elif contains_requested_check trivy; then
 fi
 
 if should_run_check public; then
-  run_check public bash -lc "npm --prefix docs run build && ./scripts/assemble-public-surfaces.sh .site-dist"
+  run_check public bash -lc "cd site && npm run build"
 elif contains_requested_check public; then
   skip_check public "rust-only change set"
 fi
