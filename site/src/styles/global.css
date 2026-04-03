@@ -273,6 +273,11 @@ h3 { font-size: 1.25rem; }
   line-height: 1.8;
   color: var(--re-terminal-text);
   overflow-x: auto;
+  word-break: break-word;
+}
+
+@media (max-width: 480px) {
+  .terminal-body { font-size: 0.6875rem; }
 }
 
 .terminal-prompt::before {
