@@ -9,7 +9,7 @@ interface Props {
 const { lang } = Astro.props;
 ---
 
-<section class="hero section">
+<section class="re-hero section">
   <div class="container hero-inner">
     <div class="hero-content">
       <h1>{t(lang, 'hero.headline')}</h1>
@@ -85,13 +85,13 @@ const { lang } = Astro.props;
   </section>
 
 <style>
-  .hero {
+  .re-hero {
     padding-top: 100px;
     padding-bottom: var(--re-space-16);
     border-bottom: none;
   }
 
-  .hero + :global(.section) {
+  .re-hero + :global(.section) {
     border-top: none;
   }
 
@@ -168,7 +168,7 @@ const { lang } = Astro.props;
 
   @media (max-width: 768px) {
     .hero-inner { grid-template-columns: 1fr; }
-    .hero { padding-top: var(--re-space-16); }
+    .re-hero { padding-top: var(--re-space-16); }
     .hero-install { max-width: 100%; }
   }
 </style>
