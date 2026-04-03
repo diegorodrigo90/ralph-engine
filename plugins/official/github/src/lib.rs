@@ -14,10 +14,10 @@ use re_plugin::{
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.github";
-const PLUGIN_NAME: &str = i18n::default_name();
-const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_names();
-const PLUGIN_SUMMARY: &str = i18n::default_summary();
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_summaries();
+const PLUGIN_NAME: &str = i18n::plugin_name();
+const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_plugin_names();
+const PLUGIN_SUMMARY: &str = i18n::plugin_summary();
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_plugin_summaries();
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[
     DATA_SOURCE,
@@ -54,7 +54,7 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
 const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
     "official.github.repository",
     PLUGIN_ID,
-    i18n::default_mcp_server_name(),
+    i18n::mcp_server_name(),
     i18n::localized_mcp_server_names(),
     McpTransport::Stdio,
     McpLaunchPolicy::SpawnProcess(McpCommandDescriptor::new(
@@ -70,27 +70,27 @@ const PROVIDERS: &[PluginProviderDescriptor] = &[
         "official.github.data",
         PLUGIN_ID,
         PluginProviderKind::DataSource,
-        i18n::default_data_source_name(),
+        i18n::data_source_name(),
         i18n::localized_data_source_names(),
-        i18n::default_data_source_summary(),
+        i18n::data_source_summary(),
         i18n::localized_data_source_summaries(),
     ),
     PluginProviderDescriptor::new(
         "official.github.context",
         PLUGIN_ID,
         PluginProviderKind::ContextProvider,
-        i18n::default_context_provider_name(),
+        i18n::context_provider_name(),
         i18n::localized_context_provider_names(),
-        i18n::default_context_provider_summary(),
+        i18n::context_provider_summary(),
         i18n::localized_context_provider_summaries(),
     ),
     PluginProviderDescriptor::new(
         "official.github.forge",
         PLUGIN_ID,
         PluginProviderKind::ForgeProvider,
-        i18n::default_forge_provider_name(),
+        i18n::forge_provider_name(),
         i18n::localized_forge_provider_names(),
-        i18n::default_forge_provider_summary(),
+        i18n::forge_provider_summary(),
         i18n::localized_forge_provider_summaries(),
     ),
 ];
@@ -173,9 +173,10 @@ mod tests {
 
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == i18n::en::LOCALE.name
-            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::LOCALE.name
-            && plugin.summary_for_locale("pt-br") == i18n::pt_br::LOCALE.summary
+            && plugin.name == i18n::plugin_name()
+            && plugin.display_name_for_locale("pt-br") == "GitHub"
+            && plugin.summary_for_locale("pt-br")
+                == "Integração de dados, contexto, forge e MCP do GitHub."
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert
@@ -198,7 +199,7 @@ mod tests {
         );
         assert_eq!(
             servers[0].display_name_for_locale("es"),
-            i18n::en::MCP_SERVER_LOCALE.name
+            i18n::mcp_server_name()
         );
     }
 
@@ -215,19 +216,19 @@ mod tests {
         );
         assert_eq!(
             providers[0].summary_for_locale("es"),
-            i18n::en::DATA_SOURCE_LOCALE.summary
+            i18n::data_source_summary()
         );
         assert_eq!(providers[1].id, "official.github.context");
         assert_eq!(providers[1].kind.as_str(), "context_provider");
         assert_eq!(
             providers[1].display_name_for_locale("es"),
-            i18n::en::CONTEXT_PROVIDER_LOCALE.name
+            i18n::context_provider_name()
         );
         assert_eq!(providers[2].id, "official.github.forge");
         assert_eq!(providers[2].kind.as_str(), "forge_provider");
         assert_eq!(
             providers[2].summary_for_locale("es"),
-            i18n::en::FORGE_PROVIDER_LOCALE.summary
+            i18n::forge_provider_summary()
         );
     }
 

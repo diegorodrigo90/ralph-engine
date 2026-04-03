@@ -1,0 +1,7 @@
+[plugin]
+name = "SSH"
+summary = "Integração de controle remoto por SSH."
+
+[remote_control]
+name = "Controle remoto SSH"
+summary = "Expõe controle remoto tipado por SSH para workflows Ralph Engine."

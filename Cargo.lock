@@ -119,6 +119,7 @@ dependencies = [
 name = "re-plugin-basic"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-build-utils",
  "re-plugin",
 ]
 
@@ -126,6 +127,7 @@ dependencies = [
 name = "re-plugin-bmad"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-build-utils",
  "re-plugin",
 ]
 
@@ -133,6 +135,7 @@ dependencies = [
 name = "re-plugin-claude"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-build-utils",
  "re-mcp",
  "re-plugin",
 ]
@@ -141,6 +144,7 @@ dependencies = [
 name = "re-plugin-claudebox"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-build-utils",
  "re-mcp",
  "re-plugin",
 ]
@@ -149,6 +153,7 @@ dependencies = [
 name = "re-plugin-codex"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-build-utils",
  "re-mcp",
  "re-plugin",
 ]
@@ -157,6 +162,7 @@ dependencies = [
 name = "re-plugin-github"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-build-utils",
  "re-mcp",
  "re-plugin",
 ]
@@ -165,6 +171,7 @@ dependencies = [
 name = "re-plugin-ssh"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-build-utils",
  "re-plugin",
 ]
 
@@ -172,6 +179,7 @@ dependencies = [
 name = "re-plugin-tdd-strict"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-build-utils",
  "re-plugin",
 ]
 

@@ -9,10 +9,10 @@ use re_plugin::{
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.basic";
-const PLUGIN_NAME: &str = i18n::default_name();
-const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_names();
-const PLUGIN_SUMMARY: &str = i18n::default_summary();
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_summaries();
+const PLUGIN_NAME: &str = i18n::plugin_name();
+const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_plugin_names();
+const PLUGIN_SUMMARY: &str = i18n::plugin_summary();
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_plugin_summaries();
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[TEMPLATE];
 const LIFECYCLE: &[PluginLifecycleStage] = &[
@@ -57,9 +57,9 @@ const TEMPLATE_ASSETS: &[PluginTemplateAsset] = &[
 const TEMPLATES: &[PluginTemplateDescriptor] = &[PluginTemplateDescriptor::new(
     "official.basic.starter",
     PLUGIN_ID,
-    i18n::default_template_name(),
+    i18n::template_name(),
     i18n::localized_template_names(),
-    i18n::default_template_summary(),
+    i18n::template_summary(),
     i18n::localized_template_summaries(),
     TEMPLATE_ASSETS,
 )];
@@ -136,9 +136,9 @@ mod tests {
 
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == i18n::en::PLUGIN_LOCALE.plugin_name
-            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::PLUGIN_LOCALE.plugin_name
-            && plugin.summary_for_locale("pt-br") == i18n::pt_br::PLUGIN_LOCALE.plugin_summary
+            && plugin.name == i18n::plugin_name()
+            && plugin.display_name_for_locale("pt-br") == "Básico"
+            && plugin.summary_for_locale("pt-br") == "Plugin base para templates iniciais."
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert

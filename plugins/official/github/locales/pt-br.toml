@@ -1,0 +1,18 @@
+[plugin]
+name = "GitHub"
+summary = "Integração de dados, contexto, forge e MCP do GitHub."
+
+[mcp_server]
+name = "Repositório GitHub"
+
+[data_source]
+name = "Fonte de dados GitHub"
+summary = "Expõe dados tipados de repositório para workflows Ralph Engine."
+
+[context_provider]
+name = "Provedor de contexto GitHub"
+summary = "Expõe contexto tipado do GitHub para workflows Ralph Engine."
+
+[forge_provider]
+name = "Provedor forge GitHub"
+summary = "Expõe automação forge tipada para workflows baseados em GitHub."

@@ -10,10 +10,10 @@ use re_plugin::{
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.ssh";
-const PLUGIN_NAME: &str = i18n::default_name();
-const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_names();
-const PLUGIN_SUMMARY: &str = i18n::default_summary();
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_summaries();
+const PLUGIN_NAME: &str = i18n::plugin_name();
+const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_plugin_names();
+const PLUGIN_SUMMARY: &str = i18n::plugin_summary();
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_plugin_summaries();
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[REMOTE_CONTROL];
 const LIFECYCLE: &[PluginLifecycleStage] =
@@ -38,9 +38,9 @@ const PROVIDERS: &[PluginProviderDescriptor] = &[PluginProviderDescriptor::new(
     "official.ssh.remote",
     PLUGIN_ID,
     PluginProviderKind::RemoteControl,
-    i18n::default_remote_control_name(),
+    i18n::remote_control_name(),
     i18n::localized_remote_control_names(),
-    i18n::default_remote_control_summary(),
+    i18n::remote_control_summary(),
     i18n::localized_remote_control_summaries(),
 )];
 
@@ -116,9 +116,9 @@ mod tests {
 
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == i18n::en::LOCALE.name
-            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::LOCALE.name
-            && plugin.summary_for_locale("pt-br") == i18n::pt_br::LOCALE.summary
+            && plugin.name == i18n::plugin_name()
+            && plugin.display_name_for_locale("pt-br") == "SSH"
+            && plugin.summary_for_locale("pt-br") == "Integração de controle remoto por SSH."
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert
@@ -162,7 +162,7 @@ mod tests {
         );
         assert_eq!(
             providers[0].summary_for_locale("es"),
-            i18n::en::REMOTE_CONTROL_LOCALE.summary
+            i18n::remote_control_summary()
         );
     }
 

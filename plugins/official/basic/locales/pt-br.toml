@@ -1,0 +1,7 @@
+[plugin]
+name = "Básico"
+summary = "Plugin base para templates iniciais."
+
+[template]
+name = "Starter básico"
+summary = "Template inicial para novos projetos Ralph Engine."

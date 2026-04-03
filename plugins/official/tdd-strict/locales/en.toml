@@ -1,0 +1,11 @@
+[plugin]
+name = "TDD Strict"
+summary = "Strict TDD policy and template guardrails."
+
+[template]
+name = "TDD strict starter"
+summary = "Starter template with strict TDD guardrails enabled."
+
+[policy]
+name = "TDD strict guardrails"
+summary = "Official policy with strict TDD guardrails."

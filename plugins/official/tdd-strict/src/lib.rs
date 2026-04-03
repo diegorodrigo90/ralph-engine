@@ -13,10 +13,10 @@ use re_plugin::{
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.tdd-strict";
-const PLUGIN_NAME: &str = i18n::default_name();
-const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_names();
-const PLUGIN_SUMMARY: &str = i18n::default_summary();
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_summaries();
+const PLUGIN_NAME: &str = i18n::plugin_name();
+const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_plugin_names();
+const PLUGIN_SUMMARY: &str = i18n::plugin_summary();
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_plugin_summaries();
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[TEMPLATE, POLICY];
 const LIFECYCLE: &[PluginLifecycleStage] = &[
@@ -65,9 +65,9 @@ const TEMPLATE_ASSETS: &[PluginTemplateAsset] = &[
 const TEMPLATES: &[PluginTemplateDescriptor] = &[PluginTemplateDescriptor::new(
     "official.tdd-strict.starter",
     PLUGIN_ID,
-    i18n::default_template_name(),
+    i18n::template_name(),
     i18n::localized_template_names(),
-    i18n::default_template_summary(),
+    i18n::template_summary(),
     i18n::localized_template_summaries(),
     TEMPLATE_ASSETS,
 )];
@@ -78,9 +78,9 @@ const POLICY_ASSETS: &[PluginPolicyAsset] = &[PluginPolicyAsset::new(
 const POLICIES: &[PluginPolicyDescriptor] = &[PluginPolicyDescriptor::new(
     "official.tdd-strict.guardrails",
     PLUGIN_ID,
-    i18n::default_policy_name(),
+    i18n::policy_name(),
     i18n::localized_policy_names(),
-    i18n::default_policy_summary(),
+    i18n::policy_summary(),
     i18n::localized_policy_summaries(),
     POLICY_ASSETS,
 )];
@@ -213,9 +213,10 @@ mod tests {
 
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == i18n::en::PLUGIN_LOCALE.plugin_name
-            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::PLUGIN_LOCALE.plugin_name
-            && plugin.summary_for_locale("pt-br") == i18n::pt_br::PLUGIN_LOCALE.plugin_summary
+            && plugin.name == i18n::plugin_name()
+            && plugin.display_name_for_locale("pt-br") == "TDD Estrito"
+            && plugin.summary_for_locale("pt-br")
+                == "Política estrita de TDD com guardrails de template."
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert

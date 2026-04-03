@@ -1,0 +1,11 @@
+[plugin]
+name = "TDD Estrito"
+summary = "Política estrita de TDD com guardrails de template."
+
+[template]
+name = "Starter TDD estrito"
+summary = "Template inicial com guardrails estritos de TDD ativados."
+
+[policy]
+name = "Guardrails TDD estrito"
+summary = "Política oficial com guardrails estritos de TDD."
