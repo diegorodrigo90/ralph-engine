@@ -92,47 +92,51 @@ fn probe_agent_launch(agent_id: Option<&str>, locale: &str) -> Result<String, Cl
 
     let mut lines = Vec::new();
 
-    let heading = if locale == "pt-br" {
+    let heading = locale_str!(
+        locale,
+        "Agent bootstrap probe",
         "Verificação de bootstrap de agente"
-    } else {
-        "Agent bootstrap probe"
-    };
+    );
     lines.push(format!("--- {heading}: {} ---", agent.descriptor.id));
     lines.push(format!("plugin: {}", agent.descriptor.plugin_id));
     lines.push(format!("load_boundary: {}", agent.load_boundary));
 
     if agent.bootstrap_hook_registered {
-        let label = if locale == "pt-br" {
+        let label = locale_str!(
+            locale,
+            "Bootstrap hook registered",
             "Hook de bootstrap registrado"
-        } else {
-            "Bootstrap hook registered"
-        };
-        lines.push(format!("[OK] {label}"));
+        );
+        lines.push(format!("{} {label}", super::STATUS_OK));
     } else {
-        let label = if locale == "pt-br" {
+        let label = locale_str!(
+            locale,
+            "Bootstrap hook NOT registered",
             "Hook de bootstrap NÃO registrado"
-        } else {
-            "Bootstrap hook NOT registered"
-        };
-        lines.push(format!("[MISSING] {label}"));
+        );
+        lines.push(format!("{} {label}", super::STATUS_MISSING));
     }
 
     match catalog::official_plugin_runtime(agent.descriptor.plugin_id) {
         Some(runtime) => match runtime.bootstrap_agent(agent.descriptor.id) {
             Ok(result) => {
-                let status = if result.ready { "[OK]" } else { "[NOT READY]" };
+                let status = if result.ready {
+                    super::STATUS_OK
+                } else {
+                    super::STATUS_NOT_READY
+                };
                 lines.push(format!("{status} {}", result.message));
             }
             Err(err) => {
-                lines.push(format!("[UNSUPPORTED] {err}"));
+                lines.push(format!("{} {err}", super::STATUS_UNSUPPORTED));
             }
         },
         None => {
-            let msg = if locale == "pt-br" {
+            let msg = locale_str!(
+                locale,
+                "Plugin does not provide a runtime implementation.",
                 "Plugin não fornece implementação de runtime."
-            } else {
-                "Plugin does not provide a runtime implementation."
-            };
+            );
             lines.push(msg.to_owned());
         }
     }
