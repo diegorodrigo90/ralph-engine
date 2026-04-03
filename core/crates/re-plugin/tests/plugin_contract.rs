@@ -877,3 +877,77 @@ fn plugin_api_version_rejects_future_versions() {
     );
     assert!(!future_plugin.is_api_compatible());
 }
+
+#[test]
+fn validate_reports_no_errors_for_well_formed_plugin() {
+    let plugin = basic_plugin();
+    assert!(plugin.validate().is_empty());
+}
+
+#[test]
+fn validate_catches_empty_id() {
+    let plugin = PluginDescriptor::new(
+        "",
+        PluginKind::Template,
+        PluginTrustLevel::Community,
+        "Test",
+        &[],
+        "Summary.",
+        &[],
+        "1.0.0",
+        1,
+        BASIC_CAPABILITIES,
+        BASIC_LIFECYCLE,
+        PluginLoadBoundary::InProcess,
+        BASIC_RUNTIME_HOOKS,
+    );
+    let errors = plugin.validate();
+    assert!(errors.iter().any(|e| e.contains("must not be empty")));
+    assert!(errors.iter().any(|e| e.contains("namespace")));
+}
+
+#[test]
+fn validate_catches_incompatible_api_version() {
+    let plugin = PluginDescriptor::new(
+        "test.future",
+        PluginKind::Template,
+        PluginTrustLevel::Community,
+        "Future",
+        &[],
+        "Summary.",
+        &[],
+        "1.0.0",
+        99,
+        BASIC_CAPABILITIES,
+        BASIC_LIFECYCLE,
+        PluginLoadBoundary::InProcess,
+        BASIC_RUNTIME_HOOKS,
+    );
+    let errors = plugin.validate();
+    assert!(errors.iter().any(|e| e.contains("api version")));
+}
+
+#[test]
+fn validate_catches_no_capabilities_or_hooks() {
+    let plugin = PluginDescriptor::new(
+        "test.empty",
+        PluginKind::Template,
+        PluginTrustLevel::Community,
+        "Empty",
+        &[],
+        "Summary.",
+        &[],
+        "1.0.0",
+        1,
+        &[],
+        &[],
+        PluginLoadBoundary::InProcess,
+        &[],
+    );
+    let errors = plugin.validate();
+    assert!(
+        errors
+            .iter()
+            .any(|e| e.contains("capability or runtime hook"))
+    );
+}
