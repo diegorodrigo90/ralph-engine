@@ -1,7 +1,5 @@
 //! MCP command handlers.
 
-use std::process::Command;
-
 use re_core::{
     build_mcp_server_status, build_mcp_server_statuses, render_mcp_server_status_for_locale,
     render_mcp_server_statuses_for_locale,
@@ -155,9 +153,8 @@ fn probe_launch(server_id: Option<&str>, locale: &str) -> Result<String, CliErro
             lines.push(format!("working_directory: {}", command.working_directory));
             lines.push(format!("environment: {}", command.environment));
 
-            let probe_result = probe_binary(command.program);
-            match probe_result {
-                BinaryProbeResult::Found(path) => {
+            match probe_binary(command.program) {
+                Some(path) => {
                     let label = if locale == "pt-br" {
                         "Binário encontrado"
                     } else {
@@ -165,7 +162,7 @@ fn probe_launch(server_id: Option<&str>, locale: &str) -> Result<String, CliErro
                     };
                     lines.push(format!("[OK] {label}: {path}"));
                 }
-                BinaryProbeResult::NotFound => {
+                None => {
                     let label = if locale == "pt-br" {
                         "Binário NÃO encontrado no PATH"
                     } else {
@@ -196,26 +193,9 @@ fn probe_launch(server_id: Option<&str>, locale: &str) -> Result<String, CliErro
     Ok(lines.join("\n"))
 }
 
-enum BinaryProbeResult {
-    Found(String),
-    NotFound,
-}
-
-/// Probes whether a binary is available on the system PATH.
-fn probe_binary(program: &str) -> BinaryProbeResult {
-    let which_cmd = if cfg!(windows) { "where" } else { "which" };
-    match Command::new(which_cmd).arg(program).output() {
-        Ok(output) if output.status.success() => {
-            let path = String::from_utf8_lossy(&output.stdout)
-                .trim()
-                .lines()
-                .next()
-                .unwrap_or(program)
-                .to_owned();
-            BinaryProbeResult::Found(path)
-        }
-        _ => BinaryProbeResult::NotFound,
-    }
+/// Wraps the shared binary probe for local use with labeled output.
+fn probe_binary(program: &str) -> Option<String> {
+    re_plugin::probe_binary_on_path(program)
 }
 
 fn show_all_statuses(locale: &str) -> String {
@@ -289,14 +269,12 @@ mod tests {
 
     #[test]
     fn probe_binary_finds_common_system_binary() {
-        let result = super::probe_binary("sh");
-        assert!(matches!(result, super::BinaryProbeResult::Found(_)));
+        assert!(super::probe_binary("sh").is_some());
     }
 
     #[test]
     fn probe_binary_reports_missing_for_nonexistent() {
-        let result = super::probe_binary("ralph-engine-nonexistent-binary-xyz");
-        assert!(matches!(result, super::BinaryProbeResult::NotFound));
+        assert!(super::probe_binary("ralph-engine-nonexistent-binary-xyz").is_none());
     }
 
     #[test]
