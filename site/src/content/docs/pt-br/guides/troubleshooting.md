@@ -1,6 +1,6 @@
 ---
 title: "Solução de problemas"
-description: "Problemas comuns e como resolvê-los"
+description: "Problemas comuns ao usar o Ralph Engine e como resolvê-los"
 ---
 
 ## Desalinhamento de Toolchain

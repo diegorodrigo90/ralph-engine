@@ -1,6 +1,6 @@
 ---
 title: "Configuration"
-description: "Configure Ralph Engine with YAML files"
+description: "Configure your project with .ralph-engine/config.yaml"
 ---
 
 Ralph Engine configuration is managed through typed Rust contracts. The CLI exposes the full configuration surface.

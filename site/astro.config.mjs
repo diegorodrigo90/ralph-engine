@@ -29,9 +29,10 @@ export default defineConfig({
         },
       },
       sidebar: [
+        // ── For users: install, configure, use ──
         {
-          label: 'Getting Started',
-          translations: { 'pt-BR': 'Primeiros passos' },
+          label: 'Using Ralph Engine',
+          translations: { 'pt-BR': 'Usando o Ralph Engine' },
           items: [
             {
               slug: 'getting-started/installation',
@@ -43,12 +44,6 @@ export default defineConfig({
               label: 'Quick Start',
               translations: { 'pt-BR': 'Início rápido' },
             },
-          ],
-        },
-        {
-          label: 'Guides',
-          translations: { 'pt-BR': 'Guias' },
-          items: [
             {
               slug: 'guides/configuration',
               label: 'Configuration',
@@ -58,27 +53,6 @@ export default defineConfig({
               slug: 'guides/hooks',
               label: 'Hooks',
             },
-            {
-              slug: 'guides/plugins',
-              label: 'Extending',
-              translations: { 'pt-BR': 'Extensões' },
-            },
-            {
-              slug: 'guides/plugin-development',
-              label: 'Plugin Development',
-              translations: { 'pt-BR': 'Desenvolvimento de Plugins' },
-            },
-            {
-              slug: 'guides/troubleshooting',
-              label: 'Troubleshooting',
-              translations: { 'pt-BR': 'Solução de problemas' },
-            },
-          ],
-        },
-        {
-          label: 'Reference',
-          translations: { 'pt-BR': 'Referência' },
-          items: [
             {
               slug: 'reference/cli',
               label: 'CLI Commands',
@@ -90,19 +64,36 @@ export default defineConfig({
               translations: { 'pt-BR': 'Referência de config' },
             },
             {
-              slug: 'reference/architecture',
-              label: 'Architecture',
-              translations: { 'pt-BR': 'Arquitetura' },
-            },
-            {
               slug: 'reference/mcp',
               label: 'MCP',
             },
+            {
+              slug: 'guides/troubleshooting',
+              label: 'Troubleshooting',
+              translations: { 'pt-BR': 'Solução de problemas' },
+            },
           ],
         },
+        // ── For plugin authors: create your own plugins ──
         {
-          label: 'Development',
-          translations: { 'pt-BR': 'Desenvolvimento' },
+          label: 'Plugin Development',
+          translations: { 'pt-BR': 'Desenvolvimento de Plugins' },
+          items: [
+            {
+              slug: 'guides/plugins',
+              label: 'Overview',
+              translations: { 'pt-BR': 'Visão geral' },
+            },
+            {
+              slug: 'guides/plugin-development',
+              label: 'Tutorial',
+            },
+          ],
+        },
+        // ── For contributors: build the core, submit PRs ──
+        {
+          label: 'Contributing',
+          translations: { 'pt-BR': 'Contribuindo' },
           items: [
             {
               slug: 'development/building',
@@ -113,6 +104,11 @@ export default defineConfig({
               slug: 'development/coding-standards',
               label: 'Coding Standards',
               translations: { 'pt-BR': 'Padrões de código' },
+            },
+            {
+              slug: 'reference/architecture',
+              label: 'Architecture',
+              translations: { 'pt-BR': 'Arquitetura' },
             },
             {
               slug: 'development/releasing',

@@ -1,6 +1,6 @@
 ---
 title: "Padrões de código"
-description: "Estilo de código e diretrizes de contribuição"
+description: "Estilo de código e regras de qualidade para contribuidores"
 ---
 
 O Ralph Engine usa uma base de qualidade rígida em Rust, mas o repositório também precisa continuar acolhedor para quem está entrando em Rust ou em open source.

@@ -1,6 +1,6 @@
 ---
 title: "Releasing"
-description: "Release process and CI pipeline"
+description: "Release process and CI pipeline for maintainers"
 ---
 
 ## Release Flow

@@ -1,6 +1,6 @@
 ---
 title: "Arquitetura"
-description: "Arquitetura interna e decisões de design"
+description: "Arquitetura interna para contribuidores"
 ---
 
 ## Posicionamento

@@ -1,6 +1,6 @@
 ---
 title: "Publicação"
-description: "Processo de release e pipeline CI"
+description: "Processo de release e pipeline CI para mantenedores"
 ---
 
 ## Fluxo de Release

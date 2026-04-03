@@ -1,6 +1,6 @@
 ---
 title: "Troubleshooting"
-description: "Common issues and how to fix them"
+description: "Common issues when using Ralph Engine and how to fix them"
 ---
 
 ## Toolchain Drift
