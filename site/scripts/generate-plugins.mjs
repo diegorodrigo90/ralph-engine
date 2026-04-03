@@ -13,6 +13,7 @@ import { readFileSync, writeFileSync, readdirSync, mkdirSync, copyFileSync, exis
 import { join, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
+import { marked } from 'marked';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const siteRoot = join(__dirname, '..');
@@ -86,11 +87,38 @@ function sanitizeText(text, maxLength = 0) {
   clean = clean.replace(/<[^>]*>/g, '');          // strip HTML tags
   clean = clean.replace(/&[a-z]+;/gi, '');         // strip HTML entities
   clean = clean.replace(/javascript\s*:/gi, '');   // strip JS protocol
-  clean = clean.replace(/\s+/g, ' ').trim();       // normalize whitespace
+  clean = clean.replace(/\s+/g, ' ').trim();       // normalize whitespace (single line)
   if (maxLength > 0 && clean.length > maxLength) {
     clean = clean.slice(0, maxLength) + '…';
   }
   return clean;
+}
+
+/**
+ * Convert markdown to sanitized HTML at build time.
+ * SECURITY pipeline:
+ *   1. Strip raw HTML/script from markdown source (before parsing)
+ *   2. Parse markdown → HTML via marked
+ *   3. Strip dangerous attributes from output HTML (onclick, onerror, etc.)
+ *   4. Strip javascript: protocol from output HTML
+ * The result is safe for set:html in Astro components.
+ */
+function markdownToSafeHtml(text) {
+  if (!text || typeof text !== 'string') return '';
+  // Step 1: strip dangerous content from markdown source
+  let clean = text;
+  clean = clean.replace(/<script[\s\S]*?<\/script>/gi, '');
+  clean = clean.replace(/<style[\s\S]*?<\/style>/gi, '');
+  clean = clean.replace(/<iframe[\s\S]*?<\/iframe>/gi, '');
+  clean = clean.replace(/<object[\s\S]*?<\/object>/gi, '');
+  clean = clean.replace(/<embed[^>]*>/gi, '');
+  // Step 2: parse markdown to HTML
+  let html = marked.parse(clean, { async: false, gfm: true, breaks: false });
+  // Step 3: strip dangerous attributes from output
+  html = html.replace(/\s+on\w+\s*=\s*["'][^"']*["']/gi, '');
+  html = html.replace(/javascript\s*:/gi, 'blocked:');
+  html = html.replace(/data\s*:\s*(?!image\/(png|jpeg|gif|webp|svg\+xml))/gi, 'blocked:');
+  return html.trim();
 }
 
 /**
@@ -181,7 +209,7 @@ function parseReadmeSections(filePath) {
   return sections.length > 0
     ? sections.slice(0, MAX_SECTIONS).map(s => ({
         heading: s.heading,
-        body: sanitizeText(s.body),
+        body: markdownToSafeHtml(s.body),
       }))
     : undefined;
 }

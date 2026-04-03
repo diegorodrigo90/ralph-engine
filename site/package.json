@@ -15,6 +15,7 @@
     "@astrojs/starlight": "0.32.0",
     "astro": "5.18.1",
     "js-yaml": "^4.1.1",
+    "marked": "^17.0.5",
     "pagefind": "^1.4.0"
   },
   "devDependencies": {
