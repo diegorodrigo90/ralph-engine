@@ -78,7 +78,10 @@ function countForKind(kind: string): number {
                 <h3 class="plugin-name">{plugin.display_name}</h3>
                 <span class="plugin-id">{plugin.id}</span>
               </div>
-              <span class="pill pill-brand plugin-kind">{kindLabels[plugin.kind] ?? plugin.kind}</span>
+              <div class="plugin-badges">
+                {plugin.trust_level === 'official' && <span class="pill pill-official">Official</span>}
+                <span class="pill pill-brand plugin-kind">{kindLabels[plugin.kind] ?? plugin.kind}</span>
+              </div>
             </div>
             <p class="plugin-summary">{plugin.summary}</p>
             <div class="plugin-caps">
@@ -259,9 +262,17 @@ function countForKind(kind: string): number {
     color: var(--re-text-muted);
   }
 
-  .plugin-kind {
+  .plugin-badges {
     margin-left: auto;
+    display: flex;
+    gap: 4px;
     flex-shrink: 0;
+  }
+
+  .pill-official {
+    background: var(--re-brand-50);
+    color: var(--re-brand-600);
+    font-size: 0.6875rem;
   }
 
   .plugin-summary {

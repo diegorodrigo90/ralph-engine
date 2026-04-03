@@ -115,8 +115,9 @@ const allTags = [
         </p>
       </div>
 
-      {/* Terminal: real CLI output */}
-      <h2 class="section-heading">CLI output</h2>
+      {/* Technical details — collapsed by default */}
+      <details class="details-block">
+        <summary class="details-summary">CLI output</summary>
       <div class="terminal">
         <div class="terminal-bar">
           <span class="terminal-dot"></span>
@@ -141,6 +142,7 @@ const allTags = [
           </div>
         </div>
       </div>
+      </details>
 
       {/* Sub-resources */}
       {plugin.agents?.length > 0 && (
@@ -247,8 +249,9 @@ const allTags = [
         </div>
       )}
 
-      {/* Manifest */}
-      <h2 class="section-heading">manifest.yaml</h2>
+      {/* Manifest — collapsed */}
+      <details class="details-block">
+        <summary class="details-summary">manifest.yaml</summary>
       <div class="terminal">
         <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
         <div class="terminal-body">
@@ -269,6 +272,8 @@ const allTags = [
         </div>
       </div>
 
+      </details>
+
       {/* Actions */}
       <div class="detail-actions">
         <a
@@ -281,26 +286,7 @@ const allTags = [
 
     </div>
   </section>
-  <span class="copy-feedback" role="status" aria-live="polite"></span>
-</Base>
-
-<script is:inline>
-  document.querySelectorAll('.copy-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var text = btn.getAttribute('data-copy');
-      if (!text) return;
-      navigator.clipboard.writeText(text).then(function () {
-        var feedback = document.querySelector('.copy-feedback');
-        if (feedback) feedback.textContent = 'Copied!';
-        btn.classList.add('copied');
-        setTimeout(function () {
-          btn.classList.remove('copied');
-          if (feedback) feedback.textContent = '';
-        }, 2000);
-      });
-    });
-  });
-</script>
+  </Base>
 
 <style>
   .detail-layout { max-width: 800px; }
@@ -471,6 +457,49 @@ const allTags = [
     display: flex;
     flex-wrap: wrap;
     gap: var(--re-space-3);
+  }
+
+  /* Collapsible sections */
+  .details-block {
+    margin-top: var(--re-space-8);
+    border: 1px solid var(--re-border);
+    border-radius: var(--re-radius-lg);
+    overflow: hidden;
+  }
+
+  .details-summary {
+    padding: var(--re-space-4) var(--re-space-6);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    color: var(--re-text-secondary);
+    background: var(--re-bg-soft);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: var(--re-space-2);
+  }
+
+  .details-summary::-webkit-details-marker { display: none; }
+
+  .details-summary::before {
+    content: '▶';
+    font-size: 0.625rem;
+    transition: transform 0.15s;
+  }
+
+  details[open] .details-summary::before {
+    transform: rotate(90deg);
+  }
+
+  .details-block[open] .details-summary {
+    border-bottom: 1px solid var(--re-border);
+  }
+
+  .details-block .terminal {
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
   }
 
   @media (max-width: 640px) {

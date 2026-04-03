@@ -82,26 +82,7 @@ const { lang } = Astro.props;
       </div>
     </div>
   </div>
-  <span class="copy-feedback" role="status" aria-live="polite"></span>
-</section>
-
-<script is:inline>
-  document.querySelectorAll('.copy-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var text = btn.getAttribute('data-copy');
-      if (!text) return;
-      navigator.clipboard.writeText(text).then(function () {
-        var feedback = document.querySelector('.copy-feedback');
-        if (feedback) feedback.textContent = 'Copied!';
-        btn.classList.add('copied');
-        setTimeout(function () {
-          btn.classList.remove('copied');
-          if (feedback) feedback.textContent = '';
-        }, 2000);
-      });
-    });
-  });
-</script>
+  </section>
 
 <style>
   .hero {
