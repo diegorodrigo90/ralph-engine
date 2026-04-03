@@ -39,6 +39,9 @@ const altUrl = new URL(localePath(altLang, altPath), Astro.site);
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalUrl} />
 
+    {/* Pagefind search UI (loaded on demand) */}
+    <link href="/_pagefind/pagefind-ui.css" rel="stylesheet" />
+
     {/* Theme boot — inline, runs before paint to prevent flash.
         Shared key "ralph-theme" synced with VitePress. */}
     <script is:inline>
@@ -57,6 +60,78 @@ const altUrl = new URL(localePath(altLang, altPath), Astro.site);
       <slot />
     </main>
     <Footer lang={lang} />
+    {/* Search modal */}
+    <div class="search-modal" id="search-modal" aria-hidden="true">
+      <div class="search-modal-backdrop"></div>
+      <div class="search-modal-content">
+        <div id="pagefind-container"></div>
+        <button class="search-modal-close" aria-label="Close search" type="button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <script is:inline>
+      (function () {
+        var modal = document.getElementById('search-modal');
+        var container = document.getElementById('pagefind-container');
+        var btn = document.getElementById('search-btn');
+        var close = modal?.querySelector('.search-modal-close');
+        var backdrop = modal?.querySelector('.search-modal-backdrop');
+        var loaded = false;
+
+        function openSearch() {
+          if (!modal) return;
+          modal.setAttribute('aria-hidden', 'false');
+          modal.classList.add('is-open');
+          document.body.style.overflow = 'hidden';
+
+          if (!loaded && container) {
+            loaded = true;
+            var script = document.createElement('script');
+            script.src = '/_pagefind/pagefind-ui.js';
+            script.onload = function () {
+              new PagefindUI({
+                element: '#pagefind-container',
+                showSubResults: true,
+                showImages: false,
+              });
+              setTimeout(function () {
+                var input = container.querySelector('input');
+                if (input) input.focus();
+              }, 100);
+            };
+            document.head.appendChild(script);
+          } else {
+            setTimeout(function () {
+              var input = container?.querySelector('input');
+              if (input) input.focus();
+            }, 50);
+          }
+        }
+
+        function closeSearch() {
+          if (!modal) return;
+          modal.setAttribute('aria-hidden', 'true');
+          modal.classList.remove('is-open');
+          document.body.style.overflow = '';
+        }
+
+        if (btn) btn.addEventListener('click', openSearch);
+        if (close) close.addEventListener('click', closeSearch);
+        if (backdrop) backdrop.addEventListener('click', closeSearch);
+
+        document.addEventListener('keydown', function (e) {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            if (modal?.classList.contains('is-open')) closeSearch();
+            else openSearch();
+          }
+          if (e.key === 'Escape' && modal?.classList.contains('is-open')) closeSearch();
+        });
+      })();
+    </script>
+
     {/* Copy to clipboard — works on all pages */}
     <script is:inline>
       document.addEventListener('click', function (e) {

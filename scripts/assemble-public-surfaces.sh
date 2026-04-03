@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Assembles Astro site + VitePress docs into a single deploy artifact.
+# Runs Pagefind to index all HTML for unified search.
 # Usage: ./scripts/assemble-public-surfaces.sh [output-dir]
 
 set -euo pipefail
@@ -23,5 +24,11 @@ fi
 
 # 3. Copy shared static assets
 cp "$ROOT_DIR/llms.txt" "$OUTPUT_DIR/llms.txt"
+
+# 4. Run Pagefind — indexes all HTML for unified search across site + docs
+if command -v npx &> /dev/null; then
+  echo "Indexing with Pagefind..."
+  npx pagefind --site "$OUTPUT_DIR" --output-subdir _pagefind 2>&1 || echo "Pagefind indexing skipped"
+fi
 
 echo "Assembled $(find "$OUTPUT_DIR" -name '*.html' | wc -l) HTML files into $OUTPUT_DIR"

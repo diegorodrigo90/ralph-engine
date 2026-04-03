@@ -348,6 +348,16 @@ body {
   color: var(--vp-c-text-2);
 }
 
+/* Hide external link icon and behavior on nav items that are same-site (Home, Plugins).
+   VitePress adds class vp-external-link-icon and target="_blank" to absolute URLs.
+   In production these are same-domain, so we suppress the external styling. */
+.VPNavBarMenuLink.vp-external-link-icon::after,
+.VPNavScreenMenuLink.vp-external-link-icon::after {
+  display: none !important;
+}
+
+/* Also prevent opening in new tab — override via JS in theme/index.ts */
+
 @media (max-width: 960px) {
   .VPNavBarMenuLink {
     border: 0;
