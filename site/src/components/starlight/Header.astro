@@ -34,6 +34,11 @@ const pluginsHref = lang === 'pt-br' ? '/pt-br/plugins/' : '/plugins/';
   </div>
 </div>
 
+<!-- Fix Starlight search button a11y: kbd visible text doesn't match aria-label -->
+<script is:inline>
+  document.querySelectorAll('button[data-open-modal] kbd').forEach(el => el.setAttribute('aria-hidden', 'true'));
+</script>
+
 <style>
   .header {
     gap: var(--sl-nav-gap);
