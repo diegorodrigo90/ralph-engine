@@ -1,65 +1,57 @@
-/* ── Import shared design tokens ── */
+/* ── Import shared design tokens (used by site pages, not Starlight) ── */
 @import '../../../shared/design-tokens.css';
 
-/* ── Starlight theme overrides using Ralph Engine design tokens ── */
+/* ── Starlight theme — Ralph Engine brand ── */
+/* Starlight uses absolute color values, not semantic tokens.
+   --sl-color-white is always the LIGHTEST color.
+   --sl-color-black is always the DARKEST color.
+   Gray scale: 1 = near-black, 6 = near-white in light mode. */
 
-/* Map Starlight color vars to RE tokens */
 :root {
-  --sl-color-accent-low: var(--re-brand-50);
-  --sl-color-accent: var(--re-brand-500);
-  --sl-color-accent-high: var(--re-brand-700);
-  --sl-color-white: var(--re-text-primary);
-  --sl-color-gray-1: var(--re-bg-elevated);
-  --sl-color-gray-2: var(--re-bg-soft);
-  --sl-color-gray-3: var(--re-border);
-  --sl-color-gray-4: var(--re-text-muted);
-  --sl-color-gray-5: var(--re-text-secondary);
-  --sl-color-gray-6: var(--re-text-primary);
-  --sl-color-black: var(--re-bg);
-  --sl-font: var(--re-font-sans);
-  --sl-font-mono: var(--re-font-mono);
+  /* Brand accent — indigo */
+  --sl-color-accent-low: #eef0fb;
+  --sl-color-accent: #5B6AD0;
+  --sl-color-accent-high: #3b4499;
+
+  /* Gray scale (light mode: 1=darkest bg, 6=lightest text) */
+  --sl-color-white: #fafbfc;
+  --sl-color-gray-1: #f1f5f9;
+  --sl-color-gray-2: #e2e8f0;
+  --sl-color-gray-3: #cbd5e1;
+  --sl-color-gray-4: #64748b;
+  --sl-color-gray-5: #475569;
+  --sl-color-gray-6: #0f172a;
+  --sl-color-black: #0f172a;
+
+  /* Typography */
+  --sl-font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --sl-font-mono: "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, monospace;
 }
 
 :root[data-theme='dark'] {
-  --sl-color-accent-low: var(--re-brand-900);
-  --sl-color-accent: var(--re-brand-400);
-  --sl-color-accent-high: var(--re-brand-200);
-  --sl-color-white: var(--re-text-primary);
-  --sl-color-gray-1: var(--re-bg-elevated);
-  --sl-color-gray-2: var(--re-bg-soft);
-  --sl-color-gray-3: var(--re-border);
-  --sl-color-gray-4: var(--re-text-muted);
-  --sl-color-gray-5: var(--re-text-secondary);
-  --sl-color-gray-6: var(--re-text-primary);
-  --sl-color-black: var(--re-bg);
-}
+  /* Brand accent — lighter indigo for dark */
+  --sl-color-accent-low: #1a1f3d;
+  --sl-color-accent: #818CF8;
+  --sl-color-accent-high: #cfd4fd;
 
-/* ── Typography ── */
-body {
-  font-family: var(--re-font-sans);
-}
-
-code, pre {
-  font-family: var(--re-font-mono);
-}
-
-/* ── Content width ── */
-.sl-container {
-  max-width: 1280px;
-}
-
-/* ── Sidebar link hover ── */
-nav.sidebar a:hover {
-  color: var(--re-brand-500);
+  /* Gray scale (dark mode: 1=lightest text, 6=darkest bg) */
+  --sl-color-white: #e2e8f0;
+  --sl-color-gray-1: #94a3b8;
+  --sl-color-gray-2: #64748b;
+  --sl-color-gray-3: #334155;
+  --sl-color-gray-4: #1e293b;
+  --sl-color-gray-5: #151d2e;
+  --sl-color-gray-6: #0b1120;
+  --sl-color-black: #0b1120;
 }
 
 /* ── Code blocks ── */
 pre {
-  border-radius: var(--re-radius-lg);
+  border-radius: 12px;
 }
 
 /* ── Table styling ── */
 table {
-  border-radius: var(--re-radius-md);
+  border-radius: 8px;
   overflow: hidden;
 }
