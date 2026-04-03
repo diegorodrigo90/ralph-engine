@@ -14,12 +14,13 @@ O Ralph Engine vem com plugins oficiais compilados no binário:
 | Plugin | Tipo | Capabilities | O que faz |
 |--------|------|-------------|-----------|
 | **basic** | Template | template | Scaffolding de projeto inicial |
-| **bmad** | Template | template, prompts, prepare/doctor checks | Scaffolding e validação de workflows BMAD |
+| **bmad** | Template | template, prompt_fragments, prepare_checks, doctor_checks | Scaffolding e validação de workflows BMAD |
 | **tdd-strict** | Policy | template, policy | Guardrails e enforcement de TDD |
-| **claude** | Agent Runtime | agent, mcp | Sessões de agente Claude CLI |
-| **claudebox** | Agent Runtime | agent, mcp | Sessões de agente Claude Box |
-| **codex** | Agent Runtime | agent, mcp | Sessões de agente Codex |
-| **github** | Data Source | data, context, forge, mcp | Integração GitHub (dados de repositório, automação forge) |
+| **hello-world** | Template | template | Plugin de exemplo mínimo para aprender |
+| **claude** | Agent Runtime | agent_runtime, mcp_contribution | Sessões de agente Claude CLI |
+| **claudebox** | Agent Runtime | agent_runtime, mcp_contribution | Sessões de agente Claude Box (sandbox) |
+| **codex** | Agent Runtime | agent_runtime, mcp_contribution | Sessões de agente Codex |
+| **github** | MCP Contribution | data_source, context_provider, forge_provider, mcp_contribution | Integração GitHub (dados, contexto, forge, MCP) |
 | **ssh** | Remote Control | remote_control | Controle remoto SSH para workflows distribuídos |
 
 Liste todos os plugins registrados:

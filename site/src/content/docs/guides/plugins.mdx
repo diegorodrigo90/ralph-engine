@@ -14,12 +14,13 @@ Ralph Engine ships with official plugins compiled into the binary:
 | Plugin | Kind | Capabilities | What it does |
 |--------|------|-------------|-------------|
 | **basic** | Template | template | Starter project scaffolding |
-| **bmad** | Template | template, prompts, prepare/doctor checks | BMAD workflow scaffolding and validation |
+| **bmad** | Template | template, prompt_fragments, prepare_checks, doctor_checks | BMAD workflow scaffolding and validation |
 | **tdd-strict** | Policy | template, policy | TDD guardrails and policy enforcement |
-| **claude** | Agent Runtime | agent, mcp | Claude CLI agent sessions |
-| **claudebox** | Agent Runtime | agent, mcp | Claude Box agent sessions |
-| **codex** | Agent Runtime | agent, mcp | Codex agent sessions |
-| **github** | Data Source | data, context, forge, mcp | GitHub integration (repository data, forge automation) |
+| **hello-world** | Template | template | Minimal example plugin for learning |
+| **claude** | Agent Runtime | agent_runtime, mcp_contribution | Claude CLI agent sessions |
+| **claudebox** | Agent Runtime | agent_runtime, mcp_contribution | Claude Box sandboxed sessions |
+| **codex** | Agent Runtime | agent_runtime, mcp_contribution | Codex agent sessions |
+| **github** | MCP Contribution | data_source, context_provider, forge_provider, mcp_contribution | GitHub integration (data, context, forge, MCP) |
 | **ssh** | Remote Control | remote_control | SSH remote control for distributed workflows |
 
 List all registered plugins:

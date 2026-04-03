@@ -97,6 +97,18 @@ ralph-engine checks run <check-id>
 
 Executar uma verificação contra a topologia resolvida. Retorna um resultado localizado de aprovação/reprovação com findings e ações de remediação.
 
+```bash
+ralph-engine checks asset <check-id> <asset-path>
+```
+
+Exibir um asset específico do pacote embutido de uma verificação.
+
+```bash
+ralph-engine checks materialize <check-id> <output-dir>
+```
+
+Gravar o pacote de assets embutidos da verificação em um diretório de saída.
+
 ## config
 
 Inspecionar contratos de configuração.
@@ -286,6 +298,24 @@ ralph-engine policies plan <policy-id>
 ```
 
 Exibir o plano de enforcement de uma policy.
+
+```bash
+ralph-engine policies run <policy-id>
+```
+
+Executar o enforcement de uma policy. Retorna um resultado localizado de aprovação/reprovação.
+
+```bash
+ralph-engine policies asset <policy-id> <asset-path>
+```
+
+Exibir um asset específico do pacote embutido de uma policy.
+
+```bash
+ralph-engine policies materialize <policy-id> <output-dir>
+```
+
+Gravar o pacote de assets embutidos da policy em um diretório de saída.
 
 ## prompts
 
