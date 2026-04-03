@@ -300,7 +300,7 @@ if should_run_check gitleaks; then
 fi
 
 if should_run_check trivy; then
-  run_check trivy trivy fs --no-progress --scanners vuln,misconfig --severity HIGH,CRITICAL --exit-code 1 --skip-dirs docs/node_modules --skip-dirs target .
+  run_check trivy trivy fs --no-progress --scanners vuln,misconfig --severity HIGH,CRITICAL --exit-code 1 --skip-dirs docs/node_modules --skip-dirs site/node_modules --skip-dirs target .
 elif contains_requested_check trivy; then
   skip_check trivy "public-only change set"
 fi
