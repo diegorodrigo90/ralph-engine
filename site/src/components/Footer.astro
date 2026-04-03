@@ -9,7 +9,7 @@ interface Props {
 const { lang } = Astro.props;
 ---
 
-<footer class="footer">
+<footer class="re-footer not-content">
   <div class="container footer-inner">
     <div class="footer-brand">
       <a href={localePath(lang, '/')} class="footer-logo">
@@ -22,7 +22,7 @@ const { lang } = Astro.props;
     <div class="footer-col">
       <h4>{t(lang, 'footer.resources')}</h4>
       <ul>
-        <li><a href={lang === 'pt-br' ? '/docs/pt-br/getting-started/installation' : '/docs/getting-started/installation'}>Documentation</a></li>
+        <li><a href={localePath(lang, '/getting-started/installation/')}>{lang === 'pt-br' ? 'Documentação' : 'Documentation'}</a></li>
         <li><a href={localePath(lang, '/plugins/')}>Plugins</a></li>
         <li><a href="/llms.txt">llms.txt</a></li>
       </ul>
@@ -30,73 +30,106 @@ const { lang } = Astro.props;
     <div class="footer-col">
       <h4>{t(lang, 'footer.community')}</h4>
       <ul>
-        <li><a href="https://github.com/diegorodrigo90/ralph-engine" target="_blank" rel="noopener">GitHub</a></li>
-        <li><a href="https://github.com/diegorodrigo90/ralph-engine/issues" target="_blank" rel="noopener">Issues</a></li>
-        <li><a href="https://github.com/diegorodrigo90/ralph-engine/discussions" target="_blank" rel="noopener">Discussions</a></li>
+        <li><a href="https://github.com/diegorodrigo90/ralph-engine" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <li><a href="https://github.com/diegorodrigo90/ralph-engine/issues" target="_blank" rel="noopener noreferrer">Issues</a></li>
+        <li><a href="https://github.com/diegorodrigo90/ralph-engine/discussions" target="_blank" rel="noopener noreferrer">Discussions</a></li>
       </ul>
     </div>
+  </div>
+  <div class="container footer-legal">
+    <span>&copy; {new Date().getFullYear()} Ralph Engine</span>
+    <span class="legal-sep">&middot;</span>
+    <a href={localePath(lang, '/privacy/')}>{lang === 'pt-br' ? 'Privacidade' : 'Privacy'}</a>
+    <span class="legal-sep">&middot;</span>
+    <a href={localePath(lang, '/terms/')}>{lang === 'pt-br' ? 'Termos' : 'Terms'}</a>
   </div>
 </footer>
 
 <style>
-  .footer {
-    border-top: 1px solid var(--re-border);
-    padding: var(--re-space-12) 0 var(--re-space-6);
-    margin-top: var(--re-space-20);
+  .re-footer {
+    border-top: 1px solid var(--re-border, var(--sl-color-gray-5, #334155));
+    padding: var(--re-space-12, 3rem) 0 var(--re-space-6, 1.5rem);
+    margin-top: var(--re-space-12, 3rem);
   }
 
   .footer-inner {
     display: grid;
     grid-template-columns: 2fr 1fr 1fr;
-    gap: var(--re-space-8);
+    gap: var(--re-space-8, 2rem);
   }
 
   .footer-logo {
     display: flex;
     align-items: center;
-    gap: var(--re-space-2);
+    gap: var(--re-space-2, 0.5rem);
     font-weight: 700;
     font-size: 0.9375rem;
-    color: var(--re-text-primary);
+    color: var(--re-text-primary, var(--sl-color-white, #e2e8f0));
     text-decoration: none;
   }
 
   .footer-tagline {
-    margin-top: var(--re-space-2);
+    margin-top: var(--re-space-2, 0.5rem);
     font-size: 0.8125rem;
-    color: var(--re-text-muted);
+    color: var(--re-text-muted, var(--sl-color-gray-3, #94a3b8));
     max-width: 280px;
   }
 
   .footer-license {
-    margin-top: var(--re-space-2);
+    margin-top: var(--re-space-2, 0.5rem);
     font-size: 0.75rem;
-    color: var(--re-text-muted);
+    color: var(--re-text-muted, var(--sl-color-gray-3, #94a3b8));
   }
 
   .footer-col h4 {
     font-size: 0.8125rem;
     font-weight: 700;
-    color: var(--re-text-primary);
+    color: var(--re-text-primary, var(--sl-color-white, #e2e8f0));
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    margin-bottom: var(--re-space-3);
+    margin-bottom: var(--re-space-3, 0.75rem);
   }
 
-  .footer-col ul { list-style: none; }
-  .footer-col li + li { margin-top: var(--re-space-2); }
+  .footer-col ul { list-style: none; padding: 0; margin: 0; }
+  .footer-col li + li { margin-top: var(--re-space-2, 0.5rem); }
 
   .footer-col a {
-    color: var(--re-text-secondary);
+    color: var(--re-text-secondary, var(--sl-color-gray-2, #cbd5e1));
     font-size: 0.875rem;
     text-decoration: none;
     transition: color 0.15s;
   }
 
-  .footer-col a:hover { color: var(--re-brand-500); }
+  .footer-col a:hover { color: var(--re-brand-500, var(--sl-color-accent, #818cf8)); }
 
-  @media (max-width: 640px) {
+  /* Legal line — discrete, single row */
+  .footer-legal {
+    margin-top: var(--re-space-8, 2rem);
+    padding-top: var(--re-space-4, 1rem);
+    border-top: 1px solid var(--re-border, var(--sl-color-gray-5, #334155));
+    font-size: 0.75rem;
+    color: var(--re-text-muted, var(--sl-color-gray-3, #94a3b8));
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .footer-legal a {
+    color: var(--re-text-muted, var(--sl-color-gray-3, #94a3b8));
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .footer-legal a:hover { color: var(--re-brand-500, var(--sl-color-accent, #818cf8)); }
+
+  .legal-sep { opacity: 0.4; }
+
+  @media (max-width: 768px) {
     .footer-inner { grid-template-columns: 1fr 1fr; }
     .footer-brand { grid-column: 1 / -1; }
+  }
+
+  @media (max-width: 480px) {
+    .footer-inner { grid-template-columns: 1fr; }
   }
 </style>

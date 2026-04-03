@@ -1,0 +1,24 @@
+---
+/**
+ * Starlight Footer override — replaces the default Starlight footer
+ * with our shared Footer component across all pages (docs, plugins, home).
+ *
+ * Preserves Starlight's EditLink, LastUpdated, and Pagination for doc pages.
+ */
+import EditLink from 'virtual:starlight/components/EditLink';
+import LastUpdated from 'virtual:starlight/components/LastUpdated';
+import Pagination from 'virtual:starlight/components/Pagination';
+import SharedFooter from '../Footer.astro';
+
+const lang = Astro.props.locale === 'pt-br' ? 'pt-br' : 'en';
+---
+
+<footer class="sl-flex" style="flex-direction: column; gap: 1.5rem;">
+  <div class="meta sl-flex" style="gap: 0.75rem 3rem; justify-content: space-between; flex-wrap: wrap; font-size: var(--sl-text-sm); color: var(--sl-color-gray-3);">
+    <EditLink />
+    <LastUpdated />
+  </div>
+  <Pagination />
+</footer>
+
+<SharedFooter lang={lang} />
