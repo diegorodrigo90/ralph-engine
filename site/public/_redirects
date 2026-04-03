@@ -1,0 +1,5 @@
+# Cloudflare Pages redirects
+# Trailing slash normalization handled by Astro build format: 'directory'
+
+# Legacy paths from old site
+/landing/*  /  301

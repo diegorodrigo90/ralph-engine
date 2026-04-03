@@ -1,0 +1,176 @@
+---
+import Base from '../../layouts/Base.astro';
+import { t, localePath } from '../../i18n/utils';
+import plugins from '../../data/plugins.json';
+
+const lang = 'en' as const;
+
+export function getStaticPaths() {
+  return plugins.map((plugin: any) => ({
+    params: { id: plugin.id.replace('official.', '') },
+    props: { plugin },
+  }));
+}
+
+const { plugin } = Astro.props;
+
+const kindLabels: Record<string, string> = {
+  template: 'Template',
+  agent_runtime: 'Agent Runtime',
+  mcp_contribution: 'MCP Contribution',
+  policy: 'Policy',
+  remote_control: 'Remote Control',
+};
+---
+
+<Base lang={lang} title={plugin.display_name}>
+  <section class="section">
+    <div class="container" style="max-width: 720px;">
+      <a href={localePath(lang, '/plugins/')} style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 24px; display: inline-block;">
+        ← {t(lang, 'plugin.back')}
+      </a>
+
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <h1>{plugin.display_name}</h1>
+        <span class="pill pill-brand">{kindLabels[plugin.kind] ?? plugin.kind}</span>
+      </div>
+
+      <p style="font-size: 1.125rem; color: var(--text-muted); margin-bottom: 24px;">
+        {plugin.summary}
+      </p>
+
+      <div class="card" style="margin-bottom: 24px;">
+        <table class="detail-table">
+          <tr>
+            <td>{t(lang, 'plugin.version')}</td>
+            <td>{plugin.plugin_version}</td>
+          </tr>
+          <tr>
+            <td>{t(lang, 'plugin.kind')}</td>
+            <td>{kindLabels[plugin.kind] ?? plugin.kind}</td>
+          </tr>
+          <tr>
+            <td>{t(lang, 'plugin.trust')}</td>
+            <td><span class="pill pill-brand">{plugin.trust_level}</span></td>
+          </tr>
+          <tr>
+            <td>{t(lang, 'plugin.capabilities')}</td>
+            <td>
+              <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                {plugin.capabilities?.map((cap: string) => (
+                  <span class="pill">{cap}</span>
+                ))}
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>API version</td>
+            <td>{plugin.plugin_api_version}</td>
+          </tr>
+          <tr>
+            <td>Engine</td>
+            <td>{plugin.engine_version}</td>
+          </tr>
+        </table>
+      </div>
+
+      {plugin.templates && plugin.templates.length > 0 && (
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 1.25rem; margin-bottom: 12px;">Templates</h2>
+          {plugin.templates.map((tpl: any) => (
+            <div class="card" style="margin-bottom: 8px;">
+              <h3 style="font-size: 1rem;">{tpl.display_name}</h3>
+              <p style="font-size: 0.875rem; color: var(--text-muted);">{tpl.summary}</p>
+              <code style="font-size: 0.8125rem; color: var(--text-muted);">{tpl.id}</code>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {plugin.agents && plugin.agents.length > 0 && (
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 1.25rem; margin-bottom: 12px;">Agent Runtimes</h2>
+          {plugin.agents.map((agent: any) => (
+            <div class="card" style="margin-bottom: 8px;">
+              <h3 style="font-size: 1rem;">{agent.display_name}</h3>
+              <p style="font-size: 0.875rem; color: var(--text-muted);">{agent.summary}</p>
+              <code style="font-size: 0.8125rem; color: var(--text-muted);">{agent.id}</code>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {plugin.providers && plugin.providers.length > 0 && (
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 1.25rem; margin-bottom: 12px;">Providers</h2>
+          {plugin.providers.map((prov: any) => (
+            <div class="card" style="margin-bottom: 8px;">
+              <h3 style="font-size: 1rem;">{prov.display_name}</h3>
+              <p style="font-size: 0.875rem; color: var(--text-muted);">{prov.summary}</p>
+              <code style="font-size: 0.8125rem; color: var(--text-muted);">{prov.id}</code>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {plugin.checks && plugin.checks.length > 0 && (
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 1.25rem; margin-bottom: 12px;">Checks</h2>
+          {plugin.checks.map((check: any) => (
+            <div class="card" style="margin-bottom: 8px;">
+              <h3 style="font-size: 1rem;">{check.display_name}</h3>
+              <p style="font-size: 0.875rem; color: var(--text-muted);">{check.summary}</p>
+              <code style="font-size: 0.8125rem; color: var(--text-muted);">{check.id}</code>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {plugin.policies && plugin.policies.length > 0 && (
+        <div style="margin-bottom: 24px;">
+          <h2 style="font-size: 1.25rem; margin-bottom: 12px;">Policies</h2>
+          {plugin.policies.map((pol: any) => (
+            <div class="card" style="margin-bottom: 8px;">
+              <h3 style="font-size: 1rem;">{pol.display_name}</h3>
+              <p style="font-size: 0.875rem; color: var(--text-muted);">{pol.summary}</p>
+              <code style="font-size: 0.8125rem; color: var(--text-muted);">{pol.id}</code>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div class="code-block" style="margin-bottom: 24px;">
+        <span class="code-label">{t(lang, 'plugin.install')}</span>
+        <code>ralph-engine plugins show {plugin.id}</code>
+      </div>
+
+      <a
+        href={`https://github.com/diegorodrigo90/ralph-engine/tree/main/plugins/official/${plugin.id.replace('official.', '')}`}
+        target="_blank"
+        rel="noopener"
+        class="btn btn-secondary"
+      >
+        {t(lang, 'plugin.source')} →
+      </a>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .detail-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .detail-table td {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+  }
+
+  .detail-table td:first-child {
+    font-weight: 600;
+    color: var(--text-muted);
+    width: 140px;
+  }
+</style>

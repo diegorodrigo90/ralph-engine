@@ -1,0 +1,158 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { t, localePath } from '../../../i18n/utils';
+import plugins from '../../../data/plugins.json';
+
+const lang = 'pt-br' as const;
+
+export function getStaticPaths() {
+  return plugins.map((plugin: any) => ({
+    params: { id: plugin.id.replace('official.', '') },
+    props: { plugin },
+  }));
+}
+
+const { plugin } = Astro.props;
+
+function getName(p: any): string {
+  return p.display_name_locales?.['pt-br'] ?? p.display_name;
+}
+
+function getSummary(p: any): string {
+  return p.summary_locales?.['pt-br'] ?? p.summary;
+}
+
+const kindLabels: Record<string, string> = {
+  template: t(lang, 'catalog.kind.template'),
+  agent_runtime: t(lang, 'catalog.kind.agent_runtime'),
+  mcp_contribution: t(lang, 'catalog.kind.mcp_contribution'),
+  policy: t(lang, 'catalog.kind.policy'),
+  remote_control: t(lang, 'catalog.kind.remote_control'),
+};
+---
+
+<Base lang={lang} title={getName(plugin)}>
+  <section class="section">
+    <div class="container" style="max-width: 720px;">
+      <a href={localePath(lang, '/plugins/')} style="font-size: 0.875rem; color: var(--re-text-muted); margin-bottom: var(--re-space-6); display: inline-block;">
+        ← {t(lang, 'plugin.back')}
+      </a>
+
+      <div style="display: flex; align-items: center; gap: var(--re-space-3); margin-bottom: var(--re-space-2);">
+        <h1>{getName(plugin)}</h1>
+        <span class="pill pill-brand">{kindLabels[plugin.kind] ?? plugin.kind}</span>
+      </div>
+
+      <p style="font-size: 0.8125rem; font-family: var(--re-font-mono); color: var(--re-text-muted); margin-bottom: var(--re-space-4);">
+        {plugin.id}
+      </p>
+
+      <p style="font-size: 1.0625rem; color: var(--re-text-secondary); margin-bottom: var(--re-space-6); line-height: 1.6;">
+        {getSummary(plugin)}
+      </p>
+
+      <div class="card" style="margin-bottom: var(--re-space-6);">
+        <table class="detail-table">
+          <tr><td>{t(lang, 'plugin.version')}</td><td>{plugin.plugin_version}</td></tr>
+          <tr><td>{t(lang, 'plugin.kind')}</td><td>{kindLabels[plugin.kind] ?? plugin.kind}</td></tr>
+          <tr><td>{t(lang, 'plugin.trust')}</td><td><span class="pill pill-brand">{plugin.trust_level}</span></td></tr>
+          <tr>
+            <td>{t(lang, 'plugin.capabilities')}</td>
+            <td>
+              <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+                {plugin.capabilities?.map((cap: string) => <span class="pill">{cap}</span>)}
+              </div>
+            </td>
+          </tr>
+          <tr><td>API</td><td>{plugin.plugin_api_version}</td></tr>
+          <tr><td>Engine</td><td>{plugin.engine_version}</td></tr>
+        </table>
+      </div>
+
+      {plugin.templates?.length > 0 && (
+        <div style="margin-bottom: var(--re-space-6);">
+          <h2 style="font-size: 1.25rem; margin-bottom: var(--re-space-3);">Templates</h2>
+          {plugin.templates.map((tpl: any) => (
+            <div class="card" style="margin-bottom: var(--re-space-2);">
+              <h3 style="font-size: 1rem;">{tpl.display_name_locales?.['pt-br'] ?? tpl.display_name}</h3>
+              <p style="font-size: 0.875rem; color: var(--re-text-secondary);">{tpl.summary_locales?.['pt-br'] ?? tpl.summary}</p>
+              <code style="font-size: 0.8125rem; color: var(--re-text-muted);">{tpl.id}</code>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {plugin.agents?.length > 0 && (
+        <div style="margin-bottom: var(--re-space-6);">
+          <h2 style="font-size: 1.25rem; margin-bottom: var(--re-space-3);">Runtimes de Agente</h2>
+          {plugin.agents.map((agent: any) => (
+            <div class="card" style="margin-bottom: var(--re-space-2);">
+              <h3 style="font-size: 1rem;">{agent.display_name_locales?.['pt-br'] ?? agent.display_name}</h3>
+              <p style="font-size: 0.875rem; color: var(--re-text-secondary);">{agent.summary_locales?.['pt-br'] ?? agent.summary}</p>
+              <code style="font-size: 0.8125rem; color: var(--re-text-muted);">{agent.id}</code>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {plugin.providers?.length > 0 && (
+        <div style="margin-bottom: var(--re-space-6);">
+          <h2 style="font-size: 1.25rem; margin-bottom: var(--re-space-3);">Provedores</h2>
+          {plugin.providers.map((prov: any) => (
+            <div class="card" style="margin-bottom: var(--re-space-2);">
+              <h3 style="font-size: 1rem;">{prov.display_name_locales?.['pt-br'] ?? prov.display_name}</h3>
+              <p style="font-size: 0.875rem; color: var(--re-text-secondary);">{prov.summary_locales?.['pt-br'] ?? prov.summary}</p>
+              <code style="font-size: 0.8125rem; color: var(--re-text-muted);">{prov.id}</code>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {plugin.checks?.length > 0 && (
+        <div style="margin-bottom: var(--re-space-6);">
+          <h2 style="font-size: 1.25rem; margin-bottom: var(--re-space-3);">Checks</h2>
+          {plugin.checks.map((check: any) => (
+            <div class="card" style="margin-bottom: var(--re-space-2);">
+              <h3 style="font-size: 1rem;">{check.display_name_locales?.['pt-br'] ?? check.display_name}</h3>
+              <p style="font-size: 0.875rem; color: var(--re-text-secondary);">{check.summary_locales?.['pt-br'] ?? check.summary}</p>
+              <code style="font-size: 0.8125rem; color: var(--re-text-muted);">{check.id}</code>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {plugin.policies?.length > 0 && (
+        <div style="margin-bottom: var(--re-space-6);">
+          <h2 style="font-size: 1.25rem; margin-bottom: var(--re-space-3);">Políticas</h2>
+          {plugin.policies.map((pol: any) => (
+            <div class="card" style="margin-bottom: var(--re-space-2);">
+              <h3 style="font-size: 1rem;">{pol.display_name_locales?.['pt-br'] ?? pol.display_name}</h3>
+              <p style="font-size: 0.875rem; color: var(--re-text-secondary);">{pol.summary_locales?.['pt-br'] ?? pol.summary}</p>
+              <code style="font-size: 0.8125rem; color: var(--re-text-muted);">{pol.id}</code>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div class="code-block" style="margin-bottom: var(--re-space-6);">
+        <span class="code-label">{t(lang, 'plugin.install')}</span>
+        <code>ralph-engine plugins show {plugin.id}</code>
+      </div>
+
+      <a
+        href={`https://github.com/diegorodrigo90/ralph-engine/tree/main/plugins/official/${plugin.id.replace('official.', '')}`}
+        target="_blank"
+        rel="noopener"
+        class="btn btn-secondary"
+      >
+        {t(lang, 'plugin.source')} →
+      </a>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .detail-table { width: 100%; border-collapse: collapse; }
+  .detail-table td { padding: var(--re-space-2) 0; border-bottom: 1px solid var(--re-border); font-size: 0.875rem; }
+  .detail-table td:first-child { font-weight: 600; color: var(--re-text-muted); width: 140px; }
+</style>

@@ -1,0 +1,71 @@
+---
+import type { Locale } from '../i18n/utils';
+import { t } from '../i18n/utils';
+
+interface Props {
+  lang: Locale;
+}
+
+const { lang } = Astro.props;
+
+const features = [
+  { key: 'plugins', icon: 'puzzle' },
+  { key: 'checks', icon: 'shield-check' },
+  { key: 'agents', icon: 'bot' },
+  { key: 'mcp', icon: 'plug' },
+];
+
+const iconPaths: Record<string, string> = {
+  puzzle: 'M19.439 7.85c-.049.322.059.648.289.878l1.568 1.568c.47.47.706 1.087.706 1.704s-.235 1.233-.706 1.704l-1.611 1.611a.98.98 0 01-.837.276c-.47-.07-.802-.48-.968-.925a2.501 2.501 0 10-3.214 3.214c.446.166.855.497.925.968a.98.98 0 01-.276.837l-1.611 1.611a2.407 2.407 0 01-1.704.706 2.407 2.407 0 01-1.704-.706l-1.568-1.568a1.026 1.026 0 00-.877-.29c-.493.074-.84.504-1.02.968a2.5 2.5 0 11-3.237-3.237c.464-.18.894-.527.967-1.02a1.026 1.026 0 00-.289-.877l-1.568-1.568A2.407 2.407 0 011.5 12c0-.617.236-1.234.706-1.704L3.817 8.685a.98.98 0 01.837-.276c.47.07.802.48.968.925a2.501 2.501 0 103.214-3.214c-.446-.166-.855-.497-.925-.968a.979.979 0 01.276-.837l1.611-1.611a2.407 2.407 0 011.704-.706c.617 0 1.234.236 1.704.706l1.568 1.568c.23.23.556.338.877.29.493-.074.84-.504 1.02-.968a2.5 2.5 0 113.237 3.237c-.464.18-.894.527-.967 1.02z',
+  'shield-check': 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M9 12l2 2 4-4',
+  bot: 'M12 8V4H8 M8 8H6a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2v-6a2 2 0 00-2-2h-2 M9 13h0 M15 13h0 M10 8h4',
+  plug: 'M12 22v-5 M9 8V2 M15 8V2 M18 8H6a2 2 0 00-2 2v2c0 4.418 3.582 8 8 8s8-3.582 8-8v-2a2 2 0 00-2-2z',
+};
+---
+
+<section class="section">
+  <div class="container">
+    <div class="grid-4">
+      {features.map(({ key, icon }) => (
+        <div class="card feature-card">
+          <div class="feature-icon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d={iconPaths[icon]} />
+            </svg>
+          </div>
+          <h3>{t(lang, `features.${key}.title`)}</h3>
+          <p>{t(lang, `features.${key}.description`)}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .feature-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--re-space-3);
+  }
+
+  .feature-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--re-brand-50);
+    color: var(--re-brand-500);
+    border-radius: var(--re-radius-md);
+  }
+
+  .feature-card h3 {
+    font-size: 1.0625rem;
+  }
+
+  .feature-card p {
+    font-size: 0.875rem;
+    color: var(--re-text-secondary);
+    line-height: 1.5;
+  }
+</style>

@@ -1,0 +1,133 @@
+/* =============================================================
+   Ralph Engine — Shared Design Tokens
+   Source of truth for both Astro site and VitePress docs.
+   Generated from logo indigo #5B6AD0 / #818CF8.
+   ============================================================= */
+
+:root {
+  /* Brand — Indigo (from logo) */
+  --re-brand-50:  #eef0fb;
+  --re-brand-100: #d9ddf6;
+  --re-brand-200: #b3bbee;
+  --re-brand-300: #8d99e5;
+  --re-brand-400: #6e7bdb;
+  --re-brand-500: #5B6AD0;
+  --re-brand-600: #4a56b8;
+  --re-brand-700: #3b4499;
+  --re-brand-800: #2c337a;
+  --re-brand-900: #1e235c;
+
+  /* Accent — Warm orange for CTAs */
+  --re-accent:       #e45635;
+  --re-accent-hover: #c94428;
+  --re-accent-soft:  #fef2f0;
+
+  /* Backgrounds */
+  --re-bg:          #fafbfc;
+  --re-bg-elevated: #ffffff;
+  --re-bg-soft:     #f1f5f9;
+  --re-bg-code:     #f6f8fb;
+
+  /* Text */
+  --re-text-primary:   #0f172a;
+  --re-text-secondary: #475569;
+  --re-text-muted:     #64748b;
+  --re-text-code:      #1e293b;
+
+  /* Borders */
+  --re-border:        #e2e8f0;
+  --re-border-strong: #cbd5e1;
+
+  /* Surfaces */
+  --re-card-bg:     #ffffff;
+  --re-card-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --re-nav-bg:      rgba(250, 251, 252, 0.85);
+  --re-pill-bg:     #f1f5f9;
+  --re-pill-text:   #475569;
+
+  /* Terminal */
+  --re-terminal-bg:     #0f172a;
+  --re-terminal-bar:    #1e293b;
+  --re-terminal-text:   #e2e8f0;
+  --re-terminal-prompt: #22c55e;
+  --re-terminal-output: #94a3b8;
+
+  /* Semantic */
+  --re-success: #16a34a;
+  --re-warning: #ca8a04;
+  --re-error:   #dc2626;
+
+  /* Shadows */
+  --re-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --re-shadow-md: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --re-shadow-lg: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --re-shadow-brand: 0 8px 24px rgba(91, 106, 208, 0.18);
+
+  /* Typography */
+  --re-font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --re-font-mono: "JetBrains Mono", "SF Mono", "Fira Code", ui-monospace, monospace;
+
+  /* Spacing */
+  --re-space-1:  4px;
+  --re-space-2:  8px;
+  --re-space-3:  12px;
+  --re-space-4:  16px;
+  --re-space-5:  20px;
+  --re-space-6:  24px;
+  --re-space-8:  32px;
+  --re-space-10: 40px;
+  --re-space-12: 48px;
+  --re-space-16: 64px;
+  --re-space-20: 80px;
+
+  /* Radius */
+  --re-radius-sm:   6px;
+  --re-radius-md:   8px;
+  --re-radius-lg:   12px;
+  --re-radius-full: 9999px;
+}
+
+[data-theme="dark"],
+.dark {
+  --re-brand-50:  #1a1f3d;
+  --re-brand-100: #232a52;
+  --re-brand-200: #333d72;
+  --re-brand-300: #4f5c9e;
+  --re-brand-400: #6b79c4;
+  --re-brand-500: #818CF8;
+  --re-brand-600: #9ba4fa;
+  --re-brand-700: #b5bcfb;
+  --re-brand-800: #cfd4fd;
+  --re-brand-900: #e9ebfe;
+
+  --re-accent:       #f97316;
+  --re-accent-hover: #fb923c;
+  --re-accent-soft:  rgba(249, 115, 22, 0.1);
+
+  --re-bg:          #0b1120;
+  --re-bg-elevated: #151d2e;
+  --re-bg-soft:     #1a2332;
+  --re-bg-code:     #131c2b;
+
+  --re-text-primary:   #e2e8f0;
+  --re-text-secondary: #94a3b8;
+  --re-text-muted:     #64748b;
+  --re-text-code:      #cbd5e1;
+
+  --re-border:        #1e293b;
+  --re-border-strong: #334155;
+
+  --re-card-bg:     #151d2e;
+  --re-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --re-nav-bg:      rgba(11, 17, 32, 0.85);
+  --re-pill-bg:     #1e293b;
+  --re-pill-text:   #94a3b8;
+
+  --re-terminal-bg:  #080e1a;
+  --re-terminal-bar: #111827;
+
+  --re-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --re-shadow-md: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --re-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.3);
+  --re-shadow-brand: 0 8px 24px rgba(129, 140, 248, 0.16);
+}

@@ -1,0 +1,129 @@
+---
+import type { Locale } from '../i18n/utils';
+import { t } from '../i18n/utils';
+
+interface Props {
+  lang: Locale;
+}
+
+const { lang } = Astro.props;
+---
+
+<section class="section">
+  <div class="container">
+    <h2 style="margin-bottom: 8px;">
+      {lang === 'en' ? 'Real output, real contracts' : 'Saída real, contratos reais'}
+    </h2>
+    <p style="color: var(--re-text-secondary); margin-bottom: 24px;">
+      {lang === 'en'
+        ? 'What you see here is what the CLI produces. No mockups.'
+        : 'O que você vê aqui é o que a CLI produz. Sem mockups.'}
+    </p>
+
+    <div class="tabs">
+      <input type="radio" name="feature-tab" id="tab-manifest" checked />
+      <input type="radio" name="feature-tab" id="tab-doctor" />
+      <input type="radio" name="feature-tab" id="tab-plugins" />
+      <input type="radio" name="feature-tab" id="tab-checks" />
+
+      <div class="tab-list" role="tablist">
+        <label for="tab-manifest" role="tab">{t(lang, 'tabs.manifest')}</label>
+        <label for="tab-doctor" role="tab">{t(lang, 'tabs.doctor')}</label>
+        <label for="tab-plugins" role="tab">{t(lang, 'tabs.plugins')}</label>
+        <label for="tab-checks" role="tab">{t(lang, 'tabs.checks')}</label>
+      </div>
+
+      <div class="tab-panel">
+        <div class="code-block">
+          <code><pre set:text={`id: official.claude
+kind: agent_runtime
+display_name: Claude
+summary: Claude agent runtime and MCP session integration.
+publisher: official
+trust_level: official
+plugin_version: 0.2.0-alpha.1
+runtime: true
+capabilities:
+  - agent_runtime
+  - mcp_contribution
+agents:
+  - id: official.claude.session
+    display_name: Claude session
+    summary: Claude runtime session for Ralph Engine.`} /></code>
+        </div>
+      </div>
+
+      <div class="tab-panel">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-prompt">ralph-engine doctor</div>
+            <div class="terminal-output">
+              <div>--- Runtime diagnostic ---</div>
+              <div>[OK] Config loaded: .ralph-engine/config.yaml</div>
+              <div>[OK] 8/8 plugins enabled</div>
+              <div>[OK] 3/3 agent runtimes ready</div>
+              <div>[OK] 2/2 MCP servers available</div>
+              <div>[OK] 5/5 checks passed</div>
+              <div>[OK] 0 unresolved issues</div>
+              <div></div>
+              <div>Remediation: none needed.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-prompt">ralph-engine plugins list</div>
+            <div class="terminal-output">
+              <div>Official plugins (8)</div>
+              <div>- official.basic    | Template      | enabled</div>
+              <div>- official.bmad     | Template      | enabled</div>
+              <div>- official.claude   | Agent Runtime | enabled</div>
+              <div>- official.claudebox| Agent Runtime | enabled</div>
+              <div>- official.codex    | Agent Runtime | enabled</div>
+              <div>- official.github   | MCP           | enabled</div>
+              <div>- official.ssh      | Remote Control| enabled</div>
+              <div>- official.tdd-strict| Policy       | enabled</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-panel">
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-prompt">ralph-engine checks run official.bmad.prepare</div>
+            <div class="terminal-output">
+              <div>--- Check execution: official.bmad.prepare ---</div>
+              <div>Kind: prepare</div>
+              <div>Plugin: official.bmad</div>
+              <div></div>
+              <div>[OK] .ralph-engine/config.yaml exists</div>
+              <div>[OK] .ralph-engine/prompt.md exists</div>
+              <div>[OK] Plugin configuration valid</div>
+              <div></div>
+              <div>Result: PASS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

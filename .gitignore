@@ -19,5 +19,11 @@
 /docs/development
 /docs/pt-br
 /.site-dist
+
+# Astro site
+/site/dist
+/site/node_modules
+/site/.astro
+/site/src/data/plugins.json
 /docs/.content
 /.release

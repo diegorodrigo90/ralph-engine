@@ -1,0 +1,385 @@
+{
+  "version": 1,
+  "generated_at": "2026-04-03T11:31:01.466Z",
+  "count": 8,
+  "plugins": [
+    {
+      "id": "official.basic",
+      "kind": "template",
+      "display_name": "Basic",
+      "display_name_locales": {
+        "pt-br": "Básico"
+      },
+      "summary": "Foundation plugin for starter templates.",
+      "summary_locales": {
+        "pt-br": "Plugin base para templates iniciais."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "capabilities": [
+        "template"
+      ],
+      "templates": [
+        {
+          "id": "official.basic.starter",
+          "display_name": "Basic starter",
+          "display_name_locales": {
+            "pt-br": "Starter básico"
+          },
+          "summary": "Starter template for new Ralph Engine projects.",
+          "summary_locales": {
+            "pt-br": "Template inicial para novos projetos Ralph Engine."
+          }
+        }
+      ],
+      "project": {
+        "required_files": [
+          ".ralph-engine/config.yaml",
+          ".ralph-engine/prompt.md"
+        ]
+      }
+    },
+    {
+      "id": "official.bmad",
+      "kind": "template",
+      "display_name": "BMAD",
+      "display_name_locales": {
+        "pt-br": "BMAD"
+      },
+      "summary": "Workflow plugin for BMAD scaffolding and prompts.",
+      "summary_locales": {
+        "pt-br": "Plugin de workflow para scaffolding e prompts do BMAD."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "capabilities": [
+        "template",
+        "prompt_fragments",
+        "prepare_checks",
+        "doctor_checks"
+      ],
+      "templates": [
+        {
+          "id": "official.bmad.starter",
+          "display_name": "BMAD starter",
+          "display_name_locales": {
+            "pt-br": "Starter BMAD"
+          },
+          "summary": "Starter template for BMAD-guided Ralph Engine projects.",
+          "summary_locales": {
+            "pt-br": "Template inicial para projetos Ralph Engine guiados por BMAD."
+          }
+        }
+      ],
+      "prompts": [
+        {
+          "id": "official.bmad.workflow",
+          "display_name": "BMAD workflow prompt",
+          "display_name_locales": {
+            "pt-br": "Prompt de workflow BMAD"
+          },
+          "summary": "Prompt bundle for BMAD workflow assembly.",
+          "summary_locales": {
+            "pt-br": "Pacote de prompts para montar workflows BMAD."
+          }
+        }
+      ],
+      "checks": [
+        {
+          "id": "official.bmad.prepare",
+          "kind": "prepare",
+          "display_name": "BMAD prepare check",
+          "display_name_locales": {
+            "pt-br": "Verificação de preparo BMAD"
+          },
+          "summary": "Runs typed prepare-time validation for BMAD workflows.",
+          "summary_locales": {
+            "pt-br": "Executa validação tipada de preparo para workflows BMAD."
+          }
+        },
+        {
+          "id": "official.bmad.doctor",
+          "kind": "doctor",
+          "display_name": "BMAD doctor check",
+          "display_name_locales": {
+            "pt-br": "Verificação de diagnóstico BMAD"
+          },
+          "summary": "Runs typed doctor-time validation for BMAD workflows.",
+          "summary_locales": {
+            "pt-br": "Executa validação tipada de diagnóstico para workflows BMAD."
+          }
+        }
+      ],
+      "project": {
+        "required_files": [
+          ".ralph-engine/config.yaml",
+          ".ralph-engine/prompt.md"
+        ]
+      }
+    },
+    {
+      "id": "official.claude",
+      "kind": "agent_runtime",
+      "display_name": "Claude",
+      "display_name_locales": {
+        "pt-br": "Claude"
+      },
+      "summary": "Claude agent runtime and MCP session integration.",
+      "summary_locales": {
+        "pt-br": "Integração do runtime de agente Claude com sessão MCP."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "runtime": true,
+      "engine_version": ">=0.2.0-alpha.1",
+      "capabilities": [
+        "agent_runtime",
+        "mcp_contribution"
+      ],
+      "agents": [
+        {
+          "id": "official.claude.session",
+          "display_name": "Claude session",
+          "display_name_locales": {
+            "pt-br": "Sessão Claude"
+          },
+          "summary": "Claude runtime session for Ralph Engine.",
+          "summary_locales": {
+            "pt-br": "Sessão de runtime do Claude para o Ralph Engine."
+          }
+        }
+      ]
+    },
+    {
+      "id": "official.claudebox",
+      "kind": "agent_runtime",
+      "display_name": "Claude Box",
+      "display_name_locales": {
+        "pt-br": "Claude Box"
+      },
+      "summary": "Claude Box runtime and MCP session integration.",
+      "summary_locales": {
+        "pt-br": "Integração do runtime Claude Box com sessão MCP."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "runtime": true,
+      "engine_version": ">=0.2.0-alpha.1",
+      "capabilities": [
+        "agent_runtime",
+        "mcp_contribution"
+      ],
+      "agents": [
+        {
+          "id": "official.claudebox.session",
+          "display_name": "Claude Box session",
+          "display_name_locales": {
+            "pt-br": "Sessão Claude Box"
+          },
+          "summary": "Claude Box runtime session for Ralph Engine.",
+          "summary_locales": {
+            "pt-br": "Sessão de runtime do Claude Box para o Ralph Engine."
+          }
+        }
+      ]
+    },
+    {
+      "id": "official.codex",
+      "kind": "agent_runtime",
+      "display_name": "Codex",
+      "display_name_locales": {
+        "pt-br": "Codex"
+      },
+      "summary": "Codex runtime and MCP session integration.",
+      "summary_locales": {
+        "pt-br": "Integração do runtime Codex com sessão MCP."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "runtime": true,
+      "engine_version": ">=0.2.0-alpha.1",
+      "capabilities": [
+        "agent_runtime",
+        "mcp_contribution"
+      ],
+      "agents": [
+        {
+          "id": "official.codex.session",
+          "display_name": "Codex session",
+          "display_name_locales": {
+            "pt-br": "Sessão Codex"
+          },
+          "summary": "Codex runtime session for Ralph Engine.",
+          "summary_locales": {
+            "pt-br": "Sessão de runtime do Codex para o Ralph Engine."
+          }
+        }
+      ]
+    },
+    {
+      "id": "official.github",
+      "kind": "mcp_contribution",
+      "display_name": "GitHub",
+      "display_name_locales": {
+        "pt-br": "GitHub"
+      },
+      "summary": "GitHub data, context, forge, and MCP integration.",
+      "summary_locales": {
+        "pt-br": "Integração de dados, contexto, forge e MCP do GitHub."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "runtime": true,
+      "engine_version": ">=0.2.0-alpha.1",
+      "capabilities": [
+        "data_source",
+        "context_provider",
+        "forge_provider",
+        "mcp_contribution"
+      ],
+      "providers": [
+        {
+          "id": "official.github.data",
+          "kind": "data_source",
+          "display_name": "GitHub data source",
+          "display_name_locales": {
+            "pt-br": "Fonte de dados GitHub"
+          },
+          "summary": "Exposes typed repository data to Ralph Engine workflows.",
+          "summary_locales": {
+            "pt-br": "Expõe dados tipados de repositório para workflows Ralph Engine."
+          }
+        },
+        {
+          "id": "official.github.context",
+          "kind": "context_provider",
+          "display_name": "GitHub context provider",
+          "display_name_locales": {
+            "pt-br": "Provedor de contexto GitHub"
+          },
+          "summary": "Exposes typed GitHub context for Ralph Engine workflows.",
+          "summary_locales": {
+            "pt-br": "Expõe contexto tipado do GitHub para workflows Ralph Engine."
+          }
+        },
+        {
+          "id": "official.github.forge",
+          "kind": "forge_provider",
+          "display_name": "GitHub forge provider",
+          "display_name_locales": {
+            "pt-br": "Provedor forge GitHub"
+          },
+          "summary": "Exposes typed forge automation for GitHub-backed workflows.",
+          "summary_locales": {
+            "pt-br": "Expõe automação forge tipada para workflows baseados em GitHub."
+          }
+        }
+      ]
+    },
+    {
+      "id": "official.ssh",
+      "kind": "remote_control",
+      "display_name": "SSH",
+      "display_name_locales": {
+        "pt-br": "SSH"
+      },
+      "summary": "SSH remote control integration.",
+      "summary_locales": {
+        "pt-br": "Integração de controle remoto por SSH."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "runtime": true,
+      "engine_version": ">=0.2.0-alpha.1",
+      "capabilities": [
+        "remote_control"
+      ],
+      "providers": [
+        {
+          "id": "official.ssh.remote",
+          "kind": "remote_control",
+          "display_name": "SSH remote control",
+          "display_name_locales": {
+            "pt-br": "Controle remoto SSH"
+          },
+          "summary": "Exposes typed remote control over SSH for Ralph Engine workflows.",
+          "summary_locales": {
+            "pt-br": "Expõe controle remoto tipado por SSH para workflows Ralph Engine."
+          }
+        }
+      ]
+    },
+    {
+      "id": "official.tdd-strict",
+      "kind": "policy",
+      "display_name": "TDD Strict",
+      "display_name_locales": {
+        "pt-br": "TDD Estrito"
+      },
+      "summary": "Strict TDD policy and template guardrails.",
+      "summary_locales": {
+        "pt-br": "Política estrita de TDD com guardrails de template."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "capabilities": [
+        "template",
+        "policy"
+      ],
+      "templates": [
+        {
+          "id": "official.tdd-strict.starter",
+          "display_name": "TDD strict starter",
+          "display_name_locales": {
+            "pt-br": "Starter TDD estrito"
+          },
+          "summary": "Starter template with strict TDD guardrails enabled.",
+          "summary_locales": {
+            "pt-br": "Template inicial com guardrails estritos de TDD ativados."
+          }
+        }
+      ],
+      "policies": [
+        {
+          "id": "official.tdd-strict.guardrails",
+          "display_name": "TDD strict guardrails",
+          "display_name_locales": {
+            "pt-br": "Guardrails TDD estrito"
+          },
+          "summary": "Official policy with strict TDD guardrails.",
+          "summary_locales": {
+            "pt-br": "Política oficial com guardrails estritos de TDD."
+          }
+        }
+      ],
+      "project": {
+        "required_files": [
+          ".ralph-engine/config.yaml",
+          ".ralph-engine/prompt.md"
+        ]
+      }
+    }
+  ]
+}

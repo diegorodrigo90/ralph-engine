@@ -90,6 +90,14 @@ export default defineConfig({
   head: [
     ["link", { rel: "preconnect", href: "https://ralphengine.com" }],
     [
+      "script",
+      {},
+      `(function() {
+        var t = localStorage.getItem("ralph-theme");
+        if (t) localStorage.setItem("vitepress-theme-appearance", t);
+      })();`,
+    ],
+    [
       "link",
       { rel: "icon", type: "image/svg+xml", href: "/logo-icon.svg" },
     ],

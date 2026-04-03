@@ -1,0 +1,64 @@
+---
+import type { Locale } from '../i18n/utils';
+import { t } from '../i18n/utils';
+
+interface Props {
+  lang: Locale;
+}
+
+const { lang } = Astro.props;
+
+const steps = [
+  { key: 'step1' },
+  { key: 'step2' },
+  { key: 'step3' },
+];
+---
+
+<section class="section">
+  <div class="container">
+    <h2 style="text-align: center; margin-bottom: 40px;">
+      {t(lang, 'getting-started.title')}
+    </h2>
+    <div class="grid-3">
+      {steps.map(({ key }, i) => (
+        <div class="card step-card">
+          <span class="step-number">{i + 1}</span>
+          <h3>{t(lang, `getting-started.${key}.title`)}</h3>
+          <div class="code-block">
+            <code>{t(lang, `getting-started.${key}.code`)}</code>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .step-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+    align-items: center;
+  }
+
+  .step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.9375rem;
+  }
+
+  .step-card .code-block {
+    width: 100%;
+    text-align: left;
+    font-size: 0.8125rem;
+  }
+</style>

@@ -1,0 +1,102 @@
+---
+import type { Locale } from '../i18n/utils';
+import { t, localePath } from '../i18n/utils';
+
+interface Props {
+  lang: Locale;
+}
+
+const { lang } = Astro.props;
+---
+
+<footer class="footer">
+  <div class="container footer-inner">
+    <div class="footer-brand">
+      <a href={localePath(lang, '/')} class="footer-logo">
+        <img src="/logo-icon.svg" alt="" width="20" height="20" />
+        <span>Ralph Engine</span>
+      </a>
+      <p class="footer-tagline">{t(lang, 'site.description')}</p>
+      <p class="footer-license">MIT License</p>
+    </div>
+    <div class="footer-col">
+      <h4>{t(lang, 'footer.resources')}</h4>
+      <ul>
+        <li><a href={lang === 'pt-br' ? '/docs/pt-br/' : '/docs/'}>Documentation</a></li>
+        <li><a href={localePath(lang, '/plugins/')}>Plugins</a></li>
+        <li><a href="/llms.txt">llms.txt</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>{t(lang, 'footer.community')}</h4>
+      <ul>
+        <li><a href="https://github.com/diegorodrigo90/ralph-engine" target="_blank" rel="noopener">GitHub</a></li>
+        <li><a href="https://github.com/diegorodrigo90/ralph-engine/issues" target="_blank" rel="noopener">Issues</a></li>
+        <li><a href="https://github.com/diegorodrigo90/ralph-engine/discussions" target="_blank" rel="noopener">Discussions</a></li>
+      </ul>
+    </div>
+  </div>
+</footer>
+
+<style>
+  .footer {
+    border-top: 1px solid var(--re-border);
+    padding: var(--re-space-12) 0 var(--re-space-6);
+    margin-top: var(--re-space-20);
+  }
+
+  .footer-inner {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: var(--re-space-8);
+  }
+
+  .footer-logo {
+    display: flex;
+    align-items: center;
+    gap: var(--re-space-2);
+    font-weight: 700;
+    font-size: 0.9375rem;
+    color: var(--re-text-primary);
+    text-decoration: none;
+  }
+
+  .footer-tagline {
+    margin-top: var(--re-space-2);
+    font-size: 0.8125rem;
+    color: var(--re-text-muted);
+    max-width: 280px;
+  }
+
+  .footer-license {
+    margin-top: var(--re-space-2);
+    font-size: 0.75rem;
+    color: var(--re-text-muted);
+  }
+
+  .footer-col h4 {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--re-text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--re-space-3);
+  }
+
+  .footer-col ul { list-style: none; }
+  .footer-col li + li { margin-top: var(--re-space-2); }
+
+  .footer-col a {
+    color: var(--re-text-secondary);
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .footer-col a:hover { color: var(--re-brand-500); }
+
+  @media (max-width: 640px) {
+    .footer-inner { grid-template-columns: 1fr 1fr; }
+    .footer-brand { grid-column: 1 / -1; }
+  }
+</style>
