@@ -1,0 +1,65 @@
+/* ── Import shared design tokens ── */
+@import '../../../shared/design-tokens.css';
+
+/* ── Starlight theme overrides using Ralph Engine design tokens ── */
+
+/* Map Starlight color vars to RE tokens */
+:root {
+  --sl-color-accent-low: var(--re-brand-50);
+  --sl-color-accent: var(--re-brand-500);
+  --sl-color-accent-high: var(--re-brand-700);
+  --sl-color-white: var(--re-text-primary);
+  --sl-color-gray-1: var(--re-bg-elevated);
+  --sl-color-gray-2: var(--re-bg-soft);
+  --sl-color-gray-3: var(--re-border);
+  --sl-color-gray-4: var(--re-text-muted);
+  --sl-color-gray-5: var(--re-text-secondary);
+  --sl-color-gray-6: var(--re-text-primary);
+  --sl-color-black: var(--re-bg);
+  --sl-font: var(--re-font-sans);
+  --sl-font-mono: var(--re-font-mono);
+}
+
+:root[data-theme='dark'] {
+  --sl-color-accent-low: var(--re-brand-900);
+  --sl-color-accent: var(--re-brand-400);
+  --sl-color-accent-high: var(--re-brand-200);
+  --sl-color-white: var(--re-text-primary);
+  --sl-color-gray-1: var(--re-bg-elevated);
+  --sl-color-gray-2: var(--re-bg-soft);
+  --sl-color-gray-3: var(--re-border);
+  --sl-color-gray-4: var(--re-text-muted);
+  --sl-color-gray-5: var(--re-text-secondary);
+  --sl-color-gray-6: var(--re-text-primary);
+  --sl-color-black: var(--re-bg);
+}
+
+/* ── Typography ── */
+body {
+  font-family: var(--re-font-sans);
+}
+
+code, pre {
+  font-family: var(--re-font-mono);
+}
+
+/* ── Content width ── */
+.sl-container {
+  max-width: 1280px;
+}
+
+/* ── Sidebar link hover ── */
+nav.sidebar a:hover {
+  color: var(--re-brand-500);
+}
+
+/* ── Code blocks ── */
+pre {
+  border-radius: var(--re-radius-lg);
+}
+
+/* ── Table styling ── */
+table {
+  border-radius: var(--re-radius-md);
+  overflow: hidden;
+}

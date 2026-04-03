@@ -1,0 +1,51 @@
+---
+title: "Instalacao"
+description: "Como instalar o Ralph Engine a partir do codigo-fonte"
+---
+
+
+O Ralph Engine é instalado a partir do código-fonte. A distribuição por npm e Homebrew está preparada, mas intencionalmente desabilitada até o pipeline de release estar totalmente validado.
+
+## Pré-requisitos
+
+- Git
+- Rust 1.91.1 (fixado via `rust-toolchain.toml`)
+- Node.js 20.19.0 (fixado via `.tool-versions`)
+
+## Instalação pelo Código-Fonte
+
+```bash
+git clone https://github.com/diegorodrigo90/ralph-engine.git
+cd ralph-engine
+./scripts/bootstrap-dev.sh
+cargo run -p re-cli -- --version
+```
+
+O `bootstrap-dev.sh` instala todas as dependências, hooks e ferramentas de desenvolvimento.
+
+## Verificar a Instalação
+
+```bash
+# Validar o contrato completo do repositório
+./scripts/validate.sh --mode local
+
+# Rodar a CLI
+cargo run -p re-cli -- --help
+
+# Rodar em português
+cargo run -p re-cli -- --locale pt-br --help
+
+# Rodar todos os testes
+cargo test --workspace --all-targets
+```
+
+## Canais de Distribuição
+
+Estes canais estão preparados e serão habilitados quando o pipeline de release estiver totalmente conectado:
+
+| Canal | Status |
+|-------|--------|
+| **Código-fonte** | Disponível (método principal) |
+| **GitHub Releases** | Infraestrutura pronta, desabilitado |
+| **npm** | Pacote preparado, publicação desabilitada |
+| **Homebrew** | Formula preparada, tap desabilitado |

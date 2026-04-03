@@ -1,0 +1,56 @@
+---
+title: "Extending"
+description: "Create your own Ralph Engine plugins"
+---
+
+
+Plugins are the unit of extension in Ralph Engine. Each plugin declares capabilities, contributions, and an optional runtime implementation.
+
+## Official Plugins
+
+Ralph Engine ships with 8 official plugins:
+
+| Plugin | Kind | Capabilities | What it does |
+|--------|------|-------------|-------------|
+| **basic** | Template | template | Starter project scaffolding |
+| **bmad** | Template | template, prompts, prepare/doctor checks | BMAD workflow scaffolding and validation |
+| **tdd-strict** | Policy | template, policy | TDD guardrails and policy enforcement |
+| **claude** | Agent Runtime | agent, mcp | Claude CLI agent sessions |
+| **claudebox** | Agent Runtime | agent, mcp | Claude Box agent sessions |
+| **codex** | Agent Runtime | agent, mcp | Codex agent sessions |
+| **github** | Data Source | data, context, forge, mcp | GitHub integration (repository data, forge automation) |
+| **ssh** | Remote Control | remote_control | SSH remote control for distributed workflows |
+
+List all plugins: `ralph-engine plugins list`
+
+Show details: `ralph-engine plugins show official.claude`
+
+## Creating a Plugin
+
+Use the scaffolder to create a new plugin:
+
+```bash
+npx create-ralph-engine-plugin --name my-tool --publisher acme --kind template
+```
+
+This generates a complete plugin crate with:
+- `src/lib.rs` — plugin descriptor, runtime implementation, and exports
+- `locales/en.toml` + `locales/pt-br.toml` — TOML-based i18n (no Rust needed for translations)
+- `build.rs` — auto-generates locale code from TOML files
+- `manifest.yaml` — plugin metadata for auto-discovery
+
+## Plugin Architecture
+
+- **Official plugins** are Rust crates in `plugins/official/`
+- **Community plugins** follow the same structure and are auto-discovered via `manifest.yaml`
+- **Trust levels**: `official` (first-party) or `community` (third-party)
+- **Capabilities** define what a plugin can do: template, prompt, agent, check, provider, policy, mcp
+- **Runtime**: every plugin implements the `PluginRuntime` trait for validation and execution
+- **i18n**: translations live in `locales/*.toml` — adding a language means creating one TOML file
+
+## Plugin Lifecycle
+
+1. **Discover** — runtime finds the plugin via descriptor
+2. **Configure** — configuration layers resolve plugin settings
+3. **Validate** — `PluginDescriptor::validate()` checks invariants
+4. **Load** — plugin contributions are registered in the runtime topology
