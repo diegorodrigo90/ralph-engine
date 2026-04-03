@@ -140,11 +140,57 @@ fn run_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError>
 
     let cwd = std::env::current_dir().unwrap_or_default();
     let filesystem_output = run_filesystem_checks(kind, &cwd, locale);
+    let plugin_output = run_plugin_checks(check_id, kind, &cwd, locale);
 
-    if filesystem_output.is_empty() {
-        Ok(topology_output)
-    } else {
-        Ok(format!("{topology_output}\n\n{filesystem_output}"))
+    let mut parts = vec![topology_output];
+    if !filesystem_output.is_empty() {
+        parts.push(filesystem_output);
+    }
+    if !plugin_output.is_empty() {
+        parts.push(plugin_output);
+    }
+
+    Ok(parts.join("\n\n"))
+}
+
+/// Runs plugin-specific checks via the `PluginRuntime` trait.
+fn run_plugin_checks(
+    check_id: &str,
+    kind: RuntimeCheckKind,
+    project_root: &std::path::Path,
+    locale: &str,
+) -> String {
+    let plugin_check_kind = match kind {
+        RuntimeCheckKind::Prepare => re_plugin::PluginCheckKind::Prepare,
+        RuntimeCheckKind::Doctor => re_plugin::PluginCheckKind::Doctor,
+    };
+
+    // Find which plugin owns this check
+    let surface = catalog::find_official_check_surface(check_id);
+    let plugin_id = surface.map(|s| s.registration.plugin_id);
+
+    let Some(plugin_id) = plugin_id else {
+        return String::new();
+    };
+    let Some(runtime) = catalog::official_plugin_runtime(plugin_id) else {
+        return String::new();
+    };
+
+    match runtime.run_check(check_id, plugin_check_kind, project_root) {
+        Ok(result) => {
+            let heading = if locale == "pt-br" {
+                "Verificação do plugin"
+            } else {
+                "Plugin check execution"
+            };
+            let status = if result.passed { "PASSED" } else { "FAILED" };
+            let mut lines = vec![format!("--- {heading}: {check_id} [{status}] ---")];
+            for finding in &result.findings {
+                lines.push(format!("  {finding}"));
+            }
+            lines.join("\n")
+        }
+        Err(_) => String::new(),
     }
 }
 
