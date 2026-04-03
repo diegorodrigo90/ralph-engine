@@ -163,6 +163,44 @@ fn probe_launch(server_id: Option<&str>, locale: &str) -> Result<String, CliErro
                         "Binary found"
                     };
                     lines.push(format!("[OK] {label}: {path}"));
+
+                    // Spawn the process in foreground for validation
+                    let spawn_label = if locale == "pt-br" {
+                        "Iniciando"
+                    } else {
+                        "Spawning"
+                    };
+                    lines.push(format!("{spawn_label}: {}", command.render_invocation()));
+
+                    // Print probe output before spawning (spawn blocks)
+                    println!("{}", lines.join("\n"));
+                    lines.clear();
+
+                    let cwd = std::env::current_dir().unwrap_or_default();
+                    let status = std::process::Command::new(command.program)
+                        .args(command.args)
+                        .current_dir(cwd)
+                        .stdin(std::process::Stdio::inherit())
+                        .stdout(std::process::Stdio::inherit())
+                        .stderr(std::process::Stdio::inherit())
+                        .status();
+
+                    match status {
+                        Ok(exit) => {
+                            let exit_label = if locale == "pt-br" {
+                                "Processo encerrado"
+                            } else {
+                                "Process exited"
+                            };
+                            lines.push(format!("{exit_label}: {exit}"));
+                        }
+                        Err(e) => {
+                            return Err(CliError::new(format!(
+                                "Failed to spawn '{}': {e}",
+                                command.program
+                            )));
+                        }
+                    }
                 }
                 None => {
                     let label = if locale == "pt-br" {

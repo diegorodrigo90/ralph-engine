@@ -1,4 +1,6 @@
-//! Official GitHub integration plugin metadata.
+//! Official GitHub integration plugin metadata and runtime.
+
+use std::path::Path;
 
 mod i18n;
 
@@ -7,9 +9,10 @@ use re_mcp::{
     McpServerDescriptor, McpTransport, McpWorkingDirectoryPolicy,
 };
 use re_plugin::{
-    CONTEXT_PROVIDER, DATA_SOURCE, FORGE_PROVIDER, MCP_CONTRIBUTION, PluginDescriptor, PluginKind,
+    AgentBootstrapResult, CONTEXT_PROVIDER, CheckExecutionResult, DATA_SOURCE, FORGE_PROVIDER,
+    MCP_CONTRIBUTION, McpRegistrationResult, PluginCheckKind, PluginDescriptor, PluginKind,
     PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginProviderDescriptor,
-    PluginProviderKind, PluginRuntimeHook, PluginTrustLevel,
+    PluginProviderKind, PluginRuntime, PluginRuntimeError, PluginRuntimeHook, PluginTrustLevel,
 };
 
 /// Stable plugin identifier.
@@ -129,6 +132,61 @@ pub const fn mcp_servers() -> &'static [McpServerDescriptor] {
 #[must_use]
 pub const fn providers() -> &'static [PluginProviderDescriptor] {
     PROVIDERS
+}
+
+/// Returns a new instance of the GitHub plugin runtime.
+#[must_use]
+pub fn runtime() -> GitHubRuntime {
+    GitHubRuntime
+}
+
+const MCP_BINARY: &str = "ralph-engine-github-mcp";
+
+/// GitHub plugin runtime — probes for the GitHub MCP binary.
+pub struct GitHubRuntime;
+
+impl PluginRuntime for GitHubRuntime {
+    fn plugin_id(&self) -> &str {
+        PLUGIN_ID
+    }
+
+    fn run_check(
+        &self,
+        check_id: &str,
+        kind: PluginCheckKind,
+        _project_root: &Path,
+    ) -> Result<CheckExecutionResult, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_a_check_plugin",
+            format!(
+                "GitHub does not provide check '{check_id}' (kind: {})",
+                kind.as_str()
+            ),
+        ))
+    }
+
+    fn bootstrap_agent(&self, agent_id: &str) -> Result<AgentBootstrapResult, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_an_agent_plugin",
+            format!("GitHub does not provide agent '{agent_id}'"),
+        ))
+    }
+
+    fn register_mcp_server(
+        &self,
+        server_id: &str,
+    ) -> Result<McpRegistrationResult, PluginRuntimeError> {
+        let found = re_plugin::probe_binary_on_path(MCP_BINARY).is_some();
+        Ok(McpRegistrationResult {
+            server_id: server_id.to_owned(),
+            ready: found,
+            message: if found {
+                format!("Binary '{MCP_BINARY}' found. MCP server ready.")
+            } else {
+                format!("Binary '{MCP_BINARY}' not found. Install to enable.")
+            },
+        })
+    }
 }
 
 #[cfg(test)]

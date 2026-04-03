@@ -1096,9 +1096,14 @@ mod tests {
     }
 
     #[test]
-    fn runtime_registry_returns_none_for_plugin_without_runtime() {
-        assert!(super::official_plugin_runtime("official.basic").is_none());
-        assert!(super::official_plugin_runtime("official.ssh").is_none());
+    fn all_official_plugins_have_runtime() {
+        for plugin in official_plugins() {
+            assert!(
+                super::official_plugin_runtime(plugin.id).is_some(),
+                "Plugin '{}' should have a runtime",
+                plugin.id
+            );
+        }
     }
 
     #[test]
