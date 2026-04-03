@@ -172,6 +172,36 @@ jobs:
           GIT_HEAD_SHA: ${{ github.sha }}
         run: ./scripts/validate.sh --mode ci --checks deny,audit,gitleaks,trivy
 
+  semver:
+    name: Check semver compatibility
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    timeout-minutes: 15
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install pinned Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install 1.91.1 --profile minimal
+          rustup default 1.91.1
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
+        with:
+          shared-key: semver-ubuntu-latest
+      - name: Install cargo-semver-checks
+        shell: bash
+        run: cargo install cargo-semver-checks --locked
+      - name: Run semver compatibility check
+        shell: bash
+        run: cargo semver-checks check-release --workspace
+
   sonar:
     name: Analyze code in SonarCloud
     runs-on: ubuntu-latest
