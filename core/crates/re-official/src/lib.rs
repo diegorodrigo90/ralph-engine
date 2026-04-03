@@ -1280,14 +1280,19 @@ mod tests {
             .collect()
     }
 
+    /// Capabilities that operate via hooks rather than dedicated surfaces.
+    /// These are orchestration capabilities that compose existing surfaces.
+    const HOOK_ONLY_CAPABILITIES: &[&str] = &["workflow"];
+
     #[test]
-    fn all_reviewed_capabilities_have_dedicated_runtime_surfaces() {
+    fn all_reviewed_capabilities_have_dedicated_runtime_surfaces_or_hooks() {
         let uncovered = capability_names(ALL_PLUGIN_CAPABILITIES)
             .into_iter()
             .filter(|capability| {
-                runtime_surface_for_capability(PluginCapability::new(capability))
-                    .map(re_plugin::PluginRuntimeSurface::as_str)
-                    .is_none()
+                !HOOK_ONLY_CAPABILITIES.contains(capability)
+                    && runtime_surface_for_capability(PluginCapability::new(capability))
+                        .map(re_plugin::PluginRuntimeSurface::as_str)
+                        .is_none()
             })
             .collect::<Vec<_>>();
 

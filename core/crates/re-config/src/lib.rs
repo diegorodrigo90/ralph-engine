@@ -271,6 +271,17 @@ pub struct OwnedMcpConfig {
     pub servers: Vec<McpServerConfig>,
 }
 
+/// Run command configuration.
+#[derive(Clone, Debug, Eq, PartialEq, Default)]
+pub struct RunConfig {
+    /// Workflow plugin that resolves work items and builds prompts.
+    pub workflow_plugin: Option<&'static str>,
+    /// Agent plugin that launches the agent process.
+    pub agent_plugin: Option<&'static str>,
+    /// Stable agent identifier to launch.
+    pub agent_id: Option<&'static str>,
+}
+
 /// Owned project configuration document with patchable entries.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OwnedProjectConfig {
@@ -284,6 +295,8 @@ pub struct OwnedProjectConfig {
     pub mcp: OwnedMcpConfig,
     /// Runtime budget defaults.
     pub budgets: RuntimeBudgetConfig,
+    /// Run command configuration (optional).
+    pub run: RunConfig,
 }
 
 const DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
@@ -509,6 +522,7 @@ pub fn materialize_project_config(config: &ProjectConfig) -> OwnedProjectConfig 
             servers: config.mcp.servers.to_vec(),
         },
         budgets: config.budgets,
+        run: RunConfig::default(),
     }
 }
 
@@ -565,6 +579,22 @@ pub fn render_owned_project_config_yaml(config: &OwnedProjectConfig) -> String {
         "  context_tokens: {}",
         config.budgets.context_tokens
     ));
+
+    if config.run.workflow_plugin.is_some()
+        || config.run.agent_plugin.is_some()
+        || config.run.agent_id.is_some()
+    {
+        lines.push("run:".to_owned());
+        if let Some(wp) = config.run.workflow_plugin {
+            lines.push(format!("  workflow_plugin: {wp}"));
+        }
+        if let Some(ap) = config.run.agent_plugin {
+            lines.push(format!("  agent_plugin: {ap}"));
+        }
+        if let Some(ai) = config.run.agent_id {
+            lines.push(format!("  agent_id: {ai}"));
+        }
+    }
 
     lines.join("\n")
 }
@@ -751,6 +781,7 @@ pub fn parse_owned_project_config_yaml(
     let plugins = parse_plugin_entries(&lines)?;
     let mcp = parse_mcp_section(&lines)?;
     let budgets = parse_budgets_section(&lines)?;
+    let run = parse_run_section(&lines);
 
     Ok(OwnedProjectConfig {
         schema_version,
@@ -758,6 +789,7 @@ pub fn parse_owned_project_config_yaml(
         plugins,
         mcp,
         budgets,
+        run,
     })
 }
 
@@ -890,6 +922,20 @@ fn parse_budgets_section(lines: &[&str]) -> Result<RuntimeBudgetConfig, ConfigPa
     })
 }
 
+/// Parses the optional `run:` section.
+fn parse_run_section(lines: &[&str]) -> RunConfig {
+    let Some(run_start) = lines.iter().position(|l| l.trim() == "run:") else {
+        return RunConfig::default();
+    };
+    let run_lines = &lines[run_start..];
+
+    RunConfig {
+        workflow_plugin: extract_scalar(run_lines, "workflow_plugin").map(leak_str),
+        agent_plugin: extract_scalar(run_lines, "agent_plugin").map(leak_str),
+        agent_id: extract_scalar(run_lines, "agent_id").map(leak_str),
+    }
+}
+
 /// Collects YAML list entries (lines starting with `- `) under a section header.
 ///
 /// Each entry is a slice of consecutive indented lines following a `- ` marker.
@@ -1004,6 +1050,7 @@ mod parse_tests {
                 prompt_tokens: 4096,
                 context_tokens: 16384,
             },
+            run: RunConfig::default(),
         };
 
         let yaml = render_owned_project_config_yaml(&config);

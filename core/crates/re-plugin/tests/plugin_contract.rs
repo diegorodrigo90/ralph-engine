@@ -396,12 +396,18 @@ fn parse_reviewed_plugin_capability_supports_stable_identifiers() {
     assert_eq!(parse_reviewed_plugin_capability("unknown"), None);
 }
 
+/// Capabilities that operate via hooks rather than dedicated surfaces.
+const HOOK_ONLY_CAPABILITIES: &[&str] = &["workflow"];
+
 #[test]
 fn runtime_surface_mapping_covers_all_reviewed_capabilities() {
     let uncovered = ALL_PLUGIN_CAPABILITIES
         .iter()
         .copied()
-        .filter(|capability| runtime_surface_for_capability(*capability).is_none())
+        .filter(|capability| {
+            !HOOK_ONLY_CAPABILITIES.contains(&capability.as_str())
+                && runtime_surface_for_capability(*capability).is_none()
+        })
         .map(PluginCapability::as_str)
         .collect::<Vec<_>>();
 
@@ -594,6 +600,8 @@ fn runtime_hook_display_is_stable() {
             "forge_provider_registration",
             "remote_control_bootstrap",
             "policy_enforcement",
+            "work_item_resolution",
+            "agent_launch",
         ]
     );
 }
