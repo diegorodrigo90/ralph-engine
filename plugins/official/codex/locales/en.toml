@@ -1,0 +1,10 @@
+[plugin]
+name = "Codex"
+summary = "Codex runtime and MCP session integration."
+
+[agent]
+name = "Codex session"
+summary = "Codex runtime session for Ralph Engine."
+
+[mcp_server]
+name = "Codex Session"

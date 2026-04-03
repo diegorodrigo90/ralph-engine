@@ -1,0 +1,10 @@
+[plugin]
+name = "Claude Box"
+summary = "Integração do runtime Claude Box com sessão MCP."
+
+[agent]
+name = "Sessão Claude Box"
+summary = "Sessão de runtime do Claude Box para o Ralph Engine."
+
+[mcp_server]
+name = "Sessão Claude Box"

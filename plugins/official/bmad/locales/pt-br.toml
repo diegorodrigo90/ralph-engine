@@ -1,0 +1,19 @@
+[plugin]
+name = "BMAD"
+summary = "Plugin de workflow para scaffolding e prompts do BMAD."
+
+[template]
+name = "Starter BMAD"
+summary = "Template inicial para projetos Ralph Engine guiados por BMAD."
+
+[prompt]
+name = "Prompt de workflow BMAD"
+summary = "Pacote de prompts para montar workflows BMAD."
+
+[prepare_check]
+name = "Verificação de preparo BMAD"
+summary = "Executa validação tipada de preparo para workflows BMAD."
+
+[doctor_check]
+name = "Verificação de diagnóstico BMAD"
+summary = "Executa validação tipada de diagnóstico para workflows BMAD."

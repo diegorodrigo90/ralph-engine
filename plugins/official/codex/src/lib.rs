@@ -11,10 +11,10 @@ use re_plugin::{
 
 /// Stable plugin identifier.
 pub const PLUGIN_ID: &str = "official.codex";
-const PLUGIN_NAME: &str = i18n::default_name();
-const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_names();
-const PLUGIN_SUMMARY: &str = i18n::default_summary();
-const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_summaries();
+const PLUGIN_NAME: &str = i18n::plugin_name();
+const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_plugin_names();
+const PLUGIN_SUMMARY: &str = i18n::plugin_summary();
+const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_plugin_summaries();
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
 const CAPABILITIES: &[re_plugin::PluginCapability] = &[AGENT_RUNTIME, MCP_CONTRIBUTION];
 const LIFECYCLE: &[PluginLifecycleStage] =
@@ -41,15 +41,15 @@ const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
 const AGENTS: &[PluginAgentDescriptor] = &[PluginAgentDescriptor::new(
     "official.codex.session",
     PLUGIN_ID,
-    i18n::default_agent_name(),
+    i18n::agent_name(),
     i18n::localized_agent_names(),
-    i18n::default_agent_summary(),
+    i18n::agent_summary(),
     i18n::localized_agent_summaries(),
 )];
 const MCP_SERVERS: &[McpServerDescriptor] = &[McpServerDescriptor::new(
     "official.codex.session",
     PLUGIN_ID,
-    i18n::default_mcp_server_name(),
+    i18n::mcp_server_name(),
     i18n::localized_mcp_server_names(),
     McpTransport::Stdio,
     McpLaunchPolicy::PluginRuntime,
@@ -134,9 +134,9 @@ mod tests {
 
         // Act
         let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == i18n::en::PLUGIN_LOCALE.plugin_name
-            && plugin.display_name_for_locale("pt-br") == i18n::pt_br::PLUGIN_LOCALE.plugin_name
-            && plugin.summary_for_locale("pt-br") == i18n::pt_br::PLUGIN_LOCALE.plugin_summary
+            && plugin.name == i18n::plugin_name()
+            && plugin.display_name_for_locale("pt-br") == "Codex"
+            && plugin.summary_for_locale("pt-br") == "Integração do runtime Codex com sessão MCP."
             && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
 
         // Assert
@@ -156,7 +156,7 @@ mod tests {
         assert_eq!(servers[0].display_name_for_locale("pt-br"), "Sessão Codex");
         assert_eq!(
             servers[0].display_name_for_locale("es"),
-            i18n::en::MCP_SERVER_LOCALE.name
+            i18n::mcp_server_name()
         );
     }
 
