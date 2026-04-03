@@ -22,7 +22,7 @@ const { lang } = Astro.props;
     <div class="footer-col">
       <h4>{t(lang, 'footer.resources')}</h4>
       <ul>
-        <li><a href={lang === 'pt-br' ? '/docs/pt-br/' : '/docs/'}>Documentation</a></li>
+        <li><a href={lang === 'pt-br' ? '/docs/pt-br/getting-started/installation' : '/docs/getting-started/installation'}>Documentation</a></li>
         <li><a href={localePath(lang, '/plugins/')}>Plugins</a></li>
         <li><a href="/llms.txt">llms.txt</a></li>
       </ul>

@@ -126,7 +126,7 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: "Home", link: `${siteUrl}/` },
-          { text: "Docs", link: "/" },
+          { text: "Docs", link: "/getting-started/installation" },
           { text: "Plugins", link: `${siteUrl}/plugins/` },
         ],
         sidebar: buildSidebar("", {
@@ -163,7 +163,7 @@ export default defineConfig({
       themeConfig: {
         nav: [
           { text: "Início", link: `${siteUrl}/pt-br/` },
-          { text: "Docs", link: "/pt-br/" },
+          { text: "Docs", link: "/pt-br/getting-started/installation" },
           { text: "Plugins", link: `${siteUrl}/pt-br/plugins/` },
         ],
         sidebar: buildSidebar("/pt-br", {

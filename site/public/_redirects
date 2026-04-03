@@ -1,5 +1,8 @@
 # Cloudflare Pages redirects
-# Trailing slash normalization handled by Astro build format: 'directory'
+
+# Docs root → Installation (no generic landing)
+/docs/  /docs/getting-started/installation  302
+/docs/pt-br/  /docs/pt-br/getting-started/installation  302
 
 # Legacy paths from old site
 /landing/*  /  301
