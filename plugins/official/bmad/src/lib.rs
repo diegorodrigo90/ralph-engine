@@ -1,12 +1,15 @@
-//! Official BMAD workflow plugin metadata.
+//! Official BMAD workflow plugin metadata and runtime.
+
+use std::path::Path;
 
 mod i18n;
 
 use re_plugin::{
-    DOCTOR_CHECKS, PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCheckAsset, PluginCheckDescriptor,
-    PluginCheckKind, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
-    PluginLocalizedText, PluginPromptAsset, PluginPromptDescriptor, PluginRuntimeHook,
-    PluginTemplateAsset, PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
+    AgentBootstrapResult, CheckExecutionResult, DOCTOR_CHECKS, McpRegistrationResult,
+    PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCheckAsset, PluginCheckDescriptor, PluginCheckKind,
+    PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
+    PluginPromptAsset, PluginPromptDescriptor, PluginRuntime, PluginRuntimeError,
+    PluginRuntimeHook, PluginTemplateAsset, PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
 };
 
 /// Stable plugin identifier.
@@ -158,8 +161,80 @@ pub const fn checks() -> &'static [PluginCheckDescriptor] {
     CHECKS
 }
 
+/// Returns a new instance of the BMAD plugin runtime.
+#[must_use]
+pub fn runtime() -> BmadRuntime {
+    BmadRuntime
+}
+
+/// BMAD plugin runtime — executes prepare and doctor checks against
+/// the project filesystem.
+pub struct BmadRuntime;
+
+/// Files required by the prepare check.
+const PREPARE_REQUIRED: &[&str] = &[".ralph-engine/config.yaml"];
+
+/// Files required by the doctor check (superset of prepare).
+const DOCTOR_REQUIRED: &[&str] = &[".ralph-engine/config.yaml", ".ralph-engine/prompt.md"];
+
+impl PluginRuntime for BmadRuntime {
+    fn plugin_id(&self) -> &str {
+        PLUGIN_ID
+    }
+
+    fn run_check(
+        &self,
+        check_id: &str,
+        kind: PluginCheckKind,
+        project_root: &Path,
+    ) -> Result<CheckExecutionResult, PluginRuntimeError> {
+        let required = match kind {
+            PluginCheckKind::Prepare => PREPARE_REQUIRED,
+            PluginCheckKind::Doctor => DOCTOR_REQUIRED,
+            _ => {
+                return Err(PluginRuntimeError::new(
+                    "unsupported_check_kind",
+                    format!("BMAD does not handle check kind '{}'", kind.as_str()),
+                ));
+            }
+        };
+
+        let mut findings = Vec::new();
+        for path in required {
+            if !project_root.join(path).exists() {
+                findings.push(format!("missing: {path}"));
+            }
+        }
+
+        Ok(CheckExecutionResult {
+            check_id: check_id.to_owned(),
+            passed: findings.is_empty(),
+            findings,
+        })
+    }
+
+    fn bootstrap_agent(&self, agent_id: &str) -> Result<AgentBootstrapResult, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_an_agent_plugin",
+            format!("BMAD plugin does not provide agent '{agent_id}'"),
+        ))
+    }
+
+    fn register_mcp_server(
+        &self,
+        server_id: &str,
+    ) -> Result<McpRegistrationResult, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_an_mcp_plugin",
+            format!("BMAD plugin does not provide MCP server '{server_id}'"),
+        ))
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use re_plugin::{PluginCheckKind, PluginRuntime};
+
     use super::{
         PLUGIN_ID, PLUGIN_SUMMARY, capabilities, checks, descriptor, i18n, lifecycle, prompts,
         runtime_hooks, templates,
@@ -321,5 +396,72 @@ mod tests {
         assert!(manifest.contains("id: official.bmad.workflow"));
         assert!(manifest.contains("id: official.bmad.prepare"));
         assert!(manifest.contains("id: official.bmad.doctor"));
+    }
+
+    #[test]
+    fn runtime_prepare_check_passes_when_config_exists() {
+        let tmp = std::env::temp_dir().join("re-bmad-runtime-prepare-ok");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(tmp.join(".ralph-engine/config.yaml"), "# test").ok();
+
+        let rt = super::runtime();
+        let result = rt.run_check("official.bmad.prepare", PluginCheckKind::Prepare, &tmp);
+
+        assert!(result.is_ok());
+        let Ok(output) = result else { return };
+        assert!(output.passed);
+        assert!(output.findings.is_empty());
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn runtime_prepare_check_fails_when_config_missing() {
+        let tmp = std::env::temp_dir().join("re-bmad-runtime-prepare-fail");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).ok();
+
+        let rt = super::runtime();
+        let result = rt.run_check("official.bmad.prepare", PluginCheckKind::Prepare, &tmp);
+
+        assert!(result.is_ok());
+        let Ok(output) = result else { return };
+        assert!(!output.passed);
+        assert!(output.findings[0].contains("config.yaml"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn runtime_doctor_check_validates_both_files() {
+        let tmp = std::env::temp_dir().join("re-bmad-runtime-doctor");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(tmp.join(".ralph-engine/config.yaml"), "# test").ok();
+
+        let rt = super::runtime();
+        let result = rt.run_check("official.bmad.doctor", PluginCheckKind::Doctor, &tmp);
+
+        assert!(result.is_ok());
+        let Ok(output) = result else { return };
+        assert!(!output.passed);
+        assert!(output.findings[0].contains("prompt.md"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn runtime_rejects_agent_bootstrap() {
+        let rt = super::runtime();
+        let result = rt.bootstrap_agent("official.bmad.session");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn runtime_rejects_mcp_registration() {
+        let rt = super::runtime();
+        let result = rt.register_mcp_server("official.bmad.server");
+        assert!(result.is_err());
     }
 }

@@ -1,6 +1,7 @@
 //! Shared plugin contracts for Ralph Engine.
 
 use std::fmt;
+use std::path::Path;
 
 mod i18n;
 
@@ -989,4 +990,116 @@ pub fn render_plugin_detail_for_locale(plugin: &PluginDescriptor, locale: &str) 
         i18n::runtime_hooks_label(locale),
         runtime_hooks
     )
+}
+
+// ---------------------------------------------------------------------------
+// Plugin runtime execution trait
+// ---------------------------------------------------------------------------
+
+/// Error returned by plugin runtime operations.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PluginRuntimeError {
+    /// Short machine-readable error code.
+    pub code: String,
+    /// Human-readable error message.
+    pub message: String,
+}
+
+impl PluginRuntimeError {
+    /// Creates a new plugin runtime error.
+    #[must_use]
+    pub fn new(code: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            code: code.into(),
+            message: message.into(),
+        }
+    }
+}
+
+impl fmt::Display for PluginRuntimeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "[{}] {}", self.code, self.message)
+    }
+}
+
+/// Result of executing a prepare or doctor check.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CheckExecutionResult {
+    /// Stable check identifier that was executed.
+    pub check_id: String,
+    /// Whether the check passed.
+    pub passed: bool,
+    /// Human-readable findings from the check.
+    pub findings: Vec<String>,
+}
+
+/// Result of bootstrapping an agent runtime.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentBootstrapResult {
+    /// Stable agent identifier that was bootstrapped.
+    pub agent_id: String,
+    /// Whether bootstrap succeeded.
+    pub ready: bool,
+    /// Human-readable status message.
+    pub message: String,
+}
+
+/// Result of registering an MCP server.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct McpRegistrationResult {
+    /// Stable server identifier that was registered.
+    pub server_id: String,
+    /// Whether the server is ready to accept connections.
+    pub ready: bool,
+    /// Human-readable status message.
+    pub message: String,
+}
+
+/// Plugin runtime execution contract.
+///
+/// Implementing this trait enables a plugin to execute real operations
+/// beyond static metadata. The runtime calls these methods when
+/// `checks run`, `agents launch`, or `mcp launch` request actual
+/// execution instead of just topology inspection.
+///
+/// Each method receives an ID that matches a descriptor declared by the
+/// plugin. The runtime guarantees it only calls methods for IDs the
+/// plugin itself registered.
+///
+/// # Error Isolation
+///
+/// Errors from plugin execution are captured as `PluginRuntimeError`
+/// and never propagate as panics to the core runtime. This ensures
+/// one broken plugin cannot crash the entire system.
+pub trait PluginRuntime: Send + Sync {
+    /// Returns the plugin identifier this runtime belongs to.
+    fn plugin_id(&self) -> &str;
+
+    /// Executes a prepare or doctor check.
+    ///
+    /// Called when `checks run <check-id>` targets a check owned by this
+    /// plugin. The `project_root` is the directory where the project
+    /// files should be validated.
+    fn run_check(
+        &self,
+        check_id: &str,
+        kind: PluginCheckKind,
+        project_root: &Path,
+    ) -> Result<CheckExecutionResult, PluginRuntimeError>;
+
+    /// Bootstraps an agent runtime session.
+    ///
+    /// Called when `agents launch <agent-id>` targets an agent owned by
+    /// this plugin. Returns whether the agent is ready to operate.
+    fn bootstrap_agent(&self, agent_id: &str) -> Result<AgentBootstrapResult, PluginRuntimeError>;
+
+    /// Registers an MCP server and validates it can start.
+    ///
+    /// Called when `mcp launch <server-id>` targets a server owned by
+    /// this plugin. Returns whether the server is ready to accept
+    /// connections.
+    fn register_mcp_server(
+        &self,
+        server_id: &str,
+    ) -> Result<McpRegistrationResult, PluginRuntimeError>;
 }
