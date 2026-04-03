@@ -21,7 +21,7 @@ Os próximos caminhos úteis dependem do que você quer fazer:
 - Leia [Arquitetura](../reference/architecture.md) se quiser começar pelo modelo do sistema.
 - Leia [Plugins](../guides/plugins.md) se quiser entender a superfície de extensão.
 - Leia [Padrões de código](../development/coding-standards.md) se você vai contribuir com código.
-- Leia [Roadmap](../development/roadmap.md) se quiser entender a direção atual, não só a implementação do momento.
+- Leia [Referência CLI](../reference/cli.md) se quiser explorar os comandos disponíveis.
 
 ## Opções de validação local
 

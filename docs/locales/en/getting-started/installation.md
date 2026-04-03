@@ -1,58 +1,47 @@
 # Installation
 
-Ralph Engine is currently source-first.
-
-That is intentional in this phase of the Rust-first reboot: the repository itself is the primary contract for the runtime, official plugins, validation rules, and release pipeline.
+Ralph Engine is currently installed from source. Binary distribution via npm and Homebrew is prepared but intentionally gated until the release pipeline is fully validated.
 
 ## Prerequisites
 
-The current baseline assumes:
-
 - Git
-- Rust `1.91.1`
-- Node.js `20.19.0`
-- `asdf` if you want the easiest path to a pinned local environment
+- Rust 1.91.1 (pinned via `rust-toolchain.toml`)
+- Node.js 20.19.0 (pinned via `.tool-versions`)
 
-The repository pins its canonical toolchain through:
-
-- `rust-toolchain.toml`
-- `.tool-versions`
-
-## Source install
+## Source Install
 
 ```bash
 git clone https://github.com/diegorodrigo90/ralph-engine.git
 cd ralph-engine
 ./scripts/bootstrap-dev.sh
 cargo run -p re-cli -- --version
-cargo run -p re-cli -- --locale pt-br
 ```
 
-`bootstrap-dev.sh` is the supported entry point for local setup. It installs repository dependencies, docs dependencies, hooks, and the reviewed developer tooling required by the current contract.
+`bootstrap-dev.sh` installs all dependencies, hooks, and developer tooling.
 
-## What to run next
-
-Once the environment is bootstrapped, the next useful commands are:
+## Verify Installation
 
 ```bash
+# Validate the full repository contract
 ./scripts/validate.sh --mode local
-cargo run -p re-cli
-./scripts/validate-ci-local.sh
+
+# Run the CLI
+cargo run -p re-cli -- --help
+
+# Run in Portuguese
+cargo run -p re-cli -- --locale pt-br --help
+
+# Run full test suite
+cargo test --workspace --all-targets
 ```
 
-Use them in this order:
+## Distribution Channels
 
-1. `validate.sh` proves the local foundation matches the repository contract.
-2. `cargo run -p re-cli` confirms the CLI is wired correctly.
-3. `cargo run -p re-cli -- --locale pt-br` proves one-off CLI localization without relying on environment state.
-4. `validate-ci-local.sh` gives you a local smoke run of the GitHub Actions workflow when `act` is installed.
+These channels are prepared and will be enabled once the release pipeline is fully connected:
 
-## Planned official channels
-
-These channels remain part of the public product contract and are being rebuilt on top of the Rust-first foundation:
-
-- GitHub Releases
-- npm
-- Homebrew
-
-Until those channels are fully reconnected, the source install path is the canonical one.
+| Channel | Status |
+|---------|--------|
+| **Source** | Available (canonical install method) |
+| **GitHub Releases** | Infrastructure ready, gated |
+| **npm** | Package prepared, publication gated |
+| **Homebrew** | Formula prepared, tap gated |

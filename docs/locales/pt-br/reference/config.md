@@ -1,55 +1,43 @@
-# Referência de configuração
+# Referência de Configuração
 
-O reboot em Rust já reintroduziu a primeira fatia tipada de configuração no novo core.
+O sistema de configuração expõe contratos tipados pela CLI:
 
-O contrato padrão atual já expõe:
-
-- `schema_version`
-- `default_locale`
-- entradas padrão de plugins com estado de ativação tipado
-- escopos tipados de configuração e a origem da ativação efetiva do plugin
-- padrões de MCP
-- limites de prompt e contexto
-
-A arquitetura-alvo mais ampla continua incluindo:
-
-- configuração de projeto
-- padrões de plugins
-- overrides de usuário
-- configuração de MCP
-- limites de prompt e contexto
-
-A CLI atual consegue renderizar esse contrato tipado com:
+## Comandos
 
 ```bash
-ralph-engine locales
-ralph-engine locales list
-ralph-engine locales show <locale-id>
-ralph-engine config budgets
-ralph-engine config layers
-ralph-engine config locale
-ralph-engine config show-budgets
-ralph-engine config show-defaults
-ralph-engine config show-layers
-ralph-engine config show-locale
-ralph-engine config show-mcp-server <server-id>
-ralph-engine config show-plugin <plugin-id>
+ralph-engine config show-defaults          # Config padrão completa (YAML)
+ralph-engine config locale                 # Configuração de idioma
+ralph-engine config budgets                # Limites de tokens de prompt e contexto
+ralph-engine config layers                 # Pilha de resolução de configuração
+ralph-engine config show-plugin <id>       # Config resolvida de um plugin
+ralph-engine config show-mcp-server <id>   # Config resolvida de um servidor MCP
 ```
 
-O comando `config locale` renderiza o contrato tipado do locale padrão atual, para que a localização da CLI permaneça visível e versionada em vez de ficar só como default interno.
+## Gerenciamento de Idiomas
 
-O `re-config` agora também é dono do contrato tipado compartilhado de locale usado por `re-cli`, `re-core`, `re-plugin` e `re-mcp`, para que a expansão de idiomas aconteça sobre uma fundação canônica em vez de reimplementar parsing de locale em cada crate.
+```bash
+ralph-engine locales list                  # Catálogo de idiomas suportados
+ralph-engine locales show <locale-id>      # Detalhes do idioma (nome nativo, fallback)
+```
 
-A CLI agora aceita o flag global `--locale <locale-id>` ou `-L <locale-id>` para seleção pontual de idioma. Quando esse flag não é informado, a resolução de locale continua fazendo fallback para `RALPH_ENGINE_LOCALE` e depois para o locale padrão tipado declarado por `re-config`.
+O flag `--locale <id>` (ou `-L <id>`) troca o idioma para uma ��nica execução. Sem ele, a CLI resolve o idioma a partir de `RALPH_ENGINE_LOCALE`, depois do locale do SO (`LC_ALL`, `LC_MESSAGES`, `LANG`), e por fim usa inglês como padrão.
 
-A família de comandos `locales` renderiza o catálogo canônico de locales suportados, incluindo o nome nativo de cada locale e se ele faz fallback para inglês. Isso mantém a expansão de idiomas explícita e versionada, em vez de espalhar essa regra pelo runtime.
+## Conteúdo da Configuração
 
-O comando `config budgets` renderiza o contrato tipado canônico de limites de prompt e contexto, para que os tetos de tokens permaneçam explícitos na configuração compartilhada do runtime em vez de serem inferidos mais tarde por defaults locais de cada provider.
+| Seção | Descrição |
+|-------|-----------|
+| `schema_version` | Versão do schema de configuração |
+| `default_locale` | Idioma padrão do projeto |
+| `plugins` | Estado de ativação dos plugins (habilitado/desabilitado) |
+| `mcp_servers` | Estado de ativação dos servidores MCP |
+| `budgets` | Limites de tokens de prompt e contexto |
 
-O comando `config layers` renderiza a pilha canônica tipada de configuração na ordem de resolução, para que defaults, futuras configurações de workspace, configuração de projeto e overrides de usuário continuem explícitos no contrato do runtime.
+## Resolução de Configuração
 
-O comando `config show-plugin` agora renderiza a ativação efetiva do plugin junto com o escopo que forneceu esse resultado.
+A configuração é resolvida por uma pilha de camadas (inspecionável via `config layers`):
 
-O comando `config show-mcp-server` renderiza a ativação tipada efetiva de um servidor MCP junto com o escopo que forneceu esse resultado, para que o opt-in por servidor permaneça explícito em vez de ser inferido apenas a partir da ativação do plugin.
+1. **Padrões embutidos** — compilados no binário
+2. **Padrões dos plugins** — declarados por cada crate de plugin
+3. **Config do projeto** — `.ralph-engine/config.yaml` (quando presente)
 
-Esses contratos continuarão a evoluir sobre o novo core em Rust, guiados por TDD.
+Use `ralph-engine doctor apply-config <caminho>` para gerar uma config corrigida que habilita todos os plugins e servidores recomendados.

@@ -21,7 +21,7 @@ The next useful paths depend on what you want to do:
 - Read [Architecture](../reference/architecture.md) if you want the system model first.
 - Read [Plugins](../guides/plugins.md) if you want to understand the extension surface.
 - Read [Coding Standards](../development/coding-standards.md) if you are going to contribute code.
-- Read [Roadmap](../development/roadmap.md) if you want the current direction rather than just the current implementation.
+- Read [CLI Reference](../reference/cli.md) if you want to explore available commands.
 
 ## Local validation options
 

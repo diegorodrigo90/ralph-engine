@@ -1,20 +1,52 @@
 # Plugins
 
-Plugins remain the unit of distribution.
+Plugins are the unit of extension in Ralph Engine. Each plugin declares capabilities, contributions, and an optional runtime implementation.
 
-The reboot keeps these architectural rules:
+## Official Plugins
 
-- official plugins are implemented in Rust
-- third-party plugins stay language-agnostic
-- plugin trust stays explicit: official plugins are first-party, while third-party manifests stay community-scoped until the core defines otherwise
-- capabilities remain the extensibility model
-- templates are plugin capabilities, not a separate artifact kind
-- MCP can be configured externally and enhanced by plugins
-- third-party plugin manifests follow a versioned `manifest.yaml` contract owned by `tools/create-ralph-engine/`
-- plugin display metadata supports localized names and summaries, starting with `en` and `pt-br`
-- when a plugin locale is missing, runtime-facing surfaces fall back to the English name and summary instead of failing closed
-- crates that render public plugin-facing output should keep locale strings in per-locale modules or files, so adding a new locale stays additive instead of rewriting command handlers
-- each locale module should expose one locale catalog object instead of scattered constants or locale branching across handlers
-- official plugin crates now follow that rule with `src/i18n/en.rs`, `src/i18n/pt_br.rs`, and `src/i18n/mod.rs`; scaffolded community crates should follow the same layout
-- `npx create-ralph-engine-plugin` is the scaffolding entrypoint and should own project generation concerns instead of pushing scaffolding into the runtime core
-- the scaffolder generates a Rust plugin crate skeleton plus localized `manifest.yaml` metadata so new plugin projects start aligned with the typed runtime contract
+Ralph Engine ships with 8 official plugins:
+
+| Plugin | Kind | Capabilities | What it does |
+|--------|------|-------------|-------------|
+| **basic** | Template | template | Starter project scaffolding |
+| **bmad** | Template | template, prompts, prepare/doctor checks | BMAD workflow scaffolding and validation |
+| **tdd-strict** | Policy | template, policy | TDD guardrails and policy enforcement |
+| **claude** | Agent Runtime | agent, mcp | Claude CLI agent sessions |
+| **claudebox** | Agent Runtime | agent, mcp | Claude Box agent sessions |
+| **codex** | Agent Runtime | agent, mcp | Codex agent sessions |
+| **github** | Data Source | data, context, forge, mcp | GitHub integration (repository data, forge automation) |
+| **ssh** | Remote Control | remote_control | SSH remote control for distributed workflows |
+
+List all plugins: `ralph-engine plugins list`
+
+Show details: `ralph-engine plugins show official.claude`
+
+## Creating a Plugin
+
+Use the scaffolder to create a new plugin:
+
+```bash
+npx create-ralph-engine-plugin --name my-tool --publisher acme --kind template
+```
+
+This generates a complete plugin crate with:
+- `src/lib.rs` — plugin descriptor, runtime implementation, and exports
+- `locales/en.toml` + `locales/pt-br.toml` — TOML-based i18n (no Rust needed for translations)
+- `build.rs` — auto-generates locale code from TOML files
+- `manifest.yaml` — plugin metadata for auto-discovery
+
+## Plugin Architecture
+
+- **Official plugins** are Rust crates in `plugins/official/`
+- **Community plugins** follow the same structure and are auto-discovered via `manifest.yaml`
+- **Trust levels**: `official` (first-party) or `community` (third-party)
+- **Capabilities** define what a plugin can do: template, prompt, agent, check, provider, policy, mcp
+- **Runtime**: every plugin implements the `PluginRuntime` trait for validation and execution
+- **i18n**: translations live in `locales/*.toml` — adding a language means creating one TOML file
+
+## Plugin Lifecycle
+
+1. **Discover** — runtime finds the plugin via descriptor
+2. **Configure** — configuration layers resolve plugin settings
+3. **Validate** — `PluginDescriptor::validate()` checks invariants
+4. **Load** — plugin contributions are registered in the runtime topology

@@ -1,58 +1,47 @@
 # Instalação
 
-O Ralph Engine está, neste momento, em um fluxo priorizando código-fonte.
-
-Isso é intencional nesta fase do reboot em Rust: o próprio repositório é o contrato principal do runtime, dos plugins oficiais, das regras de validação e do pipeline de release.
+O Ralph Engine é instalado a partir do código-fonte. A distribuição por npm e Homebrew está preparada, mas intencionalmente desabilitada até o pipeline de release estar totalmente validado.
 
 ## Pré-requisitos
 
-A base atual assume:
-
 - Git
-- Rust `1.91.1`
-- Node.js `20.19.0`
-- `asdf` se você quiser o caminho mais simples para um ambiente local pinado
+- Rust 1.91.1 (fixado via `rust-toolchain.toml`)
+- Node.js 20.19.0 (fixado via `.tool-versions`)
 
-O repositório fixa a toolchain canônica por meio de:
-
-- `rust-toolchain.toml`
-- `.tool-versions`
-
-## Instalação via código-fonte
+## Instalação pelo Código-Fonte
 
 ```bash
 git clone https://github.com/diegorodrigo90/ralph-engine.git
 cd ralph-engine
 ./scripts/bootstrap-dev.sh
 cargo run -p re-cli -- --version
-cargo run -p re-cli -- --locale pt-br
 ```
 
-`bootstrap-dev.sh` é o ponto de entrada suportado para setup local. Ele instala dependências do repositório, dependências das docs, hooks e o conjunto revisado de ferramentas que faz parte do contrato atual.
+O `bootstrap-dev.sh` instala todas as dependências, hooks e ferramentas de desenvolvimento.
 
-## O que rodar em seguida
-
-Depois do bootstrap, os próximos comandos úteis são:
+## Verificar a Instalação
 
 ```bash
+# Validar o contrato completo do repositório
 ./scripts/validate.sh --mode local
-cargo run -p re-cli
-./scripts/validate-ci-local.sh
+
+# Rodar a CLI
+cargo run -p re-cli -- --help
+
+# Rodar em português
+cargo run -p re-cli -- --locale pt-br --help
+
+# Rodar todos os testes
+cargo test --workspace --all-targets
 ```
 
-Use nessa ordem:
+## Canais de Distribuição
 
-1. `validate.sh` prova que a base local está alinhada ao contrato do repositório.
-2. `cargo run -p re-cli` confirma que a base atual da CLI em Rust está funcionando.
-3. `cargo run -p re-cli -- --locale pt-br` prova a localização pontual da CLI sem depender do ambiente.
-4. `validate-ci-local.sh` roda um smoke local do workflow do GitHub Actions quando `act` estiver instalado.
+Estes canais estão preparados e serão habilitados quando o pipeline de release estiver totalmente conectado:
 
-## Canais oficiais planejados
-
-Esses canais continuam fazendo parte do contrato público do produto e estão sendo reconstruídos sobre a nova base em Rust:
-
-- GitHub Releases
-- npm
-- Homebrew
-
-Até eles estarem totalmente religados, o caminho canônico continua sendo via código-fonte.
+| Canal | Status |
+|-------|--------|
+| **Código-fonte** | Disponível (método principal) |
+| **GitHub Releases** | Infraestrutura pronta, desabilitado |
+| **npm** | Pacote preparado, publicação desabilitada |
+| **Homebrew** | Formula preparada, tap desabilitado |

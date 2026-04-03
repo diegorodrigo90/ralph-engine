@@ -1,114 +1,39 @@
 # Hooks
 
-Hooks definem gatilhos genéricos do runtime e a execução de etapas em `.ralph-engine/hooks.yaml`.
+Hooks são os pontos de extensão onde plugins contribuem comportamento ao ciclo de vida do Ralph Engine.
 
-O Ralph Engine usa hooks como mecanismo genérico. O core do runtime **não** atribui significado de workflow aos nomes dos gatilhos além dos pontos técnicos que ele suporta.
+## Hooks Disponíveis
 
-Se um workflow precisar de conceitos como `prepare`, `review` ou `validation`, esses significados pertencem ao plugin ou boilerplate que gera e valida a configuração do projeto.
+Cada plugin declara quais hooks contribui. O runtime rastreia esses registros:
 
-## Gatilhos do runtime
-
-Hoje o core reconhece estes gatilhos:
-
-| Gatilho           | Quando roda                                 |
-| ----------------- | ------------------------------------------- |
-| `session_start`    | Uma vez antes de o loop começar              |
-| `work_item_start`  | Antes de o work item atual começar           |
-| `after_agent`      | Depois que a sessão do agente termina        |
-| `work_item_finish` | Depois que o work item termina com sucesso   |
-| `session_end`      | Uma vez quando o engine para                 |
-
-## Formato do hooks.yaml
-
-```yaml
-session_start:
-  steps:
-    - name: "Bootstrap environment"
-      run: "npm install"
-      required: true
-
-work_item_start:
-  steps:
-    - name: "Refresh generated files"
-      run: "npm run codegen"
-      required: false
-
-after_agent:
-  steps:
-    - name: "Unit tests"
-      run: "npm test"
-      required: true
-      paths: ["src/**"]
-
-    - name: "Build"
-      run: "npm run build"
-      required: true
-
-work_item_finish:
-  steps:
-    - name: "Update docs"
-      run: "npm run docs:generate"
-      required: false
-
-session_end:
-  steps:
-    - name: "Clean temporary files"
-      run: "npm run clean"
-      required: false
+```bash
+ralph-engine hooks list              # Listar todos os hooks registrados
+ralph-engine hooks show <hook-id>    # Detalhes de um hook
+ralph-engine hooks plan <hook-id>    # Plano de execução de um hook
 ```
 
-## Propriedades da etapa
+## Tipos de Hook
 
-| Propriedade | Tipo     | Obrigatória | Descrição                                   |
-| ----------- | -------- | ----------- | ------------------------------------------- |
-| `name`     | string   | sim         | Nome legível da etapa                          |
-| `run`      | string   | sim         | Comando shell que será executado              |
-| `timeout`  | string   | não         | Duração, por exemplo `"5m"` ou `"30s"`        |
-| `required` | bool     | não         | Se `true`, a falha bloqueia o progresso       |
-| `paths`    | string[] | não         | Só roda se os arquivos alterados baterem globs |
+| Hook | O que faz |
+|------|-----------|
+| `scaffold` | Scaffolding de projeto (materialização de templates) |
+| `prepare` | Validação de pré-requisitos antes de workflows |
+| `doctor` | Diagnóstico e verificação de saúde do sistema |
+| `prompt_assembly` | Composição de fragmentos de prompt |
+| `agent_bootstrap` | Inicialização de runtimes de agente |
+| `mcp_registration` | Registro de servidores MCP |
+| `data_source_registration` | Registro de fontes de dados |
+| `context_provider_registration` | Registro de provedores de contexto |
+| `forge_provider_registration` | Registro de provedores forge |
+| `remote_control_bootstrap` | Inicialização de controle remoto |
+| `policy_enforcement` | Enforcement de guardrails de policy |
 
-## Filtro por caminhos
+## Execução de Hooks
 
-Etapas em `after_agent` podem rodar condicionalmente com base nos arquivos alterados:
+Hooks são executados pelo trait `PluginRuntime`. Quando você roda comandos como `checks run prepare` ou `agents launch`, o runtime encaminha a execução para a implementação do plugin correspondente.
 
-```yaml
-after_agent:
-  steps:
-    - name: "TypeScript tests"
-      run: "pnpm test"
-      paths:
-        - "apps/**/*.ts"
-        - "packages/**/*.ts"
+Plugins que fornecem um runtime podem responder com validação real, detecção de binários ou gerenciamento de processos — de acordo com suas capabilities.
 
-    - name: "Python tests"
-      run: "pytest"
-      paths:
-        - "**/*.py"
-```
+## Arquivo de Hooks do Projeto
 
-Se nenhum arquivo alterado combinar com os globs configurados, a etapa é ignorada.
-
-## Responsabilidade do workflow
-
-O core do runtime é responsável por:
-
-- carregar `.ralph-engine/hooks.yaml`
-- executar etapas por gatilho
-- aplicar filtro por caminho
-- controlar timeout
-- bloquear quando uma etapa obrigatória falha
-
-Plugins ou boilerplates são responsáveis por:
-
-- decidir quais arquivos e gatilhos um workflow exige
-- decidir o significado de cada gatilho naquele workflow
-- validar se o projeto está pronto para aquele workflow
-
-## Comportamento cross-platform
-
-Comandos em `run` são executados pela abstração interna de shell:
-
-- Linux/macOS: `sh -c`
-- Windows: `cmd /c`
-
-Isso mantém a execução cross-platform sem hardcode de caminhos de shell na configuração.
+O template do plugin BMAD inclui um `.ralph-engine/hooks.yaml` para configuração de hooks no nível do projeto. Esse arquivo faz parte do scaffolding do template e é consumido pelo workflow BMAD, não diretamente pelo core do runtime.
