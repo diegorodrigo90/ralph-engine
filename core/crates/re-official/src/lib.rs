@@ -1,9 +1,9 @@
 //! Immutable built-in catalog for official plugins, MCP contributions, and runtime topology.
 
 use re_config::{
-    ConfigScope, PluginActivation, ResolvedPluginConfig, canonical_config_layers,
-    default_project_config, default_project_config_layer, resolve_mcp_server_config,
-    resolve_plugin_config,
+    ConfigScope, PluginActivation, ProjectConfigLayer, ResolvedPluginConfig,
+    canonical_config_layers, default_project_config, default_project_config_layer,
+    resolve_mcp_server_config, resolve_plugin_config,
 };
 use re_core::{
     RuntimeAgentRegistration, RuntimeCapabilityRegistration, RuntimeCheckKind,
@@ -204,7 +204,9 @@ const fn official_plugin_bundle(
     }
 }
 
-fn runtime_check_kind_for_descriptor(kind: PluginCheckKind) -> RuntimeCheckKind {
+/// Maps a plugin check kind to its runtime equivalent.
+#[must_use]
+pub fn runtime_check_kind_for_descriptor(kind: PluginCheckKind) -> RuntimeCheckKind {
     match kind {
         PluginCheckKind::Prepare => RuntimeCheckKind::Prepare,
         PluginCheckKind::Doctor => RuntimeCheckKind::Doctor,
@@ -212,7 +214,9 @@ fn runtime_check_kind_for_descriptor(kind: PluginCheckKind) -> RuntimeCheckKind 
     }
 }
 
-fn runtime_provider_kind_for_descriptor(kind: PluginProviderKind) -> RuntimeProviderKind {
+/// Maps a plugin provider kind to its runtime equivalent.
+#[must_use]
+pub fn runtime_provider_kind_for_descriptor(kind: PluginProviderKind) -> RuntimeProviderKind {
     match kind {
         PluginProviderKind::DataSource => RuntimeProviderKind::DataSource,
         PluginProviderKind::ContextProvider => RuntimeProviderKind::ContextProvider,
@@ -259,26 +263,28 @@ pub fn find_official_mcp_server(server_id: &str) -> Option<McpServerDescriptor> 
         .find(|server| server.id == server_id)
 }
 
-fn resolved_plugin_entry(plugin: PluginDescriptor) -> ResolvedPluginConfig {
-    resolve_plugin_config(canonical_config_layers(), plugin.id).unwrap_or(
-        ResolvedPluginConfig::new(
-            plugin.id,
-            PluginActivation::Disabled,
-            ConfigScope::BuiltInDefaults,
-        ),
-    )
+fn resolved_plugin_entry(
+    plugin: PluginDescriptor,
+    layers: &[ProjectConfigLayer],
+) -> ResolvedPluginConfig {
+    resolve_plugin_config(layers, plugin.id).unwrap_or(ResolvedPluginConfig::new(
+        plugin.id,
+        PluginActivation::Disabled,
+        ConfigScope::BuiltInDefaults,
+    ))
 }
 
 fn resolved_mcp_registration(
     server: McpServerDescriptor,
     plugin_activation: PluginActivation,
+    layers: &[ProjectConfigLayer],
 ) -> RuntimeMcpRegistration {
     let mcp_enabled = default_project_config().mcp.enabled;
     let default_server_enabled = match server.availability {
         McpAvailability::OnDemand => true,
         McpAvailability::ExplicitOptIn => false,
     };
-    let server_enabled = resolve_mcp_server_config(canonical_config_layers(), server.id)
+    let server_enabled = resolve_mcp_server_config(layers, server.id)
         .map(|entry| entry.enabled)
         .unwrap_or(default_server_enabled);
     let enabled =
@@ -287,11 +293,13 @@ fn resolved_mcp_registration(
     RuntimeMcpRegistration::new(server, enabled)
 }
 
-fn resolved_official_plugin_bundles() -> Vec<ResolvedOfficialPluginBundle> {
+fn resolved_official_plugin_bundles_with_layers(
+    layers: &[ProjectConfigLayer],
+) -> Vec<ResolvedOfficialPluginBundle> {
     official_plugin_bundles()
         .into_iter()
         .map(|bundle| {
-            let resolved = resolved_plugin_entry(bundle.descriptor);
+            let resolved = resolved_plugin_entry(bundle.descriptor, layers);
             let plugin = RuntimePluginRegistration::new(
                 bundle.descriptor,
                 resolved.activation,
@@ -301,6 +309,10 @@ fn resolved_official_plugin_bundles() -> Vec<ResolvedOfficialPluginBundle> {
             ResolvedOfficialPluginBundle { plugin, bundle }
         })
         .collect()
+}
+
+fn resolved_official_plugin_bundles() -> Vec<ResolvedOfficialPluginBundle> {
+    resolved_official_plugin_bundles_with_layers(canonical_config_layers())
 }
 
 /// Returns the resolved runtime plugin registrations for the official catalog.
@@ -323,7 +335,13 @@ pub fn official_runtime_mcp_registrations() -> Vec<RuntimeMcpRegistration> {
                 .mcp_servers
                 .iter()
                 .copied()
-                .map(move |server| resolved_mcp_registration(server, bundle.plugin.activation))
+                .map(move |server| {
+                    resolved_mcp_registration(
+                        server,
+                        bundle.plugin.activation,
+                        canonical_config_layers(),
+                    )
+                })
         })
         .collect()
 }
@@ -673,16 +691,197 @@ pub fn official_policy_contributions() -> Vec<OfficialPolicyContribution> {
 /// Returns one immutable owned snapshot of the official runtime catalog.
 #[must_use]
 pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
-    let plugins = official_runtime_plugins();
-    let capabilities = official_runtime_capabilities();
-    let templates = official_runtime_templates();
-    let prompts = official_runtime_prompts();
-    let agents = official_runtime_agents();
-    let checks = official_runtime_checks();
-    let providers = official_runtime_providers();
-    let policies = official_runtime_policies();
-    let hooks = official_runtime_hooks();
-    let mcp_servers = official_runtime_mcp_registrations();
+    official_runtime_snapshot_with_layers(canonical_config_layers())
+}
+
+/// Returns one immutable owned snapshot resolved against the given config layers.
+///
+/// This is the primary entry point for CLI commands that load a project
+/// configuration file and need the runtime to respect those overrides.
+#[must_use]
+pub fn official_runtime_snapshot_with_layers(
+    layers: &[ProjectConfigLayer],
+) -> OfficialRuntimeSnapshot {
+    let bundles = resolved_official_plugin_bundles_with_layers(layers);
+
+    let plugins = bundles.iter().map(|b| b.plugin).collect();
+
+    let capabilities = bundles
+        .iter()
+        .flat_map(|b| {
+            b.plugin
+                .descriptor
+                .capabilities
+                .iter()
+                .copied()
+                .map(move |cap| {
+                    RuntimeCapabilityRegistration::new(
+                        cap,
+                        b.plugin.descriptor.id,
+                        b.plugin.activation,
+                        b.plugin.descriptor.load_boundary,
+                    )
+                })
+        })
+        .collect();
+
+    let templates = bundles
+        .iter()
+        .filter(|b| {
+            b.plugin
+                .descriptor
+                .capabilities
+                .iter()
+                .copied()
+                .any(capability_activates_template_surface)
+        })
+        .map(|b| {
+            RuntimeTemplateRegistration::new(
+                b.plugin.descriptor.id,
+                b.plugin.activation,
+                b.plugin.descriptor.load_boundary,
+                b.plugin
+                    .descriptor
+                    .runtime_hooks
+                    .contains(&template_runtime_hook()),
+            )
+        })
+        .collect();
+
+    let prompts = bundles
+        .iter()
+        .filter(|b| {
+            b.plugin
+                .descriptor
+                .capabilities
+                .iter()
+                .copied()
+                .any(capability_activates_prompt_surface)
+        })
+        .map(|b| {
+            RuntimePromptRegistration::new(
+                b.plugin.descriptor.id,
+                b.plugin.activation,
+                b.plugin.descriptor.load_boundary,
+                b.plugin
+                    .descriptor
+                    .runtime_hooks
+                    .contains(&prompt_runtime_hook()),
+            )
+        })
+        .collect();
+
+    let agents = bundles
+        .iter()
+        .filter(|b| {
+            b.plugin
+                .descriptor
+                .capabilities
+                .iter()
+                .copied()
+                .any(capability_activates_agent_surface)
+        })
+        .map(|b| {
+            RuntimeAgentRegistration::new(
+                b.bundle.agents[0].id,
+                b.plugin.descriptor.id,
+                b.plugin.activation,
+                b.plugin.descriptor.load_boundary,
+                b.plugin
+                    .descriptor
+                    .runtime_hooks
+                    .contains(&agent_runtime_hook()),
+            )
+        })
+        .collect();
+
+    let checks = bundles
+        .iter()
+        .flat_map(|b| {
+            b.bundle.checks.iter().copied().map(move |check| {
+                RuntimeCheckRegistration::new(
+                    runtime_check_kind_for_descriptor(check.kind),
+                    check.plugin_id,
+                    b.plugin.activation,
+                    b.plugin.descriptor.load_boundary,
+                    b.plugin
+                        .descriptor
+                        .runtime_hooks
+                        .contains(&runtime_hook_for_check(runtime_check_kind_for_descriptor(
+                            check.kind,
+                        ))),
+                )
+            })
+        })
+        .collect();
+
+    let providers = bundles
+        .iter()
+        .flat_map(|b| {
+            b.bundle.providers.iter().copied().map(move |prov| {
+                RuntimeProviderRegistration::new(
+                    prov.id,
+                    runtime_provider_kind_for_descriptor(prov.kind),
+                    prov.plugin_id,
+                    b.plugin.activation,
+                    b.plugin.descriptor.load_boundary,
+                    b.plugin
+                        .descriptor
+                        .runtime_hooks
+                        .contains(&runtime_hook_for_provider(
+                            runtime_provider_kind_for_descriptor(prov.kind),
+                        )),
+                )
+            })
+        })
+        .collect();
+
+    let policies = bundles
+        .iter()
+        .flat_map(|b| {
+            b.bundle.policies.iter().copied().map(move |policy| {
+                RuntimePolicyRegistration::new(
+                    policy.id,
+                    b.plugin.descriptor.id,
+                    b.plugin.activation,
+                    b.plugin.descriptor.load_boundary,
+                    b.plugin
+                        .descriptor
+                        .runtime_hooks
+                        .contains(&policy_runtime_hook()),
+                )
+            })
+        })
+        .collect();
+
+    let hooks = bundles
+        .iter()
+        .flat_map(|b| {
+            b.plugin
+                .descriptor
+                .runtime_hooks
+                .iter()
+                .copied()
+                .map(move |hook| {
+                    RuntimeHookRegistration::new(
+                        hook,
+                        b.plugin.descriptor.id,
+                        b.plugin.activation,
+                        b.plugin.descriptor.load_boundary,
+                    )
+                })
+        })
+        .collect();
+
+    let mcp_servers =
+        bundles
+            .iter()
+            .flat_map(|b| {
+                b.bundle.mcp_servers.iter().copied().map(move |server| {
+                    resolved_mcp_registration(server, b.plugin.activation, layers)
+                })
+            })
+            .collect();
 
     OfficialRuntimeSnapshot {
         plugins,
@@ -696,6 +895,206 @@ pub fn official_runtime_snapshot() -> OfficialRuntimeSnapshot {
         hooks,
         mcp_servers,
     }
+}
+
+// ── Layer-aware contribution extractors (used by CLI catalog) ────
+
+/// Returns agent contributions resolved against explicit config layers.
+#[must_use]
+pub fn official_agent_contributions_from_snapshot(
+    snapshot: &OfficialRuntimeSnapshot,
+) -> Vec<OfficialAgentContribution> {
+    let bundles = official_plugin_bundles();
+    bundles
+        .into_iter()
+        .flat_map(|bundle| {
+            let activation = snapshot
+                .plugins
+                .iter()
+                .find(|p| p.descriptor.id == bundle.descriptor.id)
+                .map(|p| p.activation)
+                .unwrap_or(PluginActivation::Disabled);
+
+            bundle
+                .agents
+                .iter()
+                .copied()
+                .map(move |descriptor| OfficialAgentContribution {
+                    descriptor,
+                    activation,
+                    load_boundary: bundle.descriptor.load_boundary,
+                    bootstrap_hook_registered: bundle
+                        .descriptor
+                        .runtime_hooks
+                        .contains(&agent_runtime_hook()),
+                })
+        })
+        .collect()
+}
+
+/// Returns template contributions resolved against a snapshot.
+#[must_use]
+pub fn official_template_contributions_from_snapshot(
+    snapshot: &OfficialRuntimeSnapshot,
+) -> Vec<OfficialTemplateContribution> {
+    let bundles = official_plugin_bundles();
+    bundles
+        .into_iter()
+        .flat_map(|bundle| {
+            let activation = snapshot
+                .plugins
+                .iter()
+                .find(|p| p.descriptor.id == bundle.descriptor.id)
+                .map(|p| p.activation)
+                .unwrap_or(PluginActivation::Disabled);
+
+            bundle
+                .templates
+                .iter()
+                .copied()
+                .map(move |descriptor| OfficialTemplateContribution {
+                    descriptor,
+                    activation,
+                    load_boundary: bundle.descriptor.load_boundary,
+                    scaffold_hook_registered: bundle
+                        .descriptor
+                        .runtime_hooks
+                        .contains(&template_runtime_hook()),
+                })
+        })
+        .collect()
+}
+
+/// Returns prompt contributions resolved against a snapshot.
+#[must_use]
+pub fn official_prompt_contributions_from_snapshot(
+    snapshot: &OfficialRuntimeSnapshot,
+) -> Vec<OfficialPromptContribution> {
+    let bundles = official_plugin_bundles();
+    bundles
+        .into_iter()
+        .flat_map(|bundle| {
+            let activation = snapshot
+                .plugins
+                .iter()
+                .find(|p| p.descriptor.id == bundle.descriptor.id)
+                .map(|p| p.activation)
+                .unwrap_or(PluginActivation::Disabled);
+
+            bundle
+                .prompts
+                .iter()
+                .copied()
+                .map(move |descriptor| OfficialPromptContribution {
+                    descriptor,
+                    activation,
+                    load_boundary: bundle.descriptor.load_boundary,
+                    prompt_hook_registered: bundle
+                        .descriptor
+                        .runtime_hooks
+                        .contains(&prompt_runtime_hook()),
+                })
+        })
+        .collect()
+}
+
+/// Returns policy contributions resolved against a snapshot.
+#[must_use]
+pub fn official_policy_contributions_from_snapshot(
+    snapshot: &OfficialRuntimeSnapshot,
+) -> Vec<OfficialPolicyContribution> {
+    let bundles = official_plugin_bundles();
+    bundles
+        .into_iter()
+        .flat_map(|bundle| {
+            let activation = snapshot
+                .plugins
+                .iter()
+                .find(|p| p.descriptor.id == bundle.descriptor.id)
+                .map(|p| p.activation)
+                .unwrap_or(PluginActivation::Disabled);
+
+            bundle
+                .policies
+                .iter()
+                .copied()
+                .map(move |descriptor| OfficialPolicyContribution {
+                    descriptor,
+                    activation,
+                    load_boundary: bundle.descriptor.load_boundary,
+                    enforcement_hook_registered: bundle
+                        .descriptor
+                        .runtime_hooks
+                        .contains(&policy_runtime_hook()),
+                })
+        })
+        .collect()
+}
+
+/// Returns check contributions resolved against a snapshot.
+#[must_use]
+pub fn official_check_contributions_from_snapshot(
+    snapshot: &OfficialRuntimeSnapshot,
+) -> Vec<OfficialCheckContribution> {
+    let bundles = official_plugin_bundles();
+    bundles
+        .into_iter()
+        .flat_map(|bundle| {
+            let activation = snapshot
+                .plugins
+                .iter()
+                .find(|p| p.descriptor.id == bundle.descriptor.id)
+                .map(|p| p.activation)
+                .unwrap_or(PluginActivation::Disabled);
+
+            bundle
+                .checks
+                .iter()
+                .copied()
+                .map(move |descriptor| OfficialCheckContribution {
+                    descriptor,
+                    activation,
+                    load_boundary: bundle.descriptor.load_boundary,
+                    runtime_hook_registered: bundle.descriptor.runtime_hooks.contains(
+                        &runtime_hook_for_check(runtime_check_kind_for_descriptor(descriptor.kind)),
+                    ),
+                })
+        })
+        .collect()
+}
+
+/// Returns provider contributions resolved against a snapshot.
+#[must_use]
+pub fn official_provider_contributions_from_snapshot(
+    snapshot: &OfficialRuntimeSnapshot,
+) -> Vec<OfficialProviderContribution> {
+    let bundles = official_plugin_bundles();
+    bundles
+        .into_iter()
+        .flat_map(|bundle| {
+            let activation = snapshot
+                .plugins
+                .iter()
+                .find(|p| p.descriptor.id == bundle.descriptor.id)
+                .map(|p| p.activation)
+                .unwrap_or(PluginActivation::Disabled);
+
+            bundle
+                .providers
+                .iter()
+                .copied()
+                .map(move |descriptor| OfficialProviderContribution {
+                    descriptor,
+                    activation,
+                    load_boundary: bundle.descriptor.load_boundary,
+                    registration_hook_registered: bundle.descriptor.runtime_hooks.contains(
+                        &runtime_hook_for_provider(runtime_provider_kind_for_descriptor(
+                            descriptor.kind,
+                        )),
+                    ),
+                })
+        })
+        .collect()
 }
 
 fn registrations_for_key<T: Copy, K: Copy + Eq>(

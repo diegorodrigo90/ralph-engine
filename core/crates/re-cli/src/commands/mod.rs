@@ -32,7 +32,7 @@ mod policies;
 mod prompts;
 mod providers;
 mod runtime;
-mod runtime_state;
+pub(crate) mod runtime_state;
 mod templates;
 
 struct CommandDescriptor {
