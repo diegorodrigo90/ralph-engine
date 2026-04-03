@@ -3,18 +3,17 @@ title: "Arquitetura"
 description: "Arquitetura interna e decisões de design"
 ---
 
-
 ## Posicionamento
 
-Ralph Engine é um runtime open source, orientado a plugins, para fluxos de desenvolvimento com agentes.
+Ralph Engine é um runtime open-source, orientado a plugins, para fluxos de desenvolvimento com agentes.
 
-## Estrutura do repositório
+## Estrutura do Repositório
 
 - `core/` — crates Rust do runtime
-- `plugins/official/` — plugins oficiais com base em Rust
-- `docs/` — docs em VitePress
-- `site/` — superfícies públicas da web, UI compartilhada e metadados de plugins
-- `packaging/` — superfícies de npm e Homebrew
+- `plugins/official/` — plugins oficiais em Rust
+- `site/` — site de documentação Astro Starlight, superfícies públicas da web, UI compartilhada e metadados de plugins
+- `site/src/content/docs/` — fonte da documentação (EN + PT-BR)
+- `packaging/` — superfícies de empacotamento npm e Homebrew
 - `tools/create-ralph-engine/` — scaffolding de plugin para `npx create-ralph-engine-plugin`
 - `scripts/` — bootstrap, validação e automação de release
 
@@ -24,22 +23,22 @@ Ralph Engine é um runtime open source, orientado a plugins, para fluxos de dese
 - `re-config` — contratos, escopos, padrões e regras de resolução compartilhados de configuração do runtime
 - `re-mcp` — contratos compartilhados de contribuições MCP, policy de lançamento, modelo de processo, fronteiras de comando e policy
 - `re-plugin` — contratos compartilhados de metadados, lifecycle, runtime hooks, fronteira de carregamento e capabilities de plugin
-- `re-official` — catálogo tipado embutido que conecta plugins oficiais e servidores MCP oficiais em um snapshot reutilizável do runtime
+- `re-official` — catálogo tipado embutido que conecta plugins oficiais e servidores MCP em um snapshot reutilizável do runtime
 - `re-cli` — crate CLI que produz `ralph-engine`
-- crates de plugins oficiais vivem em `plugins/official/*`
+- Crates de plugins oficiais ficam em `plugins/official/*`
 
-## Regras arquiteturais
+## Regras Arquiteturais
 
-- o core continua plugin-first e agnóstico de workflow
-- MCP externo continua como parte nativa da arquitetura
-- plugins oficiais são Rust
-- plugins de terceiros continuam agnósticos de linguagem
-- prompt, contexto, governança de MCP, segurança e diagnósticos continuam sendo preocupações do core
-- famílias de comandos da CLI evoluem por módulos e registries isolados, não por um dispatcher central cada vez maior
-- capabilities de plugin e contribuições MCP evoluem por descritores tipados, para que novas capabilities entrem sem lógica acoplada por string espalhada no runtime
-- o lifecycle de plugin evolui por estágios tipados compartilhados, para que descoberta, configuração, validação e carregamento continuem explícitos e extensíveis
-- runtime hooks de plugin evoluem por descritores tipados compartilhados, para que prepare, doctor, prompt, agent, MCP e policy permaneçam modulares sem dispatch ad hoc
-- a resolução de configuração evolui por escopos tipados em camadas, para que defaults e futuros overrides permaneçam explícitos em vez de inferidos dentro dos comandos
-- a topologia, o health, o reporting de issues, o reporting de doctor, o plano de ações do runtime e o registro de runtime hooks evoluem por registros tipados e contratos compartilhados, para que ativação de plugin, registro de capability, registro de hook e enablement de MCP permaneçam explícitos em vez de reconstruídos ad hoc por comando
-- capabilities desabilitadas e runtime hooks desabilitados continuam visíveis no health e na remediação do runtime; não viram metadado invisível só porque a topologia resolveu
-- fronteiras de carregamento de plugin permanecem tipadas, para que integração in-process, subprocess e remota evoluam sem branch ad hoc espalhada no runtime
+- O core permanece plugin-first e agnóstico de workflow.
+- MCP externo permanece como parte nativa da arquitetura.
+- Plugins oficiais são em Rust.
+- Plugins de terceiros permanecem agnósticos de linguagem.
+- Prompt, contexto, governança de MCP, segurança e diagnósticos permanecem como preocupações do core.
+- Famílias de comandos da CLI evoluem por módulos e registries isolados, não por um dispatcher central cada vez maior.
+- Capabilities de plugin e contribuições MCP evoluem por descritores tipados para que novas capabilities possam ser adicionadas sem lógica acoplada por string no runtime.
+- O lifecycle de plugin evolui por estágios tipados compartilhados para que descoberta, configuração, validação e carregamento permaneçam explícitos e extensíveis.
+- Runtime hooks de plugin evoluem por descritores tipados compartilhados para que prepare, doctor, prompt, agent, MCP e policy permaneçam modulares sem dispatch ad hoc.
+- A resolução de configuração evolui por escopos tipados em camadas para que defaults e futuros overrides permaneçam explícitos em vez de inferidos dentro dos comandos.
+- Topologia do runtime, saúde, reporting de issues, reporting de doctor, plano de ações do runtime e registro de runtime hooks evoluem por registros tipados e contratos compartilhados para que ativação de plugin, registro de capability, registro de hook e enablement de MCP permaneçam explícitos em vez de reconstruídos ad hoc por comando.
+- Capabilities desabilitadas e runtime hooks desabilitados permanecem visíveis no health e na remediação do runtime; não se tornam metadado invisível só porque a topologia resolveu.
+- Fronteiras de carregamento de plugin permanecem tipadas para que integração in-process, subprocess e remota possam evoluir sem branching ad hoc no runtime.

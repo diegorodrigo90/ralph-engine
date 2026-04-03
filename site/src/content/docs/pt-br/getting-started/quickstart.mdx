@@ -1,0 +1,58 @@
+---
+title: "Início rápido"
+description: "Caminho mais curto do clone até uma baseline local validada"
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+## Bootstrap
+
+Instale o toolchain fixado, dependências Node, ferramentas de desenvolvimento e git hooks:
+
+```bash
+./scripts/bootstrap-dev.sh
+```
+
+## Validação
+
+Prove que o projeto está saudável antes de começar a modificá-lo:
+
+```bash
+./scripts/validate.sh --mode local
+```
+
+## Execução
+
+Confirme que a baseline Rust-first da CLI está funcionando:
+
+```bash
+cargo run -p re-cli
+```
+
+## Depois da primeira execução
+
+Os próximos caminhos úteis dependem do que você quer fazer:
+
+- Leia [Arquitetura](/pt-br/reference/architecture) para o modelo do sistema.
+- Leia [Extensões](/pt-br/guides/plugins) para a superfície de extensão.
+- Leia [Padrões de código](/pt-br/development/coding-standards) para contribuir com código.
+- Leia [Referência CLI](/pt-br/reference/cli) para explorar os comandos disponíveis.
+
+## Opções de validação
+
+<Tabs syncKey="validation">
+  <TabItem label="Standard">
+    Validação local completa (formatação, linting, testes, coverage, geração de docs, auditorias de dependência, verificação cross-language de contratos):
+
+    ```bash
+    ./scripts/validate.sh --mode local
+    ```
+  </TabItem>
+  <TabItem label="CI smoke">
+    Smoke check local do workflow do GitHub Actions (complementa, mas não substitui a validação padrão):
+
+    ```bash
+    ./scripts/validate-ci-local.sh
+    ```
+  </TabItem>
+</Tabs>
