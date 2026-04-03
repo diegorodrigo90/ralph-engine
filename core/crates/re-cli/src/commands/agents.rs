@@ -117,12 +117,25 @@ fn probe_agent_launch(agent_id: Option<&str>, locale: &str) -> Result<String, Cl
         lines.push(format!("[MISSING] {label}"));
     }
 
-    let note = if locale == "pt-br" {
-        "Nota: bootstrap real requer o trait PluginRuntime (ainda não implementado)"
-    } else {
-        "Note: real bootstrap requires the PluginRuntime trait (not yet implemented)"
-    };
-    lines.push(note.to_owned());
+    match catalog::official_plugin_runtime(agent.descriptor.plugin_id) {
+        Some(runtime) => match runtime.bootstrap_agent(agent.descriptor.id) {
+            Ok(result) => {
+                let status = if result.ready { "[OK]" } else { "[NOT READY]" };
+                lines.push(format!("{status} {}", result.message));
+            }
+            Err(err) => {
+                lines.push(format!("[UNSUPPORTED] {err}"));
+            }
+        },
+        None => {
+            let msg = if locale == "pt-br" {
+                "Plugin não fornece implementação de runtime."
+            } else {
+                "Plugin does not provide a runtime implementation."
+            };
+            lines.push(msg.to_owned());
+        }
+    }
 
     lines.push(String::new());
     lines.push(render_agent_plan(agent, plan, locale));
@@ -325,7 +338,8 @@ mod tests {
         let output = result.ok().unwrap_or_default();
         assert!(output.contains("Agent bootstrap probe"));
         assert!(output.contains("official.claude"));
-        assert!(output.contains("PluginRuntime trait"));
+        // Claude plugin has runtime — should report binary status
+        assert!(output.contains("[OK]") || output.contains("[NOT READY]"));
     }
 
     #[test]
