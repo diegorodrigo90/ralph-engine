@@ -385,39 +385,45 @@ body {
   display: none !important;
 }
 
-/* Pagefind search button — matches Astro nav search trigger */
+/* Pagefind search button — centered, prominent, matches Astro */
 .re-search-btn {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  font-size: 0.8125rem;
+  gap: 8px;
+  min-width: 220px;
+  padding: 7px 14px;
+  font-size: 0.875rem;
   font-family: var(--vp-font-family-base);
   color: var(--vp-c-text-3);
-  background: none;
+  background: var(--vp-c-bg-soft);
   border: 1px solid var(--vp-c-divider);
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: border-color 150ms, color 150ms;
+  transition: border-color 150ms, color 150ms, box-shadow 150ms;
   margin-right: 8px;
 }
 
 .re-search-btn:hover {
   border-color: var(--vp-c-brand-1);
-  color: var(--vp-c-brand-1);
+  color: var(--vp-c-text-2);
+  box-shadow: 0 0 0 3px rgba(91, 106, 208, 0.08);
 }
 
 .re-search-label {
-  font-weight: 500;
+  flex: 1;
+  text-align: left;
+  font-weight: 400;
 }
 
 .re-search-btn kbd {
   font-family: var(--vp-font-family-base);
   font-size: 0.6875rem;
-  padding: 1px 5px;
-  background: var(--vp-c-bg-soft);
-  border-radius: 3px;
+  padding: 2px 6px;
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 4px;
   color: var(--vp-c-text-3);
+  flex-shrink: 0;
 }
 
 /* Pagefind search modal */
