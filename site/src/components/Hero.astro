@@ -1,0 +1,167 @@
+---
+import type { Locale } from '../i18n/utils';
+import { t, localePath } from '../i18n/utils';
+
+interface Props {
+  lang: Locale;
+}
+
+const { lang } = Astro.props;
+---
+
+<section class="hero section">
+  <div class="container hero-inner">
+    <div class="hero-content">
+      <h1>{t(lang, 'hero.headline')}</h1>
+      <p class="hero-tagline">{t(lang, 'hero.tagline')}</p>
+
+      <div class="hero-install">
+        <div class="code-block install-block">
+          <code>cargo install ralph-engine</code>
+          <button class="copy-btn" aria-label="Copy install command" type="button" data-copy="cargo install ralph-engine">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="hero-actions">
+        <a href={lang === 'pt-br' ? '/docs/pt-br/' : '/docs/'} class="btn btn-primary">{t(lang, 'hero.cta.docs')}</a>
+        <a href={localePath(lang, '/plugins/')} class="btn btn-secondary">{t(lang, 'hero.cta.plugins')}</a>
+      </div>
+
+      <p class="hero-version">v0.2.0-alpha.1 · MIT License · Rust</p>
+    </div>
+
+    <div class="hero-terminal">
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-prompt">ralph-engine doctor</div>
+          <div class="terminal-output">
+            <div>--- Runtime diagnostic ---</div>
+            <div>[OK] Config loaded</div>
+            <div>[OK] 8/8 plugins enabled</div>
+            <div>[OK] 3 agent runtimes ready</div>
+            <div>[OK] 2 MCP servers available</div>
+            <div>[OK] 5 checks passed</div>
+            <div>[OK] 0 unresolved issues</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <span class="copy-feedback" role="status" aria-live="polite"></span>
+</section>
+
+<script is:inline>
+  document.querySelectorAll('.copy-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.getAttribute('data-copy');
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(function () {
+        var feedback = document.querySelector('.copy-feedback');
+        if (feedback) feedback.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(function () {
+          btn.classList.remove('copied');
+          if (feedback) feedback.textContent = '';
+        }, 2000);
+      });
+    });
+  });
+</script>
+
+<style>
+  .hero {
+    padding-top: 100px;
+    padding-bottom: var(--re-space-16);
+    border-bottom: none;
+  }
+
+  .hero + :global(.section) {
+    border-top: none;
+  }
+
+  .hero-inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--re-space-12);
+    align-items: center;
+  }
+
+  .hero-tagline {
+    font-size: 1.125rem;
+    color: var(--re-text-secondary);
+    margin-top: var(--re-space-4);
+    max-width: 520px;
+    line-height: 1.6;
+  }
+
+  .hero-install {
+    margin-top: var(--re-space-8);
+    max-width: 400px;
+  }
+
+  .install-block {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--re-space-2);
+  }
+
+  .copy-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: transparent;
+    border: none;
+    color: var(--re-text-muted);
+    cursor: pointer;
+    border-radius: var(--re-radius-sm);
+    transition: color 0.15s, background 0.15s;
+  }
+
+  .copy-btn:hover {
+    background: var(--re-bg-soft);
+    color: var(--re-text-primary);
+  }
+
+  .copy-btn.copied {
+    color: var(--re-success, #16a34a);
+  }
+
+  .copy-feedback {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: var(--re-space-3);
+    margin-top: var(--re-space-6);
+  }
+
+  .hero-version {
+    margin-top: var(--re-space-4);
+    font-size: 0.8125rem;
+    color: var(--re-text-muted);
+  }
+
+  @media (max-width: 768px) {
+    .hero-inner { grid-template-columns: 1fr; }
+    .hero { padding-top: var(--re-space-16); }
+    .hero-install { max-width: 100%; }
+  }
+</style>

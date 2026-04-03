@@ -1,0 +1,61 @@
+---
+import type { Locale } from '../i18n/utils';
+import { t, localePath, alternateLang } from '../i18n/utils';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import '../../../shared/design-tokens.css';
+import '../styles/global.css';
+
+interface Props {
+  lang: Locale;
+  title?: string;
+  description?: string;
+}
+
+const { lang, title, description } = Astro.props;
+const pageTitle = title ? `${title} — Ralph Engine` : 'Ralph Engine — The runtime for agentic coding workflows';
+const pageDesc = description ?? t(lang, 'site.description');
+const altLang = alternateLang(lang);
+const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
+const altPath = Astro.url.pathname.replace('/pt-br', '') || '/';
+const altUrl = new URL(localePath(altLang, altPath), Astro.site);
+---
+
+<!doctype html>
+<html lang={lang === 'pt-br' ? 'pt-BR' : 'en'} data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={pageDesc} />
+
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="alternate" hreflang="en" href={lang === 'en' ? canonicalUrl : altUrl} />
+    <link rel="alternate" hreflang="pt-BR" href={lang === 'pt-br' ? canonicalUrl : altUrl} />
+    <link rel="icon" type="image/svg+xml" href="/logo-icon.svg" />
+
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={pageDesc} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalUrl} />
+
+    {/* Theme boot — inline, runs before paint to prevent flash.
+        Shared key "ralph-theme" synced with VitePress. */}
+    <script is:inline>
+      (function () {
+        var stored = localStorage.getItem('ralph-theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = stored || (prefersDark ? 'dark' : 'light');
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <Nav lang={lang} />
+    <main id="main">
+      <slot />
+    </main>
+    <Footer lang={lang} />
+  </body>
+</html>

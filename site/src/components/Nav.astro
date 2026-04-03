@@ -1,0 +1,159 @@
+---
+import type { Locale } from '../i18n/utils';
+import { t, localePath, alternateLang } from '../i18n/utils';
+
+interface Props {
+  lang: Locale;
+}
+
+const { lang } = Astro.props;
+const altLang = alternateLang(lang);
+const altLabel = altLang === 'pt-br' ? 'PT' : 'EN';
+const currentPath = Astro.url.pathname.replace('/pt-br', '') || '/';
+---
+
+<header class="nav">
+  <div class="container nav-inner">
+    <a href={localePath(lang, '/')} class="nav-logo" aria-label="Ralph Engine home">
+      <img src="/logo-icon.svg" alt="" width="24" height="24" />
+      <span class="nav-logo-text">Ralph Engine</span>
+    </a>
+
+    <nav aria-label="Main navigation">
+      <ul class="nav-links">
+        <li><a href={localePath(lang, '/plugins/')}>{t(lang, 'nav.plugins')}</a></li>
+        <li><a href={lang === 'pt-br' ? '/docs/pt-br/' : '/docs/'}>{t(lang, 'nav.docs')}</a></li>
+        <li>
+          <a href="https://github.com/diegorodrigo90/ralph-engine" target="_blank" rel="noopener">
+            GitHub <span class="external-icon" aria-hidden="true">↗</span>
+          </a>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="nav-actions">
+      <a href={localePath(altLang, currentPath)} class="locale-switch" aria-label={`Switch to ${altLabel}`}>
+        {altLabel}
+      </a>
+      <button class="theme-toggle" aria-label="Toggle dark mode" type="button">
+        <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<script is:inline>
+  document.querySelector('.theme-toggle')?.addEventListener('click', function () {
+    var html = document.documentElement;
+    var current = html.dataset.theme;
+    var next = current === 'dark' ? 'light' : 'dark';
+    html.dataset.theme = next;
+    localStorage.setItem('ralph-theme', next);
+    // Sync to VitePress key for cross-site consistency
+    localStorage.setItem('vitepress-theme-appearance', next);
+  });
+</script>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--re-nav-bg);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--re-border);
+  }
+
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    gap: var(--re-space-6);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--re-text-primary);
+    text-decoration: none;
+  }
+
+  .nav-links {
+    display: flex;
+    list-style: none;
+    gap: var(--re-space-6);
+  }
+
+  .nav-links a {
+    color: var(--re-text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+
+  .nav-links a:hover { color: var(--re-text-primary); }
+
+  .external-icon { font-size: 0.75rem; }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--re-space-3);
+  }
+
+  .locale-switch {
+    padding: 4px 10px;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--re-text-muted);
+    border: 1px solid var(--re-border);
+    border-radius: var(--re-radius-sm);
+    text-decoration: none;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .locale-switch:hover {
+    border-color: var(--re-brand-500);
+    color: var(--re-brand-500);
+    text-decoration: none;
+  }
+
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: 1px solid var(--re-border);
+    border-radius: var(--re-radius-md);
+    color: var(--re-text-muted);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .theme-toggle:hover {
+    border-color: var(--re-brand-500);
+    color: var(--re-brand-500);
+  }
+
+  :global([data-theme="dark"]) .icon-moon { display: none; }
+  :global([data-theme="light"]) .icon-sun { display: none; }
+  :global(:not([data-theme])) .icon-sun { display: none; }
+
+  @media (max-width: 640px) {
+    .nav-logo-text { display: none; }
+    .nav-links { gap: var(--re-space-4); }
+    .nav-links a { font-size: 0.8125rem; }
+  }
+</style>

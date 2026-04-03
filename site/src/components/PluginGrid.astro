@@ -1,0 +1,118 @@
+---
+import type { Locale } from '../i18n/utils';
+import { t, localePath } from '../i18n/utils';
+import plugins from '../data/plugins.json';
+
+interface Props {
+  lang: Locale;
+}
+
+const { lang } = Astro.props;
+
+const kindLabels: Record<string, string> = {
+  template: t(lang, 'catalog.kind.template'),
+  agent_runtime: t(lang, 'catalog.kind.agent_runtime'),
+  mcp_contribution: t(lang, 'catalog.kind.mcp_contribution'),
+  policy: t(lang, 'catalog.kind.policy'),
+  remote_control: t(lang, 'catalog.kind.remote_control'),
+};
+
+function getLocalizedName(plugin: any): string {
+  if (lang !== 'en' && plugin.display_name_locales?.[lang]) {
+    return plugin.display_name_locales[lang];
+  }
+  return plugin.display_name;
+}
+
+function getLocalizedSummary(plugin: any): string {
+  if (lang !== 'en' && plugin.summary_locales?.[lang]) {
+    return plugin.summary_locales[lang];
+  }
+  return plugin.summary;
+}
+---
+
+<section class="section">
+  <div class="container">
+    <h2 style="margin-bottom: 8px;">{t(lang, 'catalog.title')}</h2>
+    <p style="color: var(--re-text-secondary); margin-bottom: 32px;">
+      {t(lang, 'catalog.description')}
+    </p>
+    <div class="grid-4 plugin-grid">
+      {plugins.map((plugin: any) => (
+        <a href={localePath(lang, `/plugins/${plugin.id.replace('official.', '')}/`)} class="card plugin-card">
+          <div class="plugin-header">
+            <h3>{getLocalizedName(plugin)}</h3>
+            <span class="pill pill-brand">{kindLabels[plugin.kind] ?? plugin.kind}</span>
+          </div>
+          <p class="plugin-summary">{getLocalizedSummary(plugin)}</p>
+          <div class="plugin-meta">
+            <span class="pill">v{plugin.plugin_version}</span>
+            {plugin.capabilities?.map((cap: string) => (
+              <span class="pill">{cap}</span>
+            ))}
+          </div>
+        </a>
+      ))}
+    </div>
+    <div style="text-align: center; margin-top: 32px;">
+      <a href={localePath(lang, '/plugins/')} class="btn btn-secondary">
+        {t(lang, 'hero.cta.plugins')}
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .plugin-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-decoration: none;
+    color: var(--text);
+  }
+
+  .plugin-card:hover {
+    text-decoration: none;
+  }
+
+  .plugin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .plugin-header h3 {
+    font-size: 1rem;
+  }
+
+  .plugin-summary {
+    font-size: 0.8125rem;
+    color: var(--re-text-secondary);
+    line-height: 1.5;
+    flex: 1;
+  }
+
+  .plugin-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .plugin-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  @media (max-width: 768px) {
+    .plugin-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .plugin-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

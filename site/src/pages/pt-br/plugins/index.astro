@@ -1,0 +1,63 @@
+---
+import Base from '../../../layouts/Base.astro';
+import { t, localePath } from '../../../i18n/utils';
+import plugins from '../../../data/plugins.json';
+
+const lang = 'pt-br' as const;
+
+const kinds = [...new Set(plugins.map((p: any) => p.kind))];
+
+const kindLabels: Record<string, string> = {
+  template: t(lang, 'catalog.kind.template'),
+  agent_runtime: t(lang, 'catalog.kind.agent_runtime'),
+  mcp_contribution: t(lang, 'catalog.kind.mcp_contribution'),
+  policy: t(lang, 'catalog.kind.policy'),
+  remote_control: t(lang, 'catalog.kind.remote_control'),
+};
+
+function getName(plugin: any): string {
+  return plugin.display_name_locales?.['pt-br'] ?? plugin.display_name;
+}
+
+function getSummary(plugin: any): string {
+  return plugin.summary_locales?.['pt-br'] ?? plugin.summary;
+}
+---
+
+<Base lang={lang} title={t(lang, 'catalog.title')}>
+  <section class="section">
+    <div class="container">
+      <h1 style="margin-bottom: 8px;">{t(lang, 'catalog.title')}</h1>
+      <p style="color: var(--re-text-secondary); margin-bottom: 32px; max-width: 600px;">
+        {t(lang, 'catalog.description')}
+      </p>
+
+      <div style="margin-bottom: 24px; display: flex; gap: 8px; flex-wrap: wrap;">
+        <span class="pill pill-brand" style="font-weight: 700;">{t(lang, 'catalog.all')}</span>
+        {kinds.map((kind: string) => (
+          <span class="pill">{kindLabels[kind] ?? kind}</span>
+        ))}
+      </div>
+
+      <div class="grid-3">
+        {plugins.map((plugin: any) => (
+          <a href={localePath(lang, `/plugins/${plugin.id.replace('official.', '')}/`)} class="card" style="text-decoration: none; color: var(--text); display: flex; flex-direction: column; gap: 8px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+              <h3 style="font-size: 1.125rem;">{getName(plugin)}</h3>
+              <span class="pill pill-brand">{kindLabels[plugin.kind] ?? plugin.kind}</span>
+            </div>
+            <p style="font-size: 0.875rem; color: var(--re-text-secondary); line-height: 1.5; flex: 1;">
+              {getSummary(plugin)}
+            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+              <span class="pill">v{plugin.plugin_version}</span>
+              {plugin.capabilities?.map((cap: string) => (
+                <span class="pill">{cap}</span>
+              ))}
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>

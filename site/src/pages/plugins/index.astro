@@ -1,0 +1,88 @@
+---
+import Base from '../../layouts/Base.astro';
+import { t, localePath } from '../../i18n/utils';
+import plugins from '../../data/plugins.json';
+
+const lang = 'en' as const;
+
+const kinds = [...new Set(plugins.map((p: any) => p.kind))];
+
+const kindLabels: Record<string, string> = {
+  template: t(lang, 'catalog.kind.template'),
+  agent_runtime: t(lang, 'catalog.kind.agent_runtime'),
+  mcp_contribution: t(lang, 'catalog.kind.mcp_contribution'),
+  policy: t(lang, 'catalog.kind.policy'),
+  remote_control: t(lang, 'catalog.kind.remote_control'),
+};
+---
+
+<Base lang={lang} title={t(lang, 'catalog.title')}>
+  <section class="section">
+    <div class="container">
+      <h1 style="margin-bottom: 8px;">{t(lang, 'catalog.title')}</h1>
+      <p style="color: var(--re-text-secondary); margin-bottom: 32px; max-width: 600px;">
+        {t(lang, 'catalog.description')}
+      </p>
+
+      <div class="catalog-filters" style="margin-bottom: 24px; display: flex; gap: 8px; flex-wrap: wrap;">
+        <span class="pill pill-brand filter-active">{t(lang, 'catalog.all')}</span>
+        {kinds.map((kind: string) => (
+          <span class="pill">{kindLabels[kind] ?? kind}</span>
+        ))}
+      </div>
+
+      <div class="grid-3">
+        {plugins.map((plugin: any) => (
+          <a href={localePath(lang, `/plugins/${plugin.id.replace('official.', '')}/`)} class="card plugin-detail-card">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px;">
+              <h3 style="font-size: 1.125rem;">{plugin.display_name}</h3>
+              <span class="pill pill-brand">{kindLabels[plugin.kind] ?? plugin.kind}</span>
+            </div>
+            <p style="font-size: 0.875rem; color: var(--re-text-secondary); line-height: 1.5; margin-bottom: 12px;">
+              {plugin.summary}
+            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 4px;">
+              <span class="pill">v{plugin.plugin_version}</span>
+              <span class="pill">{plugin.trust_level}</span>
+              {plugin.capabilities?.map((cap: string) => (
+                <span class="pill">{cap}</span>
+              ))}
+            </div>
+            {plugin.templates && (
+              <p style="font-size: 0.75rem; color: var(--re-text-secondary); margin-top: 8px;">
+                {plugin.templates.length} template{plugin.templates.length !== 1 ? 's' : ''}
+              </p>
+            )}
+            {plugin.agents && (
+              <p style="font-size: 0.75rem; color: var(--re-text-secondary); margin-top: 4px;">
+                {plugin.agents.length} agent runtime{plugin.agents.length !== 1 ? 's' : ''}
+              </p>
+            )}
+            {plugin.providers && (
+              <p style="font-size: 0.75rem; color: var(--re-text-secondary); margin-top: 4px;">
+                {plugin.providers.length} provider{plugin.providers.length !== 1 ? 's' : ''}
+              </p>
+            )}
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Base>
+
+<style>
+  .plugin-detail-card {
+    text-decoration: none;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .plugin-detail-card:hover {
+    text-decoration: none;
+  }
+
+  .filter-active {
+    font-weight: 700;
+  }
+</style>
