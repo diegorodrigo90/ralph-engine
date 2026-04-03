@@ -951,3 +951,137 @@ fn validate_catches_no_capabilities_or_hooks() {
             .any(|e| e.contains("capability or runtime hook"))
     );
 }
+
+// ---------------------------------------------------------------------------
+// Community plugin end-to-end test
+// ---------------------------------------------------------------------------
+
+/// Simulates the full lifecycle of a community plugin:
+/// descriptor creation → validation → runtime execution.
+mod community_plugin_e2e {
+    use std::path::Path;
+
+    use re_plugin::{
+        AgentBootstrapResult, CURRENT_PLUGIN_API_VERSION, CheckExecutionResult,
+        McpRegistrationResult, PREPARE_CHECKS, PluginCheckKind, PluginDescriptor, PluginKind,
+        PluginLifecycleStage, PluginLoadBoundary, PluginRuntime, PluginRuntimeError,
+        PluginRuntimeHook, PluginTrustLevel,
+    };
+
+    const COMMUNITY_PLUGIN_ID: &str = "community.acme.linter";
+
+    fn community_descriptor() -> PluginDescriptor {
+        PluginDescriptor::new(
+            COMMUNITY_PLUGIN_ID,
+            PluginKind::Template,
+            PluginTrustLevel::Community,
+            "ACME Linter",
+            &[],
+            "Community linter plugin for ACME projects.",
+            &[],
+            "1.0.0",
+            CURRENT_PLUGIN_API_VERSION,
+            &[PREPARE_CHECKS],
+            &[PluginLifecycleStage::Discover, PluginLifecycleStage::Load],
+            PluginLoadBoundary::InProcess,
+            &[PluginRuntimeHook::Prepare],
+        )
+    }
+
+    struct AcmeLinterRuntime;
+
+    impl PluginRuntime for AcmeLinterRuntime {
+        fn plugin_id(&self) -> &str {
+            COMMUNITY_PLUGIN_ID
+        }
+
+        fn run_check(
+            &self,
+            check_id: &str,
+            _kind: PluginCheckKind,
+            project_root: &Path,
+        ) -> Result<CheckExecutionResult, PluginRuntimeError> {
+            let config = project_root.join(".acme-linter.toml");
+            let mut findings = Vec::new();
+            if !config.exists() {
+                findings.push("missing: .acme-linter.toml".to_owned());
+            }
+            Ok(CheckExecutionResult {
+                check_id: check_id.to_owned(),
+                passed: findings.is_empty(),
+                findings,
+            })
+        }
+
+        fn bootstrap_agent(
+            &self,
+            agent_id: &str,
+        ) -> Result<AgentBootstrapResult, PluginRuntimeError> {
+            Err(PluginRuntimeError::new(
+                "unsupported",
+                format!("no agent: {agent_id}"),
+            ))
+        }
+
+        fn register_mcp_server(
+            &self,
+            server_id: &str,
+        ) -> Result<McpRegistrationResult, PluginRuntimeError> {
+            Err(PluginRuntimeError::new(
+                "unsupported",
+                format!("no mcp: {server_id}"),
+            ))
+        }
+    }
+
+    #[test]
+    fn community_plugin_descriptor_passes_validation() {
+        let descriptor = community_descriptor();
+        let errors = descriptor.validate();
+        assert!(errors.is_empty(), "validation errors: {errors:?}");
+        assert!(descriptor.is_api_compatible());
+        assert!(descriptor.is_namespaced());
+        assert!(descriptor.has_capabilities());
+        assert!(descriptor.has_runtime_hooks());
+    }
+
+    #[test]
+    fn community_plugin_runtime_executes_check() {
+        let tmp = std::env::temp_dir().join("re-community-e2e");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).ok();
+
+        let rt = AcmeLinterRuntime;
+        assert_eq!(rt.plugin_id(), COMMUNITY_PLUGIN_ID);
+
+        // Check fails when config missing
+        let result = rt.run_check("acme.lint", PluginCheckKind::Prepare, &tmp);
+        assert!(result.is_ok());
+        let Ok(output) = result else { return };
+        assert!(!output.passed);
+        assert!(output.findings[0].contains(".acme-linter.toml"));
+
+        // Check passes when config exists
+        std::fs::write(tmp.join(".acme-linter.toml"), "# config").ok();
+        let result = rt.run_check("acme.lint", PluginCheckKind::Prepare, &tmp);
+        assert!(result.is_ok());
+        let Ok(output) = result else { return };
+        assert!(output.passed);
+        assert!(output.findings.is_empty());
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn community_plugin_runtime_rejects_unsupported_operations() {
+        let rt = AcmeLinterRuntime;
+        assert!(rt.bootstrap_agent("acme.agent").is_err());
+        assert!(rt.register_mcp_server("acme.mcp").is_err());
+    }
+
+    #[test]
+    fn community_plugin_error_is_human_readable() {
+        let error = PluginRuntimeError::new("test_code", "something went wrong");
+        assert_eq!(error.to_string(), "[test_code] something went wrong");
+    }
+}
