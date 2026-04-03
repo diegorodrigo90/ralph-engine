@@ -73,6 +73,12 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 46. `dist-workspace.toml` SHALL remain an explicit reviewed contract. CI and release workflows SHALL validate it before building or promoting `cargo-dist` artifacts.
 47. Reusable release artifacts SHALL be treated as first-class contract outputs. Candidate and publishable asset sets SHALL pass explicit checksum and target-completeness validation before approval or publication.
 
+## Engineering Discipline
+
+48. Every code change SHALL be preceded by research. Before implementing, the assistant SHALL search official documentation (Context7, web search, crate docs) for the libraries and APIs involved. Implementation from memory or stale knowledge SHALL be treated as a defect source.
+49. Every bug fix SHALL produce a regression test that fails without the fix and passes with it. The test and fix SHALL be committed together. A bug fix without a regression test is incomplete.
+50. Bug fixes SHALL identify and address the root cause. Fixes that suppress symptoms (hiding errors, adding defensive checks around broken logic, commenting out failing code) without understanding why the failure happens SHALL be rejected. For frontend bugs, this means inspecting the actual CSS cascade, HTML structure, and component hierarchy to confirm what is causing the visual or behavioral issue before changing code.
+
 ## Structure
 
 - `core/` SHALL own the Rust runtime crates.

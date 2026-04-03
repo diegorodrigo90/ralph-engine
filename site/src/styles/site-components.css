@@ -1,0 +1,264 @@
+/* Ralph Engine — Styles for custom site components (Hero, Features, Plugins, etc.)
+   These styles do NOT override Starlight defaults — they only target .re-* classes
+   and component-specific selectors used by the custom Astro components. */
+
+/* Layout helpers (used by Hero, Features, GettingStarted) */
+.container {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 var(--re-space-6);
+}
+
+@media (min-width: 768px) {
+  .container { padding: 0 var(--re-space-8); }
+}
+
+.section {
+  padding: var(--re-space-20) 0;
+}
+
+.section + .section {
+  border-top: 1px solid var(--re-border);
+}
+
+@media (max-width: 640px) {
+  .section { padding: var(--re-space-12) 0; }
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--re-space-2);
+  padding: 10px 20px;
+  border-radius: var(--re-radius-md);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  text-decoration: none;
+  font-family: var(--re-font-sans);
+}
+
+.btn:hover {
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.btn-primary {
+  background: var(--re-accent);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--re-accent-hover);
+}
+
+.btn-brand {
+  background: var(--re-brand-500);
+  color: #fff;
+  box-shadow: var(--re-shadow-brand);
+}
+
+.btn-brand:hover {
+  background: var(--re-brand-600);
+}
+
+.btn-secondary {
+  background: var(--re-bg-elevated);
+  color: var(--re-text-primary);
+  border: 1px solid var(--re-border-strong);
+}
+
+.btn-secondary:hover {
+  border-color: var(--re-brand-500);
+  color: var(--re-brand-500);
+}
+
+/* Code blocks (site components, not Starlight prose) */
+.code-block {
+  position: relative;
+  background: var(--re-bg-code);
+  border: 1px solid var(--re-border);
+  border-radius: var(--re-radius-md);
+  padding: var(--re-space-4) var(--re-space-5);
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: var(--re-text-code);
+  font-family: var(--re-font-mono);
+}
+
+.code-block code {
+  background: none;
+}
+
+/* Cards */
+.card {
+  background: var(--re-card-bg);
+  border: 1px solid var(--re-border);
+  border-radius: var(--re-radius-lg);
+  padding: var(--re-space-6);
+  box-shadow: var(--re-card-shadow);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.card:hover {
+  border-color: var(--re-brand-400);
+  box-shadow: var(--re-shadow-lg);
+}
+
+/* Pills / badges */
+.pill {
+  display: inline-block;
+  padding: 4px 10px;
+  background: var(--re-pill-bg);
+  color: var(--re-pill-text);
+  border-radius: var(--re-radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.pill-brand {
+  background: var(--re-brand-50);
+  color: var(--re-brand-600);
+}
+
+/* Grid utilities */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--re-space-6);
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--re-space-6);
+}
+
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--re-space-5);
+}
+
+@media (max-width: 768px) {
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+}
+
+/* Terminal */
+.terminal {
+  background: var(--re-terminal-bg);
+  border-radius: var(--re-radius-lg);
+  overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .terminal {
+  border: 1px solid var(--re-border);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+.terminal-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: var(--re-terminal-bar);
+}
+
+.terminal-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.terminal-dot:nth-child(1) { background: #ef4444; }
+.terminal-dot:nth-child(2) { background: #eab308; }
+.terminal-dot:nth-child(3) { background: #22c55e; }
+
+.terminal-body {
+  padding: var(--re-space-4) var(--re-space-5);
+  font-family: var(--re-font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.8;
+  color: var(--re-terminal-text);
+  overflow-x: auto;
+  word-break: break-word;
+}
+
+@media (max-width: 480px) {
+  .terminal-body { font-size: 0.6875rem; }
+}
+
+.terminal-prompt::before {
+  content: "$ ";
+  color: var(--re-terminal-prompt);
+}
+
+.terminal-output {
+  color: var(--re-terminal-output);
+}
+
+/* CSS-only tabs (used by FeatureTabs, install options on site pages) */
+.tabs { position: relative; }
+
+.tab-list {
+  display: flex;
+  border-bottom: 1px solid var(--re-border);
+  overflow-x: auto;
+}
+
+.tab-list label {
+  padding: 10px 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--re-text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.tab-list label:hover {
+  color: var(--re-text-primary);
+}
+
+.tabs input[type="radio"] { display: none; }
+.tab-panel { display: none; padding-top: var(--re-space-5); }
+
+.tabs input:nth-of-type(1):checked ~ .tab-list label:nth-of-type(1),
+.tabs input:nth-of-type(2):checked ~ .tab-list label:nth-of-type(2),
+.tabs input:nth-of-type(3):checked ~ .tab-list label:nth-of-type(3),
+.tabs input:nth-of-type(4):checked ~ .tab-list label:nth-of-type(4) {
+  color: var(--re-brand-500);
+  border-bottom-color: var(--re-brand-500);
+}
+
+.tabs input:nth-of-type(1):checked ~ div.tab-panel:nth-of-type(2),
+.tabs input:nth-of-type(2):checked ~ div.tab-panel:nth-of-type(3),
+.tabs input:nth-of-type(3):checked ~ div.tab-panel:nth-of-type(4),
+.tabs input:nth-of-type(4):checked ~ div.tab-panel:nth-of-type(5) {
+  display: block;
+}
+
+/* Copy button */
+.copy-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  color: var(--re-text-muted);
+  cursor: pointer;
+  border-radius: var(--re-radius-sm);
+  transition: color 0.15s;
+}
+.copy-btn:hover { color: var(--re-brand-500); }
+.copy-btn.copied { color: var(--re-success, #16a34a); }
