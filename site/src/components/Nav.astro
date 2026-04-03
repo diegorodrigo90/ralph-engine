@@ -32,13 +32,13 @@ const currentPath = Astro.url.pathname.replace('/pt-br', '') || '/';
     </nav>
 
     <div class="nav-actions">
-      <a href={lang === 'pt-br' ? '/docs/pt-br/' : '/docs/'} class="search-trigger" aria-label="Search docs (Ctrl+K)">
+      <button class="search-trigger" aria-label="Search" type="button" id="search-btn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
         </svg>
         <span class="search-label">Search</span>
-        <kbd class="search-kbd">⌘K</kbd>
-      </a>
+        <kbd class="search-kbd" id="search-shortcut"></kbd>
+      </button>
       <a href={localePath(altLang, currentPath)} class="locale-switch" aria-label={`Switch to ${altLabel}`}>
         {altLabel}
       </a>
@@ -98,13 +98,11 @@ const currentPath = Astro.url.pathname.replace('/pt-br', '') || '/';
     localStorage.setItem('vitepress-theme-appearance', next);
   });
 
-  // Ctrl+K → docs search
-  document.addEventListener('keydown', function (e) {
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-      e.preventDefault();
-      window.location.href = document.documentElement.lang === 'pt-BR' ? '/docs/pt-br/' : '/docs/';
-    }
-  });
+  // Show ⌘K on Mac, Ctrl+K on others
+  var shortcut = document.getElementById('search-shortcut');
+  if (shortcut) {
+    shortcut.textContent = navigator.platform?.includes('Mac') ? '⌘K' : 'Ctrl+K';
+  }
 
   // Mobile menu
   (function () {
