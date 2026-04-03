@@ -15,6 +15,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         )),
         Some("show") => show_agent(args.get(1).map(String::as_str), locale),
         Some("plan") => show_agent_plan(args.get(1).map(String::as_str), locale),
+        Some("launch") => probe_agent_launch(args.get(1).map(String::as_str), locale),
         Some(other) => Err(CliError::new(i18n::unknown_subcommand(
             locale, "agents", other,
         ))),
@@ -64,6 +65,69 @@ fn show_agent_plan(agent_id: Option<&str>, locale: &str) -> Result<String, CliEr
     );
 
     Ok(render_agent_plan(agent, plan, locale))
+}
+
+fn probe_agent_launch(agent_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let agent_id = agent_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "agents launch",
+            i18n::agent_id_entity_label(locale),
+        ))
+    })?;
+    let agent = catalog::find_official_agent_contribution(agent_id).ok_or_else(|| {
+        CliError::new(i18n::unknown_entity(
+            locale,
+            i18n::agent_runtime_entity_label(locale),
+            agent_id,
+        ))
+    })?;
+
+    let plan = RuntimeAgentBootstrapPlan::new(
+        agent.descriptor.id,
+        agent.descriptor.plugin_id,
+        agent.load_boundary,
+        agent.bootstrap_hook_registered,
+    );
+
+    let mut lines = Vec::new();
+
+    let heading = if locale == "pt-br" {
+        "Verificação de bootstrap de agente"
+    } else {
+        "Agent bootstrap probe"
+    };
+    lines.push(format!("--- {heading}: {} ---", agent.descriptor.id));
+    lines.push(format!("plugin: {}", agent.descriptor.plugin_id));
+    lines.push(format!("load_boundary: {}", agent.load_boundary));
+
+    if agent.bootstrap_hook_registered {
+        let label = if locale == "pt-br" {
+            "Hook de bootstrap registrado"
+        } else {
+            "Bootstrap hook registered"
+        };
+        lines.push(format!("[OK] {label}"));
+    } else {
+        let label = if locale == "pt-br" {
+            "Hook de bootstrap NÃO registrado"
+        } else {
+            "Bootstrap hook NOT registered"
+        };
+        lines.push(format!("[MISSING] {label}"));
+    }
+
+    let note = if locale == "pt-br" {
+        "Nota: bootstrap real requer o trait PluginRuntime (ainda não implementado)"
+    } else {
+        "Note: real bootstrap requires the PluginRuntime trait (not yet implemented)"
+    };
+    lines.push(note.to_owned());
+
+    lines.push(String::new());
+    lines.push(render_agent_plan(agent, plan, locale));
+
+    Ok(lines.join("\n"))
 }
 
 fn render_agent_listing(registrations: &[OfficialAgentContribution], locale: &str) -> String {
@@ -237,5 +301,39 @@ mod tests {
         assert!(rendered.contains("Agent bootstrap plan: fixture.codex.session"));
         assert!(rendered.contains("Plugin: fixture.codex"));
         assert!(rendered.contains("Registration hook: true"));
+    }
+
+    #[test]
+    fn probe_agent_launch_requires_agent_id() {
+        let args = vec!["launch".to_owned()];
+        let result = super::execute(&args, "en");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn probe_agent_launch_rejects_unknown_agent_id() {
+        let args = vec!["launch".to_owned(), "unknown.agent".to_owned()];
+        let result = super::execute(&args, "en");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn probe_agent_launch_reports_bootstrap_status() {
+        let args = vec!["launch".to_owned(), "official.claude.session".to_owned()];
+        let result = super::execute(&args, "en");
+        assert!(result.is_ok());
+        let output = result.ok().unwrap_or_default();
+        assert!(output.contains("Agent bootstrap probe"));
+        assert!(output.contains("official.claude"));
+        assert!(output.contains("PluginRuntime trait"));
+    }
+
+    #[test]
+    fn probe_agent_launch_supports_pt_br() {
+        let args = vec!["launch".to_owned(), "official.claude.session".to_owned()];
+        let result = super::execute(&args, "pt-br");
+        assert!(result.is_ok());
+        let output = result.ok().unwrap_or_default();
+        assert!(output.contains("Verificação de bootstrap de agente"));
     }
 }
