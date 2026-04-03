@@ -13,6 +13,7 @@ ralph-engine agents
 ralph-engine agents list
 ralph-engine agents show <agent-id>
 ralph-engine agents plan <agent-id>
+ralph-engine agents launch <agent-id>
 ralph-engine capabilities
 ralph-engine capabilities list
 ralph-engine capabilities show <capability-id>
@@ -94,6 +95,8 @@ The `plugins show` command prints the immutable plugin contract, including lifec
 The `agents` command family prints the typed agent runtime registry so official agent integrations stay explicit instead of hiding only inside generic capability listings.
 
 The `agents plan` command prints the executable bootstrap plan for one typed agent runtime, so operator-facing startup steps stay attached to the agent surface that owns them instead of leaking only through aggregate runtime output.
+
+The `agents launch` command probes bootstrap readiness for one agent runtime by checking whether the bootstrap hook is registered and reporting what is needed for real execution.
 
 The `capabilities` command family prints the typed runtime capability registry so capability providers remain explicit and modular.
 

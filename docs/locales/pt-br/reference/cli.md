@@ -13,6 +13,7 @@ ralph-engine agents
 ralph-engine agents list
 ralph-engine agents show <agent-id>
 ralph-engine agents plan <agent-id>
+ralph-engine agents launch <agent-id>
 ralph-engine capabilities
 ralph-engine capabilities list
 ralph-engine capabilities show <capability-id>
@@ -94,6 +95,8 @@ O comando `plugins show` imprime o contrato imutável do plugin, incluindo lifec
 A família `agents` imprime o registro tipado de agent runtimes para que integrações oficiais de agente permaneçam explícitas, em vez de ficarem escondidas só em listagens genéricas de capability.
 
 O comando `agents plan` imprime o plano executável de bootstrap de um agent runtime tipado, para que os passos operacionais de inicialização fiquem ligados à própria superfície de agente em vez de vazarem apenas pela saída agregada do runtime.
+
+O comando `agents launch` verifica a prontidão de bootstrap de um agent runtime, checando se o hook de bootstrap está registrado e reportando o que é necessário para execução real.
 
 A família `capabilities` imprime o registro tipado de capabilities do runtime para que os providers permaneçam explícitos e modulares.
 
