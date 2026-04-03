@@ -16,13 +16,39 @@ const { lang } = Astro.props;
       <p class="hero-tagline">{t(lang, 'hero.tagline')}</p>
 
       <div class="hero-install">
-        <div class="code-block install-block">
-          <code>cargo install ralph-engine</code>
-          <button class="copy-btn" aria-label="Copy install command" type="button" data-copy="cargo install ralph-engine">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
-            </svg>
-          </button>
+        <div class="tabs">
+          <input type="radio" name="hero-install" id="hi-cargo" checked />
+          <input type="radio" name="hero-install" id="hi-npm" />
+          <input type="radio" name="hero-install" id="hi-brew" />
+          <div class="tab-list" role="tablist">
+            <label for="hi-cargo" role="tab">Cargo</label>
+            <label for="hi-npm" role="tab">npm</label>
+            <label for="hi-brew" role="tab">Homebrew</label>
+          </div>
+          <div class="tab-panel">
+            <div class="code-block install-block">
+              <code>cargo install ralph-engine</code>
+              <button class="copy-btn" aria-label="Copy" type="button" data-copy="cargo install ralph-engine">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="tab-panel">
+            <div class="code-block install-block">
+              <code>npx ralph-engine --version</code>
+              <button class="copy-btn" aria-label="Copy" type="button" data-copy="npx ralph-engine --version">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="tab-panel">
+            <div class="code-block install-block">
+              <code>brew install ralph-engine</code>
+              <button class="copy-btn" aria-label="Copy" type="button" data-copy="brew install ralph-engine">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 

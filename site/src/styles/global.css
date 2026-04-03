@@ -320,7 +320,8 @@ h3 { font-size: 1.25rem; }
   border-bottom-color: var(--re-brand-500);
 }
 
-/* Tab panel display — .tab-list is the 1st div sibling, so panels are 2nd-5th divs */
+/* Tab panel display — .tab-list is the 1st div, so panels start at 2nd div.
+   Works for both 3-tab and 4-tab layouts. */
 .tabs input:nth-of-type(1):checked ~ div.tab-panel:nth-of-type(2),
 .tabs input:nth-of-type(2):checked ~ div.tab-panel:nth-of-type(3),
 .tabs input:nth-of-type(3):checked ~ div.tab-panel:nth-of-type(4),

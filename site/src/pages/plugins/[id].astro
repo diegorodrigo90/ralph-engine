@@ -21,156 +21,362 @@ const kindLabels: Record<string, string> = {
   policy: 'Policy',
   remote_control: 'Remote Control',
 };
+
+const kindIcons: Record<string, string> = {
+  template: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
+  agent_runtime: 'M12 8V4H8 M4 8h16a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2v-6a2 2 0 012-2z M9 13h0 M15 13h0',
+  mcp_contribution: 'M12 22v-5 M9 8V2 M15 8V2 M18 8H6a2 2 0 00-2 2v2c0 4.418 3.582 8 8 8s8-3.582 8-8v-2a2 2 0 00-2-2z',
+  policy: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M9 12l2 2 4-4',
+  remote_control: 'M4 17l6-6 M7 7l4.586 4.586a2 2 0 010 2.828L7 19 M20 7l-4.586 4.586a2 2 0 000 2.828L20 19',
+};
 ---
 
-<Base lang={lang} title={plugin.display_name}>
-  <section class="section">
-    <div class="container" style="max-width: 720px;">
-      <a href={localePath(lang, '/plugins/')} style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 24px; display: inline-block;">
+<Base lang={lang} title={`${plugin.display_name} plugin`}>
+  <section class="section" style="padding-top: 80px;">
+    <div class="container detail-layout">
+
+      <a href={localePath(lang, '/plugins/')} class="back-link">
         ← {t(lang, 'plugin.back')}
       </a>
 
-      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-        <h1>{plugin.display_name}</h1>
-        <span class="pill pill-brand">{kindLabels[plugin.kind] ?? plugin.kind}</span>
+      <div class="detail-header">
+        <div class="detail-icon" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d={kindIcons[plugin.kind] ?? kindIcons.template} />
+          </svg>
+        </div>
+        <div>
+          <h1 class="detail-title">{plugin.display_name}</h1>
+          <div class="detail-meta">
+            <code>{plugin.id}</code>
+            <span class="pill pill-brand">{kindLabels[plugin.kind] ?? plugin.kind}</span>
+            <span class="pill pill-brand">official</span>
+          </div>
+        </div>
       </div>
 
-      <p style="font-size: 1.125rem; color: var(--text-muted); margin-bottom: 24px;">
-        {plugin.summary}
-      </p>
+      <p class="detail-summary">{plugin.summary}</p>
 
-      <div class="card" style="margin-bottom: 24px;">
-        <table class="detail-table">
-          <tr>
-            <td>{t(lang, 'plugin.version')}</td>
-            <td>{plugin.plugin_version}</td>
-          </tr>
-          <tr>
-            <td>{t(lang, 'plugin.kind')}</td>
-            <td>{kindLabels[plugin.kind] ?? plugin.kind}</td>
-          </tr>
-          <tr>
-            <td>{t(lang, 'plugin.trust')}</td>
-            <td><span class="pill pill-brand">{plugin.trust_level}</span></td>
-          </tr>
-          <tr>
-            <td>{t(lang, 'plugin.capabilities')}</td>
-            <td>
-              <div style="display: flex; flex-wrap: wrap; gap: 4px;">
-                {plugin.capabilities?.map((cap: string) => (
-                  <span class="pill">{cap}</span>
-                ))}
+      {/* Terminal: real CLI output */}
+      <div class="terminal" style="margin: var(--re-space-8) 0;">
+        <div class="terminal-bar">
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-prompt">ralph-engine plugins show {plugin.id}</div>
+          <div class="terminal-output">
+            <div>Plugin: {plugin.id}</div>
+            <div>Name: {plugin.display_name}</div>
+            <div>Kind: {plugin.kind}</div>
+            <div>Version: {plugin.plugin_version}</div>
+            <div>Trust: {plugin.trust_level}</div>
+            <div>Capabilities: {plugin.capabilities?.join(', ')}</div>
+            <div>Runtime: {plugin.runtime ? 'yes' : 'no'}</div>
+            {plugin.agents && <div>Agents: {plugin.agents.length} registered</div>}
+            {plugin.templates && <div>Templates: {plugin.templates.length} registered</div>}
+            {plugin.providers && <div>Providers: {plugin.providers.length} registered</div>}
+            {plugin.checks && <div>Checks: {plugin.checks.length} registered</div>}
+            {plugin.policies && <div>Policies: {plugin.policies.length} registered</div>}
+          </div>
+        </div>
+      </div>
+
+      {/* Install options */}
+      <h2 class="section-heading">Install</h2>
+      <div class="install-tabs">
+        <div class="tabs">
+          <input type="radio" name="install-tab" id="install-cargo" checked />
+          <input type="radio" name="install-tab" id="install-npm" />
+          <input type="radio" name="install-tab" id="install-brew" />
+
+          <div class="tab-list" role="tablist">
+            <label for="install-cargo" role="tab">Cargo</label>
+            <label for="install-npm" role="tab">npm</label>
+            <label for="install-brew" role="tab">Homebrew</label>
+          </div>
+
+          <div class="tab-panel">
+            <div class="code-block">
+              <code>cargo install ralph-engine</code>
+            </div>
+          </div>
+          <div class="tab-panel">
+            <div class="code-block">
+              <code>npx ralph-engine plugins show {plugin.id}</code>
+            </div>
+          </div>
+          <div class="tab-panel">
+            <div class="code-block">
+              <code>brew install ralph-engine</code>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Capabilities */}
+      <h2 class="section-heading">Capabilities</h2>
+      <div class="caps-grid">
+        {plugin.capabilities?.map((cap: string) => (
+          <div class="card cap-card">
+            <span class="pill pill-brand">{cap}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Sub-resources */}
+      {plugin.agents?.length > 0 && (
+        <div>
+          <h2 class="section-heading">Agent Runtimes</h2>
+          <div class="resource-list">
+            {plugin.agents.map((agent: any) => (
+              <div class="card resource-card">
+                <div class="resource-header">
+                  <h3>{agent.display_name}</h3>
+                  <code>{agent.id}</code>
+                </div>
+                <p>{agent.summary}</p>
               </div>
-            </td>
-          </tr>
-          <tr>
-            <td>API version</td>
-            <td>{plugin.plugin_api_version}</td>
-          </tr>
-          <tr>
-            <td>Engine</td>
-            <td>{plugin.engine_version}</td>
-          </tr>
-        </table>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {plugin.templates?.length > 0 && (
+        <div>
+          <h2 class="section-heading">Templates</h2>
+          <div class="resource-list">
+            {plugin.templates.map((tpl: any) => (
+              <div class="card resource-card">
+                <div class="resource-header">
+                  <h3>{tpl.display_name}</h3>
+                  <code>{tpl.id}</code>
+                </div>
+                <p>{tpl.summary}</p>
+                <div class="terminal" style="margin-top: var(--re-space-3);">
+                  <div class="terminal-bar">
+                    <span class="terminal-dot"></span>
+                    <span class="terminal-dot"></span>
+                    <span class="terminal-dot"></span>
+                  </div>
+                  <div class="terminal-body">
+                    <div class="terminal-prompt">ralph-engine templates materialize {tpl.id} ./my-project</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {plugin.providers?.length > 0 && (
+        <div>
+          <h2 class="section-heading">Providers</h2>
+          <div class="resource-list">
+            {plugin.providers.map((prov: any) => (
+              <div class="card resource-card">
+                <div class="resource-header">
+                  <h3>{prov.display_name}</h3>
+                  <code>{prov.id}</code>
+                </div>
+                <p>{prov.summary}</p>
+                <span class="pill" style="margin-top: var(--re-space-2);">{prov.kind}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {plugin.checks?.length > 0 && (
+        <div>
+          <h2 class="section-heading">Checks</h2>
+          <div class="resource-list">
+            {plugin.checks.map((check: any) => (
+              <div class="card resource-card">
+                <div class="resource-header">
+                  <h3>{check.display_name}</h3>
+                  <code>{check.id}</code>
+                </div>
+                <p>{check.summary}</p>
+                <span class="pill" style="margin-top: var(--re-space-2);">{check.kind}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {plugin.policies?.length > 0 && (
+        <div>
+          <h2 class="section-heading">Policies</h2>
+          <div class="resource-list">
+            {plugin.policies.map((pol: any) => (
+              <div class="card resource-card">
+                <div class="resource-header">
+                  <h3>{pol.display_name}</h3>
+                  <code>{pol.id}</code>
+                </div>
+                <p>{pol.summary}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Manifest */}
+      <h2 class="section-heading">manifest.yaml</h2>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-prompt">cat plugins/official/{plugin.id.replace('official.', '')}/manifest.yaml</div>
+          <div class="terminal-output">
+            <div>id: {plugin.id}</div>
+            <div>kind: {plugin.kind}</div>
+            <div>display_name: {plugin.display_name}</div>
+            <div>summary: {plugin.summary}</div>
+            <div>publisher: {plugin.publisher}</div>
+            <div>trust_level: {plugin.trust_level}</div>
+            <div>plugin_version: {plugin.plugin_version}</div>
+            <div>plugin_api_version: {plugin.plugin_api_version}</div>
+            <div>runtime: {String(plugin.runtime)}</div>
+            <div>capabilities:</div>
+            {plugin.capabilities?.map((c: string) => <div>  - {c}</div>)}
+          </div>
+        </div>
       </div>
 
-      {plugin.templates && plugin.templates.length > 0 && (
-        <div style="margin-bottom: 24px;">
-          <h2 style="font-size: 1.25rem; margin-bottom: 12px;">Templates</h2>
-          {plugin.templates.map((tpl: any) => (
-            <div class="card" style="margin-bottom: 8px;">
-              <h3 style="font-size: 1rem;">{tpl.display_name}</h3>
-              <p style="font-size: 0.875rem; color: var(--text-muted);">{tpl.summary}</p>
-              <code style="font-size: 0.8125rem; color: var(--text-muted);">{tpl.id}</code>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {plugin.agents && plugin.agents.length > 0 && (
-        <div style="margin-bottom: 24px;">
-          <h2 style="font-size: 1.25rem; margin-bottom: 12px;">Agent Runtimes</h2>
-          {plugin.agents.map((agent: any) => (
-            <div class="card" style="margin-bottom: 8px;">
-              <h3 style="font-size: 1rem;">{agent.display_name}</h3>
-              <p style="font-size: 0.875rem; color: var(--text-muted);">{agent.summary}</p>
-              <code style="font-size: 0.8125rem; color: var(--text-muted);">{agent.id}</code>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {plugin.providers && plugin.providers.length > 0 && (
-        <div style="margin-bottom: 24px;">
-          <h2 style="font-size: 1.25rem; margin-bottom: 12px;">Providers</h2>
-          {plugin.providers.map((prov: any) => (
-            <div class="card" style="margin-bottom: 8px;">
-              <h3 style="font-size: 1rem;">{prov.display_name}</h3>
-              <p style="font-size: 0.875rem; color: var(--text-muted);">{prov.summary}</p>
-              <code style="font-size: 0.8125rem; color: var(--text-muted);">{prov.id}</code>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {plugin.checks && plugin.checks.length > 0 && (
-        <div style="margin-bottom: 24px;">
-          <h2 style="font-size: 1.25rem; margin-bottom: 12px;">Checks</h2>
-          {plugin.checks.map((check: any) => (
-            <div class="card" style="margin-bottom: 8px;">
-              <h3 style="font-size: 1rem;">{check.display_name}</h3>
-              <p style="font-size: 0.875rem; color: var(--text-muted);">{check.summary}</p>
-              <code style="font-size: 0.8125rem; color: var(--text-muted);">{check.id}</code>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {plugin.policies && plugin.policies.length > 0 && (
-        <div style="margin-bottom: 24px;">
-          <h2 style="font-size: 1.25rem; margin-bottom: 12px;">Policies</h2>
-          {plugin.policies.map((pol: any) => (
-            <div class="card" style="margin-bottom: 8px;">
-              <h3 style="font-size: 1rem;">{pol.display_name}</h3>
-              <p style="font-size: 0.875rem; color: var(--text-muted);">{pol.summary}</p>
-              <code style="font-size: 0.8125rem; color: var(--text-muted);">{pol.id}</code>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <div class="code-block" style="margin-bottom: 24px;">
-        <span class="code-label">{t(lang, 'plugin.install')}</span>
-        <code>ralph-engine plugins show {plugin.id}</code>
+      {/* Source link */}
+      <div style="margin-top: var(--re-space-8); display: flex; gap: var(--re-space-3);">
+        <a
+          href={`https://github.com/diegorodrigo90/ralph-engine/tree/main/plugins/official/${plugin.id.replace('official.', '')}`}
+          target="_blank"
+          rel="noopener"
+          class="btn btn-secondary"
+        >
+          View source →
+        </a>
+        <a href={localePath(lang, '/plugins/')} class="btn btn-secondary">
+          All plugins
+        </a>
       </div>
 
-      <a
-        href={`https://github.com/diegorodrigo90/ralph-engine/tree/main/plugins/official/${plugin.id.replace('official.', '')}`}
-        target="_blank"
-        rel="noopener"
-        class="btn btn-secondary"
-      >
-        {t(lang, 'plugin.source')} →
-      </a>
     </div>
   </section>
 </Base>
 
 <style>
-  .detail-table {
-    width: 100%;
-    border-collapse: collapse;
+  .detail-layout {
+    max-width: 800px;
   }
 
-  .detail-table td {
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border);
+  .back-link {
     font-size: 0.875rem;
+    color: var(--re-text-muted);
+    display: inline-block;
+    margin-bottom: var(--re-space-6);
   }
 
-  .detail-table td:first-child {
-    font-weight: 600;
-    color: var(--text-muted);
-    width: 140px;
+  .back-link:hover {
+    color: var(--re-brand-500);
+  }
+
+  .detail-header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--re-space-4);
+    margin-bottom: var(--re-space-4);
+  }
+
+  .detail-icon {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--re-brand-50);
+    color: var(--re-brand-500);
+    border-radius: var(--re-radius-lg);
+  }
+
+  .detail-title {
+    font-size: 2.25rem;
+    line-height: 1.1;
+  }
+
+  .detail-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--re-space-2);
+    margin-top: var(--re-space-1);
+  }
+
+  .detail-meta code {
+    font-size: 0.8125rem;
+    color: var(--re-text-muted);
+  }
+
+  .detail-summary {
+    font-size: 1.125rem;
+    color: var(--re-text-secondary);
+    line-height: 1.6;
+    max-width: 600px;
+  }
+
+  .section-heading {
+    font-size: 1.25rem;
+    margin-top: var(--re-space-10);
+    margin-bottom: var(--re-space-4);
+  }
+
+  .caps-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--re-space-2);
+  }
+
+  .cap-card {
+    padding: var(--re-space-3) var(--re-space-4);
+  }
+
+  .resource-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--re-space-3);
+  }
+
+  .resource-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--re-space-2);
+  }
+
+  .resource-header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--re-space-3);
+  }
+
+  .resource-header h3 {
+    font-size: 1rem;
+  }
+
+  .resource-header code {
+    font-size: 0.75rem;
+    color: var(--re-text-muted);
+  }
+
+  .resource-card p {
+    font-size: 0.875rem;
+    color: var(--re-text-secondary);
+    line-height: 1.5;
+  }
+
+  .install-tabs {
+    margin-bottom: var(--re-space-4);
   }
 </style>
