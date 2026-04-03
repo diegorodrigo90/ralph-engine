@@ -121,10 +121,10 @@
   --re-bg-soft:     #1a2332;
   --re-bg-code:     #131c2b;
 
-  --re-text-primary:   #e2e8f0;
-  --re-text-secondary: #94a3b8;
-  --re-text-muted:     #64748b;
-  --re-text-code:      #cbd5e1;
+  --re-text-primary:   #f1f5f9;
+  --re-text-secondary: #cbd5e1;
+  --re-text-muted:     #94a3b8;
+  --re-text-code:      #e2e8f0;
 
   --re-border:        #1e293b;
   --re-border-strong: #334155;
