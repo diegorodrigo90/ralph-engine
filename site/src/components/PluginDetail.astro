@@ -194,14 +194,14 @@ const copySvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
             <div class="card resource-card">
               <div class="resource-header">
                 <h3>{getSubName(agent)}</h3>
-                <code>{agent.id}</code>
+                <code class="resource-id">{agent.id}</code>
               </div>
               <p>{getSubSummary(agent)}</p>
-              <div class="terminal" style="margin-top: var(--re-space-3);">
-                <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
-                <div class="terminal-body">
-                  <div class="terminal-prompt">ralph-engine agents launch {agent.id}</div>
-                </div>
+              <div class="cmd-block">
+                <code>ralph-engine agents launch {agent.id}</code>
+                <button class="copy-btn" type="button" data-copy={`ralph-engine agents launch ${agent.id}`} aria-label={copyLabel}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                </button>
               </div>
             </div>
           ))}
@@ -218,14 +218,14 @@ const copySvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
             <div class="card resource-card">
               <div class="resource-header">
                 <h3>{getSubName(tpl)}</h3>
-                <code>{tpl.id}</code>
+                <code class="resource-id">{tpl.id}</code>
               </div>
               <p>{getSubSummary(tpl)}</p>
-              <div class="terminal" style="margin-top: var(--re-space-3);">
-                <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
-                <div class="terminal-body">
-                  <div class="terminal-prompt">ralph-engine templates materialize {tpl.id} ./my-project</div>
-                </div>
+              <div class="cmd-block">
+                <code>ralph-engine templates materialize {tpl.id} ./my-project</code>
+                <button class="copy-btn" type="button" data-copy={`ralph-engine templates materialize ${tpl.id} ./my-project`} aria-label={copyLabel}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                </button>
               </div>
             </div>
           ))}
@@ -261,14 +261,14 @@ const copySvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
             <div class="card resource-card">
               <div class="resource-header">
                 <h3>{getSubName(check)}</h3>
-                <code>{check.id}</code>
+                <code class="resource-id">{check.id}</code>
               </div>
               <p>{getSubSummary(check)}</p>
-              <div class="terminal" style="margin-top: var(--re-space-3);">
-                <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
-                <div class="terminal-body">
-                  <div class="terminal-prompt">ralph-engine checks run {check.id}</div>
-                </div>
+              <div class="cmd-block">
+                <code>ralph-engine checks run {check.id}</code>
+                <button class="copy-btn" type="button" data-copy={`ralph-engine checks run ${check.id}`} aria-label={copyLabel}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                </button>
               </div>
             </div>
           ))}
@@ -481,6 +481,23 @@ const copySvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
   }
   .resource-header h3 { font-size: 1rem; }
   .resource-header code { font-size: 0.75rem; color: var(--re-text-muted); }
+  .resource-id { font-family: var(--re-font-mono); }
+
+  .cmd-block {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--re-space-2);
+    margin-top: var(--re-space-3);
+    padding: var(--re-space-3) var(--re-space-4);
+    background: var(--re-bg-code, var(--re-bg-soft));
+    border: 1px solid var(--re-border);
+    border-radius: var(--re-radius-md);
+    font-family: var(--re-font-mono);
+    font-size: 0.8125rem;
+    color: var(--re-text-code, var(--re-text-primary));
+    overflow-x: auto;
+  }
 
   .resource-card p {
     font-size: 0.875rem;
