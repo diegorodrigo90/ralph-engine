@@ -61,11 +61,11 @@ const altUrl = new URL(localePath(altLang, altPath), Astro.site);
     </main>
     <Footer lang={lang} />
     {/* Search modal */}
-    <div class="search-modal" id="search-modal" aria-hidden="true">
+    <div class="search-modal" id="search-modal" aria-hidden="true" data-lang={lang}>
       <div class="search-modal-backdrop"></div>
       <div class="search-modal-content">
         <div id="pagefind-container"></div>
-        <button class="search-modal-close" aria-label="Close search" type="button">
+        <button class="search-modal-close" aria-label={lang === 'pt-br' ? 'Fechar busca' : 'Close search'} type="button">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
@@ -91,10 +91,18 @@ const altUrl = new URL(localePath(altLang, altPath), Astro.site);
             var script = document.createElement('script');
             script.src = '/_pagefind/pagefind-ui.js';
             script.onload = function () {
+              var isptbr = modal.getAttribute('data-lang') === 'pt-br';
               new PagefindUI({
                 element: '#pagefind-container',
                 showSubResults: true,
                 showImages: false,
+                translations: isptbr ? {
+                  placeholder: 'Buscar plugins e docs...',
+                  zero_results: 'Nenhum resultado para [SEARCH_TERM]',
+                  many_results: '[COUNT] resultados para [SEARCH_TERM]',
+                  one_result: '[COUNT] resultado para [SEARCH_TERM]',
+                  searching: 'Buscando [SEARCH_TERM]...',
+                } : undefined,
               });
               setTimeout(function () {
                 var input = container.querySelector('input');
