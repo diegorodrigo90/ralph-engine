@@ -34,11 +34,12 @@
   --sl-color-accent: #818CF8;
   --sl-color-accent-high: #cfd4fd;
 
-  /* Gray scale (dark mode: 1=lightest text, 6=darkest bg) */
-  --sl-color-white: #e2e8f0;
-  --sl-color-gray-1: #94a3b8;
-  --sl-color-gray-2: #64748b;
-  --sl-color-gray-3: #334155;
+  /* Gray scale (dark mode: white=brightest text, black=deepest bg)
+     Increased white/gray-1 brightness for better readability */
+  --sl-color-white: #f1f5f9;
+  --sl-color-gray-1: #cbd5e1;
+  --sl-color-gray-2: #94a3b8;
+  --sl-color-gray-3: #475569;
   --sl-color-gray-4: #1e293b;
   --sl-color-gray-5: #151d2e;
   --sl-color-gray-6: #0b1120;
