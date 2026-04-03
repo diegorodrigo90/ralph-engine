@@ -87,6 +87,25 @@ fn owned_to_static_project_config(owned: &OwnedProjectConfig) -> ProjectConfig {
     }
 }
 
+/// Loads the project configuration from `.ralph-engine/config.yaml`.
+///
+/// Returns the parsed config or an error if the file is missing or malformed.
+/// The `run` command uses this to read `RunConfig` fields.
+pub fn load_project_config() -> Result<OwnedProjectConfig, CliError> {
+    let config_path = Path::new(PROJECT_CONFIG_PATH);
+    if !config_path.exists() {
+        return Err(CliError::new(format!(
+            "project config not found: {PROJECT_CONFIG_PATH}"
+        )));
+    }
+
+    let content = std::fs::read_to_string(config_path)
+        .map_err(|err| CliError::new(format!("failed to read {PROJECT_CONFIG_PATH}: {err}")))?;
+
+    parse_owned_project_config_yaml(&content)
+        .map_err(|err| CliError::new(format!("failed to parse {PROJECT_CONFIG_PATH}: {err}")))
+}
+
 /// Renders the fully materialized project configuration after applying the
 /// canonical runtime remediation patch.
 #[must_use]

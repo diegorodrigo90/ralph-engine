@@ -31,6 +31,7 @@ mod plugins;
 mod policies;
 mod prompts;
 mod providers;
+mod run;
 mod runtime;
 pub(crate) mod runtime_state;
 mod templates;
@@ -108,6 +109,11 @@ const COMMANDS: &[CommandDescriptor] = &[
         name: "plugins",
         subcommands: &["list", "show"],
         handler: plugins::execute,
+    },
+    CommandDescriptor {
+        name: "run",
+        subcommands: &["plan"],
+        handler: run::execute,
     },
     CommandDescriptor {
         name: "runtime",
