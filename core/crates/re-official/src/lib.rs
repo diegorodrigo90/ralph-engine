@@ -969,7 +969,7 @@ mod tests {
             .into_iter()
             .filter(|capability| {
                 runtime_surface_for_capability(PluginCapability::new(capability))
-                    .map(|surface| surface.as_str())
+                    .map(re_plugin::PluginRuntimeSurface::as_str)
                     .is_none()
             })
             .collect::<Vec<_>>();

@@ -42,6 +42,14 @@ unwrap_used = "deny"
 expect_used = "deny"
 todo = "deny"
 unimplemented = "deny"
+# Readability lints (pedantic subset)
+doc_markdown = "deny"
+manual_let_else = "deny"
+needless_pass_by_value = "deny"
+redundant_closure_for_method_calls = "deny"
+semicolon_if_nothing_returned = "deny"
+unnested_or_patterns = "deny"
+wildcard_imports = "deny"
 
 # The profile that `dist` will build with
 [profile.dist]

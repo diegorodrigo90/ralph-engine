@@ -14,15 +14,11 @@ use crate::{CliError, catalog, i18n};
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
         None | Some("show-defaults") => Ok(render_project_config_yaml(&default_project_config())),
-        Some("locale") | Some("show-locale") => {
-            Ok(render_default_locale_yaml(&default_project_config()))
-        }
-        Some("budgets") | Some("show-budgets") => Ok(render_runtime_budgets_yaml(
+        Some("locale" | "show-locale") => Ok(render_default_locale_yaml(&default_project_config())),
+        Some("budgets" | "show-budgets") => Ok(render_runtime_budgets_yaml(
             &default_project_config().budgets,
         )),
-        Some("layers") | Some("show-layers") => {
-            Ok(render_config_layers_yaml(canonical_config_layers()))
-        }
+        Some("layers" | "show-layers") => Ok(render_config_layers_yaml(canonical_config_layers())),
         Some("show-mcp-server") => show_mcp_server(args.get(1).map(String::as_str), locale),
         Some("show-plugin") => show_plugin(args.get(1).map(String::as_str), locale),
         Some(other) => Err(CliError::new(i18n::unknown_subcommand(
