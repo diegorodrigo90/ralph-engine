@@ -1,7 +1,19 @@
 {
   "version": 1,
-  "generated_at": "2026-04-03T11:58:14.249Z",
+  "generated_at": "2026-04-03T12:04:58.905Z",
   "count": 8,
+  "icon_contract": {
+    "discovery": "Auto — place icon.svg (preferred), icon.png, icon.jpg, or icon.webp in plugin root",
+    "svg": {
+      "viewbox": "0 0 24 24",
+      "style": "stroke-based, stroke-width 2",
+      "security": "Sanitized at build time"
+    },
+    "png": {
+      "min_size": "128x128",
+      "background": "transparent"
+    }
+  },
   "plugins": [
     {
       "id": "official.basic",
@@ -41,7 +53,8 @@
           ".ralph-engine/config.yaml",
           ".ralph-engine/prompt.md"
         ]
-      }
+      },
+      "iconUrl": "/plugins/icons/official-basic.svg"
     },
     {
       "id": "official.bmad",
@@ -123,7 +136,8 @@
           ".ralph-engine/config.yaml",
           ".ralph-engine/prompt.md"
         ]
-      }
+      },
+      "iconUrl": "/plugins/icons/official-bmad.svg"
     },
     {
       "id": "official.claude",
@@ -158,7 +172,8 @@
             "pt-br": "Sessão de runtime do Claude para o Ralph Engine."
           }
         }
-      ]
+      ],
+      "iconUrl": "/plugins/icons/official-claude.svg"
     },
     {
       "id": "official.claudebox",
@@ -193,7 +208,8 @@
             "pt-br": "Sessão de runtime do Claude Box para o Ralph Engine."
           }
         }
-      ]
+      ],
+      "iconUrl": "/plugins/icons/official-claudebox.svg"
     },
     {
       "id": "official.codex",
@@ -228,7 +244,8 @@
             "pt-br": "Sessão de runtime do Codex para o Ralph Engine."
           }
         }
-      ]
+      ],
+      "iconUrl": "/plugins/icons/official-codex.svg"
     },
     {
       "id": "official.github",
@@ -290,7 +307,8 @@
             "pt-br": "Expõe automação forge tipada para workflows baseados em GitHub."
           }
         }
-      ]
+      ],
+      "iconUrl": "/plugins/icons/official-github.svg"
     },
     {
       "id": "official.ssh",
@@ -325,7 +343,8 @@
             "pt-br": "Expõe controle remoto tipado por SSH para workflows Ralph Engine."
           }
         }
-      ]
+      ],
+      "iconUrl": "/plugins/icons/official-ssh.svg"
     },
     {
       "id": "official.tdd-strict",
@@ -379,7 +398,8 @@
           ".ralph-engine/config.yaml",
           ".ralph-engine/prompt.md"
         ]
-      }
+      },
+      "iconUrl": "/plugins/icons/official-tdd-strict.svg"
     }
   ]
 }

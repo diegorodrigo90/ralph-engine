@@ -52,6 +52,18 @@
   --re-terminal-prompt: #22c55e;
   --re-terminal-output: #94a3b8;
 
+  /* Plugin kind colors */
+  --re-kind-template:       #0891b2;
+  --re-kind-template-soft:  #ecfeff;
+  --re-kind-agent:          #7c3aed;
+  --re-kind-agent-soft:     #f5f3ff;
+  --re-kind-mcp:            #059669;
+  --re-kind-mcp-soft:       #ecfdf5;
+  --re-kind-policy:         #d97706;
+  --re-kind-policy-soft:    #fffbeb;
+  --re-kind-remote:         #dc2626;
+  --re-kind-remote-soft:    #fef2f2;
+
   /* Semantic */
   --re-success: #16a34a;
   --re-warning: #ca8a04;
@@ -122,6 +134,17 @@
   --re-nav-bg:      rgba(11, 17, 32, 0.85);
   --re-pill-bg:     #1e293b;
   --re-pill-text:   #94a3b8;
+
+  --re-kind-template:       #22d3ee;
+  --re-kind-template-soft:  rgba(34, 211, 238, 0.1);
+  --re-kind-agent:          #a78bfa;
+  --re-kind-agent-soft:     rgba(167, 139, 250, 0.1);
+  --re-kind-mcp:            #34d399;
+  --re-kind-mcp-soft:       rgba(52, 211, 153, 0.1);
+  --re-kind-policy:         #fbbf24;
+  --re-kind-policy-soft:    rgba(251, 191, 36, 0.1);
+  --re-kind-remote:         #f87171;
+  --re-kind-remote-soft:    rgba(248, 113, 113, 0.1);
 
   --re-terminal-bg:  #080e1a;
   --re-terminal-bar: #111827;

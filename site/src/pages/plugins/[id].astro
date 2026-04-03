@@ -1,5 +1,6 @@
 ---
 import Base from '../../layouts/Base.astro';
+import PluginIcon from '../../components/PluginIcon.astro';
 import { t, localePath } from '../../i18n/utils';
 import plugins from '../../data/plugins.json';
 
@@ -20,14 +21,6 @@ const kindLabels: Record<string, string> = {
   mcp_contribution: 'MCP Contribution',
   policy: 'Policy',
   remote_control: 'Remote Control',
-};
-
-const kindIcons: Record<string, string> = {
-  template: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
-  agent_runtime: 'M12 8V4H8 M4 8h16a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2v-6a2 2 0 012-2z M9 13h0 M15 13h0',
-  mcp_contribution: 'M12 22v-5 M9 8V2 M15 8V2 M18 8H6a2 2 0 00-2 2v2c0 4.418 3.582 8 8 8s8-3.582 8-8v-2a2 2 0 00-2-2z',
-  policy: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M9 12l2 2 4-4',
-  remote_control: 'M4 17l6-6 M7 7l4.586 4.586a2 2 0 010 2.828L7 19 M20 7l-4.586 4.586a2 2 0 000 2.828L20 19',
 };
 
 /** Build a richer description based on what the plugin provides. */
@@ -58,9 +51,7 @@ const allTags = [
       {/* Header */}
       <div class="detail-header">
         <div class="detail-icon" aria-hidden="true">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d={kindIcons[plugin.kind] ?? kindIcons.template} />
-          </svg>
+          <PluginIcon iconUrl={plugin.iconUrl} kind={plugin.kind} size={28} />
         </div>
         <div>
           <h1 class="detail-title">{plugin.display_name}</h1>

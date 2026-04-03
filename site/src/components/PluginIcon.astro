@@ -1,0 +1,75 @@
+---
+/**
+ * Renders a plugin icon.
+ * - If iconUrl exists (from manifest auto-discovery), renders as <img>
+ * - If not, renders a fallback SVG based on plugin kind
+ * SVGs are sanitized during build (see generate-plugins.mjs).
+ */
+
+interface Props {
+  iconUrl?: string | null;
+  kind?: string;
+  size?: number;
+  alt?: string;
+}
+
+const { iconUrl, kind = 'template', size = 20, alt = '' } = Astro.props;
+
+/** Fallback SVG paths per plugin kind. */
+const kindFallbacks: Record<string, string[][]> = {
+  template: [
+    ['path', 'M12 2L2 7l10 5 10-5-10-5z'],
+    ['path', 'M2 17l10 5 10-5'],
+    ['path', 'M2 12l10 5 10-5'],
+  ],
+  agent_runtime: [
+    ['path', 'M12 8V4H8'],
+    ['rect', '4 8 16 10 2'],
+    ['circle', '9 13 1'],
+    ['circle', '15 13 1'],
+  ],
+  mcp_contribution: [
+    ['path', 'M12 22v-5'],
+    ['path', 'M9 8V2'],
+    ['path', 'M15 8V2'],
+    ['path', 'M18 8H6a2 2 0 0 0-2 2v2c0 4.418 3.582 8 8 8s8-3.582 8-8v-2a2 2 0 0 0-2-2z'],
+  ],
+  policy: [
+    ['path', 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'],
+    ['path', 'M9 12l2 2 4-4'],
+  ],
+  remote_control: [
+    ['path', 'M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z'],
+  ],
+};
+
+const fallback = kindFallbacks[kind] ?? kindFallbacks.template;
+---
+
+{iconUrl ? (
+  <img
+    src={iconUrl}
+    width={size}
+    height={size}
+    alt={alt}
+    loading="lazy"
+    decoding="async"
+    style="display: block;"
+  />
+) : (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    aria-hidden="true"
+  >
+    {fallback.map(([tag, d]) => (
+      <path d={d} />
+    ))}
+  </svg>
+)}
