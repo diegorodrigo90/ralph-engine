@@ -1,10 +1,14 @@
-//! Official basic starter plugin metadata.
+//! Official basic starter plugin metadata and runtime.
+
+use std::path::Path;
 
 mod i18n;
 
 use re_plugin::{
+    AgentBootstrapResult, CheckExecutionResult, McpRegistrationResult, PluginCheckKind,
     PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
-    PluginRuntimeHook, PluginTemplateAsset, PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
+    PluginRuntime, PluginRuntimeError, PluginRuntimeHook, PluginTemplateAsset,
+    PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
 };
 
 /// Stable plugin identifier.
@@ -92,6 +96,55 @@ pub const fn descriptor() -> PluginDescriptor {
 #[must_use]
 pub const fn templates() -> &'static [PluginTemplateDescriptor] {
     TEMPLATES
+}
+
+/// Returns a new instance of the basic plugin runtime.
+#[must_use]
+pub fn runtime() -> BasicRuntime {
+    BasicRuntime
+}
+
+/// Basic plugin runtime — validates project config exists.
+pub struct BasicRuntime;
+
+impl PluginRuntime for BasicRuntime {
+    fn plugin_id(&self) -> &str {
+        PLUGIN_ID
+    }
+
+    fn run_check(
+        &self,
+        check_id: &str,
+        _kind: PluginCheckKind,
+        project_root: &Path,
+    ) -> Result<CheckExecutionResult, PluginRuntimeError> {
+        let mut findings = Vec::new();
+        if !project_root.join(".ralph-engine/config.yaml").exists() {
+            findings.push("missing: .ralph-engine/config.yaml".to_owned());
+        }
+        Ok(CheckExecutionResult {
+            check_id: check_id.to_owned(),
+            passed: findings.is_empty(),
+            findings,
+        })
+    }
+
+    fn bootstrap_agent(&self, agent_id: &str) -> Result<AgentBootstrapResult, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_an_agent_plugin",
+            format!("Basic does not provide agent '{agent_id}'"),
+        ))
+    }
+
+    fn register_mcp_server(
+        &self,
+        server_id: &str,
+    ) -> Result<McpRegistrationResult, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_an_mcp_plugin",
+            format!("Basic does not provide MCP server '{server_id}'"),
+        ))
+    }
 }
 
 #[cfg(test)]

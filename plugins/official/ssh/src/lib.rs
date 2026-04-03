@@ -1,11 +1,14 @@
-//! Official SSH remote-control plugin metadata.
+//! Official SSH remote-control plugin metadata and runtime.
+
+use std::path::Path;
 
 mod i18n;
 
 use re_plugin::{
+    AgentBootstrapResult, CheckExecutionResult, McpRegistrationResult, PluginCheckKind,
     PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
-    PluginProviderDescriptor, PluginProviderKind, PluginRuntimeHook, PluginTrustLevel,
-    REMOTE_CONTROL,
+    PluginProviderDescriptor, PluginProviderKind, PluginRuntime, PluginRuntimeError,
+    PluginRuntimeHook, PluginTrustLevel, REMOTE_CONTROL,
 };
 
 /// Stable plugin identifier.
@@ -72,6 +75,53 @@ pub const fn descriptor() -> PluginDescriptor {
 #[must_use]
 pub const fn providers() -> &'static [PluginProviderDescriptor] {
     PROVIDERS
+}
+
+/// Returns a new instance of the SSH plugin runtime.
+#[must_use]
+pub fn runtime() -> SshRuntime {
+    SshRuntime
+}
+
+/// SSH plugin runtime — probes for the ssh binary.
+pub struct SshRuntime;
+
+impl PluginRuntime for SshRuntime {
+    fn plugin_id(&self) -> &str {
+        PLUGIN_ID
+    }
+
+    fn run_check(
+        &self,
+        check_id: &str,
+        kind: PluginCheckKind,
+        _project_root: &Path,
+    ) -> Result<CheckExecutionResult, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_a_check_plugin",
+            format!(
+                "SSH does not provide check '{check_id}' (kind: {})",
+                kind.as_str()
+            ),
+        ))
+    }
+
+    fn bootstrap_agent(&self, agent_id: &str) -> Result<AgentBootstrapResult, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_an_agent_plugin",
+            format!("SSH does not provide agent '{agent_id}'"),
+        ))
+    }
+
+    fn register_mcp_server(
+        &self,
+        server_id: &str,
+    ) -> Result<McpRegistrationResult, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_an_mcp_plugin",
+            format!("SSH does not provide MCP server '{server_id}'"),
+        ))
+    }
 }
 
 #[cfg(test)]
