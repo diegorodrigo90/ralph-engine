@@ -15,28 +15,58 @@ Ralph Engine is currently installed from source. Binary distribution via npm and
 
 ## Source Install
 
+Clone the repository:
+
 ```bash
 git clone https://github.com/diegorodrigo90/ralph-engine.git
-cd ralph-engine
-./scripts/bootstrap-dev.sh
+```
+
+Run the bootstrap script:
+
+```bash
+cd ralph-engine && ./scripts/bootstrap-dev.sh
+```
+
+Confirm the CLI binary compiles and runs:
+
+```bash
 cargo run -p re-cli -- --version
 ```
 
-`bootstrap-dev.sh` installs all dependencies, hooks, and developer tooling.
+### What bootstrap-dev.sh does
+
+The bootstrap script prepares your local development environment in one step:
+
+1. **Toolchain sync** — runs `asdf install` if asdf is available with the rust and nodejs plugins, ensuring you have the exact pinned versions from `.tool-versions` and `rust-toolchain.toml`.
+2. **Node dependencies** — runs `npm ci` at the root and inside the `site/` directory.
+3. **Dev tools** — runs `scripts/install-dev-tools.sh` to install required Cargo tools (cargo-llvm-cov, cargo-deny, cargo-audit, etc.).
+4. **Git hooks** — runs `lefthook install` to set up pre-commit and pre-push hooks.
+
+If asdf is not installed, the script continues with whatever toolchain is already on your PATH.
 
 ## Verify Installation
 
+Show the CLI help output:
+
 ```bash
-# Validate the full repository contract
-./scripts/validate.sh --mode local
-
-# Run the CLI
 cargo run -p re-cli -- --help
+```
 
-# Run in Portuguese
+Show help in Portuguese:
+
+```bash
 cargo run -p re-cli -- --locale pt-br --help
+```
 
-# Run full test suite
+Run the full local validation contract:
+
+```bash
+./scripts/validate.sh --mode local
+```
+
+Run the full test suite:
+
+```bash
 cargo test --workspace --all-targets
 ```
 

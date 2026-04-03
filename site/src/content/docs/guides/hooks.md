@@ -3,34 +3,47 @@ title: "Hooks"
 description: "Lifecycle hooks for agent workflows"
 ---
 
+Runtime hooks are the extension points where plugins contribute behavior to the Ralph Engine lifecycle. Each hook represents a specific phase in the runtime — from scaffolding a new project to enforcing policies during an agent session.
 
-Runtime hooks are the extension points where plugins contribute behavior to the Ralph Engine lifecycle.
+Hooks are not called directly by users. They fire automatically when the runtime reaches the corresponding lifecycle phase. For example, `prepare` hooks run before any workflow starts, `doctor` hooks run during diagnostics, and `agent_bootstrap` hooks run when launching an agent.
 
 ## Available Hooks
 
-Each plugin declares which hooks it contributes. The runtime tracks these registrations:
+Each plugin declares which hooks it contributes. The runtime tracks these registrations.
+
+List all registered hooks:
 
 ```bash
-ralph-engine hooks list              # List all registered hooks
-ralph-engine hooks show <hook-id>    # Show hook details
-ralph-engine hooks plan <hook-id>    # Show execution plan for a hook
+ralph-engine hooks list
+```
+
+Show details for a specific hook:
+
+```bash
+ralph-engine hooks show <hook-id>
+```
+
+Show the execution plan for a hook (which plugins contribute, in what order):
+
+```bash
+ralph-engine hooks plan <hook-id>
 ```
 
 ## Hook Types
 
-| Hook | What it does |
-|------|-------------|
-| `scaffold` | Project scaffolding (template materialization) |
-| `prepare` | Pre-flight validation before workflows |
-| `doctor` | System diagnostics and health checks |
-| `prompt_assembly` | Prompt fragment composition |
-| `agent_bootstrap` | Agent runtime initialization |
-| `mcp_registration` | MCP server registration |
-| `data_source_registration` | Data source provider registration |
-| `context_provider_registration` | Context provider registration |
-| `forge_provider_registration` | Forge automation registration |
-| `remote_control_bootstrap` | Remote control initialization |
-| `policy_enforcement` | Policy guardrail enforcement |
+| Hook | When it runs | What it does |
+|------|-------------|-------------|
+| `scaffold` | During `templates scaffold` / `templates materialize` | Project scaffolding (template materialization) |
+| `prepare` | Before any workflow starts (`checks run prepare`) | Pre-flight validation |
+| `doctor` | During `doctor` diagnostics | System health checks |
+| `prompt_assembly` | When building the prompt for an agent session | Prompt fragment composition |
+| `agent_bootstrap` | During `agents launch` | Agent runtime initialization |
+| `mcp_registration` | During runtime startup | MCP server registration |
+| `data_source_registration` | During runtime startup | Data source provider registration |
+| `context_provider_registration` | During runtime startup | Context provider registration |
+| `forge_provider_registration` | During runtime startup | Forge automation registration |
+| `remote_control_bootstrap` | During runtime startup | Remote control initialization |
+| `policy_enforcement` | During agent sessions | Policy guardrail enforcement |
 
 ## Hook Execution
 

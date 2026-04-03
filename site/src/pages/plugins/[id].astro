@@ -1,5 +1,5 @@
 ---
-import Base from '../../layouts/Base.astro';
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import PluginDetail from '../../components/PluginDetail.astro';
 import plugins from '../../data/plugins.json';
 
@@ -15,6 +15,16 @@ export function getStaticPaths() {
 const { plugin } = Astro.props;
 ---
 
-<Base lang={lang} title={`${plugin.display_name} — Plugin`}>
+<StarlightPage
+  frontmatter={{
+    title: `${plugin.display_name} — Plugin`,
+    description: plugin.summary,
+    template: 'splash',
+    pagefind: true,
+    head: [],
+    tableOfContents: false,
+  }}
+  hasSidebar={false}
+>
   <PluginDetail lang={lang} plugin={plugin} />
-</Base>
+</StarlightPage>

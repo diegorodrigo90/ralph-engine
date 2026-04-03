@@ -1,11 +1,21 @@
 ---
-import Base from '../../../layouts/Base.astro';
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import PluginCatalog from '../../../components/PluginCatalog.astro';
 import { t } from '../../../i18n/utils';
 
 const lang = 'pt-br' as const;
 ---
 
-<Base lang={lang} title={t(lang, 'catalog.title')}>
+<StarlightPage
+  frontmatter={{
+    title: t(lang, 'catalog.title'),
+    description: t(lang, 'catalog.description'),
+    template: 'splash',
+    pagefind: true,
+    head: [],
+    tableOfContents: false,
+  }}
+  hasSidebar={false}
+>
   <PluginCatalog lang={lang} />
-</Base>
+</StarlightPage>

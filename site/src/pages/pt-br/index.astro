@@ -1,18 +1,30 @@
 ---
-import Base from '../../layouts/Base.astro';
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import Hero from '../../components/Hero.astro';
 import Features from '../../components/Features.astro';
 import FeatureTabs from '../../components/FeatureTabs.astro';
 import PluginGrid from '../../components/PluginGrid.astro';
 import GettingStarted from '../../components/GettingStarted.astro';
+import Footer from '../../components/Footer.astro';
 
 const lang = 'pt-br' as const;
 ---
 
-<Base lang={lang}>
+<StarlightPage
+  frontmatter={{
+    title: 'Ralph Engine',
+    description: 'O runtime open-source para workflows de codificação com agentes de IA.',
+    template: 'splash',
+    pagefind: false,
+    head: [],
+    tableOfContents: false,
+  }}
+  hasSidebar={false}
+>
   <Hero lang={lang} />
   <Features lang={lang} />
   <FeatureTabs lang={lang} />
   <PluginGrid lang={lang} />
   <GettingStarted lang={lang} />
-</Base>
+  <Footer lang={lang} />
+</StarlightPage>

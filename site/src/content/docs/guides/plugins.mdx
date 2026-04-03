@@ -22,9 +22,17 @@ Ralph Engine ships with 8 official plugins:
 | **github** | Data Source | data, context, forge, mcp | GitHub integration (repository data, forge automation) |
 | **ssh** | Remote Control | remote_control | SSH remote control for distributed workflows |
 
-List all plugins: `ralph-engine plugins list`
+List all registered plugins:
 
-Show details: `ralph-engine plugins show official.claude`
+```bash
+ralph-engine plugins list
+```
+
+Show details for a specific plugin:
+
+```bash
+ralph-engine plugins show official.claude
+```
 
 ## Creating a Plugin
 
