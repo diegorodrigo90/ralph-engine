@@ -12,7 +12,7 @@ const lang = 'pt-br' as const;
     description: t(lang, 'catalog.description'),
     template: 'splash',
     pagefind: true,
-    head: [],
+    head: [{ tag: 'style', content: '#_top { display: none; }' }],
     tableOfContents: false,
   }}
   hasSidebar={false}
