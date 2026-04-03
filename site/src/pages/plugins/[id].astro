@@ -21,7 +21,7 @@ const { plugin } = Astro.props;
     description: plugin.summary,
     template: 'splash',
     pagefind: true,
-    head: [],
+    head: [{ tag: 'style', content: '.hero { display: none !important; }' }],
     tableOfContents: false,
   }}
   hasSidebar={false}

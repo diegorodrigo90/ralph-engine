@@ -25,7 +25,7 @@ function getName(p: any): string {
     description: plugin.summary_locales?.['pt-br'] ?? plugin.summary,
     template: 'splash',
     pagefind: true,
-    head: [],
+    head: [{ tag: 'style', content: '.hero { display: none !important; }' }],
     tableOfContents: false,
   }}
   hasSidebar={false}

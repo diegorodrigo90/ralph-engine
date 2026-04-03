@@ -16,7 +16,7 @@ const lang = 'pt-br' as const;
     description: 'O runtime open-source para workflows de codificação com agentes de IA.',
     template: 'splash',
     pagefind: false,
-    head: [],
+    head: [{ tag: 'style', content: '.hero { display: none !important; }' }],
     tableOfContents: false,
   }}
   hasSidebar={false}

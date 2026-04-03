@@ -53,7 +53,7 @@ const { lang } = Astro.props;
       </div>
 
       <div class="hero-actions">
-        <a href={lang === 'pt-br' ? '/docs/pt-br/getting-started/installation' : '/docs/getting-started/installation'} class="btn btn-primary">{t(lang, 'hero.cta.docs')}</a>
+        <a href={localePath(lang, '/getting-started/installation/')} class="btn btn-primary">{t(lang, 'hero.cta.docs')}</a>
         <a href={localePath(lang, '/plugins/')} class="btn btn-secondary">{t(lang, 'hero.cta.plugins')}</a>
       </div>
 
