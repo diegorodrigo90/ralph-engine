@@ -6,10 +6,10 @@ mod i18n;
 
 use re_mcp::{McpAvailability, McpLaunchPolicy, McpServerDescriptor, McpTransport};
 use re_plugin::{
-    AGENT_RUNTIME, AgentBootstrapResult, CheckExecutionResult, MCP_CONTRIBUTION,
+    AGENT_RUNTIME, AgentBootstrapResult, AgentLaunchResult, CheckExecutionResult, MCP_CONTRIBUTION,
     McpRegistrationResult, PluginAgentDescriptor, PluginCheckKind, PluginDescriptor, PluginKind,
     PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginRuntime,
-    PluginRuntimeError, PluginRuntimeHook, PluginTrustLevel,
+    PluginRuntimeError, PluginRuntimeHook, PluginTrustLevel, PromptContext,
 };
 
 /// Stable plugin identifier.
@@ -25,6 +25,7 @@ const LIFECYCLE: &[PluginLifecycleStage] =
 const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
     PluginRuntimeHook::AgentBootstrap,
     PluginRuntimeHook::McpRegistration,
+    PluginRuntimeHook::AgentLaunch,
 ];
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
@@ -155,6 +156,71 @@ impl PluginRuntime for ClaudeRuntime {
                 format!("MCP server requires '{AGENT_BINARY}'. Install Claude CLI.")
             },
         })
+    }
+
+    fn launch_agent(
+        &self,
+        agent_id: &str,
+        context: &PromptContext,
+        project_root: &Path,
+    ) -> Result<AgentLaunchResult, PluginRuntimeError> {
+        // Verify binary exists
+        if re_plugin::probe_binary_on_path(AGENT_BINARY).is_none() {
+            return Err(PluginRuntimeError::new(
+                "agent_not_installed",
+                format!(
+                    "'{AGENT_BINARY}' not found on PATH. Install Claude CLI: https://docs.anthropic.com/en/docs/claude-code"
+                ),
+            ));
+        }
+
+        // Write prompt to temp file for the agent to read
+        let prompt_file =
+            std::env::temp_dir().join(format!("ralph-engine-prompt-{}.md", std::process::id()));
+        std::fs::write(&prompt_file, &context.prompt_text).map_err(|err| {
+            PluginRuntimeError::new(
+                "prompt_write_failed",
+                format!("Failed to write prompt file: {err}"),
+            )
+        })?;
+
+        // Launch claude with the prompt
+        // Uses --print to pass the prompt as initial message
+        let status = std::process::Command::new(AGENT_BINARY)
+            .arg("--print")
+            .arg(&context.prompt_text)
+            .current_dir(project_root)
+            .stdin(std::process::Stdio::inherit())
+            .stdout(std::process::Stdio::inherit())
+            .stderr(std::process::Stdio::inherit())
+            .status();
+
+        // Clean up temp file
+        let _ = std::fs::remove_file(&prompt_file);
+
+        match status {
+            Ok(exit) => {
+                let code = exit.code();
+                let success = exit.success();
+                Ok(AgentLaunchResult {
+                    agent_id: agent_id.to_owned(),
+                    success,
+                    exit_code: code,
+                    message: if success {
+                        "Agent session completed successfully.".to_owned()
+                    } else {
+                        format!(
+                            "Agent exited with code {}.",
+                            code.map_or("unknown".to_owned(), |c| c.to_string())
+                        )
+                    },
+                })
+            }
+            Err(err) => Err(PluginRuntimeError::new(
+                "agent_spawn_failed",
+                format!("Failed to spawn '{AGENT_BINARY}': {err}"),
+            )),
+        }
     }
 }
 

@@ -6,10 +6,10 @@ mod i18n;
 
 use re_mcp::{McpAvailability, McpLaunchPolicy, McpServerDescriptor, McpTransport};
 use re_plugin::{
-    AGENT_RUNTIME, AgentBootstrapResult, CheckExecutionResult, MCP_CONTRIBUTION,
+    AGENT_RUNTIME, AgentBootstrapResult, AgentLaunchResult, CheckExecutionResult, MCP_CONTRIBUTION,
     McpRegistrationResult, PluginAgentDescriptor, PluginCheckKind, PluginDescriptor, PluginKind,
     PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginRuntime,
-    PluginRuntimeError, PluginRuntimeHook, PluginTrustLevel,
+    PluginRuntimeError, PluginRuntimeHook, PluginTrustLevel, PromptContext,
 };
 
 /// Stable plugin identifier.
@@ -25,6 +25,7 @@ const LIFECYCLE: &[PluginLifecycleStage] =
 const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
     PluginRuntimeHook::AgentBootstrap,
     PluginRuntimeHook::McpRegistration,
+    PluginRuntimeHook::AgentLaunch,
 ];
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
@@ -153,6 +154,49 @@ impl PluginRuntime for CodexRuntime {
                 format!("MCP server requires '{AGENT_BINARY}'.")
             },
         })
+    }
+
+    fn launch_agent(
+        &self,
+        agent_id: &str,
+        context: &PromptContext,
+        project_root: &Path,
+    ) -> Result<AgentLaunchResult, PluginRuntimeError> {
+        if re_plugin::probe_binary_on_path(AGENT_BINARY).is_none() {
+            return Err(PluginRuntimeError::new(
+                "agent_not_installed",
+                format!("'{AGENT_BINARY}' not found on PATH."),
+            ));
+        }
+
+        let status = std::process::Command::new(AGENT_BINARY)
+            .arg("--print")
+            .arg(&context.prompt_text)
+            .current_dir(project_root)
+            .stdin(std::process::Stdio::inherit())
+            .stdout(std::process::Stdio::inherit())
+            .stderr(std::process::Stdio::inherit())
+            .status();
+
+        match status {
+            Ok(exit) => Ok(AgentLaunchResult {
+                agent_id: agent_id.to_owned(),
+                success: exit.success(),
+                exit_code: exit.code(),
+                message: if exit.success() {
+                    "Agent session completed.".to_owned()
+                } else {
+                    format!(
+                        "Agent exited with code {}.",
+                        exit.code().map_or("unknown".to_owned(), |c| c.to_string())
+                    )
+                },
+            }),
+            Err(err) => Err(PluginRuntimeError::new(
+                "agent_spawn_failed",
+                format!("Failed to spawn '{AGENT_BINARY}': {err}"),
+            )),
+        }
     }
 }
 

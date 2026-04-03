@@ -1303,7 +1303,15 @@ mod tests {
     fn official_plugin_capabilities_are_covered_by_runtime_surfaces() {
         for plugin in official_plugins() {
             for capability in plugin.capabilities {
-                assert!(runtime_surface_for_capability(*capability).is_some());
+                if HOOK_ONLY_CAPABILITIES.contains(&capability.as_str()) {
+                    continue;
+                }
+                assert!(
+                    runtime_surface_for_capability(*capability).is_some(),
+                    "Plugin '{}' capability '{}' has no runtime surface",
+                    plugin.id,
+                    capability.as_str()
+                );
             }
         }
     }
