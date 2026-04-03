@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generated_at": "2026-04-03T17:42:48.763Z",
-  "count": 8,
+  "generated_at": "2026-04-03T18:00:45.802Z",
+  "count": 9,
   "icon_contract": {
     "discovery": "Auto — place icon.svg (preferred), icon.png, icon.jpg, or icon.webp in plugin root",
     "svg": {
@@ -601,6 +601,99 @@
             {
               "heading": "Quando usar",
               "body": "Este plugin e recomendado para qualquer projeto hospedado no GitHub. Ele permite que os agentes entendam o contexto do repositorio, verifiquem o status do CI e automatizem operacoes Git."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "official.hello-world",
+      "kind": "template",
+      "display_name": "Hello World",
+      "display_name_locales": {
+        "pt-br": "Olá Mundo"
+      },
+      "summary": "Minimal example plugin — use as a reference for building your own.",
+      "summary_locales": {
+        "pt-br": "Plugin de exemplo mínimo — use como referência para criar o seu."
+      },
+      "description": "A minimal plugin that demonstrates the Ralph Engine plugin architecture. Use this as a starting point when learning how plugins work or as a template for creating your own. Ships a single starter template that creates a basic .ralph-engine/ configuration directory.",
+      "description_locales": {
+        "pt-br": "Um plugin mínimo que demonstra a arquitetura de plugins do Ralph Engine. Use como ponto de partida para entender como plugins funcionam ou como template para criar o seu. Inclui um único template starter que cria um diretório básico de configuração .ralph-engine/."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "capabilities": [
+        "template"
+      ],
+      "project": {
+        "required_files": [
+          ".ralph-engine/config.yaml",
+          ".ralph-engine/prompt.md"
+        ]
+      },
+      "templates": [
+        {
+          "id": "official.hello-world.starter",
+          "display_name": "Hello World starter",
+          "display_name_locales": {
+            "pt-br": "Starter Olá Mundo"
+          },
+          "summary": "Minimal starter template for learning Ralph Engine.",
+          "summary_locales": {
+            "pt-br": "Template starter mínimo para aprender o Ralph Engine."
+          }
+        }
+      ],
+      "iconUrl": null,
+      "docs": {
+        "default": [
+          {
+            "heading": "Overview",
+            "body": "This is the simplest possible Ralph Engine plugin. It demonstrates the plugin architecture with a single starter template and nothing else. If you're learning how plugins work, start here."
+          },
+          {
+            "heading": "What it does",
+            "body": "Ships a single starter template (`official.hello-world.starter`) that creates a basic `.ralph-engine/` directory with: - `config.yaml` — minimal project configuration - `hooks.yaml` — empty hook definitions - `prompt.md` — placeholder project prompt"
+          },
+          {
+            "heading": "How to use",
+            "body": "``` ralph-engine templates materialize official.hello-world.starter ./my-project ```"
+          },
+          {
+            "heading": "Why it exists",
+            "body": "This plugin serves as a living reference for the Plugin Development tutorial. Every file in this directory maps directly to a section in the docs. When you scaffold a new plugin with `npx create-ralph-engine-plugin`, the generated code follows this same structure."
+          },
+          {
+            "heading": "Files explained",
+            "body": "| File | Purpose | |------|---------| | `manifest.yaml` | Plugin metadata — ID, kind, capabilities, i18n | | `src/lib.rs` | Plugin descriptor + PluginRuntime trait implementation | | `src/i18n/mod.rs` | Includes build-generated i18n code | | `build.rs` | Reads locales/*.toml and generates i18n Rust code | | `locales/en.toml` | English translations | | `locales/pt-br.toml` | Portuguese translations | | `template/` | Files materialized by the starter template | | `Cargo.toml` | Rust crate manifest with workspace deps |"
+          }
+        ],
+        "locales": {
+          "pt-br": [
+            {
+              "heading": "Visão geral",
+              "body": "Este é o plugin mais simples possível do Ralph Engine. Ele demonstra a arquitetura de plugins com um único template starter e nada mais. Se você está aprendendo como plugins funcionam, comece aqui."
+            },
+            {
+              "heading": "O que ele faz",
+              "body": "Inclui um único template starter (`official.hello-world.starter`) que cria um diretório básico `.ralph-engine/` com: - `config.yaml` — configuração mínima do projeto - `hooks.yaml` — definições de hooks vazias - `prompt.md` — prompt de projeto placeholder"
+            },
+            {
+              "heading": "Como usar",
+              "body": "``` ralph-engine templates materialize official.hello-world.starter ./meu-projeto ```"
+            },
+            {
+              "heading": "Por que ele existe",
+              "body": "Este plugin serve como referência viva para o tutorial de Desenvolvimento de Plugins. Cada arquivo neste diretório mapeia diretamente para uma seção nas docs. Quando você cria um novo plugin com `npx create-ralph-engine-plugin`, o código gerado segue esta mesma estrutura."
+            },
+            {
+              "heading": "Arquivos explicados",
+              "body": "| Arquivo | Propósito | |---------|-----------| | `manifest.yaml` | Metadados do plugin — ID, tipo, capabilities, i18n | | `src/lib.rs` | Descriptor do plugin + implementação do trait PluginRuntime | | `src/i18n/mod.rs` | Inclui código i18n gerado no build | | `build.rs` | Lê locales/*.toml e gera código Rust de i18n | | `locales/en.toml` | Traduções em inglês | | `locales/pt-br.toml` | Traduções em português | | `template/` | Arquivos materializados pelo template starter | | `Cargo.toml` | Manifesto do crate Rust com deps do workspace |"
             }
           ]
         }

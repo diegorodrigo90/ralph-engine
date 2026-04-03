@@ -1,0 +1,39 @@
+id: official.hello-world
+kind: template
+display_name: Hello World
+display_name_locales:
+  pt-br: Olá Mundo
+summary: Minimal example plugin — use as a reference for building your own.
+summary_locales:
+  pt-br: Plugin de exemplo mínimo — use como referência para criar o seu.
+description: >
+  A minimal plugin that demonstrates the Ralph Engine plugin architecture.
+  Use this as a starting point when learning how plugins work or as a
+  template for creating your own. Ships a single starter template that
+  creates a basic .ralph-engine/ configuration directory.
+description_locales:
+  pt-br: >
+    Um plugin mínimo que demonstra a arquitetura de plugins do Ralph Engine.
+    Use como ponto de partida para entender como plugins funcionam ou como
+    template para criar o seu. Inclui um único template starter que cria
+    um diretório básico de configuração .ralph-engine/.
+publisher: official
+trust_level: official
+plugin_version: 0.2.0-alpha.1
+plugin_api_version: 1.0.0
+engine_version: ">=0.2.0-alpha.1"
+runtime: true
+capabilities:
+  - template
+project:
+  required_files:
+    - .ralph-engine/config.yaml
+    - .ralph-engine/prompt.md
+templates:
+  - id: official.hello-world.starter
+    display_name: Hello World starter
+    display_name_locales:
+      pt-br: Starter Olá Mundo
+    summary: Minimal starter template for learning Ralph Engine.
+    summary_locales:
+      pt-br: Template starter mínimo para aprender o Ralph Engine.

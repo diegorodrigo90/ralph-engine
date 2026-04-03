@@ -1,0 +1,18 @@
+[package]
+name = "re-plugin-hello-world"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[dependencies]
+re-plugin = { path = "../../../core/crates/re-plugin", version = "0.2.0-alpha.1" }
+
+[build-dependencies]
+re-build-utils = { path = "../../../core/crates/re-build-utils", version = "0.2.0-alpha.1" }
+
+[lints]
+workspace = true

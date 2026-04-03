@@ -1,0 +1,7 @@
+[plugin]
+name = "Hello World"
+summary = "Minimal example plugin — use as a reference for building your own."
+
+[template]
+name = "Hello World starter"
+summary = "Minimal starter template for learning Ralph Engine."
