@@ -1,4 +1,4 @@
-/// Portuguese (Brazil) translation for runtime reason messages.
+//! Portuguese (Brazil) translation for runtime reason messages.
 pub(super) fn translate_runtime_reason(reason: &str) -> String {
     if let Some(capability) = reason.strip_prefix("the provider still disables capability ") {
         return format!("o provedor ainda desabilita a capacidade {capability}");
