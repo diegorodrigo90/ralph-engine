@@ -1,5 +1,6 @@
 ---
 import Base from '../../../layouts/Base.astro';
+import PluginIcon from '../../../components/PluginIcon.astro';
 import { t, localePath } from '../../../i18n/utils';
 import plugins from '../../../data/plugins.json';
 
@@ -14,13 +15,8 @@ export function getStaticPaths() {
 
 const { plugin } = Astro.props;
 
-function getName(p: any): string {
-  return p.display_name_locales?.['pt-br'] ?? p.display_name;
-}
-
-function getSummary(p: any): string {
-  return p.summary_locales?.['pt-br'] ?? p.summary;
-}
+function getName(p: any): string { return p.display_name_locales?.['pt-br'] ?? p.display_name; }
+function getSummary(p: any): string { return p.summary_locales?.['pt-br'] ?? p.summary; }
 
 const kindLabels: Record<string, string> = {
   template: t(lang, 'catalog.kind.template'),
@@ -30,170 +26,219 @@ const kindLabels: Record<string, string> = {
   remote_control: t(lang, 'catalog.kind.remote_control'),
 };
 
-const kindIcons: Record<string, string> = {
-  template: 'M12 2L2 7l10 5 10-5-10-5z M2 17l10 5 10-5 M2 12l10 5 10-5',
-  agent_runtime: 'M12 8V4H8 M4 8h16a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2v-6a2 2 0 012-2z M9 13h0 M15 13h0',
-  mcp_contribution: 'M12 22v-5 M9 8V2 M15 8V2 M18 8H6a2 2 0 00-2 2v2c0 4.418 3.582 8 8 8s8-3.582 8-8v-2a2 2 0 00-2-2z',
-  policy: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M9 12l2 2 4-4',
-  remote_control: 'M4 17l6-6 M7 7l4.586 4.586a2 2 0 010 2.828L7 19 M20 7l-4.586 4.586a2 2 0 000 2.828L20 19',
-};
+function buildDescription(p: any): string {
+  const parts: string[] = [];
+  if (p.agents?.length) parts.push(`${p.agents.length} runtime${p.agents.length > 1 ? 's' : ''} de agente`);
+  if (p.templates?.length) parts.push(`${p.templates.length} template${p.templates.length > 1 ? 's' : ''} starter`);
+  if (p.providers?.length) parts.push(`${p.providers.length} provedor${p.providers.length > 1 ? 'es' : ''}`);
+  if (p.checks?.length) parts.push(`${p.checks.length} check${p.checks.length > 1 ? 's' : ''} de runtime`);
+  if (p.policies?.length) parts.push(`${p.policies.length} política${p.policies.length > 1 ? 's' : ''}`);
+  return parts.length ? `Inclui ${parts.join(', ')}.` : '';
+}
+
+const allTags = [plugin.kind, plugin.trust_level, ...(plugin.capabilities ?? [])].filter(Boolean);
 ---
 
 <Base lang={lang} title={`Plugin ${getName(plugin)}`}>
   <section class="section" style="padding-top: 80px;">
     <div class="container" style="max-width: 800px;">
 
-      <a href={localePath(lang, '/plugins/')} style="font-size: 0.875rem; color: var(--re-text-muted); display: inline-block; margin-bottom: var(--re-space-6);">
-        ← {t(lang, 'plugin.back')}
-      </a>
+      <a href={localePath(lang, '/plugins/')} class="back-link">← {t(lang, 'plugin.back')}</a>
 
-      <div style="display: flex; align-items: flex-start; gap: var(--re-space-4); margin-bottom: var(--re-space-4);">
-        <div style="flex-shrink: 0; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; background: var(--re-brand-50); color: var(--re-brand-500); border-radius: var(--re-radius-lg);" aria-hidden="true">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d={kindIcons[plugin.kind] ?? kindIcons.template} />
-          </svg>
+      <div class="detail-header">
+        <div class="detail-icon" aria-hidden="true">
+          <PluginIcon iconUrl={plugin.iconUrl} kind={plugin.kind} size={28} />
         </div>
         <div>
-          <h1 style="font-size: 2.25rem; line-height: 1.1;">{getName(plugin)}</h1>
-          <div style="display: flex; align-items: center; gap: var(--re-space-2); margin-top: var(--re-space-1);">
-            <code style="font-size: 0.8125rem; color: var(--re-text-muted);">{plugin.id}</code>
+          <h1 class="detail-title">{getName(plugin)}</h1>
+          <div class="detail-meta">
+            <code>{plugin.id}</code>
             <span class="pill pill-brand">{kindLabels[plugin.kind] ?? plugin.kind}</span>
-            <span class="pill pill-brand">official</span>
           </div>
         </div>
       </div>
 
-      <p style="font-size: 1.125rem; color: var(--re-text-secondary); line-height: 1.6; max-width: 600px;">
-        {getSummary(plugin)}
-      </p>
+      <p class="detail-summary">{getSummary(plugin)}</p>
+      {buildDescription(plugin) && <p class="detail-ships">{buildDescription(plugin)}</p>}
 
-      <div class="terminal" style="margin: var(--re-space-8) 0;">
-        <div class="terminal-bar">
-          <span class="terminal-dot"></span>
-          <span class="terminal-dot"></span>
-          <span class="terminal-dot"></span>
-        </div>
-        <div class="terminal-body">
-          <div class="terminal-prompt">ralph-engine plugins show {plugin.id}</div>
-          <div class="terminal-output">
-            <div>Plugin: {plugin.id}</div>
-            <div>Nome: {getName(plugin)}</div>
-            <div>Tipo: {plugin.kind}</div>
-            <div>Versão: {plugin.plugin_version}</div>
-            <div>Confiança: {plugin.trust_level}</div>
-            <div>Capacidades: {plugin.capabilities?.join(', ')}</div>
-            <div>Runtime: {plugin.runtime ? 'sim' : 'não'}</div>
-            {plugin.agents && <div>Agentes: {plugin.agents.length} registrado{plugin.agents.length !== 1 ? 's' : ''}</div>}
-            {plugin.templates && <div>Templates: {plugin.templates.length} registrado{plugin.templates.length !== 1 ? 's' : ''}</div>}
-            {plugin.providers && <div>Provedores: {plugin.providers.length} registrado{plugin.providers.length !== 1 ? 's' : ''}</div>}
+      <div class="detail-tags">
+        {allTags.map((tag: string) => <span class="pill">{tag}</span>)}
+        <span class="pill">v{plugin.plugin_version}</span>
+      </div>
+
+      {/* Install — prominent */}
+      <div class="install-hero">
+        <h2>{t(lang, 'plugin.install')}</h2>
+        <div class="install-grid">
+          <div class="install-option">
+            <span class="install-label">Cargo</span>
+            <div class="code-block install-cmd">
+              <code>cargo install ralph-engine</code>
+              <button class="copy-btn" type="button" data-copy="cargo install ralph-engine" aria-label="Copiar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="install-option">
+            <span class="install-label">npm</span>
+            <div class="code-block install-cmd">
+              <code>npm install -g ralph-engine</code>
+              <button class="copy-btn" type="button" data-copy="npm install -g ralph-engine" aria-label="Copiar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="install-option">
+            <span class="install-label">Homebrew</span>
+            <div class="code-block install-cmd">
+              <code>brew install ralph-engine</code>
+              <button class="copy-btn" type="button" data-copy="brew install ralph-engine" aria-label="Copiar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
           </div>
         </div>
+        <p class="install-note">
+          Também disponível via <code>pnpm add -g ralph-engine</code> ou <code>yarn global add ralph-engine</code>.
+          Todos os 8 plugins oficiais vêm incluídos.
+        </p>
       </div>
 
-      <h2 style="font-size: 1.25rem; margin-top: var(--re-space-10); margin-bottom: var(--re-space-4);">{t(lang, 'plugin.install')}</h2>
-      <div class="tabs">
-        <input type="radio" name="install-tab" id="install-cargo" checked />
-        <input type="radio" name="install-tab" id="install-npm" />
-        <input type="radio" name="install-tab" id="install-brew" />
-        <div class="tab-list" role="tablist">
-          <label for="install-cargo" role="tab">Cargo</label>
-          <label for="install-npm" role="tab">npm</label>
-          <label for="install-brew" role="tab">Homebrew</label>
-        </div>
-        <div class="tab-panel"><div class="code-block"><code>cargo install ralph-engine</code></div></div>
-        <div class="tab-panel"><div class="code-block"><code>npm install -g ralph-engine</code></div></div>
-        <div class="tab-panel"><div class="code-block"><code>brew install ralph-engine</code></div></div>
-      </div>
-
-      <h2 style="font-size: 1.25rem; margin-top: var(--re-space-10); margin-bottom: var(--re-space-4);">{t(lang, 'plugin.capabilities')}</h2>
-      <div style="display: flex; flex-wrap: wrap; gap: var(--re-space-2);">
-        {plugin.capabilities?.map((cap: string) => (
-          <div class="card" style="padding: var(--re-space-3) var(--re-space-4);"><span class="pill pill-brand">{cap}</span></div>
-        ))}
-      </div>
-
+      {/* Sub-resources */}
       {plugin.agents?.length > 0 && (
         <div>
-          <h2 style="font-size: 1.25rem; margin-top: var(--re-space-10); margin-bottom: var(--re-space-4);">Runtimes de Agente</h2>
-          {plugin.agents.map((agent: any) => (
-            <div class="card" style="margin-bottom: var(--re-space-3); display: flex; flex-direction: column; gap: var(--re-space-2);">
-              <div style="display: flex; align-items: baseline; gap: var(--re-space-3);">
-                <h3 style="font-size: 1rem;">{agent.display_name_locales?.['pt-br'] ?? agent.display_name}</h3>
-                <code style="font-size: 0.75rem; color: var(--re-text-muted);">{agent.id}</code>
+          <h2 class="section-heading">Runtimes de Agente</h2>
+          <div class="resource-list">
+            {plugin.agents.map((agent: any) => (
+              <div class="card resource-card">
+                <h3>{agent.display_name_locales?.['pt-br'] ?? agent.display_name}</h3>
+                <p>{agent.summary_locales?.['pt-br'] ?? agent.summary}</p>
+                <code class="resource-id">{agent.id}</code>
               </div>
-              <p style="font-size: 0.875rem; color: var(--re-text-secondary);">{agent.summary_locales?.['pt-br'] ?? agent.summary}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
       {plugin.templates?.length > 0 && (
         <div>
-          <h2 style="font-size: 1.25rem; margin-top: var(--re-space-10); margin-bottom: var(--re-space-4);">Templates</h2>
-          {plugin.templates.map((tpl: any) => (
-            <div class="card" style="margin-bottom: var(--re-space-3); display: flex; flex-direction: column; gap: var(--re-space-2);">
-              <div style="display: flex; align-items: baseline; gap: var(--re-space-3);">
-                <h3 style="font-size: 1rem;">{tpl.display_name_locales?.['pt-br'] ?? tpl.display_name}</h3>
-                <code style="font-size: 0.75rem; color: var(--re-text-muted);">{tpl.id}</code>
+          <h2 class="section-heading">Templates</h2>
+          <div class="resource-list">
+            {plugin.templates.map((tpl: any) => (
+              <div class="card resource-card">
+                <h3>{tpl.display_name_locales?.['pt-br'] ?? tpl.display_name}</h3>
+                <p>{tpl.summary_locales?.['pt-br'] ?? tpl.summary}</p>
+                <code class="resource-id">{tpl.id}</code>
               </div>
-              <p style="font-size: 0.875rem; color: var(--re-text-secondary);">{tpl.summary_locales?.['pt-br'] ?? tpl.summary}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
       {plugin.providers?.length > 0 && (
         <div>
-          <h2 style="font-size: 1.25rem; margin-top: var(--re-space-10); margin-bottom: var(--re-space-4);">Provedores</h2>
-          {plugin.providers.map((prov: any) => (
-            <div class="card" style="margin-bottom: var(--re-space-3); display: flex; flex-direction: column; gap: var(--re-space-2);">
-              <div style="display: flex; align-items: baseline; gap: var(--re-space-3);">
-                <h3 style="font-size: 1rem;">{prov.display_name_locales?.['pt-br'] ?? prov.display_name}</h3>
-                <code style="font-size: 0.75rem; color: var(--re-text-muted);">{prov.id}</code>
+          <h2 class="section-heading">Provedores</h2>
+          <div class="resource-list">
+            {plugin.providers.map((prov: any) => (
+              <div class="card resource-card">
+                <h3>{prov.display_name_locales?.['pt-br'] ?? prov.display_name}</h3>
+                <p>{prov.summary_locales?.['pt-br'] ?? prov.summary}</p>
+                <code class="resource-id">{prov.id}</code>
               </div>
-              <p style="font-size: 0.875rem; color: var(--re-text-secondary);">{prov.summary_locales?.['pt-br'] ?? prov.summary}</p>
-              <span class="pill" style="align-self: flex-start;">{prov.kind}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       )}
 
-      <h2 style="font-size: 1.25rem; margin-top: var(--re-space-10); margin-bottom: var(--re-space-4);">manifest.yaml</h2>
-      <div class="terminal">
-        <div class="terminal-bar">
-          <span class="terminal-dot"></span>
-          <span class="terminal-dot"></span>
-          <span class="terminal-dot"></span>
-        </div>
-        <div class="terminal-body">
-          <div class="terminal-prompt">cat plugins/official/{plugin.id.replace('official.', '')}/manifest.yaml</div>
-          <div class="terminal-output">
-            <div>id: {plugin.id}</div>
-            <div>kind: {plugin.kind}</div>
-            <div>display_name: {plugin.display_name}</div>
-            <div>summary: {plugin.summary}</div>
-            <div>publisher: {plugin.publisher}</div>
-            <div>trust_level: {plugin.trust_level}</div>
-            <div>plugin_version: {plugin.plugin_version}</div>
-            <div>runtime: {String(plugin.runtime)}</div>
-            <div>capabilities:</div>
-            {plugin.capabilities?.map((c: string) => <div>  - {c}</div>)}
+      {/* Technical details — collapsed */}
+      <details class="details-block">
+        <summary class="details-summary">Saída da CLI</summary>
+        <div class="terminal">
+          <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+          <div class="terminal-body">
+            <div class="terminal-prompt">ralph-engine plugins show {plugin.id}</div>
+            <div class="terminal-output">
+              <div>Plugin: {plugin.id}</div>
+              <div>Nome: {getName(plugin)}</div>
+              <div>Tipo: {plugin.kind}</div>
+              <div>Versão: {plugin.plugin_version}</div>
+              <div>Capacidades: {plugin.capabilities?.join(', ')}</div>
+              <div>Runtime: {plugin.runtime ? 'sim' : 'não'}</div>
+            </div>
           </div>
         </div>
-      </div>
+      </details>
 
-      <div style="margin-top: var(--re-space-8); display: flex; gap: var(--re-space-3);">
-        <a
-          href={`https://github.com/diegorodrigo90/ralph-engine/tree/main/plugins/official/${plugin.id.replace('official.', '')}`}
-          target="_blank" rel="noopener" class="btn btn-secondary"
-        >
+      <details class="details-block">
+        <summary class="details-summary">manifest.yaml</summary>
+        <div class="terminal">
+          <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+          <div class="terminal-body">
+            <div class="terminal-prompt">cat plugins/official/{plugin.id.replace('official.', '')}/manifest.yaml</div>
+            <div class="terminal-output">
+              <div>id: {plugin.id}</div>
+              <div>kind: {plugin.kind}</div>
+              <div>display_name: {plugin.display_name}</div>
+              <div>summary: {plugin.summary}</div>
+              <div>publisher: {plugin.publisher}</div>
+              <div>trust_level: {plugin.trust_level}</div>
+              <div>plugin_version: {plugin.plugin_version}</div>
+              <div>runtime: {String(plugin.runtime)}</div>
+              <div>capabilities:</div>
+              {plugin.capabilities?.map((c: string) => <div>  - {c}</div>)}
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <div class="detail-actions">
+        <a href={`https://github.com/diegorodrigo90/ralph-engine/tree/main/plugins/official/${plugin.id.replace('official.', '')}`} target="_blank" rel="noopener" class="btn btn-secondary">
           {t(lang, 'plugin.source')} →
         </a>
-        <a href={localePath(lang, '/plugins/')} class="btn btn-secondary">
-          Todos os plugins
-        </a>
+        <a href={localePath(lang, '/plugins/')} class="btn btn-secondary">Todos os plugins</a>
       </div>
-
     </div>
   </section>
 </Base>
+
+<style>
+  .back-link { font-size: 0.875rem; color: var(--re-text-muted); display: inline-block; margin-bottom: var(--re-space-6); }
+  .back-link:hover { color: var(--re-brand-500); text-decoration: none; }
+  .detail-header { display: flex; align-items: flex-start; gap: var(--re-space-4); margin-bottom: var(--re-space-4); }
+  .detail-icon { flex-shrink: 0; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; background: var(--re-brand-50); color: var(--re-brand-500); border-radius: var(--re-radius-lg); }
+  .detail-title { font-size: 2.25rem; line-height: 1.1; }
+  .detail-meta { display: flex; align-items: center; gap: var(--re-space-2); margin-top: var(--re-space-1); }
+  .detail-meta code { font-size: 0.8125rem; color: var(--re-text-muted); }
+  .detail-summary { font-size: 1.125rem; color: var(--re-text-secondary); line-height: 1.6; max-width: 600px; }
+  .detail-ships { font-size: 0.9375rem; color: var(--re-text-muted); margin-top: var(--re-space-2); }
+  .detail-tags { display: flex; flex-wrap: wrap; gap: var(--re-space-2); margin-top: var(--re-space-4); }
+
+  .install-hero { margin-top: var(--re-space-10); padding: var(--re-space-6); background: var(--re-bg-soft); border: 1px solid var(--re-border); border-radius: var(--re-radius-lg); }
+  .install-hero h2 { font-size: 1.25rem; margin-bottom: var(--re-space-4); }
+  .install-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--re-space-3); }
+  .install-option { display: flex; flex-direction: column; gap: var(--re-space-1); }
+  .install-label { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--re-text-muted); }
+  .install-cmd { display: flex; align-items: center; justify-content: space-between; gap: var(--re-space-2); font-size: 0.8125rem; }
+  .install-note { margin-top: var(--re-space-3); font-size: 0.8125rem; color: var(--re-text-muted); }
+  .copy-btn { flex-shrink: 0; display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: transparent; border: none; color: var(--re-text-muted); cursor: pointer; border-radius: var(--re-radius-sm); }
+  .copy-btn:hover { color: var(--re-brand-500); }
+
+  .section-heading { font-size: 1.25rem; margin-top: var(--re-space-10); margin-bottom: var(--re-space-4); }
+  .resource-list { display: flex; flex-direction: column; gap: var(--re-space-3); }
+  .resource-card { display: flex; flex-direction: column; gap: var(--re-space-2); }
+  .resource-card h3 { font-size: 1rem; }
+  .resource-card p { font-size: 0.875rem; color: var(--re-text-secondary); line-height: 1.5; }
+  .resource-id { font-size: 0.75rem; color: var(--re-text-muted); }
+
+  .details-block { margin-top: var(--re-space-8); border: 1px solid var(--re-border); border-radius: var(--re-radius-lg); overflow: hidden; }
+  .details-summary { padding: var(--re-space-4) var(--re-space-6); font-weight: 600; font-size: 1rem; cursor: pointer; color: var(--re-text-secondary); background: var(--re-bg-soft); list-style: none; display: flex; align-items: center; gap: var(--re-space-2); }
+  .details-summary::-webkit-details-marker { display: none; }
+  .details-summary::before { content: '▶'; font-size: 0.625rem; transition: transform 0.15s; }
+  details[open] .details-summary::before { transform: rotate(90deg); }
+  .details-block[open] .details-summary { border-bottom: 1px solid var(--re-border); }
+  .details-block .terminal { border-radius: 0; border: none; box-shadow: none; }
+
+  .detail-actions { margin-top: var(--re-space-10); display: flex; flex-wrap: wrap; gap: var(--re-space-3); }
+
+  @media (max-width: 640px) { .install-grid { grid-template-columns: 1fr; } }
+</style>
