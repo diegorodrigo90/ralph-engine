@@ -11,6 +11,7 @@ const { lang } = Astro.props;
 
 <section class="section">
   <div class="container">
+    <h2 class="features-heading">{lang === 'pt-br' ? 'O que o Ralph Engine faz' : 'What Ralph Engine does'}</h2>
     <div class="grid-4">
       <div class="card feature-card">
         <div class="feature-icon" aria-hidden="true">
@@ -56,10 +57,23 @@ const { lang } = Astro.props;
 </section>
 
 <style>
+  .features-heading {
+    font-size: 1.5rem;
+    color: var(--re-text-primary);
+    margin-bottom: var(--re-space-6);
+  }
+
   .feature-card {
     display: flex;
     flex-direction: column;
     gap: var(--re-space-3);
+    cursor: default;
+  }
+
+  .feature-card:hover {
+    border-color: var(--re-border);
+    box-shadow: var(--re-card-shadow);
+    transform: none;
   }
 
   .feature-icon {
