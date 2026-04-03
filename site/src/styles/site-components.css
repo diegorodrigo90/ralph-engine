@@ -245,6 +245,22 @@
   display: block;
 }
 
+/* Command block — monospace code with copy button inline */
+.cmd-block {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--re-space-2);
+  padding: var(--re-space-3) var(--re-space-4);
+  background: var(--re-bg-code, var(--re-bg-soft));
+  border: 1px solid var(--re-border);
+  border-radius: var(--re-radius-md);
+  font-family: var(--re-font-mono);
+  font-size: 0.8125rem;
+  color: var(--re-text-code, var(--re-text-primary));
+  overflow-x: auto;
+}
+
 /* Copy button */
 .copy-btn {
   flex-shrink: 0;
