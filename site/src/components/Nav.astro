@@ -22,7 +22,7 @@ const currentPath = Astro.url.pathname.replace('/pt-br', '') || '/';
     <nav class="nav-desktop" aria-label="Main navigation">
       <ul class="nav-links">
         <li><a href={localePath(lang, '/plugins/')}>{t(lang, 'nav.plugins')}</a></li>
-        <li><a href={lang === 'pt-br' ? '/docs/pt-br/' : '/docs/'}>{t(lang, 'nav.docs')}</a></li>
+        <li><a href={lang === 'pt-br' ? '/docs/pt-br/getting-started/installation' : '/docs/getting-started/installation'}>{t(lang, 'nav.docs')}</a></li>
         <li>
           <a href="https://github.com/diegorodrigo90/ralph-engine" target="_blank" rel="noopener">
             GitHub <span class="external-icon" aria-hidden="true">↗</span>
@@ -72,7 +72,7 @@ const currentPath = Astro.url.pathname.replace('/pt-br', '') || '/';
         <ul class="mobile-links">
           <li><a href={localePath(lang, '/')}>Home</a></li>
           <li><a href={localePath(lang, '/plugins/')}>{t(lang, 'nav.plugins')}</a></li>
-          <li><a href={lang === 'pt-br' ? '/docs/pt-br/' : '/docs/'}>{t(lang, 'nav.docs')}</a></li>
+          <li><a href={lang === 'pt-br' ? '/docs/pt-br/getting-started/installation' : '/docs/getting-started/installation'}>{t(lang, 'nav.docs')}</a></li>
           <li>
             <a href="https://github.com/diegorodrigo90/ralph-engine" target="_blank" rel="noopener">
               GitHub ↗
