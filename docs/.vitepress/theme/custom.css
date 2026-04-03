@@ -385,12 +385,14 @@ body {
   display: none !important;
 }
 
-/* Pagefind search button — centered, prominent, matches Astro */
+/* Pagefind search button — between logo and nav links, matches Astro layout */
 .re-search-btn {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 220px;
+  flex: 1;
+  max-width: 360px;
+  margin: 0 16px;
   padding: 7px 14px;
   font-size: 0.875rem;
   font-family: var(--vp-font-family-base);
@@ -400,7 +402,6 @@ body {
   border-radius: 8px;
   cursor: pointer;
   transition: border-color 150ms, color 150ms, box-shadow 150ms;
-  margin-right: 8px;
 }
 
 .re-search-btn:hover {

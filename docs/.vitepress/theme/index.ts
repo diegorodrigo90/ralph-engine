@@ -15,9 +15,9 @@ function initSearchAndNavFixes() {
   // Check if search button already added (SPA navigation re-triggers this)
   if (document.querySelector(".re-search-btn")) return;
 
-  // Find insertion point — before the extras (locale + dark toggle + github)
-  const navBar = document.querySelector(".VPNavBarExtra");
-  if (!navBar?.parentNode) return;
+  // Find insertion point — inside content-body, before the nav menu links
+  const navMenu = document.querySelector(".VPNavBar .content-body .VPNavBarMenu");
+  if (!navMenu?.parentNode) return;
 
   // Create search button
   const btn = document.createElement("button");
@@ -39,7 +39,8 @@ function initSearchAndNavFixes() {
   kbd.textContent = isMac ? "⌘K" : "Ctrl+K";
   btn.appendChild(kbd);
 
-  navBar.parentNode.insertBefore(btn, navBar);
+  // Insert before nav menu — search sits between logo and links
+  navMenu.parentNode.insertBefore(btn, navMenu);
 
   // Create modal (once)
   if (document.querySelector(".re-search-modal")) return;
