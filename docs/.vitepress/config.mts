@@ -122,11 +122,10 @@ export default defineConfig({
       description: "Open-source plugin-first runtime for agentic coding workflows",
       themeConfig: {
         nav: [
-          { text: "Home", link: "https://ralphengine.com/" },
+          { text: "Home", link: "https://ralphengine.com/", target: "_self" },
           { text: "Docs", link: "/" },
-          { text: "Plugins", link: "https://ralphengine.com/plugins/" },
+          { text: "Plugins", link: "https://ralphengine.com/plugins/", target: "_self" },
           { text: `Latest ${releaseTag}`, link: releaseUrl },
-          { text: "GitHub", link: "https://github.com/diegorodrigo90/ralph-engine" },
         ],
         sidebar: buildSidebar("", {
           gettingStarted: "Getting Started",
@@ -161,11 +160,10 @@ export default defineConfig({
       description: "Runtime open source, orientado a plugins, para fluxos de desenvolvimento com agentes",
       themeConfig: {
         nav: [
-          { text: "Início", link: "https://ralphengine.com/pt-br/" },
+          { text: "Início", link: "https://ralphengine.com/pt-br/", target: "_self" },
           { text: "Docs", link: "/pt-br/" },
-          { text: "Plugins", link: "https://ralphengine.com/pt-br/plugins/" },
+          { text: "Plugins", link: "https://ralphengine.com/pt-br/plugins/", target: "_self" },
           { text: `Última ${releaseTag}`, link: releaseUrl },
-          { text: "GitHub", link: "https://github.com/diegorodrigo90/ralph-engine" },
         ],
         sidebar: buildSidebar("/pt-br", {
           gettingStarted: "Primeiros passos",
