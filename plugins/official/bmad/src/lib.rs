@@ -264,17 +264,26 @@ impl PluginRuntime for BmadRuntime {
         let tracker_path = project_root.join(&tracker_file);
         let stories_dir = project_root.join(&stories_path);
 
-        // Look up story in tracker
-        let story_key_prefix = format!("{epic}-{story}-");
-        let story_key_exact = format!("{epic}-{story}");
+        // Look up story in tracker — support multiple BMAD key formats:
+        // "5-3-slug", "5-s3-slug", "5-p3-slug" (s=story, p=planning)
+        let prefixes = [
+            format!("{epic}-{story}-"),
+            format!("{epic}-s{story}-"),
+            format!("{epic}-p{story}-"),
+        ];
+        let exact_keys = [
+            format!("{epic}-{story}:"),
+            format!("{epic}-s{story}:"),
+            format!("{epic}-p{story}:"),
+        ];
         let mut title = format!("Story {work_item_id}");
         let mut status = "unknown".to_owned();
 
         if let Ok(content) = std::fs::read_to_string(&tracker_path) {
             for line in content.lines() {
                 let trimmed = line.trim();
-                if trimmed.starts_with(&story_key_prefix)
-                    || trimmed.starts_with(&format!("{story_key_exact}:"))
+                if prefixes.iter().any(|p| trimmed.starts_with(p.as_str()))
+                    || exact_keys.iter().any(|k| trimmed.starts_with(k.as_str()))
                 {
                     // Extract slug as title: "5-3-some-feature: done" → "some-feature"
                     if let Some((key, val)) = trimmed.split_once(':') {
@@ -284,7 +293,10 @@ impl PluginRuntime for BmadRuntime {
                         if let Some((s, _)) = status.split_once('#') {
                             status = s.trim().to_owned();
                         }
-                        let slug = key.strip_prefix(&format!("{epic}-{story}-")).unwrap_or(key);
+                        let slug = prefixes
+                            .iter()
+                            .find_map(|p| key.strip_prefix(p.as_str()))
+                            .unwrap_or(key);
                         title = slug.replace('-', " ");
                         // Capitalize first letter
                         if let Some(first) = title.get(..1) {
