@@ -33,4 +33,4 @@ These terms may be updated from time to time. Changes will be reflected on this 
 
 ## Contact
 
-Questions about these terms: [diego@ralphengine.com](mailto:diego@ralphengine.com)
+Questions about these terms: [contact@ralphengine.com](mailto:contact@ralphengine.com)
