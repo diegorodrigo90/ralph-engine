@@ -64,6 +64,11 @@ export default defineConfig({
               translations: { 'pt-BR': 'Extensões' },
             },
             {
+              slug: 'guides/plugin-development',
+              label: 'Plugin Development',
+              translations: { 'pt-BR': 'Desenvolvimento de Plugins' },
+            },
+            {
               slug: 'guides/troubleshooting',
               label: 'Troubleshooting',
               translations: { 'pt-BR': 'Solução de problemas' },
