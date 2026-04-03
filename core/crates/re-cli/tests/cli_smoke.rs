@@ -1413,3 +1413,61 @@ fn binary_config_show_mcp_server_succeeds() {
     assert!(stdout.contains("enabled: false"));
     assert!(stdout.contains("resolved_from: built_in_defaults"));
 }
+
+#[test]
+fn binary_mcp_launch_probes_plugin_runtime_server() {
+    let mut command = english_command();
+    command.args(["mcp", "launch", "official.claude.session"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("MCP launch probe"));
+    assert!(stdout.contains("plugin_runtime"));
+}
+
+#[test]
+fn binary_mcp_launch_probes_spawn_process_server() {
+    let mut command = english_command();
+    command.args(["mcp", "launch", "official.github.repository"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("ralph-engine-github-mcp"));
+}
+
+#[test]
+fn binary_agents_launch_probes_bootstrap() {
+    let mut command = english_command();
+    command.args(["agents", "launch", "official.claude.session"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+    assert!(stdout.contains("Agent bootstrap probe"));
+    assert!(stdout.contains("official.claude"));
+}
+
+#[test]
+fn binary_mcp_launch_rejects_unknown_server() {
+    let mut command = english_command();
+    command.args(["mcp", "launch", "unknown.server"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(!output.status.success());
+}
+
+#[test]
+fn binary_agents_launch_rejects_unknown_agent() {
+    let mut command = english_command();
+    command.args(["agents", "launch", "unknown.agent"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(!output.status.success());
+}

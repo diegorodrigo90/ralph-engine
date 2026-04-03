@@ -5,9 +5,8 @@
 # Example: ./scripts/add-locale.sh es  (Spanish)
 #          ./scripts/add-locale.sh fr  (French)
 #
-# This script lists every file that needs to be created or modified
-# when adding a new locale to the codebase. It does NOT make changes
-# automatically — the developer must translate strings manually.
+# Lists every file that needs to be created or modified. The i18n system
+# uses TOML files — no Rust knowledge is needed for translations.
 
 set -euo pipefail
 
@@ -18,7 +17,7 @@ if [ $# -lt 1 ]; then
 fi
 
 LOCALE="$1"
-LOCALE_MOD="${LOCALE//-/_}"  # e.g., "pt-br" → "pt_br", "es" → "es"
+LOCALE_MOD="${LOCALE//-/_}"  # "pt-br" → "pt_br"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 echo "=== Add locale: ${LOCALE} (module: ${LOCALE_MOD}) ==="
@@ -28,41 +27,47 @@ echo ""
 echo "--- Step 1: Register locale in re-config ---"
 echo "  File: core/crates/re-config/src/lib.rs"
 echo "  Actions:"
-echo "    1. Add variant to SupportedLocale enum (e.g., Es)"
+echo "    1. Add variant to SupportedLocale enum"
 echo "    2. Add locale descriptor in SUPPORTED_LOCALES array"
 echo "    3. Add match arm in parse_supported_locale()"
-echo "    4. Add match arm in parse_os_locale() for OS patterns (e.g., 'es_ES')"
-echo "    5. Update supported_locales() tests"
+echo "    4. Add match arm in parse_os_locale()"
 echo ""
 
-# Step 2: Create i18n files in each crate and plugin
-echo "--- Step 2: Create i18n locale files ---"
-echo "  For each i18n directory, copy en.rs as ${LOCALE_MOD}.rs and translate."
+# Step 2: Create TOML locale files
+echo "--- Step 2: Create TOML locale files ---"
+echo "  Copy en.toml as ${LOCALE}.toml in each crate and translate the values."
 echo ""
 
-I18N_DIRS=()
+TOML_COUNT=0
 while IFS= read -r f; do
   dir="$(dirname "$f")"
-  I18N_DIRS+=("$dir")
-done < <(find "$ROOT/core/crates" "$ROOT/plugins" -path "*/i18n/en.rs" -type f 2>/dev/null | sort)
-
-for dir in "${I18N_DIRS[@]}"; do
   rel="${dir#"$ROOT/"}"
-  target="${rel}/${LOCALE_MOD}.rs"
-  modfile="${rel}/mod.rs"
+  target="${rel}/${LOCALE}.toml"
 
   if [ -f "${ROOT}/${target}" ]; then
     echo "  [EXISTS] ${target}"
   else
-    echo "  [CREATE] ${target}  (copy from ${rel}/en.rs, translate values)"
+    echo "  [CREATE] ${target}  (copy from ${rel}/en.toml, translate)"
   fi
-  echo "  [MODIFY] ${modfile}  (add: pub mod ${LOCALE_MOD};)"
-  echo "  [MODIFY] ${modfile}  (add PluginLocalizedText entries for '${LOCALE}')"
-  echo ""
-done
+  TOML_COUNT=$((TOML_COUNT + 1))
+done < <(find "$ROOT/core/crates" "$ROOT/plugins" -path "*/locales/en.toml" -type f 2>/dev/null | sort)
+echo ""
 
-# Step 3: Documentation
-echo "--- Step 3: Create documentation locale ---"
+# Step 3: Hand-coded fn files (only re-core and re-cli)
+echo "--- Step 3: Translation functions (re-core and re-cli only) ---"
+for crate in re-core re-cli; do
+  fn_file="core/crates/${crate}/src/i18n/fn_${LOCALE_MOD}.rs"
+  en_file="core/crates/${crate}/src/i18n/fn_en.rs"
+  if [ -f "${ROOT}/${fn_file}" ]; then
+    echo "  [EXISTS] ${fn_file}"
+  else
+    echo "  [CREATE] ${fn_file}  (copy from ${en_file}, translate)"
+  fi
+done
+echo ""
+
+# Step 4: Documentation
+echo "--- Step 4: Documentation locale ---"
 DOC_DIR="docs/locales/${LOCALE}"
 if [ -d "${ROOT}/${DOC_DIR}" ]; then
   echo "  [EXISTS] ${DOC_DIR}/"
@@ -71,30 +76,19 @@ else
 fi
 echo ""
 
-# Step 4: VitePress config
-echo "--- Step 4: Update VitePress docs config ---"
+# Step 5: VitePress config
+echo "--- Step 5: Update VitePress config ---"
 echo "  File: docs/.vitepress/config.mts"
-echo "  Action: Add locale entry for '${LOCALE}' in locales config"
-echo ""
-
-# Step 5: Plugin manifests
-echo "--- Step 5: Update plugin manifest.yaml files ---"
-MANIFESTS=$(find "$ROOT/plugins" -name "manifest.yaml" -type f 2>/dev/null | sort)
-for manifest in $MANIFESTS; do
-  rel="${manifest#"$ROOT/"}"
-  echo "  [MODIFY] ${rel}  (add ${LOCALE} translations for name/summary)"
-done
+echo "  Action: Add locale entry for '${LOCALE}'"
 echo ""
 
 # Summary
-TOTAL_CREATE=${#I18N_DIRS[@]}
 echo "=== Summary ==="
-echo "  Locale files to create: ${TOTAL_CREATE}"
-echo "  mod.rs files to modify: ${TOTAL_CREATE}"
+echo "  TOML files to create: ${TOML_COUNT}"
+echo "  fn files to create: 2 (re-core + re-cli)"
 echo "  re-config changes: 1 file"
-echo "  Documentation dir: 1"
-echo "  VitePress config: 1"
-echo "  Plugin manifests: $(echo "$MANIFESTS" | wc -l | tr -d ' ')"
+echo "  Documentation: 1 directory"
+echo "  VitePress config: 1 file"
 echo ""
 echo "After all changes, run:"
 echo "  cargo fmt --all"
