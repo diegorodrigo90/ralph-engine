@@ -233,9 +233,11 @@ function renderManifest(scaffold) {
     `plugin_version: 0.1.0`,
   ];
 
+  lines.push(`plugin_api_version: ${DEFAULT_PLUGIN_API_VERSION}`);
+  lines.push(`engine_version: "${DEFAULT_ENGINE_VERSION}"`);
+  lines.push("runtime: true");
+
   if (scaffold.kind !== "template") {
-    lines.push(`plugin_api_version: ${DEFAULT_PLUGIN_API_VERSION}`);
-    lines.push(`engine_version: "${DEFAULT_ENGINE_VERSION}"`);
   }
 
   if (scaffold.capabilities.length > 0) {
@@ -588,7 +590,12 @@ unimplemented = "deny"
 `;
 }
 
+function toPascalCase(slug) {
+  return slug.split("-").map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join("");
+}
+
 function renderRustPluginLib(scaffold) {
+  const structName = toPascalCase(scaffold.name);
   const contributions = buildRuntimeContributionDefinitions(scaffold);
   const capabilityImports = [...new Set(scaffold.capabilities.map(capabilityImportName))].sort();
   const descriptorImports = [];
@@ -759,6 +766,35 @@ pub fn runtime_hooks() -> &'static [PluginRuntimeHook] {
 #[must_use]
 pub const fn descriptor() -> PluginDescriptor {
     DESCRIPTOR
+}
+
+/// Returns a new instance of the plugin runtime.
+#[must_use]
+pub fn runtime() -> ${structName}Runtime {
+    ${structName}Runtime
+}
+
+/// Plugin runtime — probes for the plugin binary on the system PATH.
+pub struct ${structName}Runtime;
+
+impl re_plugin::PluginRuntime for ${structName}Runtime {
+    fn plugin_id(&self) -> &str { PLUGIN_ID }
+
+    fn run_check(&self, check_id: &str, kind: re_plugin::PluginCheckKind, project_root: &std::path::Path) -> Result<re_plugin::CheckExecutionResult, re_plugin::PluginRuntimeError> {
+        let mut findings = Vec::new();
+        if !project_root.join(".ralph-engine/config.yaml").exists() {
+            findings.push("missing: .ralph-engine/config.yaml".to_owned());
+        }
+        Ok(re_plugin::CheckExecutionResult { check_id: check_id.to_owned(), passed: findings.is_empty(), findings })
+    }
+
+    fn bootstrap_agent(&self, agent_id: &str) -> Result<re_plugin::AgentBootstrapResult, re_plugin::PluginRuntimeError> {
+        Err(re_plugin::PluginRuntimeError::new("not_an_agent_plugin", format!("Plugin does not provide agent '{agent_id}'")))
+    }
+
+    fn register_mcp_server(&self, server_id: &str) -> Result<re_plugin::McpRegistrationResult, re_plugin::PluginRuntimeError> {
+        Err(re_plugin::PluginRuntimeError::new("not_an_mcp_plugin", format!("Plugin does not provide MCP server '{server_id}'")))
+    }
 }
 ${contributions.templates.length > 0 ? `\n/// Returns the immutable template contributions declared by the plugin.\n#[must_use]\npub const fn templates() -> &'static [PluginTemplateDescriptor] {\n    TEMPLATES\n}\n` : ""}
 ${contributions.prompts.length > 0 ? `\n/// Returns the immutable prompt contributions declared by the plugin.\n#[must_use]\npub const fn prompts() -> &'static [PluginPromptDescriptor] {\n    PROMPTS\n}\n` : ""}
