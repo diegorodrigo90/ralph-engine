@@ -9,7 +9,8 @@ use re_plugin::{
     PREPARE_CHECKS, PROMPT_FRAGMENTS, PluginCheckAsset, PluginCheckDescriptor, PluginCheckKind,
     PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
     PluginPromptAsset, PluginPromptDescriptor, PluginRuntime, PluginRuntimeError,
-    PluginRuntimeHook, PluginTemplateAsset, PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
+    PluginRuntimeHook, PluginTemplateAsset, PluginTemplateDescriptor, PluginTrustLevel,
+    PromptContext, TEMPLATE, WORKFLOW, WorkItemResolution, WorkItemSummary,
 };
 
 /// Stable plugin identifier.
@@ -19,8 +20,13 @@ const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_plugin_names();
 const PLUGIN_SUMMARY: &str = i18n::plugin_summary();
 const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_plugin_summaries();
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
-const CAPABILITIES: &[re_plugin::PluginCapability] =
-    &[TEMPLATE, PROMPT_FRAGMENTS, PREPARE_CHECKS, DOCTOR_CHECKS];
+const CAPABILITIES: &[re_plugin::PluginCapability] = &[
+    TEMPLATE,
+    PROMPT_FRAGMENTS,
+    PREPARE_CHECKS,
+    DOCTOR_CHECKS,
+    WORKFLOW,
+];
 const LIFECYCLE: &[PluginLifecycleStage] = &[
     PluginLifecycleStage::Discover,
     PluginLifecycleStage::Configure,
@@ -32,6 +38,7 @@ const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
     PluginRuntimeHook::PromptAssembly,
     PluginRuntimeHook::Prepare,
     PluginRuntimeHook::Doctor,
+    PluginRuntimeHook::WorkItemResolution,
 ];
 const DESCRIPTOR: PluginDescriptor = PluginDescriptor::new(
     PLUGIN_ID,
@@ -229,6 +236,325 @@ impl PluginRuntime for BmadRuntime {
             format!("BMAD plugin does not provide MCP server '{server_id}'"),
         ))
     }
+
+    fn resolve_work_item(
+        &self,
+        work_item_id: &str,
+        project_root: &Path,
+    ) -> Result<WorkItemResolution, PluginRuntimeError> {
+        // Parse BMAD dot notation: "5.3" → epic 5, story 3
+        let parts: Vec<&str> = work_item_id.split('.').collect();
+        if parts.len() != 2 || parts[0].parse::<u32>().is_err() || parts[1].parse::<u32>().is_err()
+        {
+            return Err(PluginRuntimeError::new(
+                "invalid_work_item_format",
+                format!(
+                    "Expected BMAD format 'N.M' (e.g., '5.3' for epic 5, story 3), got '{work_item_id}'"
+                ),
+            ));
+        }
+
+        let epic = parts[0];
+        let story = parts[1];
+
+        // Read tracker config to find status file and stories path
+        let config_path = project_root.join(".ralph-engine/config.yaml");
+        let (tracker_file, stories_path) = read_bmad_paths(&config_path);
+
+        let tracker_path = project_root.join(&tracker_file);
+        let stories_dir = project_root.join(&stories_path);
+
+        // Look up story in tracker
+        let story_key_prefix = format!("{epic}-{story}-");
+        let story_key_exact = format!("{epic}-{story}");
+        let mut title = format!("Story {work_item_id}");
+        let mut status = "unknown".to_owned();
+
+        if let Ok(content) = std::fs::read_to_string(&tracker_path) {
+            for line in content.lines() {
+                let trimmed = line.trim();
+                if trimmed.starts_with(&story_key_prefix)
+                    || trimmed.starts_with(&format!("{story_key_exact}:"))
+                {
+                    // Extract slug as title: "5-3-some-feature: done" → "some-feature"
+                    if let Some((key, val)) = trimmed.split_once(':') {
+                        let key = key.trim();
+                        status = val.trim().to_owned();
+                        // Remove status comments: "done  # comment" → "done"
+                        if let Some((s, _)) = status.split_once('#') {
+                            status = s.trim().to_owned();
+                        }
+                        let slug = key.strip_prefix(&format!("{epic}-{story}-")).unwrap_or(key);
+                        title = slug.replace('-', " ");
+                        // Capitalize first letter
+                        if let Some(first) = title.get(..1) {
+                            title = format!("{}{}", first.to_uppercase(), &title[1..]);
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+
+        // Find story file in stories directory
+        let source_path = find_story_file(&stories_dir, epic, story, work_item_id);
+
+        Ok(WorkItemResolution {
+            raw_id: work_item_id.to_owned(),
+            canonical_id: work_item_id.to_owned(),
+            title,
+            source_path,
+            metadata: vec![
+                ("epic".to_owned(), epic.to_owned()),
+                ("story".to_owned(), story.to_owned()),
+                ("status".to_owned(), status),
+            ],
+        })
+    }
+
+    fn list_work_items(
+        &self,
+        project_root: &Path,
+    ) -> Result<Vec<WorkItemSummary>, PluginRuntimeError> {
+        let config_path = project_root.join(".ralph-engine/config.yaml");
+        let (tracker_file, _) = read_bmad_paths(&config_path);
+        let tracker_path = project_root.join(&tracker_file);
+
+        let content = std::fs::read_to_string(&tracker_path).map_err(|err| {
+            PluginRuntimeError::new(
+                "tracker_not_found",
+                format!(
+                    "Cannot read tracker file '{}': {err}",
+                    tracker_path.display()
+                ),
+            )
+        })?;
+
+        let mut items = Vec::new();
+        for line in content.lines() {
+            let trimmed = line.trim();
+            // Skip comments, empty lines, epics, and metadata
+            if trimmed.is_empty()
+                || trimmed.starts_with('#')
+                || trimmed.starts_with("epic-")
+                || trimmed.starts_with("generated")
+                || trimmed.starts_with("last_updated")
+                || trimmed.starts_with("project")
+                || trimmed.starts_with("tracking_system")
+                || trimmed.starts_with("story_location")
+                || trimmed.starts_with("development_status")
+            {
+                continue;
+            }
+
+            if let Some((key, val)) = trimmed.split_once(':') {
+                let key = key.trim();
+                let mut status = val.trim().to_owned();
+                // Strip trailing comments
+                if let Some((s, _)) = status.split_once('#') {
+                    status = s.trim().to_owned();
+                }
+
+                // Only show actionable items
+                if !matches!(
+                    status.as_str(),
+                    "backlog" | "ready-for-dev" | "in-progress" | "review"
+                ) {
+                    continue;
+                }
+
+                // Parse key: "5-3-some-feature" → id="5.3", title="some feature"
+                let parts: Vec<&str> = key.splitn(3, '-').collect();
+                if parts.len() >= 2
+                    && parts[0].parse::<u32>().is_ok()
+                    && parts[1].parse::<u32>().is_ok()
+                {
+                    let id = format!("{}.{}", parts[0], parts[1]);
+                    let slug = if parts.len() == 3 { parts[2] } else { "" };
+                    let title = slug.replace('-', " ");
+
+                    items.push(WorkItemSummary { id, title, status });
+                }
+            }
+        }
+
+        Ok(items)
+    }
+
+    fn build_prompt_context(
+        &self,
+        resolution: &WorkItemResolution,
+        project_root: &Path,
+    ) -> Result<PromptContext, PluginRuntimeError> {
+        let mut context_files = Vec::new();
+        let mut prompt_parts = Vec::new();
+
+        // 1. Read workflow instructions from config
+        let config_path = project_root.join(".ralph-engine/config.yaml");
+        if let Ok(content) = std::fs::read_to_string(&config_path)
+            && let Some(instructions) = extract_workflow_instructions(&content)
+        {
+            prompt_parts.push(format!("## Instructions\n\n{instructions}"));
+        }
+
+        // 2. Read story file if available
+        if let Some(ref path) = resolution.source_path {
+            let full_path = project_root.join(path);
+            if let Ok(story_content) = std::fs::read_to_string(&full_path) {
+                prompt_parts.push(format!(
+                    "## Work Item: {} — {}\n\n{}",
+                    resolution.canonical_id, resolution.title, story_content
+                ));
+                context_files.push(re_plugin::ContextFile {
+                    label: "story".to_owned(),
+                    content: story_content,
+                });
+            }
+        } else {
+            prompt_parts.push(format!(
+                "## Work Item: {} — {}\n\nNo story file found. Implement based on the title and project context.",
+                resolution.canonical_id, resolution.title
+            ));
+        }
+
+        // 3. Read project prompt (rules/context)
+        let prompt_path = project_root.join(".ralph-engine/prompt.md");
+        if let Ok(project_rules) = std::fs::read_to_string(&prompt_path) {
+            prompt_parts.push(format!("## Project Context\n\n{project_rules}"));
+            context_files.push(re_plugin::ContextFile {
+                label: "project-rules".to_owned(),
+                content: project_rules,
+            });
+        }
+
+        if prompt_parts.is_empty() {
+            return Err(PluginRuntimeError::new(
+                "empty_prompt",
+                "No content available to build prompt (no story file, no instructions, no project rules)".to_owned(),
+            ));
+        }
+
+        Ok(PromptContext {
+            prompt_text: prompt_parts.join("\n\n---\n\n"),
+            context_files,
+            work_item_id: resolution.canonical_id.clone(),
+        })
+    }
+}
+
+// ── BMAD config helpers (plugin-owned sections) ──────────────────
+
+/// Default tracker file path.
+const DEFAULT_TRACKER_FILE: &str = "sprint-status.yaml";
+/// Default stories directory.
+const DEFAULT_STORIES_PATH: &str = "stories/";
+
+/// Reads BMAD-specific paths from the config YAML.
+/// Falls back to defaults when the config is unreadable.
+fn read_bmad_paths(config_path: &Path) -> (String, String) {
+    let content = std::fs::read_to_string(config_path).unwrap_or_default();
+
+    let tracker = extract_yaml_scalar(&content, "status_file")
+        .unwrap_or(DEFAULT_TRACKER_FILE)
+        .to_owned();
+    let stories = extract_yaml_scalar(&content, "stories")
+        .unwrap_or(DEFAULT_STORIES_PATH)
+        .to_owned();
+
+    (tracker, stories)
+}
+
+/// Extracts a simple `key: value` from YAML content.
+fn extract_yaml_scalar<'a>(content: &'a str, key: &str) -> Option<&'a str> {
+    let prefix = format!("{key}:");
+    content.lines().find_map(|line| {
+        let trimmed = line.trim();
+        trimmed.strip_prefix(&prefix).map(|rest| {
+            let val = rest.trim();
+            // Strip trailing comments
+            val.split('#').next().unwrap_or(val).trim()
+        })
+    })
+}
+
+/// Extracts the `workflow.instructions` multiline value from config.
+fn extract_workflow_instructions(content: &str) -> Option<String> {
+    let mut in_instructions = false;
+    let mut lines = Vec::new();
+
+    for line in content.lines() {
+        if line.trim().starts_with("instructions:") {
+            // Check for inline value: "instructions: some text"
+            let after = line.trim().strip_prefix("instructions:")?.trim();
+            if after == "|" || after.is_empty() {
+                in_instructions = true;
+                continue;
+            }
+            return Some(after.to_owned());
+        }
+
+        if in_instructions {
+            // Multi-line block: indented lines until next key at same or lower indent
+            if line.starts_with("    ") || line.starts_with('\t') {
+                lines.push(line.trim_start());
+            } else if line.trim().is_empty() {
+                lines.push("");
+            } else {
+                break;
+            }
+        }
+    }
+
+    if lines.is_empty() {
+        None
+    } else {
+        Some(lines.join("\n").trim().to_owned())
+    }
+}
+
+/// Finds a story file matching the epic.story pattern in the stories directory.
+fn find_story_file(
+    stories_dir: &Path,
+    epic: &str,
+    story: &str,
+    work_item_id: &str,
+) -> Option<String> {
+    // Try common patterns: "5-3-*.md", "story-5.3*.md", "5.3-*.md"
+    let patterns = [
+        format!("{epic}-{story}-"),
+        format!("story-{work_item_id}"),
+        format!("{work_item_id}-"),
+    ];
+
+    if let Ok(entries) = std::fs::read_dir(stories_dir) {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let name_str = name.to_string_lossy();
+            if name_str.ends_with(".md")
+                && patterns.iter().any(|p| name_str.starts_with(p.as_str()))
+            {
+                // Return path relative to project root
+                return Some(entry.path().to_string_lossy().to_string());
+            }
+        }
+    }
+
+    // Also try parent directory (CP keeps some stories at implementation-artifacts root)
+    if let Some(parent) = stories_dir.parent()
+        && let Ok(entries) = std::fs::read_dir(parent)
+    {
+        for entry in entries.flatten() {
+            let name = entry.file_name();
+            let name_str = name.to_string_lossy();
+            if name_str.ends_with(".md")
+                && patterns.iter().any(|p| name_str.starts_with(p.as_str()))
+            {
+                return Some(entry.path().to_string_lossy().to_string());
+            }
+        }
+    }
+
+    None
 }
 
 #[cfg(test)]
