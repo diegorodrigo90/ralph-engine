@@ -157,7 +157,7 @@ mod tests {
     }
 
     #[test]
-    fn descriptor_is_consistent() {
+    fn plugin_descriptor_is_consistent() {
         let d = descriptor();
         assert_eq!(d.id, PLUGIN_ID);
         assert_eq!(d.kind, PluginKind::Template);
@@ -171,7 +171,7 @@ mod tests {
     }
 
     #[test]
-    fn manifest_matches_code() {
+    fn plugin_manifest_matches_typed_contract_surface() {
         let manifest = include_str!("../manifest.yaml");
         assert!(manifest.contains("id: official.hello-world"));
         assert!(manifest.contains("kind: template"));

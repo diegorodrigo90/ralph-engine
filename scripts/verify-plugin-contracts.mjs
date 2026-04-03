@@ -61,56 +61,48 @@ function parseRustCapabilityConstants(source) {
   return new Set(matches.map((match) => match[1]));
 }
 
-function parseRustPluginKinds(source) {
-  const kindImplMatch = source.match(/impl PluginKind \{([\s\S]*?)\n\}/);
-  if (!kindImplMatch) {
-    fail("could not find PluginKind implementation in Rust plugin contract");
+/**
+ * Parse string values from a Rust enum — supports both `impl Foo { match self { Self::X => "x" } }`
+ * and `define_plugin_enum! { pub enum Foo => ALL { X => "x" } }` macro formats.
+ * Strips doc comments (///) before matching to avoid hitting examples in rustdoc.
+ */
+function parseRustEnumValues(source, enumName) {
+  // Try direct impl block first
+  const implRegex = new RegExp(`impl ${enumName} \\{([\\s\\S]*?)\\n\\}`);
+  const implMatch = source.match(implRegex);
+  if (implMatch) {
+    return new Set(
+      [...implMatch[1].matchAll(/Self::[A-Za-z]+ => "([^"]+)"/g)].map((m) => m[1]),
+    );
   }
 
-  return new Set(
-    [...kindImplMatch[1].matchAll(/Self::[A-Za-z]+ => "([^"]+)"/g)].map(
-      (match) => match[1],
-    ),
-  );
+  // Try define_plugin_enum! macro format (strip doc comments first to avoid examples)
+  const clean = source.replace(/\/\/\/[^\n]*/g, "");
+  const macroRegex = new RegExp(`pub enum ${enumName} => \\w+ \\{([\\s\\S]*?)\\}`);
+  const macroMatch = clean.match(macroRegex);
+  if (macroMatch) {
+    return new Set(
+      [...macroMatch[1].matchAll(/[A-Za-z]+ => "([^"]+)"/g)].map((m) => m[1]),
+    );
+  }
+
+  fail(`could not find ${enumName} in Rust plugin contract`);
+}
+
+function parseRustPluginKinds(source) {
+  return parseRustEnumValues(source, "PluginKind");
 }
 
 function parseRustPluginTrustLevels(source) {
-  const trustImplMatch = source.match(/impl PluginTrustLevel \{([\s\S]*?)\n\}/);
-  if (!trustImplMatch) {
-    fail("could not find PluginTrustLevel implementation in Rust plugin contract");
-  }
-
-  return new Set(
-    [...trustImplMatch[1].matchAll(/Self::[A-Za-z]+ => "([^"]+)"/g)].map(
-      (match) => match[1],
-    ),
-  );
+  return parseRustEnumValues(source, "PluginTrustLevel");
 }
 
 function parseRustRuntimeSurfaces(source) {
-  const surfaceImplMatch = source.match(/impl PluginRuntimeSurface \{([\s\S]*?)\n\}/);
-  if (!surfaceImplMatch) {
-    fail("could not find PluginRuntimeSurface implementation in Rust plugin contract");
-  }
-
-  return new Set(
-    [...surfaceImplMatch[1].matchAll(/Self::[A-Za-z]+ => "([^"]+)"/g)].map(
-      (match) => match[1],
-    ),
-  );
+  return parseRustEnumValues(source, "PluginRuntimeSurface");
 }
 
 function parseRustRuntimeHooks(source) {
-  const hookImplMatch = source.match(/impl PluginRuntimeHook \{([\s\S]*?)\n\}/);
-  if (!hookImplMatch) {
-    fail("could not find PluginRuntimeHook implementation in Rust plugin contract");
-  }
-
-  return new Set(
-    [...hookImplMatch[1].matchAll(/Self::[A-Za-z]+ => "([^"]+)"/g)].map(
-      (match) => match[1],
-    ),
-  );
+  return parseRustEnumValues(source, "PluginRuntimeHook");
 }
 
 function parseRustDefaultLocale(source) {
@@ -278,42 +270,32 @@ function assertOfficialPluginLocaleModules(supportedLocales) {
 
   for (const pluginDir of pluginDirs) {
     const pluginName = path.basename(pluginDir);
-    const sourceDir = path.join(pluginDir, "src");
-    const libPath = path.join(sourceDir, "lib.rs");
-    const i18nDir = path.join(sourceDir, "i18n");
-    const modPath = path.join(i18nDir, "mod.rs");
+    const libPath = path.join(pluginDir, "src", "lib.rs");
+    const i18nModPath = path.join(pluginDir, "src", "i18n", "mod.rs");
+    const localesDir = path.join(pluginDir, "locales");
 
     if (!fs.existsSync(libPath)) {
       fail(`official plugin ${pluginName} is missing src/lib.rs`);
     }
 
-    if (!fs.existsSync(i18nDir)) {
-      fail(`official plugin ${pluginName} is missing src/i18n/`);
-    }
-
-    if (!fs.existsSync(modPath)) {
-      fail(`official plugin ${pluginName} is missing src/i18n/mod.rs`);
-    }
-
     const libSource = readUtf8(libPath);
-    const modSource = readUtf8(modPath);
 
     if (!libSource.includes("mod i18n;")) {
       fail(`official plugin ${pluginName} must declare mod i18n; in src/lib.rs`);
     }
 
+    if (!fs.existsSync(i18nModPath)) {
+      fail(`official plugin ${pluginName} is missing src/i18n/mod.rs`);
+    }
+
+    // Plugins use build.rs + include!() — locale TOML files must exist
+    // TOML files use the locale ID directly (pt-br.toml), not the Rust module name (pt_br)
     for (const locale of supportedLocales) {
-      const localeFile = `${localeModuleFileName(locale)}.rs`;
-      const localePath = path.join(i18nDir, localeFile);
+      const tomlFile = `${locale}.toml`;
+      const tomlPath = path.join(localesDir, tomlFile);
 
-      if (!fs.existsSync(localePath)) {
-        fail(`official plugin ${pluginName} is missing src/i18n/${localeFile}`);
-      }
-
-      if (!modSource.includes(`pub mod ${localeModuleFileName(locale)};`)) {
-        fail(
-          `official plugin ${pluginName} must re-export locale module ${localeModuleFileName(locale)} in src/i18n/mod.rs`,
-        );
+      if (!fs.existsSync(tomlPath)) {
+        fail(`official plugin ${pluginName} is missing locales/${tomlFile}`);
       }
     }
   }
