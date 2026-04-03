@@ -134,7 +134,7 @@ const docSections = plugin.docs?.locales?.[lang] ?? plugin.docs?.default ?? [];
             {docSections.map((section: any) => (
               <div class="plugin-docs-section">
                 <h3>{section.heading}</h3>
-                <div class="sl-markdown-content" set:html={section.body} />
+                <div class="plugin-prose" set:html={section.body} />
               </div>
             ))}
           </div>
@@ -439,8 +439,10 @@ const docSections = plugin.docs?.locales?.[lang] ?? plugin.docs?.default ?? [];
     margin-bottom: var(--re-space-2);
   }
 
-  /* Plugin docs body uses Starlight's sl-markdown-content class
-     for consistent prose styling (tables, lists, code, headings) */
+  /* Plugin docs prose — mirrors Starlight sl-markdown-content styles.
+     Cannot use sl-markdown-content directly because the component
+     lives inside .not-content which Starlight excludes via
+     :not(:where(.not-content *)) selectors. */
 
   .resource-section { margin-top: var(--re-space-8); }
   .resource-section h2 { font-size: 1.25rem; margin-bottom: var(--re-space-4); }
@@ -579,6 +581,99 @@ const docSections = plugin.docs?.locales?.[lang] ?? plugin.docs?.default ?? [];
       position: sticky;
       top: var(--re-space-6);
     }
+  }
+</style>
+
+<style is:global>
+  /* Prose styles for plugin README content rendered via set:html.
+     Mirrors key Starlight sl-markdown-content rules since the
+     PluginDetail component is inside .not-content. */
+  .plugin-prose {
+    font-size: 0.9375rem;
+    color: var(--sl-color-gray-2);
+    line-height: 1.7;
+  }
+
+  .plugin-prose :not(a, strong, em, del, span, code, br) +
+  :not(a, strong, em, del, span, code, br) {
+    margin-top: 1rem;
+  }
+
+  .plugin-prose :is(h1, h2, h3, h4, h5, h6) {
+    color: var(--sl-color-white);
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .plugin-prose h3 { font-size: 1.125rem; }
+  .plugin-prose h4 { font-size: 1rem; }
+
+  .plugin-prose a {
+    color: var(--sl-color-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+
+  .plugin-prose strong { color: var(--sl-color-white); }
+
+  .plugin-prose ul, .plugin-prose ol {
+    padding-inline-start: 1.5rem;
+  }
+
+  .plugin-prose li + li { margin-top: 0.25rem; }
+
+  .plugin-prose code {
+    font-family: var(--sl-font-mono);
+    font-size: 0.85em;
+    padding: 0.15em 0.35em;
+    background: var(--sl-color-gray-6);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.25rem;
+    color: var(--sl-color-white);
+  }
+
+  .plugin-prose pre {
+    padding: 1rem;
+    background: var(--sl-color-gray-6);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    overflow-x: auto;
+  }
+
+  .plugin-prose pre code {
+    padding: 0;
+    background: none;
+    border: none;
+    font-size: 0.875rem;
+  }
+
+  .plugin-prose table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .plugin-prose th, .plugin-prose td {
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--sl-color-gray-5);
+    text-align: left;
+  }
+
+  .plugin-prose th {
+    background: var(--sl-color-gray-6);
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+
+  .plugin-prose blockquote {
+    border-inline-start: 3px solid var(--sl-color-gray-5);
+    padding-inline-start: 1rem;
+    color: var(--sl-color-gray-2);
+  }
+
+  .plugin-prose hr {
+    border: none;
+    border-top: 1px solid var(--sl-color-gray-5);
   }
 </style>
 
