@@ -5,6 +5,7 @@ members = [
   "core/crates/re-mcp",
   "core/crates/re-plugin",
   "core/crates/re-official",
+  "core/crates/re-build-utils",
   "core/crates/re-cli",
   "plugins/official/basic",
   "plugins/official/bmad",
