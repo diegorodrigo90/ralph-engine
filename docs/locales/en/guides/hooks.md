@@ -1,114 +1,39 @@
 # Hooks
 
-Hooks define generic runtime triggers and step execution in `.ralph-engine/hooks.yaml`.
+Runtime hooks are the extension points where plugins contribute behavior to the Ralph Engine lifecycle.
 
-Ralph Engine uses hooks as a generic mechanism. The core runtime does **not** assign workflow meaning to trigger names beyond the technical trigger points it supports.
+## Available Hooks
 
-If a workflow needs concepts such as `prepare`, `review`, or `validation`, those meanings belong to the plugin or boilerplate that generates and validates the project configuration.
+Each plugin declares which hooks it contributes. The runtime tracks these registrations:
 
-## Runtime Triggers
-
-The core currently recognizes these runtime triggers:
-
-| Trigger         | When it runs                              |
-| --------------- | ----------------------------------------- |
-| `session_start` | Once before the loop starts               |
-| `work_item_start` | Before the current work item begins     |
-| `after_agent`   | After the agent session completes         |
-| `work_item_finish` | After the work item completes successfully |
-| `session_end`   | Once when the engine stops                |
-
-## hooks.yaml Format
-
-```yaml
-session_start:
-  steps:
-    - name: "Bootstrap environment"
-      run: "npm install"
-      required: true
-
-work_item_start:
-  steps:
-    - name: "Refresh generated files"
-      run: "npm run codegen"
-      required: false
-
-after_agent:
-  steps:
-    - name: "Unit tests"
-      run: "npm test"
-      required: true
-      paths: ["src/**"]
-
-    - name: "Build"
-      run: "npm run build"
-      required: true
-
-work_item_finish:
-  steps:
-    - name: "Update docs"
-      run: "npm run docs:generate"
-      required: false
-
-session_end:
-  steps:
-    - name: "Clean temporary files"
-      run: "npm run clean"
-      required: false
+```bash
+ralph-engine hooks list              # List all registered hooks
+ralph-engine hooks show <hook-id>    # Show hook details
+ralph-engine hooks plan <hook-id>    # Show execution plan for a hook
 ```
 
-## Step Properties
+## Hook Types
 
-| Property   | Type     | Required | Description                                              |
-| ---------- | -------- | -------- | -------------------------------------------------------- |
-| `name`     | string   | yes      | Human-readable step name                                 |
-| `run`      | string   | yes      | Shell command to execute                                 |
-| `timeout`  | string   | no       | Duration string, e.g. `"5m"` or `"30s"`                  |
-| `required` | bool     | no       | If true, failure blocks progress                         |
-| `paths`    | string[] | no       | Only run if changed files match these globs              |
+| Hook | What it does |
+|------|-------------|
+| `scaffold` | Project scaffolding (template materialization) |
+| `prepare` | Pre-flight validation before workflows |
+| `doctor` | System diagnostics and health checks |
+| `prompt_assembly` | Prompt fragment composition |
+| `agent_bootstrap` | Agent runtime initialization |
+| `mcp_registration` | MCP server registration |
+| `data_source_registration` | Data source provider registration |
+| `context_provider_registration` | Context provider registration |
+| `forge_provider_registration` | Forge automation registration |
+| `remote_control_bootstrap` | Remote control initialization |
+| `policy_enforcement` | Policy guardrail enforcement |
 
-## Path Filtering
+## Hook Execution
 
-Steps under `after_agent` can run conditionally based on changed files:
+Hooks are executed through the `PluginRuntime` trait. When you run commands like `checks run prepare` or `agents launch`, the runtime dispatches to the appropriate plugin's hook implementation.
 
-```yaml
-after_agent:
-  steps:
-    - name: "TypeScript tests"
-      run: "pnpm test"
-      paths:
-        - "apps/**/*.ts"
-        - "packages/**/*.ts"
+Plugins that provide a runtime can respond to hook invocations with real validation, binary probing, or process management — depending on their capabilities.
 
-    - name: "Python tests"
-      run: "pytest"
-      paths:
-        - "**/*.py"
-```
+## Project Hooks File
 
-If no changed file matches the configured globs, the step is skipped.
-
-## Workflow Ownership
-
-The core runtime owns:
-
-- loading `.ralph-engine/hooks.yaml`
-- running trigger steps
-- path filtering
-- timeout handling
-- required-step blocking
-
-Plugins or boilerplates own:
-
-- deciding which files and triggers a workflow requires
-- deciding what a trigger means in that workflow
-- validating whether the project is ready for that workflow
-
-## Cross-Platform Behavior
-
-Commands in `run` are executed through the built-in shell abstraction:
-
-- Linux/macOS: `sh -c`
-- Windows: `cmd /c`
-
-This keeps trigger execution cross-platform without hardcoding shell paths in the config.
+The BMAD plugin template includes a `.ralph-engine/hooks.yaml` file for project-level hook configuration. This file is part of the template scaffolding and is consumed by the BMAD workflow, not by the core runtime directly.

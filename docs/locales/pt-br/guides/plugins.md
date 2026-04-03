@@ -1,20 +1,52 @@
 # Plugins
 
-Plugins continuam sendo a unidade de distribuição.
+Plugins são a unidade de extensão do Ralph Engine. Cada plugin declara capabilities, contribuições e uma implementação opcional de runtime.
 
-O reboot mantém estas regras arquiteturais:
+## Plugins Oficiais
 
-- plugins oficiais são implementados em Rust
-- plugins de terceiros continuam agnósticos de linguagem
-- confiança de plugin continua explícita: plugins oficiais são first-party, enquanto manifests de terceiros ficam em escopo `community` até o core definir algo diferente
-- capabilities continuam sendo o modelo de extensibilidade
-- templates são capabilities de plugin, não um tipo de artefato separado
-- MCP pode ser configurado externamente e ampliado por plugins
-- manifests de plugins de terceiros seguem um contrato versionado de `manifest.yaml` mantido em `tools/create-ralph-engine/`
-- metadados de exibição de plugins suportam nomes e resumos localizados, começando por `en` e `pt-br`
-- quando um locale de plugin não existir, as superfícies do runtime fazem fallback para o nome e o resumo em inglês em vez de falhar
-- crates que renderizam saída pública voltada a plugins devem manter strings de locale em módulos ou arquivos por idioma, para que adicionar um novo locale continue sendo uma mudança aditiva em vez de reescrever handlers de comando
-- cada módulo de locale deve expor um catálogo tipado do idioma, em vez de constantes soltas ou branching por locale espalhado pelos handlers
-- os crates de plugins oficiais agora seguem essa regra com `src/i18n/en.rs`, `src/i18n/pt_br.rs` e `src/i18n/mod.rs`; crates comunitários gerados pelo scaffold devem seguir o mesmo layout
-- `npx create-ralph-engine-plugin` é a porta de entrada de scaffolding e deve concentrar a geração de projeto, em vez de empurrar scaffolding para o core do runtime
-- o scaffolder gera um esqueleto de crate Rust junto com `manifest.yaml` localizado, para que novos projetos de plugin já nasçam alinhados ao contrato tipado do runtime
+O Ralph Engine vem com 8 plugins oficiais:
+
+| Plugin | Tipo | Capabilities | O que faz |
+|--------|------|-------------|-----------|
+| **basic** | Template | template | Scaffolding de projeto inicial |
+| **bmad** | Template | template, prompts, checks | Scaffolding e validação de workflows BMAD |
+| **tdd-strict** | Policy | template, policy | Guardrails e enforcement de TDD |
+| **claude** | Agent Runtime | agent, mcp | Sessões de agente Claude CLI |
+| **claudebox** | Agent Runtime | agent, mcp | Sessões de agente Claude Box |
+| **codex** | Agent Runtime | agent, mcp | Sessões de agente Codex |
+| **github** | Data Source | data, context, forge, mcp | Integração GitHub (dados de repositório, automação forge) |
+| **ssh** | Remote Control | remote_control | Controle remoto SSH para workflows distribuídos |
+
+Listar plugins: `ralph-engine plugins list`
+
+Ver detalhes: `ralph-engine plugins show official.claude`
+
+## Criando um Plugin
+
+Use o scaffolder para criar um novo plugin:
+
+```bash
+npx create-ralph-engine-plugin --name minha-ferramenta --publisher acme --kind template
+```
+
+Isso gera um crate completo com:
+- `src/lib.rs` — descriptor do plugin, implementação de runtime e exports
+- `locales/en.toml` + `locales/pt-br.toml` — i18n baseado em TOML (sem precisar saber Rust para traduzir)
+- `build.rs` — gera código de locale automaticamente a partir dos TOMLs
+- `manifest.yaml` — metadados para auto-discovery pelo runtime
+
+## Arquitetura de Plugins
+
+- **Plugins oficiais** são crates Rust em `plugins/official/`
+- **Plugins da comunidade** seguem a mesma estrutura e são descobertos automaticamente via `manifest.yaml`
+- **Níveis de confiança**: `official` (primeira parte) ou `community` (terceiros)
+- **Capabilities** definem o que o plugin pode fazer: template, prompt, agent, check, provider, policy, mcp
+- **Runtime**: todo plugin implementa o trait `PluginRuntime` para validação e execução
+- **i18n**: traduções ficam em `locales/*.toml` — adicionar um idioma é criar um arquivo TOML
+
+## Ciclo de Vida do Plugin
+
+1. **Discover** — o runtime encontra o plugin pelo descriptor
+2. **Configure** — as camadas de configuração resolvem as settings do plugin
+3. **Validate** — `PluginDescriptor::validate()` verifica invariantes
+4. **Load** — as contribuições do plugin são registradas na topologia do runtime

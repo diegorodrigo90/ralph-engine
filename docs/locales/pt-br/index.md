@@ -3,30 +3,30 @@ layout: home
 
 hero:
   name: Ralph Engine
-  text: Runtime orientado a plugins para fluxos de desenvolvimento com agentes
-  tagline: Documentação pública do reboot em Rust, cobrindo arquitetura, contratos da CLI, plugins, fluxo de release e a barra de qualidade por trás do repositório.
+  text: Runtime orientado a plugins para fluxos de código com agentes
+  tagline: CLI open-source que orquestra plugins, servidores MCP, runtimes de agentes e validação de projetos com uma base tipada em Rust e suporte a i18n.
   actions:
     - theme: brand
       text: Instalação
       link: /pt-br/getting-started/installation
     - theme: alt
-      text: Guia de plugins
-      link: /pt-br/guides/plugins
+      text: Referência CLI
+      link: /pt-br/reference/cli
     - theme: alt
-      text: Roadmap
-      link: /pt-br/development/roadmap
+      text: Guia de Plugins
+      link: /pt-br/guides/plugins
 
 features:
-  - title: Contratos do runtime
-    details: Comece por arquitetura, configuração e referência da CLI em vez de tentar adivinhar como o runtime deve se comportar.
-    link: /pt-br/reference/architecture
-    linkText: Ler arquitetura
-  - title: Plugins e MCP
-    details: Entenda o modelo de plugins, as fronteiras oficiais de capability e a direção com MCP antes de construir extensões.
+  - title: 8 Plugins Oficiais
+    details: Claude, Codex, Claude Box, BMAD, TDD Strict, GitHub, SSH e Basic — cada um com descriptors tipados, i18n e validação de runtime.
     link: /pt-br/guides/plugins
-    linkText: Abrir guia de plugins
-  - title: Qualidade faz parte do produto
-    details: Padrões de código, fluxo de release e regras de validação são públicos e versionados no mesmo contrato do repositório.
+    linkText: Conhecer plugins
+  - title: Gestão de Servidores MCP
+    details: Declare, valide e inicie servidores MCP. A CLI verifica se o binário está disponível, checa prontidão e inicia processos quando necessário.
+    link: /pt-br/reference/cli
+    linkText: Ver comandos da CLI
+  - title: Qualidade de Código
+    details: 12 regras clippy obrigatórias, cargo-semver-checks no CI, rastreamento de erros via Sentry e mais de 580 testes garantem a qualidade de cada commit.
     link: /pt-br/development/coding-standards
-    linkText: Revisar padrões
+    linkText: Ver padrões
 ---

@@ -40,8 +40,6 @@ function buildSidebar(prefix: string, labels: {
   building: string;
   codingStandards: string;
   releasing: string;
-  roadmap: string;
-  backlog: string;
 }) {
   return [
     {
@@ -74,8 +72,6 @@ function buildSidebar(prefix: string, labels: {
         { text: labels.building, link: `${prefix}/development/building` },
         { text: labels.codingStandards, link: `${prefix}/development/coding-standards` },
         { text: labels.releasing, link: `${prefix}/development/releasing` },
-        { text: labels.roadmap, link: `${prefix}/development/roadmap` },
-        { text: labels.backlog, link: `${prefix}/development/backlog` },
       ],
     },
   ];
@@ -121,7 +117,6 @@ export default defineConfig({
           { text: "Home", link: "https://ralphengine.com/" },
           { text: "Docs", link: "/" },
           { text: "Plugins", link: "https://ralphengine.com/plugins/" },
-          { text: "Roadmap", link: "/development/roadmap" },
           { text: `Latest ${releaseTag}`, link: releaseUrl },
           { text: "GitHub", link: "https://github.com/diegorodrigo90/ralph-engine" },
         ],
@@ -142,8 +137,6 @@ export default defineConfig({
           building: "Building",
           codingStandards: "Coding Standards",
           releasing: "Releasing",
-          roadmap: "Roadmap",
-          backlog: "Backlog",
         }),
         editLink: {
           pattern:
@@ -163,7 +156,6 @@ export default defineConfig({
           { text: "Início", link: "https://ralphengine.com/pt-br/" },
           { text: "Docs", link: "/pt-br/" },
           { text: "Plugins", link: "https://ralphengine.com/pt-br/plugins/" },
-          { text: "Roadmap", link: "/pt-br/development/roadmap" },
           { text: `Última ${releaseTag}`, link: releaseUrl },
           { text: "GitHub", link: "https://github.com/diegorodrigo90/ralph-engine" },
         ],
@@ -184,8 +176,6 @@ export default defineConfig({
           building: "Compilação",
           codingStandards: "Padrões de código",
           releasing: "Releases",
-          roadmap: "Roadmap",
-          backlog: "Backlog",
         }),
         editLink: {
           pattern:
