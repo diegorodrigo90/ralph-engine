@@ -5,99 +5,99 @@ description: "Instale o Ralph Engine na sua máquina"
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-O Ralph Engine é instalado a partir do código-fonte. A distribuição por npm e Homebrew está preparada, mas intencionalmente desabilitada até o pipeline de release estar totalmente validado.
-
-## Pré-requisitos
-
-- Git
-- Rust 1.91.1 (fixado via `rust-toolchain.toml`)
-- Node.js 20.19.0 (fixado via `.tool-versions`)
-
-## Instalação pelo Código-Fonte
-
-Clone o repositório:
-
-```bash
-git clone https://github.com/diegorodrigo90/ralph-engine.git
-```
-
-Execute o script de bootstrap:
-
-```bash
-cd ralph-engine && ./scripts/bootstrap-dev.sh
-```
-
-Confirme que o binário da CLI compila e executa:
-
-```bash
-cargo run -p re-cli -- --version
-```
-
-### O que o bootstrap-dev.sh faz
-
-O script de bootstrap prepara o ambiente local de desenvolvimento em um único passo:
-
-1. **Sincronização de toolchain** — executa `asdf install` se o asdf estiver disponível com os plugins de rust e nodejs, garantindo que você tenha exatamente as versões fixadas em `.tool-versions` e `rust-toolchain.toml`.
-2. **Dependências Node** — executa `npm ci` na raiz e dentro do diretório `site/`.
-3. **Ferramentas de desenvolvimento** — executa `scripts/install-dev-tools.sh` para instalar as ferramentas Cargo necessárias (cargo-llvm-cov, cargo-deny, cargo-audit, etc.).
-4. **Git hooks** — executa `lefthook install` para configurar hooks de pre-commit e pre-push.
-
-Se o asdf não estiver instalado, o script continua com qualquer toolchain que já esteja no seu PATH.
-
-## Verificar a Instalação
-
-Exiba a ajuda da CLI:
-
-```bash
-cargo run -p re-cli -- --help
-```
-
-Exiba a ajuda em português:
-
-```bash
-cargo run -p re-cli -- --locale pt-br --help
-```
-
-Execute o contrato completo de validação local:
-
-```bash
-./scripts/validate.sh --mode local
-```
-
-Execute a suíte completa de testes:
-
-```bash
-cargo test --workspace --all-targets
-```
-
-## Canais de Distribuição
-
-Estes canais estão preparados e serão habilitados quando o pipeline de release estiver totalmente conectado.
+## Instalar
 
 <Tabs syncKey="pkg">
-  <TabItem label="Cargo">
-    ```bash
-    cargo install ralph-engine
-    ```
-    Método principal. Compila a partir do código-fonte.
-  </TabItem>
   <TabItem label="npm">
+    Instalar globalmente:
+
     ```bash
     npm install -g ralph-engine
     ```
-    Binário pré-compilado via npm. Também funciona com `pnpm add -g ralph-engine` ou `yarn global add ralph-engine`.
+
+    Ou executar sem instalar:
+
+    ```bash
+    npx ralph-engine --help
+    ```
+
+    Também funciona com pnpm e yarn:
+
+    ```bash
+    pnpm add -g ralph-engine
+    ```
+
+    ```bash
+    yarn global add ralph-engine
+    ```
   </TabItem>
   <TabItem label="Homebrew">
     ```bash
     brew install ralph-engine
     ```
-    macOS e Linux via Homebrew tap.
+  </TabItem>
+  <TabItem label="Cargo">
+    Compila a partir do código-fonte (requer Rust):
+
+    ```bash
+    cargo install ralph-engine
+    ```
   </TabItem>
 </Tabs>
 
+:::note
+Todos os 8 plugins oficiais já vêm incluídos. Nenhuma instalação adicional necessária.
+:::
+
+## Verificar
+
+Confirme que a CLI está disponível:
+
+```bash
+ralph-engine --version
+```
+
+Exiba os comandos disponíveis:
+
+```bash
+ralph-engine --help
+```
+
+Mude para português:
+
+```bash
+ralph-engine --locale pt-br --help
+```
+
+Execute uma verificação de saúde no seu projeto:
+
+```bash
+ralph-engine doctor
+```
+
+## Compilar a partir do Código-Fonte
+
+Se preferir compilar o binário manualmente:
+
+```bash
+git clone https://github.com/diegorodrigo90/ralph-engine.git
+```
+
+```bash
+cd ralph-engine && ./scripts/bootstrap-dev.sh
+```
+
+```bash
+cargo build --workspace --release
+```
+
+O binário estará em `target/release/ralph-engine`.
+
+## Status dos Canais
+
 | Canal | Status |
 |-------|--------|
-| **Código-fonte** | Disponível (método principal) |
-| **GitHub Releases** | Infraestrutura pronta, desabilitado |
-| **npm** | Pacote preparado, publicação desabilitada |
-| **Homebrew** | Fórmula preparada, tap desabilitado |
+| **npm** | Pacote preparado, publicação pendente |
+| **Homebrew** | Fórmula preparada, tap pendente |
+| **Cargo** | Disponível (compila do código-fonte) |
+| **GitHub Releases** | Infraestrutura pronta, pendente |

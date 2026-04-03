@@ -45,9 +45,23 @@
   --sl-color-black: #0b1120;
 }
 
-/* ── Code blocks ── */
+/* ── Code blocks — always dark theme ── */
 pre {
   border-radius: 12px;
+}
+
+/* Force dark background on code blocks even in light mode */
+.expressive-code,
+.expressive-code .frame {
+  --ec-codeBg: #0f172a !important;
+  --ec-codeColor: #e2e8f0 !important;
+  --ec-brdCol: #1e293b !important;
+  --ec-frm-edBg: #0f172a !important;
+  --ec-frm-edActTabBg: #1e293b !important;
+  --ec-frm-edActTabBrdCol: #334155 !important;
+  --ec-frm-edTabBarBg: #0b1120 !important;
+  --ec-frm-tooltipBg: #1e293b !important;
+  --ec-frm-tooltipColor: #e2e8f0 !important;
 }
 
 /* ── Table styling ── */
