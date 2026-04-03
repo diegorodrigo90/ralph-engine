@@ -19,6 +19,16 @@ const currentPath = Astro.url.pathname.replace('/pt-br', '') || '/';
       <span class="nav-logo-text">Ralph Engine</span>
     </a>
 
+    <div class="nav-search">
+      <button class="search-trigger" aria-label="Search" type="button" id="search-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <span class="search-label">Search plugins and docs...</span>
+        <kbd class="search-kbd" id="search-shortcut"></kbd>
+      </button>
+    </div>
+
     <nav class="nav-desktop" aria-label="Main navigation">
       <ul class="nav-links">
         <li><a href={localePath(lang, '/plugins/')}>{t(lang, 'nav.plugins')}</a></li>
@@ -32,16 +42,6 @@ const currentPath = Astro.url.pathname.replace('/pt-br', '') || '/';
         </li>
       </ul>
     </nav>
-
-    <div class="nav-search">
-      <button class="search-trigger" aria-label="Search" type="button" id="search-btn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-        </svg>
-        <span class="search-label">Search plugins and docs...</span>
-        <kbd class="search-kbd" id="search-shortcut"></kbd>
-      </button>
-    </div>
 
     <div class="nav-actions">
       <a href={localePath(altLang, currentPath)} class="locale-switch" aria-label={`Switch to ${altLabel}`}>
