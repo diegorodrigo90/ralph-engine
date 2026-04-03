@@ -4,6 +4,44 @@ use std::fmt;
 
 mod i18n;
 
+/// Generates an enum with `as_str()` and `Display` from a single declaration.
+macro_rules! define_mcp_enum {
+    (
+        $(#[$meta:meta])*
+        pub enum $name:ident {
+            $(
+                $(#[$variant_meta:meta])*
+                $variant:ident => $str_val:literal
+            ),+ $(,)?
+        }
+    ) => {
+        $(#[$meta])*
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        pub enum $name {
+            $(
+                $(#[$variant_meta])*
+                $variant,
+            )+
+        }
+
+        impl $name {
+            /// Returns the stable string identifier for this variant.
+            #[must_use]
+            pub const fn as_str(self) -> &'static str {
+                match self {
+                    $(Self::$variant => $str_val,)+
+                }
+            }
+        }
+
+        impl fmt::Display for $name {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str(self.as_str())
+            }
+        }
+    };
+}
+
 /// One localized MCP text entry.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct McpLocalizedText {
@@ -34,99 +72,43 @@ fn resolve_localized_text<'a>(
         .map_or(fallback, |entry| entry.value)
 }
 
-/// Supported MCP transport kinds.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum McpTransport {
-    /// Standard I/O transport.
-    Stdio,
-}
-
-impl fmt::Display for McpTransport {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::Stdio => f.write_str("stdio"),
-        }
+define_mcp_enum! {
+    /// Supported MCP transport kinds.
+    pub enum McpTransport {
+        /// Standard I/O transport.
+        Stdio => "stdio",
     }
 }
 
-/// Supported MCP process models.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum McpProcessModel {
-    /// The plugin manages the server process internally.
-    PluginManaged,
-    /// The server runs as an external binary or service.
-    ExternalBinary,
-}
-
-impl McpProcessModel {
-    /// Returns the stable process model identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::PluginManaged => "plugin_managed",
-            Self::ExternalBinary => "external_binary",
-        }
+define_mcp_enum! {
+    /// Supported MCP process models.
+    pub enum McpProcessModel {
+        /// The plugin manages the server process internally.
+        PluginManaged => "plugin_managed",
+        /// The server runs as an external binary or service.
+        ExternalBinary => "external_binary",
     }
 }
 
-impl fmt::Display for McpProcessModel {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
+define_mcp_enum! {
+    /// Supported MCP working-directory policies.
+    pub enum McpWorkingDirectoryPolicy {
+        /// The runtime chooses the working directory internally.
+        RuntimeManaged => "runtime_managed",
+        /// The server expects the current project root as working directory.
+        ProjectRoot => "project_root",
+        /// The server expects the owning plugin workspace as working directory.
+        PluginWorkspace => "plugin_workspace",
     }
 }
 
-/// Supported MCP working-directory policies.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum McpWorkingDirectoryPolicy {
-    /// The runtime chooses the working directory internally.
-    RuntimeManaged,
-    /// The server expects the current project root as working directory.
-    ProjectRoot,
-    /// The server expects the owning plugin workspace as working directory.
-    PluginWorkspace,
-}
-
-impl McpWorkingDirectoryPolicy {
-    /// Returns the stable working-directory policy identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::RuntimeManaged => "runtime_managed",
-            Self::ProjectRoot => "project_root",
-            Self::PluginWorkspace => "plugin_workspace",
-        }
-    }
-}
-
-impl fmt::Display for McpWorkingDirectoryPolicy {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-/// Supported MCP environment policies.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum McpEnvironmentPolicy {
-    /// The runtime passes a minimal inherited environment.
-    MinimalRuntime,
-    /// The runtime passes plugin-scoped environment variables.
-    PluginScoped,
-}
-
-impl McpEnvironmentPolicy {
-    /// Returns the stable environment policy identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::MinimalRuntime => "minimal_runtime",
-            Self::PluginScoped => "plugin_scoped",
-        }
-    }
-}
-
-impl fmt::Display for McpEnvironmentPolicy {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
+define_mcp_enum! {
+    /// Supported MCP environment policies.
+    pub enum McpEnvironmentPolicy {
+        /// The runtime passes a minimal inherited environment.
+        MinimalRuntime => "minimal_runtime",
+        /// The runtime passes plugin-scoped environment variables.
+        PluginScoped => "plugin_scoped",
     }
 }
 
@@ -221,29 +203,13 @@ impl fmt::Display for McpLaunchPolicy {
     }
 }
 
-/// Supported MCP availability policies.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum McpAvailability {
-    /// The server may be started on demand by the runtime.
-    OnDemand,
-    /// The server requires explicit operator opt-in before activation.
-    ExplicitOptIn,
-}
-
-impl McpAvailability {
-    /// Returns the stable availability identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::OnDemand => "on_demand",
-            Self::ExplicitOptIn => "explicit_opt_in",
-        }
-    }
-}
-
-impl fmt::Display for McpAvailability {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
+define_mcp_enum! {
+    /// Supported MCP availability policies.
+    pub enum McpAvailability {
+        /// The server may be started on demand by the runtime.
+        OnDemand => "on_demand",
+        /// The server requires explicit operator opt-in before activation.
+        ExplicitOptIn => "explicit_opt_in",
     }
 }
 
