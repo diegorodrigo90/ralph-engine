@@ -3,49 +3,100 @@ title: "Solução de problemas"
 description: "Problemas comuns ao usar o Ralph Engine e como resolvê-los"
 ---
 
-## Desalinhamento de Toolchain
+## ralph-engine: command not found
 
-Se as versões de Rust ou Node estiverem desalinhadas com os pins do repositório, resincronize com o asdf:
-
-```bash
-asdf install
-```
-
-Depois re-execute o script de bootstrap:
+A CLI não está no seu PATH. Reinstale ou verifique o método de instalação:
 
 ```bash
-./scripts/bootstrap-dev.sh
+npm list -g ralph-engine
 ```
 
-## Falhas de Validação
-
-Execute o contrato completo de validação local para identificar o que está quebrado:
+Se instalou via Cargo:
 
 ```bash
-./scripts/validate.sh --mode local
+which ralph-engine
 ```
 
-## SonarCloud Falha em `Create analysis`
+Certifique-se de que `~/.cargo/bin` (Cargo) ou o diretório global do npm está no seu `PATH`.
 
-Se o job do SonarCloud falhar durante `Create analysis` com um `404` de `api.sonarcloud.io`, trate isso primeiro como um problema de token ou permissão.
+## doctor reporta problemas
 
-### Checklist
+Execute o comando doctor para ver o que precisa de atenção:
 
-- Confirme que o secret `SONAR_TOKEN` existe no GitHub.
-- Confirme que o token ainda pertence à conta ou organização esperada no SonarCloud.
-- Confirme que o token consegue navegar no projeto.
-- Confirme que o token consegue executar análise no projeto.
+```bash
+ralph-engine doctor
+```
 
-### Como a CI Trata o SonarCloud
+Para gerar automaticamente uma configuração corrigida:
 
-O workflow da CI roda um preflight do SonarCloud antes das etapas de coverage e scan para que esse tipo de falha apareça mais cedo e com uma mensagem mais clara.
+```bash
+ralph-engine doctor apply-config .ralph-engine/config.yaml
+```
 
-O workflow resolve a chave do projeto e a organização a partir de `sonar-project.properties` antes do scan e repassa esses valores explicitamente ao scanner. Isso mantém a entrada do scan visível no log do job e remove ambiguidade sobre qual projeto do SonarCloud o workflow está analisando.
+## Plugin não encontrado
 
-### Fluxo de Artefatos de Coverage
+Se um comando diz que o plugin não existe:
 
-A coverage é gerada uma vez em `Quality (ubuntu-latest)`, publicada como artefato de curta duração e reutilizada pelo job do SonarCloud. Se o SonarCloud reportar ausência do arquivo de coverage, inspecione primeiro o job anterior de qualidade no Ubuntu antes de investigar o step de scan.
+```bash
+ralph-engine plugins list
+```
 
-### Quality Gate de Coverage
+Verifique se o ID do plugin está correto (ex: `official.claude`, não apenas `claude`).
 
-Se o SonarCloud falhar porque o quality gate de coverage ficou abaixo de `100%`, trate isso como um bloqueio real de release, não como um desencontro de documentação. O contrato do repositório exige que os artefatos reutilizáveis de release só sejam aprovados depois de o gate configurado do SonarCloud passar por completo.
+## Servidor MCP não disponível
+
+Verifique o status de todos os servidores MCP:
+
+```bash
+ralph-engine mcp status
+```
+
+Para um servidor específico:
+
+```bash
+ralph-engine mcp status <server-id>
+```
+
+Se um servidor SpawnProcess está indisponível, o binário necessário pode não estar no seu PATH.
+
+## Configuração não carrega
+
+Verifique se o arquivo de configuração existe e é válido:
+
+```bash
+ralph-engine config show-defaults
+```
+
+```bash
+ralph-engine config layers
+```
+
+Confirme que `.ralph-engine/config.yaml` existe na raiz do seu projeto.
+
+## Idioma errado
+
+A CLI respeita o locale nesta ordem:
+1. Flag `--locale` (ex: `--locale pt-br`)
+2. Variável de ambiente `RALPH_ENGINE_LOCALE`
+3. Locale do sistema (`LC_ALL`, `LC_MESSAGES`, `LANG`)
+4. Inglês (padrão)
+
+Para forçar português:
+
+```bash
+ralph-engine --locale pt-br --help
+```
+
+## Problemas no runtime
+
+Liste todos os problemas não resolvidos detectados pelo runtime:
+
+```bash
+ralph-engine runtime issues
+```
+
+Veja o plano de remediação:
+
+```bash
+ralph-engine runtime plan
+```
