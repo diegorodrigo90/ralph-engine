@@ -11,6 +11,7 @@ trust_level: official
 plugin_version: 0.2.0-alpha.1
 plugin_api_version: 1.0.0
 engine_version: ">=0.2.0-alpha.1"
+runtime: true
 capabilities:
   - template
   - prompt_fragments

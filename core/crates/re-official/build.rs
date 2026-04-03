@@ -63,6 +63,7 @@ struct PluginInfo {
     has_providers: bool,
     has_policies: bool,
     has_mcp_servers: bool,
+    has_runtime: bool,
 }
 
 fn parse_manifest(manifest: &str, rust_mod: &str) -> PluginInfo {
@@ -79,6 +80,7 @@ fn parse_manifest(manifest: &str, rust_mod: &str) -> PluginInfo {
             || manifest.contains("remote_control"),
         has_policies: manifest.contains("\npolicies:"),
         has_mcp_servers: manifest.contains("mcp_contribution"),
+        has_runtime: manifest.contains("\nruntime: true") || manifest.contains("\nruntime:true"),
     }
 }
 
@@ -141,6 +143,25 @@ fn generate_registration(plugins: &BTreeMap<String, PluginInfo>) -> String {
         ));
     }
 
-    code.push_str("    ]\n}\n");
+    code.push_str("    ]\n}\n\n");
+
+    // Generate official_plugin_runtime() lookup function
+    code.push_str(
+        "/// Returns a boxed `PluginRuntime` for one official plugin, if it provides one.\n\
+         #[must_use]\n\
+         pub fn official_plugin_runtime(plugin_id: &str) -> Option<Box<dyn re_plugin::PluginRuntime>> {\n\
+         \x20   match plugin_id {\n",
+    );
+
+    for info in plugins.values() {
+        if info.has_runtime {
+            let m = &info.rust_mod;
+            code.push_str(&format!(
+                "        {m}::PLUGIN_ID => Some(Box::new({m}::runtime())),\n",
+            ));
+        }
+    }
+
+    code.push_str("        _ => None,\n    }\n}\n");
     code
 }

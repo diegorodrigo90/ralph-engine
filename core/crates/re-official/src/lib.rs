@@ -1080,4 +1080,29 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn runtime_registry_returns_bmad_runtime() {
+        let runtime = super::official_plugin_runtime("official.bmad");
+        assert!(runtime.is_some());
+        let rt = runtime.into_iter().next();
+        assert!(rt.is_some());
+    }
+
+    #[test]
+    fn runtime_registry_returns_tdd_strict_runtime() {
+        let runtime = super::official_plugin_runtime("official.tdd-strict");
+        assert!(runtime.is_some());
+    }
+
+    #[test]
+    fn runtime_registry_returns_none_for_plugin_without_runtime() {
+        assert!(super::official_plugin_runtime("official.basic").is_none());
+        assert!(super::official_plugin_runtime("official.ssh").is_none());
+    }
+
+    #[test]
+    fn runtime_registry_returns_none_for_unknown_plugin() {
+        assert!(super::official_plugin_runtime("nonexistent.plugin").is_none());
+    }
 }
