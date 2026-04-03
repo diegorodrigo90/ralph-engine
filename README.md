@@ -44,8 +44,7 @@ Current public install channels are being wired through the hardened release pip
 
 - `core/` — Rust crates for the runtime and CLI
 - `plugins/official/` — Rust-first official plugins
-- `docs/` — VitePress documentation
-- `site/` — public web surfaces, shared UI, and plugin metadata
+- `site/` — Astro + Starlight website, docs (EN + PT-BR), plugin catalog, and shared UI
 - `packaging/` — npm and Homebrew packaging surfaces
 - `tools/create-ralph-engine/` — plugin scaffolder (`npx create-ralph-engine-plugin`)
 - `scripts/` — shared bootstrap, validation, and release scripts
