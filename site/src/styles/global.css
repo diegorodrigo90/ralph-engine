@@ -393,6 +393,74 @@ h3 { font-size: 1.25rem; }
   --pagefind-ui-font: var(--re-font-sans);
 }
 
+/* Pagefind result cards — full area clickable, bigger hit target */
+.pagefind-ui__result {
+  padding: var(--re-space-4) !important;
+  border: 1px solid var(--re-border) !important;
+  border-radius: var(--re-radius-md) !important;
+  margin-bottom: var(--re-space-2) !important;
+  transition: border-color 0.15s, background 0.15s;
+  cursor: pointer;
+}
+
+.pagefind-ui__result:hover {
+  border-color: var(--re-brand-400) !important;
+  background: var(--re-bg-soft) !important;
+}
+
+.pagefind-ui__result-link {
+  font-weight: 600 !important;
+  font-size: 1rem !important;
+}
+
+.pagefind-ui__result-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.pagefind-ui__result {
+  position: relative;
+}
+
+/* Search input — larger, more prominent */
+.pagefind-ui__search-input {
+  font-size: 1rem !important;
+  padding: 12px 16px 12px 44px !important;
+  border-radius: var(--re-radius-md) !important;
+}
+
+.pagefind-ui__search-clear {
+  border-radius: var(--re-radius-sm) !important;
+}
+
+/* Tag results by URL path */
+.pagefind-ui__result-link[href*="/plugins/"]::before {
+  content: 'Plugin';
+  display: inline-block;
+  margin-right: 8px;
+  padding: 2px 8px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: var(--re-kind-agent-soft, rgba(167, 139, 250, 0.1));
+  color: var(--re-kind-agent, #a78bfa);
+  border-radius: var(--re-radius-full);
+  vertical-align: middle;
+}
+
+.pagefind-ui__result-link[href*="/docs/"]::before {
+  content: 'Docs';
+  display: inline-block;
+  margin-right: 8px;
+  padding: 2px 8px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  background: var(--re-kind-mcp-soft, rgba(52, 211, 153, 0.1));
+  color: var(--re-kind-mcp, #34d399);
+  border-radius: var(--re-radius-full);
+  vertical-align: middle;
+}
+
 /* Focus */
 :focus-visible {
   outline: 2px solid var(--re-brand-500);
