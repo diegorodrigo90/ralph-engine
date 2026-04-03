@@ -30,6 +30,7 @@ pub fn render_official_runtime_patched_config() -> String {
 /// canonical runtime remediation patch.
 #[must_use]
 pub fn official_runtime_patched_config() -> OwnedProjectConfig {
+    #[allow(clippy::redundant_closure_for_method_calls)]
     with_official_runtime_snapshot(|runtime| runtime.patched_config())
 }
 
