@@ -47,6 +47,28 @@ The repository contract is enforced through:
 - `./scripts/validate.sh --mode local`
 - `./scripts/validate-ci-local.sh`
 
+## How to add a new locale
+
+1. Add a variant to `SupportedLocale` in `core/crates/re-config/src/lib.rs`
+   (enum variant, `as_str`, `descriptor`, `parse_supported_locale`, `parse_os_locale`)
+2. Create `locales/{locale}.toml` in each crate (copy `en.toml` and translate):
+   - 4 core crates: `re-mcp`, `re-plugin`, `re-core`, `re-cli`
+   - 8 plugins: `basic`, `bmad`, `claude`, `claudebox`, `codex`, `github`, `ssh`, `tdd-strict`
+3. For `re-core` and `re-cli` only: create `src/i18n/fn_{locale}.rs` (copy `fn_en.rs`, translate)
+4. Run `cargo build` — missing keys cause build failures automatically
+
+The `scripts/add-locale.sh` helper lists all files that need to be created.
+
+## How to add a new official plugin
+
+1. Create the plugin crate in `plugins/official/{name}/` with:
+   - `Cargo.toml`, `src/lib.rs`, `manifest.yaml`, `locales/en.toml`, `locales/pt-br.toml`, `build.rs`
+2. Add `"plugins/official/{name}"` to workspace `members` in root `Cargo.toml`
+3. Add `re-plugin-{name} = { path = "...", version = "..." }` to `core/crates/re-official/Cargo.toml`
+4. Run `cargo build` — the plugin is auto-registered from its `manifest.yaml`
+
+No manual editing of `re-official/src/lib.rs` needed.
+
 ## Commit messages
 
 Conventional Commits are mandatory.
