@@ -1136,4 +1136,30 @@ mod tests {
         assert!(find_official_policy_contribution("official.tdd-strict.guardrails").is_some());
         assert_eq!(find_official_policy_contribution("fixture.missing"), None);
     }
+
+    #[test]
+    fn all_official_plugins_pass_validation() {
+        for plugin in official_plugins() {
+            let errors = plugin.validate();
+            assert!(
+                errors.is_empty(),
+                "Plugin '{}' failed validation: {:?}",
+                plugin.id,
+                errors
+            );
+        }
+    }
+
+    #[test]
+    fn all_official_plugins_are_api_compatible() {
+        for plugin in official_plugins() {
+            assert!(
+                plugin.is_api_compatible(),
+                "Plugin '{}' has api_version {} but runtime supports {}",
+                plugin.id,
+                plugin.plugin_api_version,
+                re_plugin::CURRENT_PLUGIN_API_VERSION
+            );
+        }
+    }
 }

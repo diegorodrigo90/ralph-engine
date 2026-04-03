@@ -985,6 +985,43 @@ impl PluginDescriptor {
         self.plugin_api_version <= CURRENT_PLUGIN_API_VERSION
     }
 
+    /// Validates all plugin descriptor invariants.
+    ///
+    /// Returns a list of human-readable validation errors. An empty list means
+    /// the descriptor is valid. This is used for plugin isolation — invalid
+    /// plugins are excluded from the runtime instead of crashing.
+    #[must_use]
+    pub fn validate(&self) -> Vec<String> {
+        let mut errors = Vec::new();
+
+        if self.id.is_empty() {
+            errors.push("plugin id must not be empty".to_owned());
+        }
+        if !self.id.contains('.') {
+            errors.push(format!(
+                "plugin id '{}' must use a namespace prefix (e.g., 'official.name')",
+                self.id
+            ));
+        }
+        if self.name.is_empty() {
+            errors.push("plugin name must not be empty".to_owned());
+        }
+        if self.version.is_empty() {
+            errors.push("plugin version must not be empty".to_owned());
+        }
+        if !self.is_api_compatible() {
+            errors.push(format!(
+                "plugin api version {} exceeds runtime version {}",
+                self.plugin_api_version, CURRENT_PLUGIN_API_VERSION
+            ));
+        }
+        if self.capabilities.is_empty() && self.runtime_hooks.is_empty() {
+            errors.push("plugin must declare at least one capability or runtime hook".to_owned());
+        }
+
+        errors
+    }
+
     /// Returns whether the plugin identifier uses a namespace prefix.
     #[must_use]
     pub fn is_namespaced(&self) -> bool {
