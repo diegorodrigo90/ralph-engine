@@ -93,6 +93,7 @@ dependencies = [
 name = "re-official"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-build-utils",
  "re-config",
  "re-core",
  "re-mcp",
@@ -105,6 +106,7 @@ dependencies = [
  "re-plugin-github",
  "re-plugin-ssh",
  "re-plugin-tdd-strict",
+ "toml",
 ]
 
 [[package]]
