@@ -1,6 +1,6 @@
 ---
 title: "Arquitetura"
-description: "Arquitetura interna e decisoes de design"
+description: "Arquitetura interna e decisões de design"
 ---
 
 

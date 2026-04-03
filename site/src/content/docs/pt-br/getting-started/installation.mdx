@@ -1,8 +1,9 @@
 ---
-title: "Instalacao"
-description: "Como instalar o Ralph Engine a partir do codigo-fonte"
+title: "Instalação"
+description: "Como instalar o Ralph Engine a partir do código-fonte"
 ---
 
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 O Ralph Engine é instalado a partir do código-fonte. A distribuição por npm e Homebrew está preparada, mas intencionalmente desabilitada até o pipeline de release estar totalmente validado.
 
@@ -41,11 +42,32 @@ cargo test --workspace --all-targets
 
 ## Canais de Distribuição
 
-Estes canais estão preparados e serão habilitados quando o pipeline de release estiver totalmente conectado:
+Estes canais estão preparados e serão habilitados quando o pipeline de release estiver totalmente conectado.
+
+<Tabs syncKey="pkg">
+  <TabItem label="Cargo">
+    ```bash
+    cargo install ralph-engine
+    ```
+    Método principal. Compila a partir do código-fonte.
+  </TabItem>
+  <TabItem label="npm">
+    ```bash
+    npm install -g ralph-engine
+    ```
+    Binário pré-compilado via npm. Também funciona com `pnpm add -g ralph-engine` ou `yarn global add ralph-engine`.
+  </TabItem>
+  <TabItem label="Homebrew">
+    ```bash
+    brew install ralph-engine
+    ```
+    macOS e Linux via Homebrew tap.
+  </TabItem>
+</Tabs>
 
 | Canal | Status |
 |-------|--------|
 | **Código-fonte** | Disponível (método principal) |
 | **GitHub Releases** | Infraestrutura pronta, desabilitado |
 | **npm** | Pacote preparado, publicação desabilitada |
-| **Homebrew** | Formula preparada, tap desabilitado |
+| **Homebrew** | Fórmula preparada, tap desabilitado |

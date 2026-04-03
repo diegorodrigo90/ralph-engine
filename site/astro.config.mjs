@@ -24,7 +24,7 @@ export default defineConfig({
           lang: 'en',
         },
         'pt-br': {
-          label: 'Portugues (Brasil)',
+          label: 'Português (Brasil)',
           lang: 'pt-BR',
         },
       },
@@ -36,12 +36,12 @@ export default defineConfig({
             {
               slug: 'getting-started/installation',
               label: 'Installation',
-              translations: { 'pt-BR': 'Instalacao' },
+              translations: { 'pt-BR': 'Instalação' },
             },
             {
               slug: 'getting-started/quickstart',
               label: 'Quick Start',
-              translations: { 'pt-BR': 'Inicio rapido' },
+              translations: { 'pt-BR': 'Início rápido' },
             },
           ],
         },
@@ -52,7 +52,7 @@ export default defineConfig({
             {
               slug: 'guides/configuration',
               label: 'Configuration',
-              translations: { 'pt-BR': 'Configuracao' },
+              translations: { 'pt-BR': 'Configuração' },
             },
             {
               slug: 'guides/hooks',
@@ -61,18 +61,18 @@ export default defineConfig({
             {
               slug: 'guides/plugins',
               label: 'Extending',
-              translations: { 'pt-BR': 'Extensoes' },
+              translations: { 'pt-BR': 'Extensões' },
             },
             {
               slug: 'guides/troubleshooting',
               label: 'Troubleshooting',
-              translations: { 'pt-BR': 'Solucao de problemas' },
+              translations: { 'pt-BR': 'Solução de problemas' },
             },
           ],
         },
         {
           label: 'Reference',
-          translations: { 'pt-BR': 'Referencia' },
+          translations: { 'pt-BR': 'Referência' },
           items: [
             {
               slug: 'reference/cli',
@@ -82,7 +82,7 @@ export default defineConfig({
             {
               slug: 'reference/config',
               label: 'Config Reference',
-              translations: { 'pt-BR': 'Referencia de config' },
+              translations: { 'pt-BR': 'Referência de config' },
             },
             {
               slug: 'reference/architecture',
@@ -102,17 +102,17 @@ export default defineConfig({
             {
               slug: 'development/building',
               label: 'Building',
-              translations: { 'pt-BR': 'Compilacao' },
+              translations: { 'pt-BR': 'Compilação' },
             },
             {
               slug: 'development/coding-standards',
               label: 'Coding Standards',
-              translations: { 'pt-BR': 'Padroes de codigo' },
+              translations: { 'pt-BR': 'Padrões de código' },
             },
             {
               slug: 'development/releasing',
               label: 'Releasing',
-              translations: { 'pt-BR': 'Publicacao' },
+              translations: { 'pt-BR': 'Publicação' },
             },
           ],
         },

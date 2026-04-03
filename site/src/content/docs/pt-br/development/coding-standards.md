@@ -1,6 +1,6 @@
 ---
-title: "Padroes de codigo"
-description: "Estilo de codigo e diretrizes de contribuicao"
+title: "Padrões de código"
+description: "Estilo de código e diretrizes de contribuição"
 ---
 
 

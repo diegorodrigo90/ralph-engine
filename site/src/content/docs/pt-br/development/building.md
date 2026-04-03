@@ -1,6 +1,6 @@
 ---
-title: "Compilacao"
-description: "Compile o projeto a partir do codigo-fonte"
+title: "Compilação"
+description: "Compile o projeto a partir do código-fonte"
 ---
 
 

@@ -1,6 +1,6 @@
 ---
 title: "Comandos CLI"
-description: "Referencia completa de comandos CLI"
+description: "Referência completa de comandos CLI"
 ---
 
 
