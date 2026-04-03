@@ -6,6 +6,20 @@ display_name_locales:
 summary: GitHub data, context, forge, and MCP integration.
 summary_locales:
   pt-br: Integração de dados, contexto, forge e MCP do GitHub.
+description: >
+  Comprehensive GitHub integration for Ralph Engine. Provides three typed
+  providers: a data source for repository metadata (issues, PRs, branches),
+  a context provider for CI status and workflow information, and a forge
+  provider for automating GitHub operations (create PRs, manage releases).
+  Also contributes an MCP server for direct GitHub API access from agent sessions.
+description_locales:
+  pt-br: >
+    Integração completa do GitHub para o Ralph Engine. Fornece três provedores
+    tipados: fonte de dados para metadados do repositório (issues, PRs, branches),
+    provedor de contexto para status de CI e informações de workflow, e provedor
+    forge para automatizar operações no GitHub (criar PRs, gerenciar releases).
+    Também contribui um servidor MCP para acesso direto à API do GitHub a partir
+    de sessões de agente.
 publisher: official
 trust_level: official
 plugin_version: 0.2.0-alpha.1

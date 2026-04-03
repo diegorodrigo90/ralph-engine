@@ -6,6 +6,19 @@ display_name_locales:
 summary: SSH remote control integration.
 summary_locales:
   pt-br: Integração de controle remoto por SSH.
+description: >
+  Enables remote command execution over SSH for Ralph Engine workflows.
+  Provides a typed remote control provider that can execute commands on remote
+  hosts, transfer files, and manage remote environments. Useful for deployment
+  workflows, DevContainer integration, and multi-machine development setups
+  where the agent needs to operate across host boundaries.
+description_locales:
+  pt-br: >
+    Habilita execução remota de comandos via SSH para workflows do Ralph Engine.
+    Fornece um provedor de controle remoto tipado que pode executar comandos em
+    hosts remotos, transferir arquivos e gerenciar ambientes remotos. Útil para
+    workflows de deploy, integração com DevContainer e setups de desenvolvimento
+    multi-máquina onde o agente precisa operar além das fronteiras do host.
 publisher: official
 trust_level: official
 plugin_version: 0.2.0-alpha.1

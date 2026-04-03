@@ -26,25 +26,25 @@ const { lang } = Astro.props;
             <label for="hi-brew" role="tab">Homebrew</label>
           </div>
           <div class="tab-panel">
-            <div class="code-block install-block">
+            <div class="dark-cmd">
               <code>cargo install ralph-engine</code>
-              <button class="copy-btn" aria-label="Copy" type="button" data-copy="cargo install ralph-engine">
+              <button class="copy-btn copy-btn-dark" aria-label="Copy" type="button" data-copy="cargo install ralph-engine">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
               </button>
             </div>
           </div>
           <div class="tab-panel">
-            <div class="code-block install-block">
+            <div class="dark-cmd">
               <code>npm install -g ralph-engine</code>
-              <button class="copy-btn" aria-label="Copy" type="button" data-copy="npm install -g ralph-engine">
+              <button class="copy-btn copy-btn-dark" aria-label="Copy" type="button" data-copy="npm install -g ralph-engine">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
               </button>
             </div>
           </div>
           <div class="tab-panel">
-            <div class="code-block install-block">
+            <div class="dark-cmd">
               <code>brew install ralph-engine</code>
-              <button class="copy-btn" aria-label="Copy" type="button" data-copy="brew install ralph-engine">
+              <button class="copy-btn copy-btn-dark" aria-label="Copy" type="button" data-copy="brew install ralph-engine">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
               </button>
             </div>
@@ -113,13 +113,6 @@ const { lang } = Astro.props;
   .hero-install {
     margin-top: var(--re-space-8);
     max-width: 400px;
-  }
-
-  .install-block {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--re-space-2);
   }
 
   .copy-btn {

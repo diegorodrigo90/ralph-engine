@@ -28,6 +28,11 @@ function getSummary(p: any): string {
   return p.summary;
 }
 
+function getDescription(p: any): string {
+  if (lang !== 'en' && p.description_locales?.[lang]) return p.description_locales[lang];
+  return p.description || '';
+}
+
 function getSubName(item: any): string {
   if (lang !== 'en' && item.display_name_locales?.[lang]) return item.display_name_locales[lang];
   return item.display_name;
@@ -77,263 +82,276 @@ function buildDescription(p: any): string {
   return parts.length ? `${t(lang, 'plugin.ships')} ${parts.join(', ')}.` : '';
 }
 
-const allTags = [
-  plugin.kind,
-  plugin.trust_level,
-  ...(plugin.capabilities ?? []),
-].filter(Boolean);
-
+const capTags = (plugin.capabilities ?? []).filter(Boolean);
 const copyLabel = t(lang, 'plugin.copy');
 const copySvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+const docSections = plugin.docs?.locales?.[lang] ?? plugin.docs?.default ?? [];
 ---
 
 <section class="section not-content" data-pagefind-meta="type[content]:Plugin">
-  <div class="container detail-layout">
+  <div class="container">
 
     <a href={localePath(lang, '/plugins/')} class="back-link">&larr; {t(lang, 'plugin.back')}</a>
 
     {/* Header */}
     <div class="detail-header">
-      <div class="detail-icon" aria-hidden="true">
-        <PluginIcon iconUrl={plugin.iconUrl} kind={plugin.kind} size={28} />
+      <div class={`detail-icon kind-icon-${plugin.kind}`} aria-hidden="true">
+        <PluginIcon iconUrl={plugin.iconUrl} kind={plugin.kind} size={32} />
       </div>
       <div>
         <h1 class="detail-title">{getName(plugin)}</h1>
         <div class="detail-meta">
           <code>{plugin.id}</code>
-          <span class="pill pill-brand">{kindLabels[plugin.kind] ?? plugin.kind}</span>
         </div>
       </div>
     </div>
-
-    {/* Summary */}
-    <p class="detail-summary">{getSummary(plugin)}</p>
-    {buildDescription(plugin) && (
-      <p class="detail-ships">{buildDescription(plugin)}</p>
-    )}
 
     {/* Tags */}
     <div class="detail-tags">
-      {allTags.map((tag: string) => (
-        <span class="pill">{tag}</span>
-      ))}
+      <span class={`pill pill-${plugin.kind}`}>{kindLabels[plugin.kind] ?? plugin.kind}</span>
+      {plugin.trust_level === 'official' && <span class="pill pill-brand">{lang === 'pt-br' ? 'Oficial' : 'Official'}</span>}
+      {capTags.map((tag: string) => <span class="pill">{tag}</span>)}
       <span class="pill">v{plugin.plugin_version}</span>
-      <span class="pill">API {plugin.plugin_api_version}</span>
     </div>
 
-    {/* Install hero */}
-    <div class="install-hero">
-      <h2>{t(lang, 'plugin.install')}</h2>
-      <div class="install-grid">
-        <div class="install-option">
-          <span class="install-label">Cargo</span>
-          <div class="code-block install-cmd">
-            <code>cargo install ralph-engine</code>
-            <button class="copy-btn" type="button" data-copy="cargo install ralph-engine" aria-label={copyLabel}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-            </button>
+    <p class="detail-summary">{getSummary(plugin)}</p>
+
+    {/* ── Two-column layout: main (left) + sidebar (right) ── */}
+    <div class="detail-grid">
+
+      {/* ── Main content ── */}
+      <div class="detail-main">
+        {getDescription(plugin) && (
+          <p class="detail-description">{getDescription(plugin)}</p>
+        )}
+        {buildDescription(plugin) && (
+          <p class="detail-ships">{buildDescription(plugin)}</p>
+        )}
+
+        {/* README docs sections */}
+        {docSections.length > 0 && (
+          <div class="plugin-docs">
+            {docSections.map((section: any) => (
+              <div class="plugin-docs-section">
+                <h3>{section.heading}</h3>
+                <p>{section.body}</p>
+              </div>
+            ))}
           </div>
-        </div>
-        <div class="install-option">
-          <span class="install-label">npm</span>
-          <div class="code-block install-cmd">
-            <code>npm install -g ralph-engine</code>
-            <button class="copy-btn" type="button" data-copy="npm install -g ralph-engine" aria-label={copyLabel}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-            </button>
+        )}
+
+        {/* Sub-resources: Agents */}
+        {plugin.agents?.length > 0 && (
+          <div class="resource-section">
+            <h2>{t(lang, 'plugin.section.agents')}</h2>
+            <div class="resource-list">
+              {plugin.agents.map((agent: any) => (
+                <div class="card resource-card">
+                  <div class="resource-header">
+                    <h3>{getSubName(agent)}</h3>
+                    <code class="resource-id">{agent.id}</code>
+                  </div>
+                  <p>{getSubSummary(agent)}</p>
+                  <div class="dark-cmd">
+                    <code>ralph-engine agents launch {agent.id}</code>
+                    <button class="copy-btn" type="button" data-copy={`ralph-engine agents launch ${agent.id}`} aria-label={copyLabel} set:html={copySvg} />
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-        <div class="install-option">
-          <span class="install-label">Homebrew</span>
-          <div class="code-block install-cmd">
-            <code>brew install ralph-engine</code>
-            <button class="copy-btn" type="button" data-copy="brew install ralph-engine" aria-label={copyLabel}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-            </button>
+        )}
+
+        {/* Sub-resources: Templates */}
+        {plugin.templates?.length > 0 && (
+          <div class="resource-section">
+            <h2>{t(lang, 'plugin.section.templates')}</h2>
+            <div class="resource-list">
+              {plugin.templates.map((tpl: any) => (
+                <div class="card resource-card">
+                  <div class="resource-header">
+                    <h3>{getSubName(tpl)}</h3>
+                    <code class="resource-id">{tpl.id}</code>
+                  </div>
+                  <p>{getSubSummary(tpl)}</p>
+                  <div class="dark-cmd">
+                    <code>ralph-engine templates materialize {tpl.id} ./my-project</code>
+                    <button class="copy-btn" type="button" data-copy={`ralph-engine templates materialize ${tpl.id} ./my-project`} aria-label={copyLabel} set:html={copySvg} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Sub-resources: Providers */}
+        {plugin.providers?.length > 0 && (
+          <div class="resource-section">
+            <h2>{t(lang, 'plugin.section.providers')}</h2>
+            <div class="resource-list">
+              {plugin.providers.map((prov: any) => (
+                <div class="card resource-card">
+                  <div class="resource-header">
+                    <h3>{getSubName(prov)}</h3>
+                    <code class="resource-id">{prov.id}</code>
+                  </div>
+                  <p>{getSubSummary(prov)}</p>
+                  <span class={`pill pill-${plugin.kind}`}>{prov.kind}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Sub-resources: Checks */}
+        {plugin.checks?.length > 0 && (
+          <div class="resource-section">
+            <h2>{t(lang, 'plugin.section.checks')}</h2>
+            <div class="resource-list">
+              {plugin.checks.map((check: any) => (
+                <div class="card resource-card">
+                  <div class="resource-header">
+                    <h3>{getSubName(check)}</h3>
+                    <code class="resource-id">{check.id}</code>
+                  </div>
+                  <p>{getSubSummary(check)}</p>
+                  <div class="dark-cmd">
+                    <code>ralph-engine checks run {check.id}</code>
+                    <button class="copy-btn" type="button" data-copy={`ralph-engine checks run ${check.id}`} aria-label={copyLabel} set:html={copySvg} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Sub-resources: Policies */}
+        {plugin.policies?.length > 0 && (
+          <div class="resource-section">
+            <h2>{t(lang, 'plugin.section.policies')}</h2>
+            <div class="resource-list">
+              {plugin.policies.map((pol: any) => (
+                <div class="card resource-card">
+                  <div class="resource-header">
+                    <h3>{getSubName(pol)}</h3>
+                    <code class="resource-id">{pol.id}</code>
+                  </div>
+                  <p>{getSubSummary(pol)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Manifest terminal */}
+        <div class="resource-section">
+          <h2>manifest.yaml</h2>
+          <div class="terminal">
+            <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+            <div class="terminal-body">
+              <div class="terminal-prompt">cat plugins/official/{plugin.id.replace('official.', '')}/manifest.yaml</div>
+              <div class="terminal-output">
+                <div>id: {plugin.id}</div>
+                <div>kind: {plugin.kind}</div>
+                <div>display_name: {plugin.display_name}</div>
+                <div>summary: {plugin.summary}</div>
+                <div>publisher: {plugin.publisher}</div>
+                <div>trust_level: {plugin.trust_level}</div>
+                <div>plugin_version: {plugin.plugin_version}</div>
+                <div>runtime: {String(plugin.runtime)}</div>
+                <div>capabilities:</div>
+                {plugin.capabilities?.map((c: string) => <div>  - {c}</div>)}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      <p class="install-note" set:html={t(lang, 'plugin.install.note')} />
+
+      {/* ── Sidebar (sticky on desktop, top on mobile) ── */}
+      <aside class="detail-sidebar">
+
+        {/* Install tabs */}
+        <div class="sidebar-section">
+          <h2>{t(lang, 'plugin.install')}</h2>
+          <div class="tabs">
+            <input type="radio" name="install-pm" id="pm-npm" checked />
+            <input type="radio" name="install-pm" id="pm-brew" />
+            <input type="radio" name="install-pm" id="pm-cargo" />
+            <div class="tab-list" aria-label="Package managers">
+              <label for="pm-npm">npm</label>
+              <label for="pm-brew">Homebrew</label>
+              <label for="pm-cargo">Cargo</label>
+            </div>
+            <div class="tab-panel">
+              <div class="dark-cmd">
+                <code>npm install -g ralph-engine</code>
+                <button class="copy-btn copy-btn-dark" type="button" data-copy="npm install -g ralph-engine" aria-label={copyLabel} set:html={copySvg} />
+              </div>
+            </div>
+            <div class="tab-panel">
+              <div class="dark-cmd">
+                <code>brew install ralph-engine</code>
+                <button class="copy-btn copy-btn-dark" type="button" data-copy="brew install ralph-engine" aria-label={copyLabel} set:html={copySvg} />
+              </div>
+            </div>
+            <div class="tab-panel">
+              <div class="dark-cmd">
+                <code>cargo install ralph-engine</code>
+                <button class="copy-btn copy-btn-dark" type="button" data-copy="cargo install ralph-engine" aria-label={copyLabel} set:html={copySvg} />
+              </div>
+            </div>
+          </div>
+          <div class="install-callout">
+            <svg class="install-callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            <div>
+              <p>{lang === 'pt-br'
+                ? 'Todos os plugins oficiais são compilados no binário.'
+                : 'All official plugins are compiled into the binary.'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick commands */}
+        <div class="sidebar-section">
+          <h3 class="sidebar-heading">{lang === 'pt-br' ? 'Comandos rápidos' : 'Quick commands'}</h3>
+          <div class="quick-cmds">
+            {plugin.agents?.map((agent: any) => (
+              <div class="dark-cmd dark-cmd-sm">
+                <code>agents launch {agent.id}</code>
+                <button class="copy-btn copy-btn-dark" type="button" data-copy={`ralph-engine agents launch ${agent.id}`} aria-label={copyLabel} set:html={copySvg} />
+              </div>
+            ))}
+            {plugin.templates?.map((tpl: any) => (
+              <div class="dark-cmd dark-cmd-sm">
+                <code>templates materialize {tpl.id} ./my-project</code>
+                <button class="copy-btn copy-btn-dark" type="button" data-copy={`ralph-engine templates materialize ${tpl.id} ./my-project`} aria-label={copyLabel} set:html={copySvg} />
+              </div>
+            ))}
+            {plugin.checks?.map((check: any) => (
+              <div class="dark-cmd dark-cmd-sm">
+                <code>checks run {check.id}</code>
+                <button class="copy-btn copy-btn-dark" type="button" data-copy={`ralph-engine checks run ${check.id}`} aria-label={copyLabel} set:html={copySvg} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Links */}
+        <div class="sidebar-section sidebar-links">
+          <a
+            href={`https://github.com/diegorodrigo90/ralph-engine/tree/main/plugins/official/${plugin.id.replace('official.', '')}`}
+            target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm"
+          >{t(lang, 'plugin.source')} &rarr;</a>
+          <a href={localePath(lang, '/getting-started/installation/')} class="btn btn-secondary btn-sm">{t(lang, 'plugin.docs')}</a>
+          <a href={localePath(lang, '/plugins/')} class="btn btn-secondary btn-sm">{t(lang, 'plugin.all')}</a>
+        </div>
+
+      </aside>
     </div>
-
-    {/* CLI output — collapsed */}
-    <details class="details-block">
-      <summary class="details-summary">{t(lang, 'plugin.cli_output')}</summary>
-      <div class="terminal">
-        <div class="terminal-bar">
-          <span class="terminal-dot"></span>
-          <span class="terminal-dot"></span>
-          <span class="terminal-dot"></span>
-        </div>
-        <div class="terminal-body">
-          <div class="terminal-prompt">ralph-engine plugins show {plugin.id}</div>
-          <div class="terminal-output">
-            <div>Plugin: {plugin.id}</div>
-            <div>{lang === 'pt-br' ? 'Nome' : 'Name'}: {getName(plugin)}</div>
-            <div>{lang === 'pt-br' ? 'Tipo' : 'Kind'}: {plugin.kind}</div>
-            <div>{lang === 'pt-br' ? 'Vers\u00e3o' : 'Version'}: {plugin.plugin_version}</div>
-            <div>Trust: {plugin.trust_level}</div>
-            <div>{lang === 'pt-br' ? 'Capacidades' : 'Capabilities'}: {plugin.capabilities?.join(', ')}</div>
-            <div>Runtime: {plugin.runtime ? t(lang, 'plugin.runtime') : t(lang, 'plugin.no_runtime')}</div>
-            {plugin.agents && <div>Agents: {plugin.agents.length} registered</div>}
-            {plugin.templates && <div>Templates: {plugin.templates.length} registered</div>}
-            {plugin.providers && <div>Providers: {plugin.providers.length} registered</div>}
-            {plugin.checks && <div>Checks: {plugin.checks.length} registered</div>}
-            {plugin.policies && <div>Policies: {plugin.policies.length} registered</div>}
-          </div>
-        </div>
-      </div>
-    </details>
-
-    {/* Sub-resources: Agents */}
-    {plugin.agents?.length > 0 && (
-      <div>
-        <h2 class="section-heading">{t(lang, 'plugin.section.agents')}</h2>
-        <div class="resource-list">
-          {plugin.agents.map((agent: any) => (
-            <div class="card resource-card">
-              <div class="resource-header">
-                <h3>{getSubName(agent)}</h3>
-                <code class="resource-id">{agent.id}</code>
-              </div>
-              <p>{getSubSummary(agent)}</p>
-              <div class="cmd-block">
-                <code>ralph-engine agents launch {agent.id}</code>
-                <button class="copy-btn" type="button" data-copy={`ralph-engine agents launch ${agent.id}`} aria-label={copyLabel}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    )}
-
-    {/* Sub-resources: Templates */}
-    {plugin.templates?.length > 0 && (
-      <div>
-        <h2 class="section-heading">{t(lang, 'plugin.section.templates')}</h2>
-        <div class="resource-list">
-          {plugin.templates.map((tpl: any) => (
-            <div class="card resource-card">
-              <div class="resource-header">
-                <h3>{getSubName(tpl)}</h3>
-                <code class="resource-id">{tpl.id}</code>
-              </div>
-              <p>{getSubSummary(tpl)}</p>
-              <div class="cmd-block">
-                <code>ralph-engine templates materialize {tpl.id} ./my-project</code>
-                <button class="copy-btn" type="button" data-copy={`ralph-engine templates materialize ${tpl.id} ./my-project`} aria-label={copyLabel}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    )}
-
-    {/* Sub-resources: Providers */}
-    {plugin.providers?.length > 0 && (
-      <div>
-        <h2 class="section-heading">{t(lang, 'plugin.section.providers')}</h2>
-        <div class="resource-list">
-          {plugin.providers.map((prov: any) => (
-            <div class="card resource-card">
-              <div class="resource-header">
-                <h3>{getSubName(prov)}</h3>
-                <code>{prov.id}</code>
-              </div>
-              <p>{getSubSummary(prov)}</p>
-              <span class="pill" style="margin-top: var(--re-space-2); align-self: flex-start;">{prov.kind}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    )}
-
-    {/* Sub-resources: Checks */}
-    {plugin.checks?.length > 0 && (
-      <div>
-        <h2 class="section-heading">{t(lang, 'plugin.section.checks')}</h2>
-        <div class="resource-list">
-          {plugin.checks.map((check: any) => (
-            <div class="card resource-card">
-              <div class="resource-header">
-                <h3>{getSubName(check)}</h3>
-                <code class="resource-id">{check.id}</code>
-              </div>
-              <p>{getSubSummary(check)}</p>
-              <div class="cmd-block">
-                <code>ralph-engine checks run {check.id}</code>
-                <button class="copy-btn" type="button" data-copy={`ralph-engine checks run ${check.id}`} aria-label={copyLabel}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    )}
-
-    {/* Sub-resources: Policies */}
-    {plugin.policies?.length > 0 && (
-      <div>
-        <h2 class="section-heading">{t(lang, 'plugin.section.policies')}</h2>
-        <div class="resource-list">
-          {plugin.policies.map((pol: any) => (
-            <div class="card resource-card">
-              <div class="resource-header">
-                <h3>{getSubName(pol)}</h3>
-                <code>{pol.id}</code>
-              </div>
-              <p>{getSubSummary(pol)}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    )}
-
-    {/* Manifest — collapsed */}
-    <details class="details-block">
-      <summary class="details-summary">manifest.yaml</summary>
-      <div class="terminal">
-        <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
-        <div class="terminal-body">
-          <div class="terminal-prompt">cat plugins/official/{plugin.id.replace('official.', '')}/manifest.yaml</div>
-          <div class="terminal-output">
-            <div>id: {plugin.id}</div>
-            <div>kind: {plugin.kind}</div>
-            <div>display_name: {plugin.display_name}</div>
-            <div>summary: {plugin.summary}</div>
-            <div>publisher: {plugin.publisher}</div>
-            <div>trust_level: {plugin.trust_level}</div>
-            <div>plugin_version: {plugin.plugin_version}</div>
-            <div>plugin_api_version: {plugin.plugin_api_version}</div>
-            <div>runtime: {String(plugin.runtime)}</div>
-            <div>capabilities:</div>
-            {plugin.capabilities?.map((c: string) => <div>  - {c}</div>)}
-          </div>
-        </div>
-      </div>
-    </details>
-
-    {/* Actions */}
-    <div class="detail-actions">
-      <a
-        href={`https://github.com/diegorodrigo90/ralph-engine/tree/main/plugins/official/${plugin.id.replace('official.', '')}`}
-        target="_blank" rel="noopener" class="btn btn-secondary"
-      >{t(lang, 'plugin.source')} &rarr;</a>
-      <a href={localePath(lang, '/getting-started/installation/')} class="btn btn-secondary">{t(lang, 'plugin.docs')}</a>
-      <a href={localePath(lang, '/plugins/')} class="btn btn-secondary">{t(lang, 'plugin.all')}</a>
-    </div>
-
   </div>
 </section>
 
 <style>
-  .detail-layout { max-width: 800px; }
-
   .back-link {
     font-size: 0.875rem;
     color: var(--re-text-muted);
@@ -342,125 +360,93 @@ const copySvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
   }
   .back-link:hover { color: var(--re-brand-500); text-decoration: none; }
 
+  /* Header */
   .detail-header {
     display: flex;
     align-items: flex-start;
     gap: var(--re-space-4);
-    margin-bottom: var(--re-space-4);
+    margin-bottom: var(--re-space-3);
   }
 
   .detail-icon {
     flex-shrink: 0;
-    width: 52px;
-    height: 52px;
+    width: 56px;
+    height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--re-brand-50);
-    color: var(--re-brand-500);
     border-radius: var(--re-radius-lg);
   }
 
-  .detail-title { font-size: 2.25rem; line-height: 1.1; }
+  .kind-icon-template { background: var(--re-kind-template-soft); color: var(--re-kind-template); }
+  .kind-icon-agent_runtime { background: var(--re-kind-agent-soft); color: var(--re-kind-agent); }
+  .kind-icon-mcp_contribution { background: var(--re-kind-mcp-soft); color: var(--re-kind-mcp); }
+  .kind-icon-policy { background: var(--re-kind-policy-soft); color: var(--re-kind-policy); }
+  .kind-icon-remote_control { background: var(--re-kind-remote-soft); color: var(--re-kind-remote); }
 
-  .detail-meta {
-    display: flex;
-    align-items: center;
-    gap: var(--re-space-2);
-    margin-top: var(--re-space-1);
-  }
+  .detail-title { font-size: 2rem; line-height: 1.1; }
+  .detail-meta { margin-top: var(--re-space-1); }
   .detail-meta code { font-size: 0.8125rem; color: var(--re-text-muted); }
+
+  .detail-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--re-space-2);
+    margin-bottom: var(--re-space-4);
+  }
 
   .detail-summary {
     font-size: 1.125rem;
     color: var(--re-text-secondary);
     line-height: 1.6;
     max-width: 600px;
+    margin-bottom: var(--re-space-6);
+  }
+
+  /* ── Layout: mobile-first single column, desktop two-column ── */
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--re-space-6);
+    align-items: start;
+  }
+
+  /* ── Main content ── */
+  .detail-main { min-width: 0; }
+
+  .detail-description {
+    font-size: 1rem;
+    color: var(--re-text-secondary);
+    line-height: 1.7;
+    margin-bottom: var(--re-space-4);
   }
 
   .detail-ships {
     font-size: 0.9375rem;
     color: var(--re-text-muted);
-    margin-top: var(--re-space-2);
-  }
-
-  .detail-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--re-space-2);
-    margin-top: var(--re-space-4);
-  }
-
-  /* Install hero */
-  .install-hero {
-    margin-top: var(--re-space-10);
-    padding: var(--re-space-6);
-    background: var(--re-bg-soft);
-    border: 1px solid var(--re-border);
-    border-radius: var(--re-radius-lg);
-  }
-
-  .install-hero h2 {
-    font-size: 1.25rem;
     margin-bottom: var(--re-space-4);
   }
 
-  .install-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--re-space-3);
-  }
-
-  .install-option {
+  .plugin-docs {
+    margin-top: var(--re-space-6);
     display: flex;
     flex-direction: column;
-    gap: var(--re-space-1);
+    gap: var(--re-space-6);
   }
 
-  .install-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--re-text-muted);
+  .plugin-docs-section h3 {
+    font-size: 1.125rem;
+    margin-bottom: var(--re-space-2);
   }
 
-  .install-cmd {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--re-space-2);
-    font-size: 0.8125rem;
+  .plugin-docs-section p {
+    font-size: 0.9375rem;
+    color: var(--re-text-secondary);
+    line-height: 1.7;
   }
 
-  .install-note {
-    margin-top: var(--re-space-3);
-    font-size: 0.8125rem;
-    color: var(--re-text-muted);
-  }
-
-  .copy-btn {
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    background: transparent;
-    border: none;
-    color: var(--re-text-muted);
-    cursor: pointer;
-    border-radius: var(--re-radius-sm);
-    transition: color 0.15s;
-  }
-  .copy-btn:hover { color: var(--re-brand-500); }
-  .copy-btn.copied { color: var(--re-success, #16a34a); }
-
-  .section-heading {
-    font-size: 1.25rem;
-    margin-top: var(--re-space-10);
-    margin-bottom: var(--re-space-4);
-  }
+  .resource-section { margin-top: var(--re-space-8); }
+  .resource-section h2 { font-size: 1.25rem; margin-bottom: var(--re-space-4); }
 
   .resource-list {
     display: flex;
@@ -474,30 +460,19 @@ const copySvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
     gap: var(--re-space-2);
   }
 
+  .resource-card:hover {
+    border-color: var(--re-border);
+    box-shadow: var(--re-card-shadow);
+    transform: none;
+  }
+
   .resource-header {
     display: flex;
     align-items: baseline;
     gap: var(--re-space-3);
   }
   .resource-header h3 { font-size: 1rem; }
-  .resource-header code { font-size: 0.75rem; color: var(--re-text-muted); }
-  .resource-id { font-family: var(--re-font-mono); }
-
-  .cmd-block {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--re-space-2);
-    margin-top: var(--re-space-3);
-    padding: var(--re-space-3) var(--re-space-4);
-    background: var(--re-bg-code, var(--re-bg-soft));
-    border: 1px solid var(--re-border);
-    border-radius: var(--re-radius-md);
-    font-family: var(--re-font-mono);
-    font-size: 0.8125rem;
-    color: var(--re-text-code, var(--re-text-primary));
-    overflow-x: auto;
-  }
+  .resource-id { font-family: var(--re-font-mono); font-size: 0.75rem; color: var(--re-text-muted); }
 
   .resource-card p {
     font-size: 0.875rem;
@@ -505,58 +480,108 @@ const copySvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
     line-height: 1.5;
   }
 
-  .detail-actions {
-    margin-top: var(--re-space-10);
+  /* ── Sidebar ── */
+  .detail-sidebar {
     display: flex;
-    flex-wrap: wrap;
-    gap: var(--re-space-3);
+    flex-direction: column;
+    gap: var(--re-space-6);
   }
 
-  /* Collapsible sections */
-  .details-block {
-    margin-top: var(--re-space-8);
+  .sidebar-section {
+    padding: var(--re-space-5);
+    background: var(--re-card-bg);
     border: 1px solid var(--re-border);
     border-radius: var(--re-radius-lg);
-    overflow: hidden;
   }
 
-  .details-summary {
-    padding: var(--re-space-4) var(--re-space-6);
-    font-weight: 600;
+  .sidebar-section h2 {
     font-size: 1rem;
-    cursor: pointer;
-    color: var(--re-text-secondary);
-    background: var(--re-bg-soft);
-    list-style: none;
+    margin-bottom: var(--re-space-3);
+  }
+
+  .sidebar-heading {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--re-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--re-space-3);
+  }
+
+  .quick-cmds {
     display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: var(--re-space-2);
   }
 
-  .details-summary::-webkit-details-marker { display: none; }
-
-  .details-summary::before {
-    content: '\25B6';
-    font-size: 0.625rem;
-    transition: transform 0.15s;
+  .dark-cmd-sm {
+    font-size: 0.75rem;
+    padding: var(--re-space-2) var(--re-space-3);
   }
 
-  details[open] .details-summary::before {
-    transform: rotate(90deg);
+  .install-callout {
+    display: flex;
+    gap: var(--re-space-2);
+    margin-top: var(--re-space-3);
+    padding: var(--re-space-3);
+    background: var(--re-brand-50);
+    border-radius: var(--re-radius-md);
+    font-size: 0.8125rem;
+    color: var(--re-text-secondary);
+    line-height: 1.4;
   }
 
-  .details-block[open] .details-summary {
-    border-bottom: 1px solid var(--re-border);
+  .install-callout-icon {
+    flex-shrink: 0;
+    color: var(--re-brand-500);
+    margin-top: 1px;
   }
 
-  .details-block .terminal {
-    border-radius: 0;
+  .sidebar-links {
+    display: flex;
+    flex-direction: column;
+    gap: var(--re-space-2);
+  }
+
+  .btn-sm {
+    padding: 8px 16px;
+    font-size: 0.8125rem;
+    text-align: center;
+  }
+
+  .copy-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: transparent;
     border: none;
-    box-shadow: none;
+    color: var(--re-text-muted);
+    cursor: pointer;
+    border-radius: var(--re-radius-sm);
+    transition: color 0.15s, background 0.15s;
   }
+  .copy-btn:hover { background: var(--re-bg-soft); color: var(--re-text-primary); }
+  .copy-btn:focus-visible { outline: 2px solid var(--re-brand-500); outline-offset: 2px; }
+  .copy-btn.copied { color: var(--re-success, #16a34a); }
 
-  @media (max-width: 640px) {
-    .install-grid { grid-template-columns: 1fr; }
+  /* Sidebar above main on mobile */
+  .detail-sidebar { order: -1; }
+
+  /* ── Desktop: two-column ── */
+  @media (min-width: 960px) {
+    .detail-grid {
+      grid-template-columns: 1fr 320px;
+      gap: var(--re-space-10);
+    }
+
+    .detail-sidebar {
+      order: 0;
+      position: sticky;
+      top: var(--re-space-6);
+    }
   }
 </style>
 
@@ -572,3 +597,4 @@ const copySvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
     });
   });
 </script>
+

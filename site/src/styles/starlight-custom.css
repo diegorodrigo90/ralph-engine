@@ -45,23 +45,21 @@
   --sl-color-black: #0b1120;
 }
 
-/* ── Code blocks — always dark theme ── */
-pre {
-  border-radius: 12px;
+/* ── Code blocks — two dark themes via expressiveCode config ──
+   github-dark-dimmed (light mode) + github-dark-default (dark mode)
+   in astro.config.mjs. No CSS overrides needed. */
+
+/* ── Asides (:::note, :::tip, :::caution, :::danger) ── */
+:root {
+  --sl-hue-blue: 230;
+  --sl-hue-purple: 250;
+  --sl-hue-orange: 30;
+  --sl-hue-red: 0;
 }
 
-/* Force dark background on code blocks even in light mode */
-.expressive-code,
-.expressive-code .frame {
-  --ec-codeBg: #0f172a !important;
-  --ec-codeColor: #e2e8f0 !important;
-  --ec-brdCol: #1e293b !important;
-  --ec-frm-edBg: #0f172a !important;
-  --ec-frm-edActTabBg: #1e293b !important;
-  --ec-frm-edActTabBrdCol: #334155 !important;
-  --ec-frm-edTabBarBg: #0b1120 !important;
-  --ec-frm-tooltipBg: #1e293b !important;
-  --ec-frm-tooltipColor: #e2e8f0 !important;
+.starlight-aside {
+  border-radius: 0.5rem;
+  border-inline-start-width: 3px;
 }
 
 /* ── Table styling ── */

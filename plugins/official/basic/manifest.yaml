@@ -6,6 +6,19 @@ display_name_locales:
 summary: Foundation plugin for starter templates.
 summary_locales:
   pt-br: Plugin base para templates iniciais.
+description: >
+  Provides the default starter template for new Ralph Engine projects.
+  Running `ralph-engine templates materialize official.basic.starter ./my-project`
+  creates a `.ralph-engine/` directory with config.yaml and prompt.md — everything
+  needed to start using Ralph Engine with any AI coding assistant. This is the
+  recommended starting point for most projects.
+description_locales:
+  pt-br: >
+    Fornece o template starter padrão para novos projetos Ralph Engine.
+    Executando `ralph-engine templates materialize official.basic.starter ./meu-projeto`
+    cria um diretório `.ralph-engine/` com config.yaml e prompt.md — tudo que é
+    necessário para começar a usar o Ralph Engine com qualquer assistente de código IA.
+    Este é o ponto de partida recomendado para a maioria dos projetos.
 publisher: official
 trust_level: official
 plugin_version: 0.2.0-alpha.1

@@ -6,6 +6,20 @@ display_name_locales:
 summary: Workflow plugin for BMAD scaffolding and prompts.
 summary_locales:
   pt-br: Plugin de workflow para scaffolding e prompts do BMAD.
+description: >
+  Full BMAD Method integration for Ralph Engine. Includes a starter template
+  with pre-configured BMAD agents, prompt fragments for workflow assembly, and
+  both prepare-time and doctor-time validation checks. Ships templates, prompts,
+  and checks that work together to enforce the BMAD development lifecycle —
+  from story creation through implementation, code review, and sprint tracking.
+description_locales:
+  pt-br: >
+    Integração completa do Método BMAD para o Ralph Engine. Inclui template
+    starter com agentes BMAD pré-configurados, fragmentos de prompt para
+    montagem de workflows e verificações de validação tanto em tempo de preparo
+    quanto de diagnóstico. Fornece templates, prompts e checks que trabalham
+    juntos para aplicar o ciclo de vida de desenvolvimento BMAD — da criação
+    de stories até implementação, code review e acompanhamento de sprint.
 publisher: official
 trust_level: official
 plugin_version: 0.2.0-alpha.1

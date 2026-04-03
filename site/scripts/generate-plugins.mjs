@@ -74,11 +74,146 @@ const pluginDirs = readdirSync(pluginsDir, { withFileTypes: true })
   .map((d) => d.name)
   .sort();
 
+/**
+ * Sanitize a plain-text string from manifest YAML.
+ * Strips HTML tags, limits length, and normalizes whitespace.
+ * SECURITY: plugin descriptions come from third-party manifests
+ * and MUST be treated as untrusted input.
+ */
+function sanitizeText(text, maxLength = 0) {
+  if (!text || typeof text !== 'string') return '';
+  let clean = text;
+  clean = clean.replace(/<[^>]*>/g, '');          // strip HTML tags
+  clean = clean.replace(/&[a-z]+;/gi, '');         // strip HTML entities
+  clean = clean.replace(/javascript\s*:/gi, '');   // strip JS protocol
+  clean = clean.replace(/\s+/g, ' ').trim();       // normalize whitespace
+  if (maxLength > 0 && clean.length > maxLength) {
+    clean = clean.slice(0, maxLength) + '…';
+  }
+  return clean;
+}
+
+/**
+ * Validate a plugin/resource ID against allowlist pattern.
+ * SECURITY: IDs from third-party plugins end up in data-* attributes and CLI commands.
+ */
+const VALID_ID_PATTERN = /^[a-z0-9][a-z0-9._-]*$/;
+function validateId(id, context) {
+  if (!id || typeof id !== 'string') return id;
+  if (!VALID_ID_PATTERN.test(id)) {
+    console.warn(`  ⚠ ${context}: invalid ID "${id}" — must match ${VALID_ID_PATTERN}`);
+    return id.replace(/[^a-z0-9._-]/g, '');
+  }
+  return id;
+}
+
+/**
+ * Sanitize all IDs in sub-resource arrays (agents, templates, checks, etc.).
+ */
+function sanitizeSubResources(manifest) {
+  const arrayFields = ['agents', 'templates', 'providers', 'checks', 'policies', 'prompts'];
+  for (const field of arrayFields) {
+    if (Array.isArray(manifest[field])) {
+      manifest[field] = manifest[field].map(item => ({
+        ...item,
+        id: validateId(item.id, `${manifest.id}/${field}`),
+      }));
+    }
+  }
+  return manifest;
+}
+
+/**
+ * Sanitize localized text fields in a locale map.
+ */
+function sanitizeLocales(locales, maxLength = 2000) {
+  if (!locales || typeof locales !== 'object') return undefined;
+  const result = {};
+  for (const [locale, text] of Object.entries(locales)) {
+    result[locale] = sanitizeText(text, maxLength);
+  }
+  return result;
+}
+
+/**
+ * Load plugin docs from README.md (or README.{locale}.md) in the plugin directory.
+ * Parses ## headings into sections. All text is sanitized (untrusted input
+ * from third-party plugins).
+ *
+ * Lookup order: README.{locale}.md → README.md (fallback).
+ * Returns { default: sections, locales: { "pt-br": sections } } or undefined.
+ *
+ * SECURITY: README.md content from community plugins is UNTRUSTED.
+ * - HTML tags stripped
+ * - JS protocol stripped
+ * - Total README limited to 50KB per file (prevents build DoS)
+ * - Max 50 sections per plugin per locale
+ * - Rendered as plain text in Astro (auto-escaped, never set:html)
+ */
+const SUPPORTED_LOCALES = ['pt-br'];
+
+function parseReadmeSections(filePath) {
+  if (!existsSync(filePath)) return undefined;
+
+  const MAX_README_BYTES = 50 * 1024;
+  const MAX_SECTIONS = 50;
+  let raw = readFileSync(filePath, 'utf8');
+  if (raw.length > MAX_README_BYTES) {
+    console.warn(`  ⚠ ${filePath}: truncated (>${MAX_README_BYTES / 1024}KB)`);
+    raw = raw.slice(0, MAX_README_BYTES);
+  }
+
+  const sections = [];
+  const lines = raw.split('\n');
+  let current = null;
+
+  for (const line of lines) {
+    const headingMatch = line.match(/^##\s+(.+)/);
+    if (headingMatch) {
+      if (current) sections.push(current);
+      current = { heading: sanitizeText(headingMatch[1], 200), body: '' };
+    } else if (current) {
+      current.body += line + '\n';
+    }
+  }
+  if (current) sections.push(current);
+
+  return sections.length > 0
+    ? sections.slice(0, MAX_SECTIONS).map(s => ({
+        heading: s.heading,
+        body: sanitizeText(s.body),
+      }))
+    : undefined;
+}
+
+function loadPluginDocs(pluginName) {
+  const defaultDocs = parseReadmeSections(join(pluginsDir, pluginName, 'README.md'));
+  if (!defaultDocs) return undefined;
+
+  const docs_locales = {};
+  for (const locale of SUPPORTED_LOCALES) {
+    const localeDocs = parseReadmeSections(join(pluginsDir, pluginName, `README.${locale}.md`));
+    if (localeDocs) docs_locales[locale] = localeDocs;
+  }
+
+  return {
+    default: defaultDocs,
+    ...(Object.keys(docs_locales).length > 0 ? { locales: docs_locales } : {}),
+  };
+}
+
 const plugins = pluginDirs.map((name) => {
   const manifestPath = join(pluginsDir, name, 'manifest.yaml');
   const manifest = yaml.load(readFileSync(manifestPath, 'utf8'));
   const iconUrl = processIcon(name, manifest.id);
-  return { ...manifest, iconUrl };
+
+  // Sanitize text fields from manifest (untrusted for third-party plugins)
+  const description = sanitizeText(manifest.description);
+  const description_locales = sanitizeLocales(manifest.description_locales);
+  const docs = loadPluginDocs(name);
+
+  const sanitized = sanitizeSubResources({ ...manifest });
+  return { ...sanitized, iconUrl, description, description_locales, docs };
 });
 
 // Write for Astro build-time import

@@ -124,6 +124,12 @@ export default defineConfig({
       components: {
         Header: './src/components/starlight/Header.astro',
       },
+      expressiveCode: {
+        themes: ['github-dark-dimmed', 'github-dark-default'],
+        styleOverrides: {
+          borderRadius: '0.75rem',
+        },
+      },
       customCss: [
         './src/styles/starlight-custom.css',
         './src/styles/site-components.css',

@@ -13,19 +13,16 @@ export function getStaticPaths() {
 }
 
 const { plugin } = Astro.props;
-
-function getName(p: any): string {
-  return p.display_name_locales?.['pt-br'] ?? p.display_name;
-}
+const name = plugin.display_name_locales?.['pt-br'] ?? plugin.display_name;
 ---
 
 <StarlightPage
   frontmatter={{
-    title: `Plugin ${getName(plugin)}`,
+    title: `Plugin ${name}`,
     description: plugin.summary_locales?.['pt-br'] ?? plugin.summary,
     template: 'splash',
     pagefind: true,
-    head: [{ tag: 'style', content: '#_top { display: none; }' }],
+    head: [{ tag: 'style', content: '#_top { display: none; } body { --sl-content-width: 72rem; }' }],
     tableOfContents: false,
   }}
   hasSidebar={false}
