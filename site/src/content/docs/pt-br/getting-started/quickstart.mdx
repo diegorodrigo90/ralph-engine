@@ -5,54 +5,49 @@ description: "Ralph Engine rodando em 3 comandos"
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-## Bootstrap
+## 1. Instalar
 
-Instale o toolchain fixado, dependências Node, ferramentas de desenvolvimento e git hooks:
-
-```bash
-./scripts/bootstrap-dev.sh
-```
-
-## Validação
-
-Prove que o projeto está saudável antes de começar a modificá-lo:
-
-```bash
-./scripts/validate.sh --mode local
-```
-
-## Execução
-
-Confirme que a baseline Rust-first da CLI está funcionando:
-
-```bash
-cargo run -p re-cli
-```
-
-## Depois da primeira execução
-
-Os próximos caminhos úteis dependem do que você quer fazer:
-
-- Leia [Arquitetura](/pt-br/reference/architecture) para o modelo do sistema.
-- Leia [Extensões](/pt-br/guides/plugins) para a superfície de extensão.
-- Leia [Padrões de código](/pt-br/development/coding-standards) para contribuir com código.
-- Leia [Referência CLI](/pt-br/reference/cli) para explorar os comandos disponíveis.
-
-## Opções de validação
-
-<Tabs syncKey="validation">
-  <TabItem label="Standard">
-    Validação local completa (formatação, linting, testes, coverage, geração de docs, auditorias de dependência, verificação cross-language de contratos):
-
+<Tabs syncKey="pkg">
+  <TabItem label="npm">
     ```bash
-    ./scripts/validate.sh --mode local
+    npm install -g ralph-engine
     ```
   </TabItem>
-  <TabItem label="CI smoke">
-    Smoke check local do workflow do GitHub Actions (complementa, mas não substitui a validação padrão):
-
+  <TabItem label="Homebrew">
     ```bash
-    ./scripts/validate-ci-local.sh
+    brew install ralph-engine
+    ```
+  </TabItem>
+  <TabItem label="Cargo">
+    ```bash
+    cargo install ralph-engine
     ```
   </TabItem>
 </Tabs>
+
+## 2. Inicializar um projeto
+
+Crie a configuração inicial do projeto:
+
+```bash
+ralph-engine templates materialize official.basic.starter ./meu-projeto
+```
+
+Isso cria um diretório `.ralph-engine/` com:
+- `config.yaml` — configuração do projeto
+- `prompt.md` — conteúdo de prompt específico do projeto
+
+## 3. Verificar o setup
+
+```bash
+ralph-engine doctor
+```
+
+Se tudo estiver verde, está pronto.
+
+## Próximos passos
+
+- Execute `ralph-engine plugins list` para ver os plugins disponíveis
+- Execute `ralph-engine --help` para explorar todos os comandos
+- Leia [Configuração](/pt-br/guides/configuration/) para customizar seu projeto
+- Leia [Comandos CLI](/pt-br/reference/cli/) para a referência completa
