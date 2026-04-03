@@ -25,6 +25,7 @@
   "agents.description": "O Ralph Engine se integra com os agentes que você já usa.",
   "catalog.title": "Plugins oficiais",
   "catalog.description": "8 plugins cobrindo templates, runtimes de agente, integrações MCP, políticas e controle remoto.",
+  "nav.search": "Buscar plugins e docs...",
   "catalog.search": "Buscar plugins...",
   "catalog.all": "Todos",
   "catalog.kind.template": "Template",
@@ -49,5 +50,19 @@
   "plugin.trust": "Nível de confiança",
   "plugin.install": "Instalar",
   "plugin.source": "Código-fonte",
-  "plugin.back": "Voltar para plugins"
+  "plugin.back": "Voltar para plugins",
+  "plugin.install.note": "Também disponível via <code>pnpm add -g ralph-engine</code> ou <code>yarn global add ralph-engine</code>. Todos os 8 plugins oficiais vêm incluídos.",
+  "plugin.ships": "Inclui",
+  "plugin.cli_output": "Saída da CLI",
+  "plugin.all": "Todos os plugins",
+  "plugin.docs": "Documentação",
+  "plugin.section.agents": "Runtimes de Agente",
+  "plugin.section.templates": "Templates",
+  "plugin.section.providers": "Provedores",
+  "plugin.section.checks": "Checks",
+  "plugin.section.policies": "Políticas",
+  "plugin.official": "Oficial",
+  "plugin.runtime": "sim",
+  "plugin.no_runtime": "não",
+  "plugin.copy": "Copiar"
 }

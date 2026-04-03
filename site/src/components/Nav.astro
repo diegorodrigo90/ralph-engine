@@ -28,7 +28,7 @@ const docsHref = lang === 'pt-br' ? '/docs/pt-br/getting-started/installation' :
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
         </svg>
-        <span class="re-search-text">Search plugins and docs...</span>
+        <span class="re-search-text">{t(lang, 'nav.search')}</span>
         <kbd class="re-search-kbd" id="search-shortcut"></kbd>
       </button>
     </div>
@@ -452,12 +452,22 @@ const docsHref = lang === 'pt-br' ? '/docs/pt-br/getting-started/installation' :
   .re-mobile-footer { margin-top: auto; padding-top: var(--re-space-6); border-top: 1px solid var(--re-border); }
 
   /* ── Responsive ── */
+
+  /* Tablet: hide search text, compact layout */
   @media (max-width: 768px) {
+    .re-nav-search { max-width: 200px; margin: 0 8px; }
+    .re-search-text { display: none; }
+    .re-search-trigger { padding: 7px 10px; }
+    .re-nav-link { padding: 4px 8px; font-size: 13px; }
+    .re-nav-logo-text { font-size: 0.875rem; }
+  }
+
+  /* Mobile: hamburger takes over */
+  @media (max-width: 639px) {
     .re-nav-menu, .re-flyout, .re-switch, .re-social-link { display: none; }
     .re-hamburger { display: flex; }
     .re-nav-search { max-width: none; margin: 0 8px; }
-    .re-search-text, .re-search-kbd { display: none; }
+    .re-search-kbd { display: none; }
     .re-search-trigger { width: auto; padding: 7px; background: transparent; border-color: var(--re-border-strong); }
-    .re-nav-logo-text { font-size: 0.875rem; }
   }
 </style>

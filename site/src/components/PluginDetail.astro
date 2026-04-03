@@ -1,0 +1,544 @@
+---
+import PluginIcon from './PluginIcon.astro';
+import type { Locale } from '../i18n/utils';
+import { t, localePath } from '../i18n/utils';
+
+interface Props {
+  lang: Locale;
+  plugin: any;
+}
+
+const { lang, plugin } = Astro.props;
+
+const kindLabels: Record<string, string> = {
+  template: t(lang, 'catalog.kind.template'),
+  agent_runtime: t(lang, 'catalog.kind.agent_runtime'),
+  mcp_contribution: t(lang, 'catalog.kind.mcp_contribution'),
+  policy: t(lang, 'catalog.kind.policy'),
+  remote_control: t(lang, 'catalog.kind.remote_control'),
+};
+
+function getName(p: any): string {
+  if (lang !== 'en' && p.display_name_locales?.[lang]) return p.display_name_locales[lang];
+  return p.display_name;
+}
+
+function getSummary(p: any): string {
+  if (lang !== 'en' && p.summary_locales?.[lang]) return p.summary_locales[lang];
+  return p.summary;
+}
+
+function getSubName(item: any): string {
+  if (lang !== 'en' && item.display_name_locales?.[lang]) return item.display_name_locales[lang];
+  return item.display_name;
+}
+
+function getSubSummary(item: any): string {
+  if (lang !== 'en' && item.summary_locales?.[lang]) return item.summary_locales[lang];
+  return item.summary;
+}
+
+function buildDescription(p: any): string {
+  const parts: string[] = [];
+  if (p.agents?.length) {
+    const n = p.agents.length;
+    parts.push(lang === 'pt-br'
+      ? `${n} runtime${n > 1 ? 's' : ''} de agente`
+      : `${n} agent runtime${n > 1 ? 's' : ''}`);
+  }
+  if (p.templates?.length) {
+    const n = p.templates.length;
+    parts.push(lang === 'pt-br'
+      ? `${n} template${n > 1 ? 's' : ''} starter`
+      : `${n} starter template${n > 1 ? 's' : ''}`);
+  }
+  if (p.providers?.length) {
+    const n = p.providers.length;
+    parts.push(lang === 'pt-br'
+      ? `${n} provedor${n > 1 ? 'es' : ''}`
+      : `${n} data provider${n > 1 ? 's' : ''}`);
+  }
+  if (p.checks?.length) {
+    const n = p.checks.length;
+    parts.push(lang === 'pt-br'
+      ? `${n} check${n > 1 ? 's' : ''} de runtime`
+      : `${n} runtime check${n > 1 ? 's' : ''}`);
+  }
+  if (p.policies?.length) {
+    const n = p.policies.length;
+    parts.push(lang === 'pt-br'
+      ? `${n} política${n > 1 ? 's' : ''}`
+      : `${n} enforcement polic${n > 1 ? 'ies' : 'y'}`);
+  }
+  if (p.prompts?.length) {
+    const n = p.prompts.length;
+    parts.push(`${n} prompt bundle${n > 1 ? 's' : ''}`);
+  }
+  return parts.length ? `${t(lang, 'plugin.ships')} ${parts.join(', ')}.` : '';
+}
+
+const allTags = [
+  plugin.kind,
+  plugin.trust_level,
+  ...(plugin.capabilities ?? []),
+].filter(Boolean);
+
+const copyLabel = t(lang, 'plugin.copy');
+const copySvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>';
+---
+
+<section class="section" style="padding-top: 80px;" data-pagefind-meta="type[content]:Plugin">
+  <div class="container detail-layout">
+
+    <a href={localePath(lang, '/plugins/')} class="back-link">&larr; {t(lang, 'plugin.back')}</a>
+
+    {/* Header */}
+    <div class="detail-header">
+      <div class="detail-icon" aria-hidden="true">
+        <PluginIcon iconUrl={plugin.iconUrl} kind={plugin.kind} size={28} />
+      </div>
+      <div>
+        <h1 class="detail-title">{getName(plugin)}</h1>
+        <div class="detail-meta">
+          <code>{plugin.id}</code>
+          <span class="pill pill-brand">{kindLabels[plugin.kind] ?? plugin.kind}</span>
+        </div>
+      </div>
+    </div>
+
+    {/* Summary */}
+    <p class="detail-summary">{getSummary(plugin)}</p>
+    {buildDescription(plugin) && (
+      <p class="detail-ships">{buildDescription(plugin)}</p>
+    )}
+
+    {/* Tags */}
+    <div class="detail-tags">
+      {allTags.map((tag: string) => (
+        <span class="pill">{tag}</span>
+      ))}
+      <span class="pill">v{plugin.plugin_version}</span>
+      <span class="pill">API {plugin.plugin_api_version}</span>
+    </div>
+
+    {/* Install hero */}
+    <div class="install-hero">
+      <h2>{t(lang, 'plugin.install')}</h2>
+      <div class="install-grid">
+        <div class="install-option">
+          <span class="install-label">Cargo</span>
+          <div class="code-block install-cmd">
+            <code>cargo install ralph-engine</code>
+            <button class="copy-btn" type="button" data-copy="cargo install ralph-engine" aria-label={copyLabel}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="install-option">
+          <span class="install-label">npm</span>
+          <div class="code-block install-cmd">
+            <code>npm install -g ralph-engine</code>
+            <button class="copy-btn" type="button" data-copy="npm install -g ralph-engine" aria-label={copyLabel}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="install-option">
+          <span class="install-label">Homebrew</span>
+          <div class="code-block install-cmd">
+            <code>brew install ralph-engine</code>
+            <button class="copy-btn" type="button" data-copy="brew install ralph-engine" aria-label={copyLabel}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <p class="install-note" set:html={t(lang, 'plugin.install.note')} />
+    </div>
+
+    {/* CLI output — collapsed */}
+    <details class="details-block">
+      <summary class="details-summary">{t(lang, 'plugin.cli_output')}</summary>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+          <span class="terminal-dot"></span>
+        </div>
+        <div class="terminal-body">
+          <div class="terminal-prompt">ralph-engine plugins show {plugin.id}</div>
+          <div class="terminal-output">
+            <div>Plugin: {plugin.id}</div>
+            <div>{lang === 'pt-br' ? 'Nome' : 'Name'}: {getName(plugin)}</div>
+            <div>{lang === 'pt-br' ? 'Tipo' : 'Kind'}: {plugin.kind}</div>
+            <div>{lang === 'pt-br' ? 'Vers\u00e3o' : 'Version'}: {plugin.plugin_version}</div>
+            <div>Trust: {plugin.trust_level}</div>
+            <div>{lang === 'pt-br' ? 'Capacidades' : 'Capabilities'}: {plugin.capabilities?.join(', ')}</div>
+            <div>Runtime: {plugin.runtime ? t(lang, 'plugin.runtime') : t(lang, 'plugin.no_runtime')}</div>
+            {plugin.agents && <div>Agents: {plugin.agents.length} registered</div>}
+            {plugin.templates && <div>Templates: {plugin.templates.length} registered</div>}
+            {plugin.providers && <div>Providers: {plugin.providers.length} registered</div>}
+            {plugin.checks && <div>Checks: {plugin.checks.length} registered</div>}
+            {plugin.policies && <div>Policies: {plugin.policies.length} registered</div>}
+          </div>
+        </div>
+      </div>
+    </details>
+
+    {/* Sub-resources: Agents */}
+    {plugin.agents?.length > 0 && (
+      <div>
+        <h2 class="section-heading">{t(lang, 'plugin.section.agents')}</h2>
+        <div class="resource-list">
+          {plugin.agents.map((agent: any) => (
+            <div class="card resource-card">
+              <div class="resource-header">
+                <h3>{getSubName(agent)}</h3>
+                <code>{agent.id}</code>
+              </div>
+              <p>{getSubSummary(agent)}</p>
+              <div class="terminal" style="margin-top: var(--re-space-3);">
+                <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <div class="terminal-body">
+                  <div class="terminal-prompt">ralph-engine agents launch {agent.id}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Sub-resources: Templates */}
+    {plugin.templates?.length > 0 && (
+      <div>
+        <h2 class="section-heading">{t(lang, 'plugin.section.templates')}</h2>
+        <div class="resource-list">
+          {plugin.templates.map((tpl: any) => (
+            <div class="card resource-card">
+              <div class="resource-header">
+                <h3>{getSubName(tpl)}</h3>
+                <code>{tpl.id}</code>
+              </div>
+              <p>{getSubSummary(tpl)}</p>
+              <div class="terminal" style="margin-top: var(--re-space-3);">
+                <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <div class="terminal-body">
+                  <div class="terminal-prompt">ralph-engine templates materialize {tpl.id} ./my-project</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Sub-resources: Providers */}
+    {plugin.providers?.length > 0 && (
+      <div>
+        <h2 class="section-heading">{t(lang, 'plugin.section.providers')}</h2>
+        <div class="resource-list">
+          {plugin.providers.map((prov: any) => (
+            <div class="card resource-card">
+              <div class="resource-header">
+                <h3>{getSubName(prov)}</h3>
+                <code>{prov.id}</code>
+              </div>
+              <p>{getSubSummary(prov)}</p>
+              <span class="pill" style="margin-top: var(--re-space-2); align-self: flex-start;">{prov.kind}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Sub-resources: Checks */}
+    {plugin.checks?.length > 0 && (
+      <div>
+        <h2 class="section-heading">{t(lang, 'plugin.section.checks')}</h2>
+        <div class="resource-list">
+          {plugin.checks.map((check: any) => (
+            <div class="card resource-card">
+              <div class="resource-header">
+                <h3>{getSubName(check)}</h3>
+                <code>{check.id}</code>
+              </div>
+              <p>{getSubSummary(check)}</p>
+              <div class="terminal" style="margin-top: var(--re-space-3);">
+                <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                <div class="terminal-body">
+                  <div class="terminal-prompt">ralph-engine checks run {check.id}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Sub-resources: Policies */}
+    {plugin.policies?.length > 0 && (
+      <div>
+        <h2 class="section-heading">{t(lang, 'plugin.section.policies')}</h2>
+        <div class="resource-list">
+          {plugin.policies.map((pol: any) => (
+            <div class="card resource-card">
+              <div class="resource-header">
+                <h3>{getSubName(pol)}</h3>
+                <code>{pol.id}</code>
+              </div>
+              <p>{getSubSummary(pol)}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+
+    {/* Manifest — collapsed */}
+    <details class="details-block">
+      <summary class="details-summary">manifest.yaml</summary>
+      <div class="terminal">
+        <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+        <div class="terminal-body">
+          <div class="terminal-prompt">cat plugins/official/{plugin.id.replace('official.', '')}/manifest.yaml</div>
+          <div class="terminal-output">
+            <div>id: {plugin.id}</div>
+            <div>kind: {plugin.kind}</div>
+            <div>display_name: {plugin.display_name}</div>
+            <div>summary: {plugin.summary}</div>
+            <div>publisher: {plugin.publisher}</div>
+            <div>trust_level: {plugin.trust_level}</div>
+            <div>plugin_version: {plugin.plugin_version}</div>
+            <div>plugin_api_version: {plugin.plugin_api_version}</div>
+            <div>runtime: {String(plugin.runtime)}</div>
+            <div>capabilities:</div>
+            {plugin.capabilities?.map((c: string) => <div>  - {c}</div>)}
+          </div>
+        </div>
+      </div>
+    </details>
+
+    {/* Actions */}
+    <div class="detail-actions">
+      <a
+        href={`https://github.com/diegorodrigo90/ralph-engine/tree/main/plugins/official/${plugin.id.replace('official.', '')}`}
+        target="_blank" rel="noopener" class="btn btn-secondary"
+      >{t(lang, 'plugin.source')} &rarr;</a>
+      <a href={localePath(lang, '/docs/getting-started/installation')} class="btn btn-secondary">{t(lang, 'plugin.docs')}</a>
+      <a href={localePath(lang, '/plugins/')} class="btn btn-secondary">{t(lang, 'plugin.all')}</a>
+    </div>
+
+  </div>
+</section>
+
+<style>
+  .detail-layout { max-width: 800px; }
+
+  .back-link {
+    font-size: 0.875rem;
+    color: var(--re-text-muted);
+    display: inline-block;
+    margin-bottom: var(--re-space-6);
+  }
+  .back-link:hover { color: var(--re-brand-500); text-decoration: none; }
+
+  .detail-header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--re-space-4);
+    margin-bottom: var(--re-space-4);
+  }
+
+  .detail-icon {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--re-brand-50);
+    color: var(--re-brand-500);
+    border-radius: var(--re-radius-lg);
+  }
+
+  .detail-title { font-size: 2.25rem; line-height: 1.1; }
+
+  .detail-meta {
+    display: flex;
+    align-items: center;
+    gap: var(--re-space-2);
+    margin-top: var(--re-space-1);
+  }
+  .detail-meta code { font-size: 0.8125rem; color: var(--re-text-muted); }
+
+  .detail-summary {
+    font-size: 1.125rem;
+    color: var(--re-text-secondary);
+    line-height: 1.6;
+    max-width: 600px;
+  }
+
+  .detail-ships {
+    font-size: 0.9375rem;
+    color: var(--re-text-muted);
+    margin-top: var(--re-space-2);
+  }
+
+  .detail-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--re-space-2);
+    margin-top: var(--re-space-4);
+  }
+
+  /* Install hero */
+  .install-hero {
+    margin-top: var(--re-space-10);
+    padding: var(--re-space-6);
+    background: var(--re-bg-soft);
+    border: 1px solid var(--re-border);
+    border-radius: var(--re-radius-lg);
+  }
+
+  .install-hero h2 {
+    font-size: 1.25rem;
+    margin-bottom: var(--re-space-4);
+  }
+
+  .install-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--re-space-3);
+  }
+
+  .install-option {
+    display: flex;
+    flex-direction: column;
+    gap: var(--re-space-1);
+  }
+
+  .install-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--re-text-muted);
+  }
+
+  .install-cmd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--re-space-2);
+    font-size: 0.8125rem;
+  }
+
+  .install-note {
+    margin-top: var(--re-space-3);
+    font-size: 0.8125rem;
+    color: var(--re-text-muted);
+  }
+
+  .copy-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    color: var(--re-text-muted);
+    cursor: pointer;
+    border-radius: var(--re-radius-sm);
+    transition: color 0.15s;
+  }
+  .copy-btn:hover { color: var(--re-brand-500); }
+  .copy-btn.copied { color: var(--re-success, #16a34a); }
+
+  .section-heading {
+    font-size: 1.25rem;
+    margin-top: var(--re-space-10);
+    margin-bottom: var(--re-space-4);
+  }
+
+  .resource-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--re-space-3);
+  }
+
+  .resource-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--re-space-2);
+  }
+
+  .resource-header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--re-space-3);
+  }
+  .resource-header h3 { font-size: 1rem; }
+  .resource-header code { font-size: 0.75rem; color: var(--re-text-muted); }
+
+  .resource-card p {
+    font-size: 0.875rem;
+    color: var(--re-text-secondary);
+    line-height: 1.5;
+  }
+
+  .detail-actions {
+    margin-top: var(--re-space-10);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--re-space-3);
+  }
+
+  /* Collapsible sections */
+  .details-block {
+    margin-top: var(--re-space-8);
+    border: 1px solid var(--re-border);
+    border-radius: var(--re-radius-lg);
+    overflow: hidden;
+  }
+
+  .details-summary {
+    padding: var(--re-space-4) var(--re-space-6);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    color: var(--re-text-secondary);
+    background: var(--re-bg-soft);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: var(--re-space-2);
+  }
+
+  .details-summary::-webkit-details-marker { display: none; }
+
+  .details-summary::before {
+    content: '\25B6';
+    font-size: 0.625rem;
+    transition: transform 0.15s;
+  }
+
+  details[open] .details-summary::before {
+    transform: rotate(90deg);
+  }
+
+  .details-block[open] .details-summary {
+    border-bottom: 1px solid var(--re-border);
+  }
+
+  .details-block .terminal {
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  @media (max-width: 640px) {
+    .install-grid { grid-template-columns: 1fr; }
+  }
+</style>

@@ -25,6 +25,7 @@
   "agents.description": "Ralph Engine integrates with the agents you already use.",
   "catalog.title": "Official plugins",
   "catalog.description": "8 plugins covering templates, agent runtimes, MCP integrations, policies, and remote control.",
+  "nav.search": "Search plugins and docs...",
   "catalog.search": "Search plugins...",
   "catalog.all": "All",
   "catalog.kind.template": "Template",
@@ -49,5 +50,19 @@
   "plugin.trust": "Trust level",
   "plugin.install": "Install",
   "plugin.source": "Source code",
-  "plugin.back": "Back to plugins"
+  "plugin.back": "Back to plugins",
+  "plugin.install.note": "Also available via <code>pnpm add -g ralph-engine</code> or <code>yarn global add ralph-engine</code>. All 8 official plugins are bundled — no separate install needed.",
+  "plugin.ships": "Ships with",
+  "plugin.cli_output": "CLI output",
+  "plugin.all": "All plugins",
+  "plugin.docs": "Documentation",
+  "plugin.section.agents": "Agent Runtimes",
+  "plugin.section.templates": "Templates",
+  "plugin.section.providers": "Providers",
+  "plugin.section.checks": "Checks",
+  "plugin.section.policies": "Policies",
+  "plugin.official": "Official",
+  "plugin.runtime": "yes",
+  "plugin.no_runtime": "no",
+  "plugin.copy": "Copy"
 }
