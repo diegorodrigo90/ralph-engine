@@ -73,6 +73,22 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 46. `dist-workspace.toml` SHALL remain an explicit reviewed contract. CI and release workflows SHALL validate it before building or promoting `cargo-dist` artifacts.
 47. Reusable release artifacts SHALL be treated as first-class contract outputs. Candidate and publishable asset sets SHALL pass explicit checksum and target-completeness validation before approval or publication.
 
+## Documentation Audiences (CRITICAL — AI agents MUST respect)
+
+Documentation is split into three audiences. Content SHALL NOT cross boundaries:
+
+| Section | Audience | Content scope |
+|---------|----------|--------------|
+| **Using Ralph Engine** | End users who install and run the CLI | Install, configure, CLI commands, hooks, MCP, troubleshooting. Assumes the binary is installed. |
+| **Plugin Development** | Developers who create their own plugins | Scaffold, implement PluginRuntime, test, publish. Assumes familiarity with Rust. |
+| **Contributing** | Open-source contributors to the core | Build from source, coding standards, architecture internals, release pipeline. |
+
+When writing or editing docs:
+- User docs SHALL NOT mention `cargo build`, `cargo test`, or internal crate structure
+- Plugin dev docs SHALL NOT explain core architecture decisions or CI pipeline
+- Contributing docs SHALL NOT explain how to use the CLI as an end user
+- Each page SHALL state who it is for in the description frontmatter
+
 ## Engineering Discipline
 
 48. Every code change SHALL be preceded by research. Before implementing, the assistant SHALL search official documentation (Context7, web search, crate docs) for the libraries and APIs involved. Implementation from memory or stale knowledge SHALL be treated as a defect source.

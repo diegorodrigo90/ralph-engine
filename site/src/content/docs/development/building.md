@@ -1,6 +1,6 @@
 ---
 title: "Building"
-description: "Build the project from source"
+description: "Build Ralph Engine from source for contributors"
 ---
 
 ## Toolchain

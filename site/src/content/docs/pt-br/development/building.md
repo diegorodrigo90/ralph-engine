@@ -1,6 +1,6 @@
 ---
 title: "Compilação"
-description: "Compile o projeto a partir do código-fonte"
+description: "Compile o Ralph Engine para contribuidores"
 ---
 
 ## Toolchain

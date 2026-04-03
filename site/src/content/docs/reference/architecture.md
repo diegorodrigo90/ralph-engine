@@ -1,6 +1,6 @@
 ---
 title: "Architecture"
-description: "Internal architecture and design decisions"
+description: "Internal architecture for core contributors"
 ---
 
 ## Positioning

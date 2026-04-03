@@ -1,6 +1,6 @@
 ---
 title: "Coding Standards"
-description: "Code style and contribution guidelines"
+description: "Code style and quality rules for core contributors"
 ---
 
 Ralph Engine uses a strict Rust-first quality baseline, but the repository should still feel approachable to contributors who are newer to Rust or open source work.
