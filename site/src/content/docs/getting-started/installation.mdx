@@ -5,99 +5,99 @@ description: "Install Ralph Engine on your machine"
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-Ralph Engine is currently installed from source. Binary distribution via npm and Homebrew is prepared but intentionally gated until the release pipeline is fully validated.
-
-## Prerequisites
-
-- Git
-- Rust 1.91.1 (pinned via `rust-toolchain.toml`)
-- Node.js 20.19.0 (pinned via `.tool-versions`)
-
-## Source Install
-
-Clone the repository:
-
-```bash
-git clone https://github.com/diegorodrigo90/ralph-engine.git
-```
-
-Run the bootstrap script:
-
-```bash
-cd ralph-engine && ./scripts/bootstrap-dev.sh
-```
-
-Confirm the CLI binary compiles and runs:
-
-```bash
-cargo run -p re-cli -- --version
-```
-
-### What bootstrap-dev.sh does
-
-The bootstrap script prepares your local development environment in one step:
-
-1. **Toolchain sync** — runs `asdf install` if asdf is available with the rust and nodejs plugins, ensuring you have the exact pinned versions from `.tool-versions` and `rust-toolchain.toml`.
-2. **Node dependencies** — runs `npm ci` at the root and inside the `site/` directory.
-3. **Dev tools** — runs `scripts/install-dev-tools.sh` to install required Cargo tools (cargo-llvm-cov, cargo-deny, cargo-audit, etc.).
-4. **Git hooks** — runs `lefthook install` to set up pre-commit and pre-push hooks.
-
-If asdf is not installed, the script continues with whatever toolchain is already on your PATH.
-
-## Verify Installation
-
-Show the CLI help output:
-
-```bash
-cargo run -p re-cli -- --help
-```
-
-Show help in Portuguese:
-
-```bash
-cargo run -p re-cli -- --locale pt-br --help
-```
-
-Run the full local validation contract:
-
-```bash
-./scripts/validate.sh --mode local
-```
-
-Run the full test suite:
-
-```bash
-cargo test --workspace --all-targets
-```
-
-## Distribution Channels
-
-These channels are prepared and will be enabled once the release pipeline is fully connected.
+## Install
 
 <Tabs syncKey="pkg">
-  <TabItem label="Cargo">
-    ```bash
-    cargo install ralph-engine
-    ```
-    Canonical install method. Compiles from source.
-  </TabItem>
   <TabItem label="npm">
+    Install globally:
+
     ```bash
     npm install -g ralph-engine
     ```
-    Prebuilt binary via npm. Also works with `pnpm add -g ralph-engine` or `yarn global add ralph-engine`.
+
+    Or run without installing:
+
+    ```bash
+    npx ralph-engine --help
+    ```
+
+    Also works with pnpm and yarn:
+
+    ```bash
+    pnpm add -g ralph-engine
+    ```
+
+    ```bash
+    yarn global add ralph-engine
+    ```
   </TabItem>
   <TabItem label="Homebrew">
     ```bash
     brew install ralph-engine
     ```
-    macOS and Linux via Homebrew tap.
+  </TabItem>
+  <TabItem label="Cargo">
+    Compiles from source (requires Rust):
+
+    ```bash
+    cargo install ralph-engine
+    ```
   </TabItem>
 </Tabs>
 
+:::note
+All 8 official plugins are bundled. No separate install needed.
+:::
+
+## Verify
+
+Check that the CLI is available:
+
+```bash
+ralph-engine --version
+```
+
+Show available commands:
+
+```bash
+ralph-engine --help
+```
+
+Switch to Portuguese:
+
+```bash
+ralph-engine --locale pt-br --help
+```
+
+Run a health check on your project:
+
+```bash
+ralph-engine doctor
+```
+
+## Build from Source
+
+If you prefer to build the binary yourself:
+
+```bash
+git clone https://github.com/diegorodrigo90/ralph-engine.git
+```
+
+```bash
+cd ralph-engine && ./scripts/bootstrap-dev.sh
+```
+
+```bash
+cargo build --workspace --release
+```
+
+The binary will be at `target/release/ralph-engine`.
+
+## Channel Status
+
 | Channel | Status |
 |---------|--------|
-| **Source** | Available (canonical install method) |
-| **GitHub Releases** | Infrastructure ready, gated |
 | **npm** | Package prepared, publication gated |
 | **Homebrew** | Formula prepared, tap gated |
+| **Cargo** | Available (compiles from source) |
+| **GitHub Releases** | Infrastructure ready, gated |
