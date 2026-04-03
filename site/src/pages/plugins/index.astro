@@ -61,14 +61,14 @@ function countForKind(kind: string): number {
               <div class="plugin-icon" aria-hidden="true">
                 <PluginIcon iconUrl={plugin.iconUrl} kind={plugin.kind} size={20} />
               </div>
-              <div>
+              <div class="plugin-card-title">
                 <h3 class="plugin-name">{plugin.display_name}</h3>
                 <span class="plugin-id">{plugin.id}</span>
               </div>
-              <div class="plugin-badges">
-                {plugin.trust_level === 'official' && <span class="pill pill-official">Official</span>}
-                <span class="pill pill-brand plugin-kind">{kindLabels[plugin.kind] ?? plugin.kind}</span>
-              </div>
+            </div>
+            <div class="plugin-badges">
+              {plugin.trust_level === 'official' && <span class="pill pill-official">Official</span>}
+              <span class="pill pill-brand plugin-kind">{kindLabels[plugin.kind] ?? plugin.kind}</span>
             </div>
             <p class="plugin-summary">{plugin.summary}</p>
             <div class="plugin-caps">
@@ -211,27 +211,19 @@ function countForKind(kind: string): number {
   }
 
   .plugin-badges {
-    margin-left: auto;
     display: flex;
     flex-wrap: wrap;
-    gap: 3px;
-    flex-shrink: 1;
-    justify-content: flex-end;
-    max-width: 50%;
+    gap: 4px;
   }
 
   .pill-official {
     background: var(--re-brand-50);
     color: var(--re-brand-600);
-    font-size: 0.5625rem;
-    white-space: nowrap;
-    padding: 2px 6px;
+    font-size: 0.6875rem;
   }
 
   .plugin-kind {
-    white-space: nowrap;
-    font-size: 0.5625rem;
-    padding: 2px 6px;
+    font-size: 0.6875rem;
   }
 
   .plugin-summary {
