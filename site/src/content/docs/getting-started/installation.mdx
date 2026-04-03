@@ -3,6 +3,7 @@ title: "Installation"
 description: "How to install Ralph Engine from source"
 ---
 
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 Ralph Engine is currently installed from source. Binary distribution via npm and Homebrew is prepared but intentionally gated until the release pipeline is fully validated.
 
@@ -41,7 +42,28 @@ cargo test --workspace --all-targets
 
 ## Distribution Channels
 
-These channels are prepared and will be enabled once the release pipeline is fully connected:
+These channels are prepared and will be enabled once the release pipeline is fully connected.
+
+<Tabs syncKey="pkg">
+  <TabItem label="Cargo">
+    ```bash
+    cargo install ralph-engine
+    ```
+    Canonical install method. Compiles from source.
+  </TabItem>
+  <TabItem label="npm">
+    ```bash
+    npm install -g ralph-engine
+    ```
+    Prebuilt binary via npm. Also works with `pnpm add -g ralph-engine` or `yarn global add ralph-engine`.
+  </TabItem>
+  <TabItem label="Homebrew">
+    ```bash
+    brew install ralph-engine
+    ```
+    macOS and Linux via Homebrew tap.
+  </TabItem>
+</Tabs>
 
 | Channel | Status |
 |---------|--------|

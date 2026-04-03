@@ -1,5 +1,5 @@
 ---
-title: "Publicacao"
+title: "Publicação"
 description: "Processo de release e pipeline CI"
 ---
 

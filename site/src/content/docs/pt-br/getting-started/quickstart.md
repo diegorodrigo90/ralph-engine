@@ -1,6 +1,6 @@
 ---
-title: "Inicio rapido"
-description: "Caminho mais curto do clone ate uma baseline local validada"
+title: "Início rápido"
+description: "Caminho mais curto do clone até uma baseline local validada"
 ---
 
 

@@ -1,6 +1,6 @@
 ---
-title: "Solucao de problemas"
-description: "Problemas comuns e como resolve-los"
+title: "Solução de problemas"
+description: "Problemas comuns e como resolvê-los"
 ---
 
 

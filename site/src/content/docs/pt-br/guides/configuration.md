@@ -1,5 +1,5 @@
 ---
-title: "Configuracao"
+title: "Configuração"
 description: "Configure o Ralph Engine com arquivos YAML"
 ---
 

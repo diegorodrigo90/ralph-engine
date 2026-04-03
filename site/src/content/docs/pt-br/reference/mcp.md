@@ -1,6 +1,6 @@
 ---
 title: "MCP"
-description: "Integracao com Model Context Protocol"
+description: "Integração com Model Context Protocol"
 ---
 
 

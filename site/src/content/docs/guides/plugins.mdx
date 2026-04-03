@@ -3,6 +3,7 @@ title: "Extending"
 description: "Create your own Ralph Engine plugins"
 ---
 
+import { Tabs, TabItem } from '@astrojs/starlight/components';
 
 Plugins are the unit of extension in Ralph Engine. Each plugin declares capabilities, contributions, and an optional runtime implementation.
 
@@ -29,9 +30,23 @@ Show details: `ralph-engine plugins show official.claude`
 
 Use the scaffolder to create a new plugin:
 
-```bash
-npx create-ralph-engine-plugin --name my-tool --publisher acme --kind template
-```
+<Tabs syncKey="pkg">
+  <TabItem label="npx">
+    ```bash
+    npx create-ralph-engine-plugin --name my-tool --publisher acme --kind template
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    pnpm dlx create-ralph-engine-plugin --name my-tool --publisher acme --kind template
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    yarn dlx create-ralph-engine-plugin --name my-tool --publisher acme --kind template
+    ```
+  </TabItem>
+</Tabs>
 
 This generates a complete plugin crate with:
 - `src/lib.rs` — plugin descriptor, runtime implementation, and exports

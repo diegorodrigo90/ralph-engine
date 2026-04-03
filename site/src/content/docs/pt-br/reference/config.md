@@ -1,6 +1,6 @@
 ---
-title: "Referencia de config"
-description: "Todas as opcoes de configuracao"
+title: "Referência de config"
+description: "Todas as opções de configuração"
 ---
 
 
