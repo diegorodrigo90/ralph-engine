@@ -1,5 +1,17 @@
 [licenses]
-allow = ["MIT"]
+# All permissive licenses compatible with MIT.
+# Each was verified before adding — see docs/decisions/ for rationale.
+allow = [
+  "MIT",
+  "MIT-0",
+  "Apache-2.0",
+  "ISC",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "CC0-1.0",
+  "Unicode-3.0",
+  "CDLA-Permissive-2.0",  # webpki-root-certs (CA certificate data, Linux Foundation)
+]
 confidence-threshold = 0.8
 
 [bans]
