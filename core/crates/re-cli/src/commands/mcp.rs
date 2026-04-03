@@ -99,6 +99,7 @@ fn show_single_status(server_id: &str, locale: &str) -> Result<String, CliError>
     })
 }
 
+/// Validates and optionally launches an MCP server.
 fn probe_launch(server_id: Option<&str>, locale: &str) -> Result<String, CliError> {
     let server_id = server_id.ok_or_else(|| {
         CliError::new(i18n::missing_id(
@@ -116,126 +117,132 @@ fn probe_launch(server_id: Option<&str>, locale: &str) -> Result<String, CliErro
     })?;
 
     let plan = build_mcp_launch_plan(&server);
-    let mut lines = Vec::new();
+    let heading = locale_str!(locale, "MCP launch probe", "Verificação de lançamento MCP");
 
-    let heading = if locale == "pt-br" {
-        "Verificação de lançamento MCP"
-    } else {
-        "MCP launch probe"
-    };
-    lines.push(format!("--- {heading}: {} ---", server.id));
-    lines.push(format!("transport: {}", server.transport));
+    let mut lines = vec![
+        format!("--- {heading}: {} ---", server.id),
+        format!("transport: {}", server.transport),
+    ];
 
     match server.launch_policy {
         McpLaunchPolicy::PluginRuntime => {
-            lines.push(format!("policy: plugin_runtime ({})", server.plugin_id));
-
-            match catalog::official_plugin_runtime(server.plugin_id) {
-                Some(runtime) => match runtime.register_mcp_server(server.id) {
-                    Ok(result) => {
-                        let status = if result.ready { "[OK]" } else { "[NOT READY]" };
-                        lines.push(format!("{status} {}", result.message));
-                    }
-                    Err(err) => {
-                        lines.push(format!("[UNSUPPORTED] {err}"));
-                    }
-                },
-                None => {
-                    let msg = if locale == "pt-br" {
-                        "Plugin não fornece implementação de runtime."
-                    } else {
-                        "Plugin does not provide a runtime implementation."
-                    };
-                    lines.push(msg.to_owned());
-                }
-            }
+            launch_plugin_runtime_server(&server, &mut lines, locale);
         }
         McpLaunchPolicy::SpawnProcess(ref command) => {
-            lines.push(format!("command: {}", command.render_invocation()));
-            lines.push(format!("working_directory: {}", command.working_directory));
-            lines.push(format!("environment: {}", command.environment));
-
-            match probe_binary(command.program) {
-                Some(path) => {
-                    let label = if locale == "pt-br" {
-                        "Binário encontrado"
-                    } else {
-                        "Binary found"
-                    };
-                    lines.push(format!("[OK] {label}: {path}"));
-
-                    // Spawn the process in foreground for validation
-                    let spawn_label = if locale == "pt-br" {
-                        "Iniciando"
-                    } else {
-                        "Spawning"
-                    };
-                    lines.push(format!("{spawn_label}: {}", command.render_invocation()));
-
-                    // Print probe output before spawning (spawn blocks)
-                    println!("{}", lines.join("\n"));
-                    lines.clear();
-
-                    let cwd = std::env::current_dir().unwrap_or_default();
-                    let status = std::process::Command::new(command.program)
-                        .args(command.args)
-                        .current_dir(cwd)
-                        .stdin(std::process::Stdio::inherit())
-                        .stdout(std::process::Stdio::inherit())
-                        .stderr(std::process::Stdio::inherit())
-                        .status();
-
-                    match status {
-                        Ok(exit) => {
-                            let exit_label = if locale == "pt-br" {
-                                "Processo encerrado"
-                            } else {
-                                "Process exited"
-                            };
-                            lines.push(format!("{exit_label}: {exit}"));
-                        }
-                        Err(e) => {
-                            return Err(CliError::new(format!(
-                                "Failed to spawn '{}': {e}",
-                                command.program
-                            )));
-                        }
-                    }
-                }
-                None => {
-                    let label = if locale == "pt-br" {
-                        "Binário NÃO encontrado no PATH"
-                    } else {
-                        "Binary NOT found in PATH"
-                    };
-                    lines.push(format!("[MISSING] {label}: {}", command.program));
-
-                    let hint = if locale == "pt-br" {
-                        format!(
-                            "Dica: instale '{}' ou adicione-o ao PATH para habilitar este servidor MCP",
-                            command.program
-                        )
-                    } else {
-                        format!(
-                            "Hint: install '{}' or add it to PATH to enable this MCP server",
-                            command.program
-                        )
-                    };
-                    lines.push(hint);
-                }
-            }
+            launch_spawn_process_server(command, &mut lines, locale)?;
         }
     }
 
     lines.push(String::new());
     lines.push(render_mcp_launch_plan_for_locale(&plan, locale));
-
     Ok(lines.join("\n"))
 }
 
-/// Wraps the shared binary probe for local use with labeled output.
-fn probe_binary(program: &str) -> Option<String> {
-    re_plugin::probe_binary_on_path(program)
+/// Handles MCP launch for plugin-managed servers.
+fn launch_plugin_runtime_server(
+    server: &re_mcp::McpServerDescriptor,
+    lines: &mut Vec<String>,
+    locale: &str,
+) {
+    lines.push(format!("policy: plugin_runtime ({})", server.plugin_id));
+
+    match catalog::official_plugin_runtime(server.plugin_id) {
+        Some(runtime) => match runtime.register_mcp_server(server.id) {
+            Ok(result) => {
+                let status = if result.ready {
+                    super::STATUS_OK
+                } else {
+                    super::STATUS_NOT_READY
+                };
+                lines.push(format!("{status} {}", result.message));
+            }
+            Err(err) => {
+                lines.push(format!("{} {err}", super::STATUS_UNSUPPORTED));
+            }
+        },
+        None => {
+            let msg = locale_str!(
+                locale,
+                "Plugin does not provide a runtime implementation.",
+                "Plugin não fornece implementação de runtime."
+            );
+            lines.push(msg.to_owned());
+        }
+    }
+}
+
+/// Handles MCP launch for externally spawned servers.
+fn launch_spawn_process_server(
+    command: &re_mcp::McpCommandDescriptor,
+    lines: &mut Vec<String>,
+    locale: &str,
+) -> Result<(), CliError> {
+    lines.push(format!("command: {}", command.render_invocation()));
+    lines.push(format!("working_directory: {}", command.working_directory));
+    lines.push(format!("environment: {}", command.environment));
+
+    match re_plugin::probe_binary_on_path(command.program) {
+        Some(path) => {
+            let found_label = locale_str!(locale, "Binary found", "Binário encontrado");
+            lines.push(format!("{} {found_label}: {path}", super::STATUS_OK));
+
+            let spawn_label = locale_str!(locale, "Spawning", "Iniciando");
+            lines.push(format!("{spawn_label}: {}", command.render_invocation()));
+
+            // Flush output before blocking spawn
+            println!("{}", lines.join("\n"));
+            lines.clear();
+
+            let cwd = std::env::current_dir().unwrap_or_default();
+            let status = std::process::Command::new(command.program)
+                .args(command.args)
+                .current_dir(cwd)
+                .stdin(std::process::Stdio::inherit())
+                .stdout(std::process::Stdio::inherit())
+                .stderr(std::process::Stdio::inherit())
+                .status();
+
+            match status {
+                Ok(exit) => {
+                    let exit_label = locale_str!(locale, "Process exited", "Processo encerrado");
+                    lines.push(format!("{exit_label}: {exit}"));
+                }
+                Err(e) => {
+                    return Err(CliError::new(format!(
+                        "Failed to spawn '{}': {e}",
+                        command.program
+                    )));
+                }
+            }
+        }
+        None => {
+            let label = locale_str!(
+                locale,
+                "Binary NOT found in PATH",
+                "Binário NÃO encontrado no PATH"
+            );
+            lines.push(format!(
+                "{} {label}: {}",
+                super::STATUS_MISSING,
+                command.program
+            ));
+
+            let hint = locale_str!(
+                locale,
+                format!(
+                    "Hint: install '{}' or add it to PATH to enable this MCP server",
+                    command.program
+                ),
+                format!(
+                    "Dica: instale '{}' ou adicione-o ao PATH para habilitar este servidor MCP",
+                    command.program
+                )
+            );
+            lines.push(hint.to_owned());
+        }
+    }
+
+    Ok(())
 }
 
 fn show_all_statuses(locale: &str) -> String {
@@ -309,12 +316,12 @@ mod tests {
 
     #[test]
     fn probe_binary_finds_common_system_binary() {
-        assert!(super::probe_binary("sh").is_some());
+        assert!(re_plugin::probe_binary_on_path("sh").is_some());
     }
 
     #[test]
     fn probe_binary_reports_missing_for_nonexistent() {
-        assert!(super::probe_binary("ralph-engine-nonexistent-binary-xyz").is_none());
+        assert!(re_plugin::probe_binary_on_path("ralph-engine-nonexistent-binary-xyz").is_none());
     }
 
     #[test]
