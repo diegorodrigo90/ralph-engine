@@ -46,7 +46,7 @@ Under applicable data protection laws (including the LGPD and GDPR), you have th
 
 ## Contact
 
-For privacy inquiries: [diego@ralphengine.com](mailto:diego@ralphengine.com)
+For privacy inquiries: [privacy@ralphengine.com](mailto:privacy@ralphengine.com)
 
 ## Changes
 

@@ -46,7 +46,7 @@ Sob as leis de proteção de dados aplicáveis (incluindo a LGPD e o GDPR), voc�
 
 ## Contato
 
-Para dúvidas sobre privacidade: [diego@ralphengine.com](mailto:diego@ralphengine.com)
+Para dúvidas sobre privacidade: [privacy@ralphengine.com](mailto:privacy@ralphengine.com)
 
 ## Alterações
 
