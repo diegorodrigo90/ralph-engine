@@ -21,15 +21,21 @@ const steps = [
       {t(lang, 'getting-started.title')}
     </h2>
     <div class="grid-3">
-      {steps.map(({ key }, i) => (
-        <div class="card step-card">
-          <span class="step-number">{i + 1}</span>
-          <h3>{t(lang, `getting-started.${key}.title`)}</h3>
-          <div class="code-block">
-            <code>{t(lang, `getting-started.${key}.code`)}</code>
+      {steps.map(({ key }, i) => {
+        const cmd = t(lang, `getting-started.${key}.code`);
+        return (
+          <div class="card step-card">
+            <span class="step-number">{i + 1}</span>
+            <h3>{t(lang, `getting-started.${key}.title`)}</h3>
+            <div class="cmd-block">
+              <code>{cmd}</code>
+              <button class="copy-btn" type="button" data-copy={cmd} aria-label="Copy">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   </div>
 </section>
@@ -56,9 +62,21 @@ const steps = [
     font-size: 0.9375rem;
   }
 
-  .step-card .code-block {
+  .step-card .cmd-block {
     width: 100%;
     text-align: left;
-    font-size: 0.8125rem;
   }
 </style>
+
+<script is:inline>
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.copy-btn');
+    if (!btn) return;
+    var text = btn.getAttribute('data-copy');
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(function () {
+      btn.classList.add('copied');
+      setTimeout(function () { btn.classList.remove('copied'); }, 2000);
+    });
+  });
+</script>
