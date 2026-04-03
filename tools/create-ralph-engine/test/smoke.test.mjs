@@ -38,44 +38,32 @@ test("creates a non-interactive plugin scaffold", () => {
   const cargoToml = fs.readFileSync(path.join(targetDir, "Cargo.toml"), "utf8");
   const rustLib = fs.readFileSync(path.join(targetDir, "src", "lib.rs"), "utf8");
   const rustI18nMod = fs.readFileSync(path.join(targetDir, "src", "i18n", "mod.rs"), "utf8");
-  const rustI18nEn = fs.readFileSync(path.join(targetDir, "src", "i18n", "en.rs"), "utf8");
-  const rustI18nPtBr = fs.readFileSync(path.join(targetDir, "src", "i18n", "pt_br.rs"), "utf8");
+  const localeEn = fs.readFileSync(path.join(targetDir, "locales", "en.toml"), "utf8");
+  const localePtBr = fs.readFileSync(path.join(targetDir, "locales", "pt-br.toml"), "utf8");
+  const buildRs = fs.readFileSync(path.join(targetDir, "build.rs"), "utf8");
   validateManifestDocument(manifest);
   assert.match(manifest, /id: acme\.jira-suite/);
   assert.match(manifest, /kind: mcp_contribution/);
-  assert.match(manifest, /display_name_locales:\n  pt-br: Jira Suite/);
-  assert.match(manifest, /summary: Jira Suite plugin for Ralph Engine\./);
-  assert.match(manifest, /summary_locales:\n  pt-br: Plugin Jira Suite para o Ralph Engine\./);
   assert.match(manifest, /- mcp_contribution/);
   assert.match(manifest, /- context_provider/);
   assert.match(manifest, /- data_source/);
-  assert.match(manifest, /providers:\n  - id: acme\.jira-suite\.data\n    kind: data_source/);
-  assert.match(manifest, /- id: acme\.jira-suite\.context\n    kind: context_provider/);
   assert.match(cargoToml, /name = "re-plugin-acme-jira-suite"/);
-  assert.match(cargoToml, /re-plugin = \{ git = "https:\/\/github\.com\/diegorodrigo90\/ralph-engine\.git", tag = "v0\.2\.0-alpha\.1", package = "re-plugin" \}/);
+  assert.match(cargoToml, /re-build-utils/);
   assert.match(rustLib, /mod i18n;/);
   assert.match(rustLib, /pub const PLUGIN_ID: &str = "acme\.jira-suite";/);
-  assert.match(rustLib, /const PLUGIN_NAME: &str = i18n::default_name\(\);/);
-  assert.match(rustLib, /const LOCALIZED_NAMES: &\[PluginLocalizedText\] = i18n::localized_names\(\);/);
+  assert.match(rustLib, /i18n::plugin_name\(\)/);
+  assert.match(rustLib, /i18n::localized_plugin_names\(\)/);
   assert.match(rustLib, /PluginTrustLevel::Community/);
-  assert.match(rustLib, /PluginRuntimeHook::McpRegistration/);
-  assert.match(rustLib, /PluginRuntimeHook::ContextProviderRegistration/);
-  assert.match(rustLib, /PluginRuntimeHook::DataSourceRegistration/);
-  assert.match(rustLib, /const PROVIDERS: &\[PluginProviderDescriptor\]/);
-  assert.match(rustLib, /pub const fn providers\(\) -> &'static \[PluginProviderDescriptor\]/);
-  assert.match(rustLib, /i18n::providers_acme_jira_suite_data_default_name\(\)/);
-  assert.match(rustLib, /i18n::providers_acme_jira_suite_context_localized_summaries\(\)/);
-  assert.match(rustI18nMod, /pub mod en;/);
-  assert.match(rustI18nMod, /pub mod pt_br;/);
-  assert.match(rustI18nMod, /const LOCALIZED_NAMES: &\[PluginLocalizedText\]/);
-  assert.match(rustI18nMod, /const LOCALIZED_SUMMARIES: &\[PluginLocalizedText\]/);
-  assert.match(rustI18nMod, /pub struct ContributionLocaleCatalog/);
-  assert.match(rustI18nMod, /providers_acme_jira_suite_data_default_name/);
-  assert.match(rustI18nEn, /pub const LOCALE: PluginLocaleCatalog = PluginLocaleCatalog \{/);
-  assert.match(rustI18nEn, /name: "Jira Suite"/);
-  assert.match(rustI18nEn, /pub const PROVIDERS_ACME_JIRA_SUITE_DATA: ContributionLocaleCatalog/);
-  assert.match(rustI18nPtBr, /summary: "Plugin Jira Suite para o Ralph Engine\."/);
-  assert.match(rustI18nPtBr, /display_name: "Fonte de dados Jira Suite"/);
+  assert.match(rustLib, /CURRENT_PLUGIN_API_VERSION/);
+  assert.match(rustLib, /i18n::provider_name\(\)/);
+  assert.match(rustLib, /i18n::localized_provider_summaries\(\)/);
+  assert.match(rustI18nMod, /include!/);
+  assert.match(localeEn, /\[plugin\]/);
+  assert.match(localeEn, /name = "Jira Suite"/);
+  assert.match(localeEn, /\[provider\]/);
+  assert.match(localePtBr, /summary = "Plugin Jira Suite para o Ralph Engine\."/);
+  assert.match(buildRs, /PluginLocaleSection/);
+  assert.match(buildRs, /toml_section: "plugin"/);
 });
 
 test("renders help in pt-br when locale is configured", () => {
@@ -135,14 +123,16 @@ test("creates template assets when template capability is present", () => {
   assert.equal(result.status, 0, result.stderr);
   const manifest = fs.readFileSync(path.join(targetDir, "manifest.yaml"), "utf8");
   const rustLib = fs.readFileSync(path.join(targetDir, "src", "lib.rs"), "utf8");
-  const rustI18nMod = fs.readFileSync(path.join(targetDir, "src", "i18n", "mod.rs"), "utf8");
   validateManifestDocument(manifest);
   assert.equal(fs.existsSync(path.join(targetDir, "template", "config.yaml")), true);
   assert.equal(fs.existsSync(path.join(targetDir, "template", "hooks.yaml")), true);
   assert.equal(fs.existsSync(path.join(targetDir, "template", "prompt.md")), true);
+  assert.equal(fs.existsSync(path.join(targetDir, "locales", "en.toml")), true);
+  assert.equal(fs.existsSync(path.join(targetDir, "locales", "pt-br.toml")), true);
+  assert.equal(fs.existsSync(path.join(targetDir, "build.rs")), true);
   assert.match(manifest, /templates:\n  - id: community\.bmad-pack\.starter/);
   assert.match(rustLib, /PluginRuntimeHook::Scaffold/);
-  assert.match(rustI18nMod, /localized_summaries/);
+  assert.match(rustLib, /i18n::template_name\(\)/);
 });
 
 test("creates typed contribution sections for runtime-facing capabilities", () => {
@@ -184,8 +174,10 @@ test("creates typed contribution sections for runtime-facing capabilities", () =
   assert.match(rustLib, /pub const fn prompts\(\) -> &'static \[PluginPromptDescriptor\]/);
   assert.match(rustLib, /pub const fn agents\(\) -> &'static \[PluginAgentDescriptor\]/);
   assert.match(rustLib, /pub const fn policies\(\) -> &'static \[PluginPolicyDescriptor\]/);
-  assert.match(rustLib, /i18n::checks_acme_codex_suite_prepare_default_name\(\)/);
-  assert.match(rustLib, /i18n::policies_acme_codex_suite_guardrails_localized_names\(\)/);
+  assert.match(rustLib, /i18n::check_name\(\)/);
+  assert.match(rustLib, /i18n::localized_policy_names\(\)/);
+  assert.match(rustLib, /i18n::agent_name\(\)/);
+  assert.match(rustLib, /i18n::prompt_summary\(\)/);
 });
 
 test("rejects manifests that drift from the typed contract", () => {
