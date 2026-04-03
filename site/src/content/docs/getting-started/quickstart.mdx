@@ -5,54 +5,49 @@ description: "Get Ralph Engine running in 3 commands"
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 
-## Bootstrap
+## 1. Install
 
-Install the pinned toolchain, Node dependencies, dev tools, and git hooks:
-
-```bash
-./scripts/bootstrap-dev.sh
-```
-
-## Validate
-
-Prove the project is healthy before you start changing it:
-
-```bash
-./scripts/validate.sh --mode local
-```
-
-## Run
-
-Confirm the Rust-first CLI baseline is working:
-
-```bash
-cargo run -p re-cli
-```
-
-## After the first run
-
-The next useful paths depend on what you want to do:
-
-- Read [Architecture](/reference/architecture) for the system model.
-- Read [Extending](/guides/plugins) for the extension surface.
-- Read [Coding Standards](/development/coding-standards) to contribute code.
-- Read [CLI Reference](/reference/cli) to explore available commands.
-
-## Validation options
-
-<Tabs syncKey="validation">
-  <TabItem label="Standard">
-    Full local validation (formatting, linting, tests, coverage, doc generation, dependency audits, cross-language contract verification):
-
+<Tabs syncKey="pkg">
+  <TabItem label="npm">
     ```bash
-    ./scripts/validate.sh --mode local
+    npm install -g ralph-engine
     ```
   </TabItem>
-  <TabItem label="CI smoke">
-    Local smoke check of the GitHub Actions workflow (complements but does not replace the standard validation):
-
+  <TabItem label="Homebrew">
     ```bash
-    ./scripts/validate-ci-local.sh
+    brew install ralph-engine
+    ```
+  </TabItem>
+  <TabItem label="Cargo">
+    ```bash
+    cargo install ralph-engine
     ```
   </TabItem>
 </Tabs>
+
+## 2. Initialize a project
+
+Scaffold a starter project configuration:
+
+```bash
+ralph-engine templates materialize official.basic.starter ./my-project
+```
+
+This creates a `.ralph-engine/` directory with:
+- `config.yaml` — project configuration
+- `prompt.md` — project-specific prompt content
+
+## 3. Check your setup
+
+```bash
+ralph-engine doctor
+```
+
+If everything is green, you're ready to go.
+
+## What to do next
+
+- Run `ralph-engine plugins list` to see available plugins
+- Run `ralph-engine --help` to explore all commands
+- Read [Configuration](/guides/configuration/) to customize your project
+- Read [CLI Commands](/reference/cli/) for the full command reference
