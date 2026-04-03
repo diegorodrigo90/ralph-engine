@@ -1,0 +1,241 @@
+---
+title: "Desenvolvimento de Plugins"
+description: "Construa seu próprio plugin para o Ralph Engine do zero"
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+
+Plugins são crates Rust com um `manifest.yaml` que o Ralph Engine descobre automaticamente na inicialização. Cada plugin declara seu kind, capabilities e contribuições. O scaffolder gera tudo que você precisa — sem configuração manual.
+
+## Criar um Novo Plugin
+
+<Tabs syncKey="pkg">
+  <TabItem label="npx">
+    ```bash
+    npx create-ralph-engine-plugin --name my-tool --publisher acme --kind template
+    ```
+  </TabItem>
+  <TabItem label="pnpm">
+    ```bash
+    pnpm dlx create-ralph-engine-plugin --name my-tool --publisher acme --kind template
+    ```
+  </TabItem>
+  <TabItem label="yarn">
+    ```bash
+    yarn dlx create-ralph-engine-plugin --name my-tool --publisher acme --kind template
+    ```
+  </TabItem>
+</Tabs>
+
+### Flags
+
+| Flag | Obrigatório | Descrição |
+|------|-------------|-----------|
+| `--name` | Sim | Nome do plugin. Usado como nome do crate e no ID do plugin (`publisher.name`). |
+| `--publisher` | Sim | Namespace do publisher. Use o nome da sua organização (ex: `acme`). |
+| `--kind` | Sim | Tipo do plugin. Determina quais capabilities e métodos do trait são relevantes. |
+
+Valores válidos para `--kind`: `template`, `agent_runtime`, `mcp_contribution`, `policy`, `remote_control`.
+
+## Arquivos Gerados
+
+O scaffolder cria um crate Rust completo:
+
+```
+my-tool/
+├── src/
+│   ├── lib.rs          # Plugin descriptor + trait PluginRuntime
+│   └── i18n/
+│       └── mod.rs      # Gerado pelo build.rs (não edite)
+├── locales/
+│   ├── en.toml         # Strings em inglês
+│   └── pt-br.toml      # Strings em português brasileiro
+├── build.rs            # Compila TOML de locale em código Rust
+├── manifest.yaml       # Metadados para auto-discovery
+└── Cargo.toml          # Dependências do crate
+```
+
+### `src/lib.rs`
+
+O ponto de entrada. Declara o plugin descriptor (ID, kind, trust level, capabilities, estágios do lifecycle) e implementa o trait `PluginRuntime`. O scaffolder já preenche as constantes do descriptor e conecta o módulo i18n.
+
+### `manifest.yaml`
+
+Metadados declarativos que o Ralph Engine lê na inicialização para auto-discovery. Contém o ID do plugin, kind, display name, summary, publisher, trust level, capabilities e lista de contribuições. Exemplo:
+
+```yaml
+id: acme.my-tool
+kind: template
+display_name: My Tool
+display_name_locales:
+  pt-br: Minha Ferramenta
+summary: What this plugin does.
+summary_locales:
+  pt-br: O que este plugin faz.
+publisher: acme
+trust_level: community
+plugin_version: 0.1.0
+plugin_api_version: 1.0.0
+engine_version: ">=0.2.0-alpha.1"
+runtime: true
+capabilities:
+  - template
+```
+
+### `locales/en.toml` e `locales/pt-br.toml`
+
+Arquivos TOML com strings traduzíveis. Não é necessário saber Rust para adicionar traduções. O `build.rs` compila esses arquivos em código Rust type-safe no momento do build.
+
+### `build.rs`
+
+Lê cada arquivo `.toml` em `locales/` e gera o módulo `i18n` com constantes em tempo de compilação. Você não precisa editar este arquivo, a menos que adicione novas seções TOML.
+
+### `Cargo.toml`
+
+Manifesto padrão de crate Rust. As únicas dependências necessárias são `re-plugin` (runtime) e `re-build-utils` (build script):
+
+```toml
+[dependencies]
+re-plugin = { version = "0.2.0-alpha.1" }
+
+[build-dependencies]
+re-build-utils = { version = "0.2.0-alpha.1" }
+```
+
+## Implementar o Runtime
+
+Todo plugin implementa o trait `PluginRuntime`. O trait tem três métodos:
+
+```rust
+pub trait PluginRuntime: Send + Sync {
+    /// Returns the plugin identifier this runtime belongs to.
+    fn plugin_id(&self) -> &str;
+
+    /// Executes a prepare or doctor check.
+    fn run_check(
+        &self,
+        check_id: &str,
+        kind: PluginCheckKind,
+        project_root: &Path,
+    ) -> Result<CheckExecutionResult, PluginRuntimeError>;
+
+    /// Bootstraps an agent runtime session.
+    fn bootstrap_agent(
+        &self,
+        agent_id: &str,
+    ) -> Result<AgentBootstrapResult, PluginRuntimeError>;
+
+    /// Registers an MCP server and validates it can start.
+    fn register_mcp_server(
+        &self,
+        server_id: &str,
+    ) -> Result<McpRegistrationResult, PluginRuntimeError>;
+}
+```
+
+Nem todos os métodos precisam de implementações reais. Um plugin de template só usa o `run_check` (para validar arquivos do projeto). Um plugin de agent runtime foca no `bootstrap_agent`. Retorne `Err(PluginRuntimeError::new(...))` para operações que seu plugin não suporta:
+
+```rust
+fn bootstrap_agent(
+    &self,
+    agent_id: &str,
+) -> Result<AgentBootstrapResult, PluginRuntimeError> {
+    Err(PluginRuntimeError::new(
+        "not_an_agent_plugin",
+        format!("my-tool does not provide agent '{agent_id}'"),
+    ))
+}
+```
+
+## Adicionar Traduções
+
+As traduções ficam em `locales/*.toml`. Cada arquivo corresponde a um idioma. A estrutura TOML espelha as contribuições do plugin:
+
+```toml
+# locales/en.toml
+[plugin]
+name = "My Tool"
+summary = "What this plugin does."
+
+[template]
+name = "Starter"
+summary = "Basic project template."
+```
+
+```toml
+# locales/pt-br.toml
+[plugin]
+name = "Minha Ferramenta"
+summary = "O que este plugin faz."
+
+[template]
+name = "Starter"
+summary = "Template básico de projeto."
+```
+
+Adicionar um novo idioma significa criar um arquivo TOML (ex: `locales/es.toml`). O `build.rs` detecta automaticamente — sem alterações em Rust.
+
+## Testar Seu Plugin
+
+Execute os testes unitários do plugin:
+
+```bash
+cargo test -p my-tool
+```
+
+Execute testes sequencialmente (útil para testes com estado compartilhado):
+
+```bash
+cargo test -p my-tool -- --test-threads=1
+```
+
+Verifique se o plugin satisfaz os testes de contrato:
+
+```bash
+npm run contracts:verify
+```
+
+## Validar o Manifest
+
+Exiba os metadados resolvidos do plugin:
+
+```bash
+ralph-engine plugins show acme.my-tool
+```
+
+Liste todos os plugins registrados (official + community):
+
+```bash
+ralph-engine plugins list
+```
+
+## Tipos de Plugin
+
+| Kind | Contribui | Use quando |
+|------|-----------|------------|
+| `template` | Templates, prompts | Scaffolding de projetos e arquivos iniciais |
+| `agent_runtime` | Agents, MCP servers | Integração com agentes (Claude, Codex, custom) |
+| `mcp_contribution` | MCP servers | Integração com ferramentas externas sem agent runtime |
+| `policy` | Policies, checks | Regras de enforcement (TDD, lint, compliance) |
+| `remote_control` | Providers | Execução remota (SSH, containers, cloud) |
+
+A flag `--kind` determina quais capabilities e runtime hooks o scaffolder pré-configura. Você pode adicionar mais capabilities depois editando o `manifest.yaml` e implementando os métodos correspondentes do trait.
+
+## Níveis de Confiança
+
+| Nível | Significado |
+|-------|-------------|
+| `official` | Plugins oficiais distribuídos com o Ralph Engine. Ficam em `plugins/official/`. |
+| `community` | Plugins de terceiros. Descobertos automaticamente via `manifest.yaml` no projeto. |
+
+O trust level afeta as permissões padrão. Plugins oficiais têm acesso completo. Plugins da comunidade operam com permissões reduzidas por padrão.
+
+## Publicar
+
+Plugins da comunidade são distribuídos como crates Rust independentes. Para disponibilizar seu plugin:
+
+1. Publique o crate no [crates.io](https://crates.io) ou em um registry privado.
+2. Usuários adicionam como dependência no projeto deles.
+3. O Ralph Engine descobre via `manifest.yaml` na inicialização.
+
+Não é necessário um registry ou marketplace de plugins. O manifest é o mecanismo de discovery.
