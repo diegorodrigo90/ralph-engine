@@ -210,9 +210,8 @@ export default defineConfig({
       },
     ],
 
-    search: {
-      provider: "local",
-    },
+    /* VitePress built-in search disabled — Pagefind provides unified search
+       across site + docs. See theme/index.ts for Pagefind integration. */
 
     outline: {
       level: [2, 3],
