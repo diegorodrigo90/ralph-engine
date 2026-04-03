@@ -1,8 +1,13 @@
 # Cloudflare Pages redirects
 
-# Docs root → Installation (no generic landing)
-/docs/  /docs/getting-started/installation  302
-/docs/pt-br/  /docs/pt-br/getting-started/installation  302
+# Old /docs/ paths → new root-level docs
+/docs/getting-started/*  /getting-started/:splat  301
+/docs/guides/*  /guides/:splat  301
+/docs/reference/*  /reference/:splat  301
+/docs/development/*  /development/:splat  301
+/docs/pt-br/*  /pt-br/:splat  301
+/docs/  /getting-started/installation  302
+/docs  /getting-started/installation  302
 
 # Legacy paths from old site
 /landing/*  /  301

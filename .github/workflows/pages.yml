@@ -39,24 +39,13 @@ jobs:
         working-directory: site
         run: npm ci
 
-      - name: Build Astro site
+      - name: Build site (Astro + Starlight + Pagefind)
         working-directory: site
         run: npm run build
-
-      - name: Install docs dependencies
-        working-directory: docs
-        run: npm ci
-
-      - name: Build VitePress docs
-        working-directory: docs
-        run: npm run build
-
-      - name: Assemble public surfaces
-        run: ./scripts/assemble-public-surfaces.sh .site-dist
 
       - name: Deploy to Cloudflare Pages
         uses: cloudflare/wrangler-action@da0e0235b4e36800f8418abe12c06df043a16f14 # v3.14.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy .site-dist --project-name=ralph-engine
+          command: pages deploy site/dist --project-name=ralph-engine

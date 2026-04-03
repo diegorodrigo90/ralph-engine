@@ -11,7 +11,7 @@ const altLang = alternateLang(lang);
 const altLabel = altLang === 'pt-br' ? 'Português' : 'English';
 const currentLabel = lang === 'pt-br' ? 'Português' : 'English';
 const currentPath = Astro.url.pathname.replace('/pt-br', '') || '/';
-const docsHref = lang === 'pt-br' ? '/docs/pt-br/getting-started/installation' : '/docs/getting-started/installation';
+const docsHref = localePath(lang, '/getting-started/installation/');
 ---
 
 <header class="re-nav">
