@@ -64,11 +64,11 @@ function countForKind(kind: string): number {
               <div class="plugin-card-title">
                 <h3 class="plugin-name">{plugin.display_name}</h3>
                 <span class="plugin-id">{plugin.id}</span>
+                <div class="plugin-badges">
+                  {plugin.trust_level === 'official' && <span class="pill pill-official">Official</span>}
+                  <span class="pill pill-brand plugin-kind">{kindLabels[plugin.kind] ?? plugin.kind}</span>
+                </div>
               </div>
-            </div>
-            <div class="plugin-badges">
-              {plugin.trust_level === 'official' && <span class="pill pill-official">Official</span>}
-              <span class="pill pill-brand plugin-kind">{kindLabels[plugin.kind] ?? plugin.kind}</span>
             </div>
             <p class="plugin-summary">{plugin.summary}</p>
             <div class="plugin-caps">
@@ -211,10 +211,15 @@ function countForKind(kind: string): number {
     flex-shrink: 0;
   }
 
+  .plugin-card-title {
+    min-width: 0;
+  }
+
   .plugin-badges {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
+    margin-top: 4px;
   }
 
   .pill-official {
