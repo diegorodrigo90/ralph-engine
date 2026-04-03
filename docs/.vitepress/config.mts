@@ -23,6 +23,9 @@ const releaseVersion = cargoToml.match(/^version = "([^"]+)"/m)?.[1] ?? "0.0.0";
 const releaseTag = `v${releaseVersion}`;
 const releaseUrl = `https://github.com/diegorodrigo90/ralph-engine/releases/tag/${releaseTag}`;
 
+/** Base URL of the Astro site. Change here if domain moves. */
+const siteUrl = "https://ralphengine.com";
+
 function buildSidebar(prefix: string, labels: {
   gettingStarted: string;
   guides: string;
@@ -84,11 +87,11 @@ export default defineConfig({
   base: "/docs/",
   cleanUrls: true,
   sitemap: {
-    hostname: "https://ralphengine.com/docs",
+    hostname: `${siteUrl}/docs`,
   },
 
   head: [
-    ["link", { rel: "preconnect", href: "https://ralphengine.com" }],
+    ["link", { rel: "preconnect", href: siteUrl }],
     [
       "script",
       {},
@@ -122,9 +125,9 @@ export default defineConfig({
       description: "Open-source plugin-first runtime for agentic coding workflows",
       themeConfig: {
         nav: [
-          { text: "Home", link: "https://ralphengine.com/", target: "_self" },
+          { text: "Home", link: `${siteUrl}/`, target: "_self" },
           { text: "Docs", link: "/" },
-          { text: "Plugins", link: "https://ralphengine.com/plugins/", target: "_self" },
+          { text: "Plugins", link: `${siteUrl}/plugins/`, target: "_self" },
           { text: `Latest ${releaseTag}`, link: releaseUrl },
         ],
         sidebar: buildSidebar("", {
@@ -160,9 +163,9 @@ export default defineConfig({
       description: "Runtime open source, orientado a plugins, para fluxos de desenvolvimento com agentes",
       themeConfig: {
         nav: [
-          { text: "Início", link: "https://ralphengine.com/pt-br/", target: "_self" },
+          { text: "Início", link: `${siteUrl}/pt-br/`, target: "_self" },
           { text: "Docs", link: "/pt-br/" },
-          { text: "Plugins", link: "https://ralphengine.com/pt-br/plugins/", target: "_self" },
+          { text: "Plugins", link: `${siteUrl}/pt-br/plugins/`, target: "_self" },
           { text: `Última ${releaseTag}`, link: releaseUrl },
         ],
         sidebar: buildSidebar("/pt-br", {
@@ -200,7 +203,7 @@ export default defineConfig({
     },
 
     siteTitle: false,
-    logoLink: "https://ralphengine.com/",
+    logoLink: `${siteUrl}/`,
 
     socialLinks: [
       {
