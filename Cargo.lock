@@ -74,6 +74,7 @@ version = "0.2.0-alpha.1"
 name = "re-core"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-build-utils",
  "re-config",
  "re-mcp",
  "re-plugin",
