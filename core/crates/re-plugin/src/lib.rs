@@ -4,6 +4,69 @@ use std::fmt;
 
 mod i18n;
 
+/// Generates a `#[non_exhaustive]` enum with `as_str()`, `Display`, and a
+/// canonical `ALL_*` constant from a single declaration.
+///
+/// # Example
+///
+/// ```ignore
+/// define_plugin_enum! {
+///     /// Doc comment for the enum.
+///     pub enum PluginKind => ALL_PLUGIN_KINDS {
+///         /// Template-oriented plugin.
+///         Template => "template",
+///         /// Agent runtime plugin.
+///         AgentRuntime => "agent_runtime",
+///     }
+/// }
+/// ```
+///
+/// This expands to the enum definition, `as_str()` match, `Display` impl,
+/// and a `pub const ALL_PLUGIN_KINDS: &[PluginKind]` array — all in one
+/// place. Adding a new variant means adding one line.
+macro_rules! define_plugin_enum {
+    (
+        $(#[$meta:meta])*
+        pub enum $name:ident => $all_const:ident {
+            $(
+                $(#[$variant_meta:meta])*
+                $variant:ident => $str_val:literal
+            ),+ $(,)?
+        }
+    ) => {
+        $(#[$meta])*
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        #[non_exhaustive]
+        pub enum $name {
+            $(
+                $(#[$variant_meta])*
+                $variant,
+            )+
+        }
+
+        impl $name {
+            /// Returns the stable string identifier for this variant.
+            #[must_use]
+            pub const fn as_str(self) -> &'static str {
+                match self {
+                    $(Self::$variant => $str_val,)+
+                }
+            }
+        }
+
+        impl fmt::Display for $name {
+            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str(self.as_str())
+            }
+        }
+
+        /// Canonical ordered list of all reviewed variants.
+        pub const $all_const: &[$name] = &[
+            $($name::$variant,)+
+        ];
+    };
+}
+
 /// Extensible plugin capability identifier.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct PluginCapability(&'static str);
@@ -69,74 +132,31 @@ pub const ALL_PLUGIN_CAPABILITIES: &[PluginCapability] = &[
 /// Parses one reviewed plugin capability identifier.
 #[must_use]
 pub fn parse_reviewed_plugin_capability(value: &str) -> Option<PluginCapability> {
-    match value {
-        "template" => Some(TEMPLATE),
-        "prompt_fragments" => Some(PROMPT_FRAGMENTS),
-        "prepare_checks" => Some(PREPARE_CHECKS),
-        "doctor_checks" => Some(DOCTOR_CHECKS),
-        "agent_runtime" => Some(AGENT_RUNTIME),
-        "mcp_contribution" => Some(MCP_CONTRIBUTION),
-        "data_source" => Some(DATA_SOURCE),
-        "context_provider" => Some(CONTEXT_PROVIDER),
-        "forge_provider" => Some(FORGE_PROVIDER),
-        "remote_control" => Some(REMOTE_CONTROL),
-        "policy" => Some(POLICY),
-        _ => None,
+    ALL_PLUGIN_CAPABILITIES
+        .iter()
+        .find(|cap| cap.as_str() == value)
+        .copied()
+}
+
+define_plugin_enum! {
+    /// Typed runtime surface identifier owned by reviewed plugin capabilities.
+    pub enum PluginRuntimeSurface => ALL_PLUGIN_RUNTIME_SURFACES {
+        /// Template-provider runtime surface.
+        Templates => "templates",
+        /// Prompt-provider runtime surface.
+        Prompts => "prompts",
+        /// Runtime-check surface.
+        Checks => "checks",
+        /// Agent-runtime surface.
+        Agents => "agents",
+        /// MCP server contribution surface.
+        Mcp => "mcp",
+        /// Shared provider surface for data, context, forge, and remote control.
+        Providers => "providers",
+        /// Policy-provider surface.
+        Policies => "policies",
     }
 }
-
-/// Typed runtime surface identifier owned by reviewed plugin capabilities.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[non_exhaustive]
-pub enum PluginRuntimeSurface {
-    /// Template-provider runtime surface.
-    Templates,
-    /// Prompt-provider runtime surface.
-    Prompts,
-    /// Runtime-check surface.
-    Checks,
-    /// Agent-runtime surface.
-    Agents,
-    /// MCP server contribution surface.
-    Mcp,
-    /// Shared provider surface for data, context, forge, and remote control.
-    Providers,
-    /// Policy-provider surface.
-    Policies,
-}
-
-impl PluginRuntimeSurface {
-    /// Returns the stable runtime-surface identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Templates => "templates",
-            Self::Prompts => "prompts",
-            Self::Checks => "checks",
-            Self::Agents => "agents",
-            Self::Mcp => "mcp",
-            Self::Providers => "providers",
-            Self::Policies => "policies",
-        }
-    }
-}
-
-impl fmt::Display for PluginRuntimeSurface {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-/// Canonical ordered list of reviewed runtime surfaces owned by plugin capabilities.
-pub const ALL_PLUGIN_RUNTIME_SURFACES: &[PluginRuntimeSurface] = &[
-    PluginRuntimeSurface::Templates,
-    PluginRuntimeSurface::Prompts,
-    PluginRuntimeSurface::Checks,
-    PluginRuntimeSurface::Agents,
-    PluginRuntimeSurface::Mcp,
-    PluginRuntimeSurface::Providers,
-    PluginRuntimeSurface::Policies,
-];
 
 /// Resolves the dedicated runtime surface that owns one reviewed capability.
 #[must_use]
@@ -157,93 +177,37 @@ pub fn runtime_surface_for_capability(
     }
 }
 
-/// Typed primary plugin kind identifier.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[non_exhaustive]
-pub enum PluginKind {
-    /// Template-oriented plugin.
-    Template,
-    /// Agent runtime plugin.
-    AgentRuntime,
-    /// Forge provider plugin.
-    ForgeProvider,
-    /// Context provider plugin.
-    ContextProvider,
-    /// Data source plugin.
-    DataSource,
-    /// Remote control plugin.
-    RemoteControl,
-    /// MCP contribution plugin.
-    McpContribution,
-    /// Policy plugin.
-    Policy,
-}
-
-impl PluginKind {
-    /// Returns the stable plugin kind identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Template => "template",
-            Self::AgentRuntime => "agent_runtime",
-            Self::ForgeProvider => "forge_provider",
-            Self::ContextProvider => "context_provider",
-            Self::DataSource => "data_source",
-            Self::RemoteControl => "remote_control",
-            Self::McpContribution => "mcp_contribution",
-            Self::Policy => "policy",
-        }
+define_plugin_enum! {
+    /// Typed primary plugin kind identifier.
+    pub enum PluginKind => ALL_PLUGIN_KINDS {
+        /// Template-oriented plugin.
+        Template => "template",
+        /// Agent runtime plugin.
+        AgentRuntime => "agent_runtime",
+        /// Forge provider plugin.
+        ForgeProvider => "forge_provider",
+        /// Context provider plugin.
+        ContextProvider => "context_provider",
+        /// Data source plugin.
+        DataSource => "data_source",
+        /// Remote control plugin.
+        RemoteControl => "remote_control",
+        /// MCP contribution plugin.
+        McpContribution => "mcp_contribution",
+        /// Policy plugin.
+        Policy => "policy",
     }
 }
 
-impl fmt::Display for PluginKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
+define_plugin_enum! {
+    /// Typed plugin trust-level identifier.
+    pub enum PluginTrustLevel => ALL_PLUGIN_TRUST_LEVELS {
+        /// Official first-party plugin.
+        Official => "official",
+        /// Community plugin outside the trusted official set.
+        Community => "community",
     }
 }
-
-/// Canonical ordered list of reviewed plugin kinds.
-pub const ALL_PLUGIN_KINDS: &[PluginKind] = &[
-    PluginKind::Template,
-    PluginKind::AgentRuntime,
-    PluginKind::ForgeProvider,
-    PluginKind::ContextProvider,
-    PluginKind::DataSource,
-    PluginKind::RemoteControl,
-    PluginKind::McpContribution,
-    PluginKind::Policy,
-];
-
-/// Typed plugin trust-level identifier.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[non_exhaustive]
-pub enum PluginTrustLevel {
-    /// Official first-party plugin.
-    Official,
-    /// Community plugin outside the trusted official set.
-    Community,
-}
-
-impl PluginTrustLevel {
-    /// Returns the stable plugin trust-level identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Official => "official",
-            Self::Community => "community",
-        }
-    }
-}
-
-impl fmt::Display for PluginTrustLevel {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-/// Canonical ordered list of reviewed plugin trust levels.
-pub const ALL_PLUGIN_TRUST_LEVELS: &[PluginTrustLevel] =
-    &[PluginTrustLevel::Official, PluginTrustLevel::Community];
 
 /// One localized plugin text entry.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -343,63 +307,27 @@ impl PluginPolicyAsset {
     }
 }
 
-/// Typed plugin-owned check kind.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[non_exhaustive]
-pub enum PluginCheckKind {
-    /// Prepare-time validation contribution.
-    Prepare,
-    /// Doctor-time validation contribution.
-    Doctor,
-}
-
-impl PluginCheckKind {
-    /// Returns the stable check-kind identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Prepare => "prepare",
-            Self::Doctor => "doctor",
-        }
+define_plugin_enum! {
+    /// Typed plugin-owned check kind.
+    pub enum PluginCheckKind => ALL_PLUGIN_CHECK_KINDS {
+        /// Prepare-time validation contribution.
+        Prepare => "prepare",
+        /// Doctor-time validation contribution.
+        Doctor => "doctor",
     }
 }
 
-impl fmt::Display for PluginCheckKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-/// Typed plugin-owned provider kind.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[non_exhaustive]
-pub enum PluginProviderKind {
-    /// Data-source provider contribution.
-    DataSource,
-    /// Context-provider contribution.
-    ContextProvider,
-    /// Forge-provider contribution.
-    ForgeProvider,
-    /// Remote-control contribution.
-    RemoteControl,
-}
-
-impl PluginProviderKind {
-    /// Returns the stable provider-kind identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::DataSource => "data_source",
-            Self::ContextProvider => "context_provider",
-            Self::ForgeProvider => "forge_provider",
-            Self::RemoteControl => "remote_control",
-        }
-    }
-}
-
-impl fmt::Display for PluginProviderKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
+define_plugin_enum! {
+    /// Typed plugin-owned provider kind.
+    pub enum PluginProviderKind => ALL_PLUGIN_PROVIDER_KINDS {
+        /// Data-source provider contribution.
+        DataSource => "data_source",
+        /// Context-provider contribution.
+        ContextProvider => "context_provider",
+        /// Forge-provider contribution.
+        ForgeProvider => "forge_provider",
+        /// Remote-control contribution.
+        RemoteControl => "remote_control",
     }
 }
 
@@ -758,155 +686,67 @@ impl PluginPolicyDescriptor {
     }
 }
 
-/// Typed plugin lifecycle stage identifier.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[non_exhaustive]
-pub enum PluginLifecycleStage {
-    /// The runtime can discover the plugin and list it in catalogs.
-    Discover,
-    /// The runtime can configure the plugin through typed configuration.
-    Configure,
-    /// The runtime can validate the plugin before activation.
-    Validate,
-    /// The runtime can load the plugin into the active runtime.
-    Load,
-}
-
-impl PluginLifecycleStage {
-    /// Returns the stable lifecycle stage identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Discover => "discover",
-            Self::Configure => "configure",
-            Self::Validate => "validate",
-            Self::Load => "load",
-        }
+define_plugin_enum! {
+    /// Typed plugin lifecycle stage identifier.
+    pub enum PluginLifecycleStage => ALL_PLUGIN_LIFECYCLE_STAGES {
+        /// The runtime can discover the plugin and list it in catalogs.
+        Discover => "discover",
+        /// The runtime can configure the plugin through typed configuration.
+        Configure => "configure",
+        /// The runtime can validate the plugin before activation.
+        Validate => "validate",
+        /// The runtime can load the plugin into the active runtime.
+        Load => "load",
     }
 }
 
-impl fmt::Display for PluginLifecycleStage {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
+define_plugin_enum! {
+    /// Typed plugin loading boundary identifier.
+    pub enum PluginLoadBoundary => ALL_PLUGIN_LOAD_BOUNDARIES {
+        /// The plugin is loaded in process with the runtime.
+        InProcess => "in_process",
+        /// The plugin runs behind a subprocess boundary.
+        Subprocess => "subprocess",
+        /// The plugin is resolved through a remote boundary.
+        Remote => "remote",
     }
 }
 
-/// Typed plugin loading boundary identifier.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[non_exhaustive]
-pub enum PluginLoadBoundary {
-    /// The plugin is loaded in process with the runtime.
-    InProcess,
-    /// The plugin runs behind a subprocess boundary.
-    Subprocess,
-    /// The plugin is resolved through a remote boundary.
-    Remote,
-}
-
-impl PluginLoadBoundary {
-    /// Returns the stable loading-boundary identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::InProcess => "in_process",
-            Self::Subprocess => "subprocess",
-            Self::Remote => "remote",
-        }
+define_plugin_enum! {
+    /// Typed runtime hook identifier for plugin contributions.
+    pub enum PluginRuntimeHook => ALL_PLUGIN_RUNTIME_HOOKS {
+        /// The plugin contributes project scaffolding behavior.
+        Scaffold => "scaffold",
+        /// The plugin contributes prepare-time checks.
+        Prepare => "prepare",
+        /// The plugin contributes doctor-time checks.
+        Doctor => "doctor",
+        /// The plugin contributes prompt assembly behavior.
+        PromptAssembly => "prompt_assembly",
+        /// The plugin contributes agent runtime bootstrap behavior.
+        AgentBootstrap => "agent_bootstrap",
+        /// The plugin contributes MCP server registration.
+        McpRegistration => "mcp_registration",
+        /// The plugin contributes data-source registration.
+        DataSourceRegistration => "data_source_registration",
+        /// The plugin contributes context-provider registration.
+        ContextProviderRegistration => "context_provider_registration",
+        /// The plugin contributes forge-provider registration.
+        ForgeProviderRegistration => "forge_provider_registration",
+        /// The plugin contributes remote-control bootstrap behavior.
+        RemoteControlBootstrap => "remote_control_bootstrap",
+        /// The plugin contributes policy enforcement behavior.
+        PolicyEnforcement => "policy_enforcement",
     }
 }
-
-impl fmt::Display for PluginLoadBoundary {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-/// Typed runtime hook identifier for plugin contributions.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[non_exhaustive]
-pub enum PluginRuntimeHook {
-    /// The plugin contributes project scaffolding behavior.
-    Scaffold,
-    /// The plugin contributes prepare-time checks.
-    Prepare,
-    /// The plugin contributes doctor-time checks.
-    Doctor,
-    /// The plugin contributes prompt assembly behavior.
-    PromptAssembly,
-    /// The plugin contributes agent runtime bootstrap behavior.
-    AgentBootstrap,
-    /// The plugin contributes MCP server registration.
-    McpRegistration,
-    /// The plugin contributes data-source registration.
-    DataSourceRegistration,
-    /// The plugin contributes context-provider registration.
-    ContextProviderRegistration,
-    /// The plugin contributes forge-provider registration.
-    ForgeProviderRegistration,
-    /// The plugin contributes remote-control bootstrap behavior.
-    RemoteControlBootstrap,
-    /// The plugin contributes policy enforcement behavior.
-    PolicyEnforcement,
-}
-
-impl PluginRuntimeHook {
-    /// Returns the stable runtime-hook identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Scaffold => "scaffold",
-            Self::Prepare => "prepare",
-            Self::Doctor => "doctor",
-            Self::PromptAssembly => "prompt_assembly",
-            Self::AgentBootstrap => "agent_bootstrap",
-            Self::McpRegistration => "mcp_registration",
-            Self::DataSourceRegistration => "data_source_registration",
-            Self::ContextProviderRegistration => "context_provider_registration",
-            Self::ForgeProviderRegistration => "forge_provider_registration",
-            Self::RemoteControlBootstrap => "remote_control_bootstrap",
-            Self::PolicyEnforcement => "policy_enforcement",
-        }
-    }
-}
-
-/// Canonical ordered list of reviewed runtime hooks.
-pub const ALL_PLUGIN_RUNTIME_HOOKS: &[PluginRuntimeHook] = &[
-    PluginRuntimeHook::Scaffold,
-    PluginRuntimeHook::Prepare,
-    PluginRuntimeHook::Doctor,
-    PluginRuntimeHook::PromptAssembly,
-    PluginRuntimeHook::AgentBootstrap,
-    PluginRuntimeHook::McpRegistration,
-    PluginRuntimeHook::DataSourceRegistration,
-    PluginRuntimeHook::ContextProviderRegistration,
-    PluginRuntimeHook::ForgeProviderRegistration,
-    PluginRuntimeHook::RemoteControlBootstrap,
-    PluginRuntimeHook::PolicyEnforcement,
-];
 
 /// Parses one stable runtime-hook identifier.
 #[must_use]
 pub fn parse_plugin_runtime_hook(value: &str) -> Option<PluginRuntimeHook> {
-    match value {
-        "scaffold" => Some(PluginRuntimeHook::Scaffold),
-        "prepare" => Some(PluginRuntimeHook::Prepare),
-        "doctor" => Some(PluginRuntimeHook::Doctor),
-        "prompt_assembly" => Some(PluginRuntimeHook::PromptAssembly),
-        "agent_bootstrap" => Some(PluginRuntimeHook::AgentBootstrap),
-        "mcp_registration" => Some(PluginRuntimeHook::McpRegistration),
-        "data_source_registration" => Some(PluginRuntimeHook::DataSourceRegistration),
-        "context_provider_registration" => Some(PluginRuntimeHook::ContextProviderRegistration),
-        "forge_provider_registration" => Some(PluginRuntimeHook::ForgeProviderRegistration),
-        "remote_control_bootstrap" => Some(PluginRuntimeHook::RemoteControlBootstrap),
-        "policy_enforcement" => Some(PluginRuntimeHook::PolicyEnforcement),
-        _ => None,
-    }
-}
-
-impl fmt::Display for PluginRuntimeHook {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.as_str())
-    }
+    ALL_PLUGIN_RUNTIME_HOOKS
+        .iter()
+        .find(|hook| hook.as_str() == value)
+        .copied()
 }
 
 /// Immutable metadata for a Ralph Engine plugin.
