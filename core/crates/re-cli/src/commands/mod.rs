@@ -22,64 +22,86 @@ use crate::{CliError, i18n};
 
 struct CommandDescriptor {
     name: &'static str,
+    subcommands: &'static [&'static str],
     handler: fn(&[String], &str) -> Result<String, CliError>,
 }
 
 const COMMANDS: &[CommandDescriptor] = &[
     CommandDescriptor {
         name: "agents",
+        subcommands: &["list", "show", "plan", "launch"],
         handler: agents::execute,
     },
     CommandDescriptor {
         name: "capabilities",
+        subcommands: &["list", "show"],
         handler: capabilities::execute,
     },
     CommandDescriptor {
         name: "checks",
+        subcommands: &["list", "show", "plan", "run", "asset", "materialize"],
         handler: checks::execute,
     },
     CommandDescriptor {
         name: "config",
+        subcommands: &[
+            "show-defaults",
+            "locale",
+            "budgets",
+            "layers",
+            "show-plugin",
+            "show-mcp-server",
+        ],
         handler: config::execute,
     },
     CommandDescriptor {
         name: "doctor",
+        subcommands: &["config", "apply-config"],
         handler: doctor::execute,
     },
     CommandDescriptor {
         name: "hooks",
+        subcommands: &["list", "show", "plan"],
         handler: hooks::execute,
     },
     CommandDescriptor {
         name: "locales",
+        subcommands: &["list", "show"],
         handler: locales::execute,
     },
     CommandDescriptor {
         name: "mcp",
+        subcommands: &["list", "show", "plan", "launch", "status"],
         handler: mcp::execute,
     },
     CommandDescriptor {
         name: "policies",
+        subcommands: &["list", "show", "plan", "run", "asset", "materialize"],
         handler: policies::execute,
     },
     CommandDescriptor {
         name: "prompts",
+        subcommands: &["list", "show", "asset", "materialize"],
         handler: prompts::execute,
     },
     CommandDescriptor {
         name: "providers",
+        subcommands: &["list", "show", "plan"],
         handler: providers::execute,
     },
     CommandDescriptor {
         name: "plugins",
+        subcommands: &["list", "show"],
         handler: plugins::execute,
     },
     CommandDescriptor {
         name: "runtime",
+        subcommands: &["show", "status", "issues"],
         handler: runtime::execute,
     },
     CommandDescriptor {
         name: "templates",
+        subcommands: &["list", "show", "asset", "scaffold", "materialize"],
         handler: templates::execute,
     },
 ];
@@ -140,7 +162,41 @@ fn render_help(locale: &str) -> String {
 
 fn dispatch_command(command_name: &str, args: &[String], locale: &str) -> Result<String, CliError> {
     match COMMANDS.iter().find(|command| command.name == command_name) {
-        Some(command) => (command.handler)(args, locale),
+        Some(command) => {
+            // Handle per-command help
+            if args.first().map(String::as_str) == Some("--help")
+                || args.first().map(String::as_str) == Some("-h")
+            {
+                return Ok(render_command_help(command, locale));
+            }
+            (command.handler)(args, locale)
+        }
         None => Err(CliError::new(i18n::unknown_command(locale, command_name))),
     }
+}
+
+fn render_command_help(command: &CommandDescriptor, locale: &str) -> String {
+    let mut lines = Vec::new();
+
+    if i18n::is_pt_br(locale) {
+        lines.push(format!(
+            "Uso: ralph-engine {} <subcomando> [argumentos]",
+            command.name
+        ));
+        lines.push(String::new());
+        lines.push("Subcomandos:".to_owned());
+    } else {
+        lines.push(format!(
+            "Usage: ralph-engine {} <subcommand> [arguments]",
+            command.name
+        ));
+        lines.push(String::new());
+        lines.push("Subcommands:".to_owned());
+    }
+
+    for sub in command.subcommands {
+        lines.push(format!("  {sub}"));
+    }
+
+    lines.join("\n")
 }
