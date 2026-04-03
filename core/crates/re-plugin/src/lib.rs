@@ -1103,3 +1103,29 @@ pub trait PluginRuntime: Send + Sync {
         server_id: &str,
     ) -> Result<McpRegistrationResult, PluginRuntimeError>;
 }
+
+// ---------------------------------------------------------------------------
+// Shared utilities for plugin runtime implementations
+// ---------------------------------------------------------------------------
+
+/// Probes whether a binary is available on the system PATH.
+///
+/// Returns the resolved absolute path if found, or `None` if the binary
+/// is not installed. Works cross-platform (uses `which` on Unix,
+/// `where` on Windows).
+#[must_use]
+pub fn probe_binary_on_path(program: &str) -> Option<String> {
+    let which_cmd = if cfg!(windows) { "where" } else { "which" };
+    match std::process::Command::new(which_cmd).arg(program).output() {
+        Ok(output) if output.status.success() => {
+            let path = String::from_utf8_lossy(&output.stdout)
+                .trim()
+                .lines()
+                .next()
+                .unwrap_or(program)
+                .to_owned();
+            Some(path)
+        }
+        _ => None,
+    }
+}
