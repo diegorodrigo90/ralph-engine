@@ -20,7 +20,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
             args.get(2).map(String::as_str),
             locale,
         ),
-        Some("materialize") => materialize_template(
+        Some("materialize" | "scaffold") => materialize_template(
             args.get(1).map(String::as_str),
             args.get(2).map(String::as_str),
             locale,

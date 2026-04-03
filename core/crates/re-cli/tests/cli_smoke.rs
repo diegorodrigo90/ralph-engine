@@ -351,6 +351,29 @@ fn binary_templates_materialize_writes_embedded_assets() {
 }
 
 #[test]
+fn binary_templates_scaffold_is_alias_for_materialize() {
+    let output_dir = std::env::temp_dir().join("re-smoke-scaffold-alias");
+    let _ = std::fs::remove_dir_all(&output_dir);
+
+    let mut command = english_command();
+    command.args([
+        "templates",
+        "scaffold",
+        "official.basic.starter",
+        output_dir
+            .to_str()
+            .expect("temp path should be valid UTF-8"),
+    ]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(output.status.success());
+    assert!(output_dir.join(".ralph-engine/config.yaml").is_file());
+
+    let _ = std::fs::remove_dir_all(&output_dir);
+}
+
+#[test]
 fn binary_prompts_list_succeeds() {
     // Arrange
     let mut command = english_command();
