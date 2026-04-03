@@ -3,49 +3,100 @@ title: "Troubleshooting"
 description: "Common issues when using Ralph Engine and how to fix them"
 ---
 
-## Toolchain Drift
+## ralph-engine: command not found
 
-If Rust or Node versions are out of sync with the repository pins, re-sync with asdf:
-
-```bash
-asdf install
-```
-
-Then re-run the bootstrap script:
+The CLI is not on your PATH. Reinstall or check your installation method:
 
 ```bash
-./scripts/bootstrap-dev.sh
+npm list -g ralph-engine
 ```
 
-## Validation Failures
-
-Run the full local validation contract to identify what is broken:
+If installed via Cargo:
 
 ```bash
-./scripts/validate.sh --mode local
+which ralph-engine
 ```
 
-## SonarCloud Fails with `Create analysis`
+Make sure `~/.cargo/bin` (Cargo) or the npm global bin directory is in your `PATH`.
 
-If the SonarCloud job fails during `Create analysis` with a `404` from `api.sonarcloud.io`, treat it as a token or permission issue first.
+## doctor reports issues
 
-### Checklist
+Run the doctor command to see what needs attention:
 
-- Confirm the GitHub secret `SONAR_TOKEN` is present.
-- Confirm the token still belongs to the expected SonarCloud account or organization.
-- Confirm the token can browse the project.
-- Confirm the token can execute analysis for the project.
+```bash
+ralph-engine doctor
+```
 
-### How CI Handles SonarCloud
+To automatically generate a fixed configuration:
 
-The CI workflow runs a SonarCloud preflight before coverage and scan steps so this class of failure shows up earlier and with a clearer message.
+```bash
+ralph-engine doctor apply-config .ralph-engine/config.yaml
+```
 
-The workflow resolves the project key and organization from `sonar-project.properties` before the scan and passes them explicitly to the scanner. This keeps the scan input visible in the job log and removes ambiguity about which SonarCloud project the workflow is targeting.
+## Plugin not found
 
-### Coverage Artifact Flow
+If a plugin command says the plugin doesn't exist:
 
-Coverage is generated once in `Quality (ubuntu-latest)`, uploaded as a short-lived artifact, and then reused by the SonarCloud job. If SonarCloud reports a missing coverage file, inspect the earlier Ubuntu quality job before debugging the scan step itself.
+```bash
+ralph-engine plugins list
+```
 
-### Coverage Quality Gate
+Check that the plugin ID is correct (e.g., `official.claude`, not just `claude`).
 
-If SonarCloud fails because the quality gate coverage is below `100%`, treat that as a real release blocker rather than a documentation mismatch. The repository contract is that reusable release artifacts are approved only after the configured SonarCloud gate passes in full.
+## MCP server not available
+
+Check the status of all MCP servers:
+
+```bash
+ralph-engine mcp status
+```
+
+For a specific server:
+
+```bash
+ralph-engine mcp status <server-id>
+```
+
+If a SpawnProcess server is unavailable, the required binary may not be on your PATH.
+
+## Configuration not loading
+
+Verify the configuration file exists and is valid:
+
+```bash
+ralph-engine config show-defaults
+```
+
+```bash
+ralph-engine config layers
+```
+
+Check that `.ralph-engine/config.yaml` exists in your project root.
+
+## Wrong language
+
+The CLI respects locale in this order:
+1. `--locale` flag (e.g., `--locale pt-br`)
+2. `RALPH_ENGINE_LOCALE` environment variable
+3. System locale (`LC_ALL`, `LC_MESSAGES`, `LANG`)
+4. English (default)
+
+To force Portuguese:
+
+```bash
+ralph-engine --locale pt-br --help
+```
+
+## Runtime issues
+
+List all unresolved issues detected by the runtime:
+
+```bash
+ralph-engine runtime issues
+```
+
+See the remediation plan:
+
+```bash
+ralph-engine runtime plan
+```
