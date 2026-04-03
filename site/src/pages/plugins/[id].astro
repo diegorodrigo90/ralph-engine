@@ -29,16 +29,33 @@ const kindIcons: Record<string, string> = {
   policy: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z M9 12l2 2 4-4',
   remote_control: 'M4 17l6-6 M7 7l4.586 4.586a2 2 0 010 2.828L7 19 M20 7l-4.586 4.586a2 2 0 000 2.828L20 19',
 };
+
+/** Build a richer description based on what the plugin provides. */
+function buildDescription(p: any): string {
+  const parts: string[] = [];
+  if (p.agents?.length) parts.push(`${p.agents.length} agent runtime${p.agents.length > 1 ? 's' : ''}`);
+  if (p.templates?.length) parts.push(`${p.templates.length} starter template${p.templates.length > 1 ? 's' : ''}`);
+  if (p.providers?.length) parts.push(`${p.providers.length} data provider${p.providers.length > 1 ? 's' : ''}`);
+  if (p.checks?.length) parts.push(`${p.checks.length} runtime check${p.checks.length > 1 ? 's' : ''}`);
+  if (p.policies?.length) parts.push(`${p.policies.length} enforcement polic${p.policies.length > 1 ? 'ies' : 'y'}`);
+  if (p.prompts?.length) parts.push(`${p.prompts.length} prompt bundle${p.prompts.length > 1 ? 's' : ''}`);
+  return parts.length ? `Ships with ${parts.join(', ')}.` : '';
+}
+
+const allTags = [
+  plugin.kind,
+  plugin.trust_level,
+  ...(plugin.capabilities ?? []),
+].filter(Boolean);
 ---
 
-<Base lang={lang} title={`${plugin.display_name} plugin`}>
+<Base lang={lang} title={`${plugin.display_name} — Plugin`}>
   <section class="section" style="padding-top: 80px;">
     <div class="container detail-layout">
 
-      <a href={localePath(lang, '/plugins/')} class="back-link">
-        ← {t(lang, 'plugin.back')}
-      </a>
+      <a href={localePath(lang, '/plugins/')} class="back-link">← {t(lang, 'plugin.back')}</a>
 
+      {/* Header */}
       <div class="detail-header">
         <div class="detail-icon" aria-hidden="true">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -50,15 +67,66 @@ const kindIcons: Record<string, string> = {
           <div class="detail-meta">
             <code>{plugin.id}</code>
             <span class="pill pill-brand">{kindLabels[plugin.kind] ?? plugin.kind}</span>
-            <span class="pill pill-brand">official</span>
           </div>
         </div>
       </div>
 
+      {/* Summary + what it ships */}
       <p class="detail-summary">{plugin.summary}</p>
+      {buildDescription(plugin) && (
+        <p class="detail-ships">{buildDescription(plugin)}</p>
+      )}
+
+      {/* Tags */}
+      <div class="detail-tags">
+        {allTags.map((tag: string) => (
+          <span class="pill">{tag}</span>
+        ))}
+        <span class="pill">v{plugin.plugin_version}</span>
+        <span class="pill">API {plugin.plugin_api_version}</span>
+      </div>
+
+      {/* INSTALL — prominent, first thing after header */}
+      <div class="install-hero">
+        <h2>Install</h2>
+        <div class="install-grid">
+          <div class="install-option">
+            <span class="install-label">Cargo</span>
+            <div class="code-block install-cmd">
+              <code>cargo install ralph-engine</code>
+              <button class="copy-btn" type="button" data-copy="cargo install ralph-engine" aria-label="Copy">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="install-option">
+            <span class="install-label">npm</span>
+            <div class="code-block install-cmd">
+              <code>npm install -g ralph-engine</code>
+              <button class="copy-btn" type="button" data-copy="npm install -g ralph-engine" aria-label="Copy">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="install-option">
+            <span class="install-label">Homebrew</span>
+            <div class="code-block install-cmd">
+              <code>brew install ralph-engine</code>
+              <button class="copy-btn" type="button" data-copy="brew install ralph-engine" aria-label="Copy">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+        <p class="install-note">
+          Also available via <code>pnpm add -g ralph-engine</code> or <code>yarn global add ralph-engine</code>.
+          All 8 official plugins are bundled — no separate install needed.
+        </p>
+      </div>
 
       {/* Terminal: real CLI output */}
-      <div class="terminal" style="margin: var(--re-space-8) 0;">
+      <h2 class="section-heading">CLI output</h2>
+      <div class="terminal">
         <div class="terminal-bar">
           <span class="terminal-dot"></span>
           <span class="terminal-dot"></span>
@@ -83,48 +151,6 @@ const kindIcons: Record<string, string> = {
         </div>
       </div>
 
-      {/* Install options */}
-      <h2 class="section-heading">Install</h2>
-      <div class="install-tabs">
-        <div class="tabs">
-          <input type="radio" name="install-tab" id="install-cargo" checked />
-          <input type="radio" name="install-tab" id="install-npm" />
-          <input type="radio" name="install-tab" id="install-brew" />
-
-          <div class="tab-list" role="tablist">
-            <label for="install-cargo" role="tab">Cargo</label>
-            <label for="install-npm" role="tab">npm</label>
-            <label for="install-brew" role="tab">Homebrew</label>
-          </div>
-
-          <div class="tab-panel">
-            <div class="code-block">
-              <code>cargo install ralph-engine</code>
-            </div>
-          </div>
-          <div class="tab-panel">
-            <div class="code-block">
-              <code>npx ralph-engine plugins show {plugin.id}</code>
-            </div>
-          </div>
-          <div class="tab-panel">
-            <div class="code-block">
-              <code>brew install ralph-engine</code>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Capabilities */}
-      <h2 class="section-heading">Capabilities</h2>
-      <div class="caps-grid">
-        {plugin.capabilities?.map((cap: string) => (
-          <div class="card cap-card">
-            <span class="pill pill-brand">{cap}</span>
-          </div>
-        ))}
-      </div>
-
       {/* Sub-resources */}
       {plugin.agents?.length > 0 && (
         <div>
@@ -137,6 +163,12 @@ const kindIcons: Record<string, string> = {
                   <code>{agent.id}</code>
                 </div>
                 <p>{agent.summary}</p>
+                <div class="terminal" style="margin-top: var(--re-space-3);">
+                  <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                  <div class="terminal-body">
+                    <div class="terminal-prompt">ralph-engine agents launch {agent.id}</div>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -155,11 +187,7 @@ const kindIcons: Record<string, string> = {
                 </div>
                 <p>{tpl.summary}</p>
                 <div class="terminal" style="margin-top: var(--re-space-3);">
-                  <div class="terminal-bar">
-                    <span class="terminal-dot"></span>
-                    <span class="terminal-dot"></span>
-                    <span class="terminal-dot"></span>
-                  </div>
+                  <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
                   <div class="terminal-body">
                     <div class="terminal-prompt">ralph-engine templates materialize {tpl.id} ./my-project</div>
                   </div>
@@ -181,7 +209,7 @@ const kindIcons: Record<string, string> = {
                   <code>{prov.id}</code>
                 </div>
                 <p>{prov.summary}</p>
-                <span class="pill" style="margin-top: var(--re-space-2);">{prov.kind}</span>
+                <span class="pill" style="margin-top: var(--re-space-2); align-self: flex-start;">{prov.kind}</span>
               </div>
             ))}
           </div>
@@ -199,7 +227,12 @@ const kindIcons: Record<string, string> = {
                   <code>{check.id}</code>
                 </div>
                 <p>{check.summary}</p>
-                <span class="pill" style="margin-top: var(--re-space-2);">{check.kind}</span>
+                <div class="terminal" style="margin-top: var(--re-space-3);">
+                  <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
+                  <div class="terminal-body">
+                    <div class="terminal-prompt">ralph-engine checks run {check.id}</div>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -226,11 +259,7 @@ const kindIcons: Record<string, string> = {
       {/* Manifest */}
       <h2 class="section-heading">manifest.yaml</h2>
       <div class="terminal">
-        <div class="terminal-bar">
-          <span class="terminal-dot"></span>
-          <span class="terminal-dot"></span>
-          <span class="terminal-dot"></span>
-        </div>
+        <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
         <div class="terminal-body">
           <div class="terminal-prompt">cat plugins/official/{plugin.id.replace('official.', '')}/manifest.yaml</div>
           <div class="terminal-output">
@@ -249,29 +278,41 @@ const kindIcons: Record<string, string> = {
         </div>
       </div>
 
-      {/* Source link */}
-      <div style="margin-top: var(--re-space-8); display: flex; gap: var(--re-space-3);">
+      {/* Actions */}
+      <div class="detail-actions">
         <a
           href={`https://github.com/diegorodrigo90/ralph-engine/tree/main/plugins/official/${plugin.id.replace('official.', '')}`}
-          target="_blank"
-          rel="noopener"
-          class="btn btn-secondary"
-        >
-          View source →
-        </a>
-        <a href={localePath(lang, '/plugins/')} class="btn btn-secondary">
-          All plugins
-        </a>
+          target="_blank" rel="noopener" class="btn btn-secondary"
+        >View source →</a>
+        <a href="/docs/" class="btn btn-secondary">Documentation</a>
+        <a href={localePath(lang, '/plugins/')} class="btn btn-secondary">All plugins</a>
       </div>
 
     </div>
   </section>
+  <span class="copy-feedback" role="status" aria-live="polite"></span>
 </Base>
 
+<script is:inline>
+  document.querySelectorAll('.copy-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.getAttribute('data-copy');
+      if (!text) return;
+      navigator.clipboard.writeText(text).then(function () {
+        var feedback = document.querySelector('.copy-feedback');
+        if (feedback) feedback.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(function () {
+          btn.classList.remove('copied');
+          if (feedback) feedback.textContent = '';
+        }, 2000);
+      });
+    });
+  });
+</script>
+
 <style>
-  .detail-layout {
-    max-width: 800px;
-  }
+  .detail-layout { max-width: 800px; }
 
   .back-link {
     font-size: 0.875rem;
@@ -279,10 +320,7 @@ const kindIcons: Record<string, string> = {
     display: inline-block;
     margin-bottom: var(--re-space-6);
   }
-
-  .back-link:hover {
-    color: var(--re-brand-500);
-  }
+  .back-link:hover { color: var(--re-brand-500); text-decoration: none; }
 
   .detail-header {
     display: flex;
@@ -303,10 +341,7 @@ const kindIcons: Record<string, string> = {
     border-radius: var(--re-radius-lg);
   }
 
-  .detail-title {
-    font-size: 2.25rem;
-    line-height: 1.1;
-  }
+  .detail-title { font-size: 2.25rem; line-height: 1.1; }
 
   .detail-meta {
     display: flex;
@@ -314,11 +349,7 @@ const kindIcons: Record<string, string> = {
     gap: var(--re-space-2);
     margin-top: var(--re-space-1);
   }
-
-  .detail-meta code {
-    font-size: 0.8125rem;
-    color: var(--re-text-muted);
-  }
+  .detail-meta code { font-size: 0.8125rem; color: var(--re-text-muted); }
 
   .detail-summary {
     font-size: 1.125rem;
@@ -327,20 +358,95 @@ const kindIcons: Record<string, string> = {
     max-width: 600px;
   }
 
+  .detail-ships {
+    font-size: 0.9375rem;
+    color: var(--re-text-muted);
+    margin-top: var(--re-space-2);
+  }
+
+  .detail-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--re-space-2);
+    margin-top: var(--re-space-4);
+  }
+
+  /* Install hero — prominent */
+  .install-hero {
+    margin-top: var(--re-space-10);
+    padding: var(--re-space-6);
+    background: var(--re-bg-soft);
+    border: 1px solid var(--re-border);
+    border-radius: var(--re-radius-lg);
+  }
+
+  .install-hero h2 {
+    font-size: 1.25rem;
+    margin-bottom: var(--re-space-4);
+  }
+
+  .install-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--re-space-3);
+  }
+
+  .install-option {
+    display: flex;
+    flex-direction: column;
+    gap: var(--re-space-1);
+  }
+
+  .install-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--re-text-muted);
+  }
+
+  .install-cmd {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--re-space-2);
+    font-size: 0.8125rem;
+  }
+
+  .install-note {
+    margin-top: var(--re-space-3);
+    font-size: 0.8125rem;
+    color: var(--re-text-muted);
+  }
+
+  .copy-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: transparent;
+    border: none;
+    color: var(--re-text-muted);
+    cursor: pointer;
+    border-radius: var(--re-radius-sm);
+    transition: color 0.15s;
+  }
+  .copy-btn:hover { color: var(--re-brand-500); }
+  .copy-btn.copied { color: var(--re-success, #16a34a); }
+
+  .copy-feedback {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+  }
+
   .section-heading {
     font-size: 1.25rem;
     margin-top: var(--re-space-10);
     margin-bottom: var(--re-space-4);
-  }
-
-  .caps-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--re-space-2);
-  }
-
-  .cap-card {
-    padding: var(--re-space-3) var(--re-space-4);
   }
 
   .resource-list {
@@ -360,15 +466,8 @@ const kindIcons: Record<string, string> = {
     align-items: baseline;
     gap: var(--re-space-3);
   }
-
-  .resource-header h3 {
-    font-size: 1rem;
-  }
-
-  .resource-header code {
-    font-size: 0.75rem;
-    color: var(--re-text-muted);
-  }
+  .resource-header h3 { font-size: 1rem; }
+  .resource-header code { font-size: 0.75rem; color: var(--re-text-muted); }
 
   .resource-card p {
     font-size: 0.875rem;
@@ -376,7 +475,14 @@ const kindIcons: Record<string, string> = {
     line-height: 1.5;
   }
 
-  .install-tabs {
-    margin-bottom: var(--re-space-4);
+  .detail-actions {
+    margin-top: var(--re-space-10);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--re-space-3);
+  }
+
+  @media (max-width: 640px) {
+    .install-grid { grid-template-columns: 1fr; }
   }
 </style>

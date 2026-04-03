@@ -1,12 +1,16 @@
 :root {
   --vp-font-family-base:
-    "IBM Plex Sans",
-    "Avenir Next",
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
     "Segoe UI",
+    system-ui,
     sans-serif;
   --vp-font-family-mono:
-    "IBM Plex Mono",
-    "SFMono-Regular",
+    "JetBrains Mono",
+    "SF Mono",
+    "Fira Code",
+    ui-monospace,
     monospace;
   --vp-c-brand-1: #5a67d8;
   --vp-c-brand-2: #4b58c8;
@@ -16,8 +20,8 @@
   --vp-c-indigo-2: #4b58c8;
   --vp-c-indigo-3: #414fbf;
   --vp-c-indigo-soft: rgba(90, 103, 216, 0.12);
-  --vp-c-bg: #f4f7fb;
-  --vp-c-bg-alt: #edf2fb;
+  --vp-c-bg: #fafbfc;
+  --vp-c-bg-alt: #f1f5f9;
   --vp-c-bg-elv: rgba(255, 255, 255, 0.9);
   --vp-c-bg-soft: rgba(255, 255, 255, 0.78);
   --vp-c-default-soft: rgba(71, 85, 105, 0.1);
@@ -42,8 +46,8 @@
   --vp-c-indigo-2: #a8b0ff;
   --vp-c-indigo-3: #c4cafe;
   --vp-c-indigo-soft: rgba(139, 149, 255, 0.14);
-  --vp-c-bg: #08101f;
-  --vp-c-bg-alt: #0c1627;
+  --vp-c-bg: #0b1120;
+  --vp-c-bg-alt: #151d2e;
   --vp-c-bg-elv: rgba(12, 22, 39, 0.9);
   --vp-c-bg-soft: rgba(15, 23, 42, 0.82);
   --vp-c-default-soft: rgba(148, 163, 184, 0.1);
@@ -207,21 +211,7 @@ body {
   gap: 28px;
 }
 
-.VPHero .name,
-.VPHero .text,
-.VPHero .tagline,
-.VPDoc h1,
-.VPDoc h2,
-.VPDoc h3,
-.VPDoc h4,
-.footer .message {
-  font-family:
-    "Iowan Old Style",
-    "Palatino Linotype",
-    "Book Antiqua",
-    Georgia,
-    serif;
-}
+/* Headings use the same sans-serif as the Astro site for consistency */
 
 .VPHero .name {
   letter-spacing: -0.055em;
