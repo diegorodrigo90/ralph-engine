@@ -1,5 +1,7 @@
 //! Integration tests for the shared Ralph Engine plugin contract.
 
+#![allow(clippy::unwrap_used, clippy::expect_used)]
+
 use re_plugin::{
     AGENT_RUNTIME, ALL_PLUGIN_CAPABILITIES, ALL_PLUGIN_KINDS, ALL_PLUGIN_RUNTIME_HOOKS,
     ALL_PLUGIN_RUNTIME_SURFACES, ALL_PLUGIN_TRUST_LEVELS, CONTEXT_PROVIDER, DATA_SOURCE,
@@ -9,9 +11,9 @@ use re_plugin::{
     PluginLocalizedText, PluginPolicyAsset, PluginPolicyDescriptor, PluginPromptAsset,
     PluginPromptDescriptor, PluginProviderDescriptor, PluginProviderKind, PluginRuntimeHook,
     PluginRuntimeSurface, PluginTemplateAsset, PluginTemplateDescriptor, PluginTrustLevel,
-    REMOTE_CONTROL, TEMPLATE, parse_plugin_runtime_hook, parse_reviewed_plugin_capability,
-    render_plugin_detail, render_plugin_detail_for_locale, render_plugin_listing,
-    render_plugin_listing_for_locale, runtime_surface_for_capability,
+    REMOTE_CONTROL, TEMPLATE, WORKFLOW, parse_plugin_runtime_hook,
+    parse_reviewed_plugin_capability, render_plugin_detail, render_plugin_detail_for_locale,
+    render_plugin_listing, render_plugin_listing_for_locale, runtime_surface_for_capability,
 };
 
 const BASIC_CAPABILITIES: &[PluginCapability] = &[PluginCapability::new("template")];
@@ -350,6 +352,7 @@ fn exported_capability_constants_are_stable() {
         FORGE_PROVIDER,
         REMOTE_CONTROL,
         POLICY,
+        WORKFLOW,
     ];
 
     // Act
@@ -373,6 +376,7 @@ fn exported_capability_constants_are_stable() {
             "forge_provider",
             "remote_control",
             "policy",
+            "workflow",
         ]
     );
 }
@@ -1085,6 +1089,46 @@ mod community_plugin_e2e {
         let rt = AcmeLinterRuntime;
         assert!(rt.bootstrap_agent("acme.agent").is_err());
         assert!(rt.register_mcp_server("acme.mcp").is_err());
+    }
+
+    #[test]
+    fn default_workflow_methods_return_typed_errors() {
+        let rt = AcmeLinterRuntime;
+        let root = Path::new(".");
+
+        let resolve_err = rt.resolve_work_item("5.3", root).unwrap_err();
+        assert_eq!(resolve_err.code, "not_a_workflow_plugin");
+        assert!(resolve_err.message.contains(COMMUNITY_PLUGIN_ID));
+
+        let list_err = rt.list_work_items(root).unwrap_err();
+        assert_eq!(list_err.code, "not_a_workflow_plugin");
+
+        let prompt_err = rt
+            .build_prompt_context(
+                &re_plugin::WorkItemResolution {
+                    raw_id: "5.3".to_owned(),
+                    canonical_id: "5.3".to_owned(),
+                    title: "Test".to_owned(),
+                    source_path: None,
+                    metadata: Vec::new(),
+                },
+                root,
+            )
+            .unwrap_err();
+        assert_eq!(prompt_err.code, "not_a_workflow_plugin");
+
+        let launch_err = rt
+            .launch_agent(
+                "acme.agent",
+                &re_plugin::PromptContext {
+                    prompt_text: String::new(),
+                    context_files: Vec::new(),
+                    work_item_id: "5.3".to_owned(),
+                },
+                root,
+            )
+            .unwrap_err();
+        assert_eq!(launch_err.code, "not_an_agent_plugin");
     }
 
     #[test]

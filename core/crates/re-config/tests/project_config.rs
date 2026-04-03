@@ -1,5 +1,7 @@
 //! Integration tests for the shared Ralph Engine config contract.
 
+#![allow(clippy::expect_used)]
+
 use re_config::{
     CANONICAL_CONFIG_LAYERS, CANONICAL_SUPPORTED_LOCALES, ConfigScope, DEFAULT_LOCALE, McpConfig,
     McpDiscovery, McpServerConfig, PluginActivation, PluginConfig, ProjectConfig,
@@ -673,4 +675,43 @@ fn render_runtime_budgets_yaml_is_human_readable() {
     assert!(yaml.contains("budgets:"));
     assert!(yaml.contains("prompt_tokens: 4096"));
     assert!(yaml.contains("context_tokens: 16384"));
+}
+
+#[test]
+fn run_config_roundtrip_renders_and_parses_correctly() {
+    // Arrange
+    let mut owned = materialize_project_config(&default_project_config());
+    owned.run = re_config::RunConfig {
+        workflow_plugin: Some("official.bmad"),
+        agent_plugin: Some("official.claude"),
+        agent_id: Some("official.claude.session"),
+    };
+
+    // Act
+    let yaml = render_owned_project_config_yaml(&owned);
+    let parsed = re_config::parse_owned_project_config_yaml(&yaml).expect("roundtrip should parse");
+
+    // Assert
+    assert!(yaml.contains("run:"));
+    assert!(yaml.contains("  workflow_plugin: official.bmad"));
+    assert_eq!(parsed.run.workflow_plugin, Some("official.bmad"));
+    assert_eq!(parsed.run.agent_plugin, Some("official.claude"));
+    assert_eq!(parsed.run.agent_id, Some("official.claude.session"));
+}
+
+#[test]
+fn run_config_absent_results_in_defaults() {
+    // Arrange — config without run: section
+    let owned = materialize_project_config(&default_project_config());
+    let yaml = render_owned_project_config_yaml(&owned);
+
+    // Act
+    let parsed =
+        re_config::parse_owned_project_config_yaml(&yaml).expect("should parse without run:");
+
+    // Assert
+    assert!(!yaml.contains("run:"));
+    assert_eq!(parsed.run.workflow_plugin, None);
+    assert_eq!(parsed.run.agent_plugin, None);
+    assert_eq!(parsed.run.agent_id, None);
 }

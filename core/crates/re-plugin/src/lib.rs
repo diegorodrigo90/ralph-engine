@@ -1063,7 +1063,9 @@ pub struct WorkItemResolution {
     pub title: String,
     /// File path to the work item source (relative to project root).
     pub source_path: Option<String>,
-    /// Plugin-specific structured metadata (opaque to core).
+    /// Plugin-specific key-value metadata (opaque to core).
+    /// Keys are not guaranteed to be unique; order is preserved as
+    /// provided by the plugin.
     pub metadata: Vec<(String, String)>,
 }
 
@@ -1249,15 +1251,12 @@ pub trait PluginRuntime: Send + Sync {
 pub fn probe_binary_on_path(program: &str) -> Option<String> {
     let which_cmd = if cfg!(windows) { "where" } else { "which" };
     match std::process::Command::new(which_cmd).arg(program).output() {
-        Ok(output) if output.status.success() => {
-            let path = String::from_utf8_lossy(&output.stdout)
-                .trim()
-                .lines()
-                .next()
-                .unwrap_or(program)
-                .to_owned();
-            Some(path)
-        }
+        Ok(output) if output.status.success() => String::from_utf8_lossy(&output.stdout)
+            .trim()
+            .lines()
+            .next()
+            .filter(|s| !s.is_empty())
+            .map(std::borrow::ToOwned::to_owned),
         _ => None,
     }
 }

@@ -927,13 +927,26 @@ fn parse_run_section(lines: &[&str]) -> RunConfig {
     let Some(run_start) = lines.iter().position(|l| l.trim() == "run:") else {
         return RunConfig::default();
     };
-    let run_lines = &lines[run_start..];
+    let run_lines = section_lines(lines, run_start);
 
     RunConfig {
         workflow_plugin: extract_scalar(run_lines, "workflow_plugin").map(leak_str),
         agent_plugin: extract_scalar(run_lines, "agent_plugin").map(leak_str),
         agent_id: extract_scalar(run_lines, "agent_id").map(leak_str),
     }
+}
+
+/// Returns the slice of lines belonging to a top-level section, stopping
+/// at the next peer-level key (a non-blank, non-comment line with zero indent).
+fn section_lines<'a>(lines: &'a [&str], section_start: usize) -> &'a [&'a str] {
+    let end = lines[section_start + 1..]
+        .iter()
+        .position(|line| {
+            let trimmed = line.trim();
+            !trimmed.is_empty() && !trimmed.starts_with('#') && indent_level(line) == 0
+        })
+        .map_or(lines.len(), |offset| section_start + 1 + offset);
+    &lines[section_start..end]
 }
 
 /// Collects YAML list entries (lines starting with `- `) under a section header.
