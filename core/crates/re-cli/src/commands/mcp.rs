@@ -128,25 +128,27 @@ fn probe_launch(server_id: Option<&str>, locale: &str) -> Result<String, CliErro
 
     match server.launch_policy {
         McpLaunchPolicy::PluginRuntime => {
-            let msg = if locale == "pt-br" {
-                format!(
-                    "Política: plugin_runtime — o plugin '{}' gerencia o bootstrap internamente",
-                    server.plugin_id
-                )
-            } else {
-                format!(
-                    "Policy: plugin_runtime — plugin '{}' manages bootstrap internally",
-                    server.plugin_id
-                )
-            };
-            lines.push(msg);
+            lines.push(format!("policy: plugin_runtime ({})", server.plugin_id));
 
-            let note = if locale == "pt-br" {
-                "Nota: lançamento real requer o trait PluginRuntime (ainda não implementado)"
-            } else {
-                "Note: real launch requires the PluginRuntime trait (not yet implemented)"
-            };
-            lines.push(note.to_owned());
+            match catalog::official_plugin_runtime(server.plugin_id) {
+                Some(runtime) => match runtime.register_mcp_server(server.id) {
+                    Ok(result) => {
+                        let status = if result.ready { "[OK]" } else { "[NOT READY]" };
+                        lines.push(format!("{status} {}", result.message));
+                    }
+                    Err(err) => {
+                        lines.push(format!("[UNSUPPORTED] {err}"));
+                    }
+                },
+                None => {
+                    let msg = if locale == "pt-br" {
+                        "Plugin não fornece implementação de runtime."
+                    } else {
+                        "Plugin does not provide a runtime implementation."
+                    };
+                    lines.push(msg.to_owned());
+                }
+            }
         }
         McpLaunchPolicy::SpawnProcess(ref command) => {
             lines.push(format!("command: {}", command.render_invocation()));
@@ -299,7 +301,8 @@ mod tests {
         assert!(result.is_ok());
         let output = result.ok().unwrap_or_default();
         assert!(output.contains("plugin_runtime"));
-        assert!(output.contains("PluginRuntime trait"));
+        // Claude has runtime — should report readiness
+        assert!(output.contains("[OK]") || output.contains("[NOT READY]"));
     }
 
     #[test]
