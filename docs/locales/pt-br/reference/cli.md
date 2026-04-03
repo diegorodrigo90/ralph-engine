@@ -6,9 +6,10 @@ A base atual em Rust expõe uma superfície mínima de CLI enquanto o runtime é
 
 ```bash
 ralph-engine
-ralph-engine --locale <locale-id>
+ralph-engine --help
 ralph-engine --version
-ralph-engine --locale <locale-id> --version
+ralph-engine --locale <locale-id>
+ralph-engine <comando> --help
 ralph-engine agents
 ralph-engine agents list
 ralph-engine agents show <agent-id>
@@ -78,6 +79,7 @@ ralph-engine templates
 ralph-engine templates list
 ralph-engine templates show <template-id>
 ralph-engine templates asset <template-id> <asset-path>
+ralph-engine templates scaffold <template-id> <output-dir>
 ralph-engine templates materialize <template-id> <output-dir>
 ralph-engine mcp
 ralph-engine mcp list
@@ -96,7 +98,9 @@ A família `agents` imprime o registro tipado de agent runtimes para que integra
 
 O comando `agents plan` imprime o plano executável de bootstrap de um agent runtime tipado, para que os passos operacionais de inicialização fiquem ligados à própria superfície de agente em vez de vazarem apenas pela saída agregada do runtime.
 
-O comando `agents launch` verifica a prontidão de bootstrap de um agent runtime, checando se o hook de bootstrap está registrado e reportando o que é necessário para execução real.
+O comando `agents launch` executa o `PluginRuntime.bootstrap_agent()` do plugin e reporta se o agente está pronto para operar. Para plugins agent-runtime (claude, claudebox, codex), verifica se o binário do agente existe no PATH do sistema.
+
+O comando `templates scaffold` é um alias para `templates materialize` — ambos gravam os assets de um template tipado em um diretório de saída.
 
 A família `capabilities` imprime o registro tipado de capabilities do runtime para que os providers permaneçam explícitos e modulares.
 
@@ -144,7 +148,7 @@ O comando `mcp show` imprime o contrato tipado de lançamento do MCP, incluindo 
 
 O comando `mcp plan` imprime o plano tipado de lançamento derivado desse contrato, para que bootstrap gerenciado por plugin e execução por spawn de processo permaneçam reutilizáveis fora de formatação local do comando.
 
-O comando `mcp launch` verifica a prontidão de lançamento de um servidor, checando se o binário necessário existe no PATH do sistema (para policies `SpawnProcess`) ou reportando que bootstrap gerenciado por plugin é necessário (para policies `PluginRuntime`).
+O comando `mcp launch` valida e opcionalmente inicia um servidor MCP. Para servidores `SpawnProcess`, spawna o binário em foreground se encontrado no PATH. Para servidores `PluginRuntime`, executa `PluginRuntime.register_mcp_server()` para verificar prontidão.
 
 O comando `mcp status` avalia a prontidão de lançamento de todos os servidores MCP registrados e reporta prontidão, saúde, estado de habilitação, transporte, problemas e ações recomendadas. Quando um ID de servidor é fornecido, exibe o status detalhado daquele servidor específico.
 

@@ -6,9 +6,10 @@ The current Rust foundation exposes a minimal CLI surface while the runtime is r
 
 ```bash
 ralph-engine
-ralph-engine --locale <locale-id>
+ralph-engine --help
 ralph-engine --version
-ralph-engine --locale <locale-id> --version
+ralph-engine --locale <locale-id>
+ralph-engine <command> --help
 ralph-engine agents
 ralph-engine agents list
 ralph-engine agents show <agent-id>
@@ -78,6 +79,7 @@ ralph-engine templates
 ralph-engine templates list
 ralph-engine templates show <template-id>
 ralph-engine templates asset <template-id> <asset-path>
+ralph-engine templates scaffold <template-id> <output-dir>
 ralph-engine templates materialize <template-id> <output-dir>
 ralph-engine mcp
 ralph-engine mcp list
@@ -96,11 +98,13 @@ The `agents` command family prints the typed agent runtime registry so official 
 
 The `agents plan` command prints the executable bootstrap plan for one typed agent runtime, so operator-facing startup steps stay attached to the agent surface that owns them instead of leaking only through aggregate runtime output.
 
-The `agents launch` command probes bootstrap readiness for one agent runtime by checking whether the bootstrap hook is registered and reporting what is needed for real execution.
+The `agents launch` command dispatches to the plugin's `PluginRuntime.bootstrap_agent()` implementation and reports whether the agent is ready to operate. For agent-runtime plugins (claude, claudebox, codex), this probes for the agent binary on the system PATH.
 
 The `capabilities` command family prints the typed runtime capability registry so capability providers remain explicit and modular.
 
 The `templates` command family prints the typed runtime template registry so template providers stay explicit and separate from generic capability listings while scaffolding ownership remains tooling-owned.
+
+The `templates scaffold` command is an alias for `templates materialize` — both write the embedded asset bundle owned by one typed template into an output directory.
 
 The `templates materialize` command writes the embedded asset bundle owned by one typed template into an output directory, so official scaffolding remains explicit, plugin-owned, and inspectable instead of hiding behind implicit generator behavior.
 
@@ -144,7 +148,7 @@ The `mcp show` command prints the typed MCP launch contract, including process m
 
 The `mcp plan` command prints the typed MCP launch plan derived from that contract, so plugin-managed bootstrap and spawn-process execution stay reusable outside command-local formatting.
 
-The `mcp launch` command probes a server's launch readiness by checking whether the required binary exists on the system PATH (for `SpawnProcess` policies) or reporting that plugin-managed bootstrap is required (for `PluginRuntime` policies).
+The `mcp launch` command validates and optionally starts an MCP server. For `SpawnProcess` servers, it spawns the binary in foreground if found on PATH. For `PluginRuntime` servers, it dispatches to `PluginRuntime.register_mcp_server()` to check readiness.
 
 The `mcp status` command evaluates launch readiness for all registered MCP servers and reports readiness, health, enabled state, transport, issues, and recommended actions. When a server ID is provided, it shows the detailed status for that specific server.
 
