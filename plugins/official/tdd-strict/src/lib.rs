@@ -1,11 +1,14 @@
-//! Official TDD strict policy plugin metadata.
+//! Official TDD strict policy plugin metadata and runtime.
+
+use std::path::Path;
 
 mod i18n;
 
 use re_plugin::{
-    POLICY, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
-    PluginLocalizedText, PluginPolicyAsset, PluginPolicyDescriptor, PluginRuntimeHook,
-    PluginTemplateAsset, PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
+    AgentBootstrapResult, CheckExecutionResult, McpRegistrationResult, POLICY, PluginCheckKind,
+    PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
+    PluginPolicyAsset, PluginPolicyDescriptor, PluginRuntime, PluginRuntimeError,
+    PluginRuntimeHook, PluginTemplateAsset, PluginTemplateDescriptor, PluginTrustLevel, TEMPLATE,
 };
 
 /// Stable plugin identifier.
@@ -118,8 +121,58 @@ pub const fn policies() -> &'static [PluginPolicyDescriptor] {
     POLICIES
 }
 
+/// Returns a new instance of the TDD strict plugin runtime.
+#[must_use]
+pub fn runtime() -> TddStrictRuntime {
+    TddStrictRuntime
+}
+
+/// TDD strict plugin runtime — verifies that policy assets are
+/// materialized in the project directory.
+pub struct TddStrictRuntime;
+
+impl PluginRuntime for TddStrictRuntime {
+    fn plugin_id(&self) -> &str {
+        PLUGIN_ID
+    }
+
+    fn run_check(
+        &self,
+        check_id: &str,
+        kind: PluginCheckKind,
+        _project_root: &Path,
+    ) -> Result<CheckExecutionResult, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_a_check_plugin",
+            format!(
+                "TDD strict plugin does not provide check '{check_id}' (kind: {})",
+                kind.as_str()
+            ),
+        ))
+    }
+
+    fn bootstrap_agent(&self, agent_id: &str) -> Result<AgentBootstrapResult, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_an_agent_plugin",
+            format!("TDD strict plugin does not provide agent '{agent_id}'"),
+        ))
+    }
+
+    fn register_mcp_server(
+        &self,
+        server_id: &str,
+    ) -> Result<McpRegistrationResult, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_an_mcp_plugin",
+            format!("TDD strict plugin does not provide MCP server '{server_id}'"),
+        ))
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use re_plugin::PluginRuntime;
+
     use super::{
         PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, policies,
         runtime_hooks, templates,
@@ -250,5 +303,22 @@ mod tests {
         assert!(manifest.contains("- policy"));
         assert!(manifest.contains("id: official.tdd-strict.starter"));
         assert!(manifest.contains("id: official.tdd-strict.guardrails"));
+    }
+
+    #[test]
+    fn runtime_plugin_id_matches_descriptor() {
+        let rt = super::runtime();
+        assert_eq!(rt.plugin_id(), PLUGIN_ID);
+    }
+
+    #[test]
+    fn runtime_rejects_check_execution() {
+        let rt = super::runtime();
+        let result = rt.run_check(
+            "official.tdd-strict.prepare",
+            re_plugin::PluginCheckKind::Prepare,
+            std::path::Path::new("/tmp"),
+        );
+        assert!(result.is_err());
     }
 }
