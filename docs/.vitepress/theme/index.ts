@@ -32,7 +32,7 @@ function initSearchAndNavFixes() {
 
   const label = document.createElement("span");
   label.className = "re-search-label";
-  label.textContent = "Search";
+  label.textContent = "Search plugins and docs...";
   btn.appendChild(label);
 
   const kbd = document.createElement("kbd");

@@ -33,14 +33,17 @@ const currentPath = Astro.url.pathname.replace('/pt-br', '') || '/';
       </ul>
     </nav>
 
-    <div class="nav-actions">
+    <div class="nav-search">
       <button class="search-trigger" aria-label="Search" type="button" id="search-btn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
         </svg>
-        <span class="search-label">Search</span>
+        <span class="search-label">Search plugins and docs...</span>
         <kbd class="search-kbd" id="search-shortcut"></kbd>
       </button>
+    </div>
+
+    <div class="nav-actions">
       <a href={localePath(altLang, currentPath)} class="locale-switch" aria-label={`Switch to ${altLabel}`}>
         {altLabel}
       </a>
@@ -189,21 +192,49 @@ const currentPath = Astro.url.pathname.replace('/pt-br', '') || '/';
     flex-shrink: 0;
   }
 
+  .nav-search {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    max-width: 360px;
+    margin: 0 var(--re-space-4);
+  }
+
   .search-trigger {
     display: flex;
     align-items: center;
-    gap: 6px;
-    padding: 5px 10px;
-    font-size: 0.8125rem;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 14px;
+    font-size: 0.875rem;
     color: var(--re-text-muted);
+    background: var(--re-bg-soft);
     border: 1px solid var(--re-border);
-    border-radius: var(--re-radius-sm);
-    text-decoration: none;
-    transition: border-color 0.15s, color 0.15s;
+    border-radius: var(--re-radius-md);
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, box-shadow 0.15s;
   }
-  .search-trigger:hover { border-color: var(--re-brand-500); color: var(--re-brand-500); text-decoration: none; }
-  .search-label { font-weight: 500; }
-  .search-trigger kbd { font-family: var(--re-font-sans); font-size: 0.6875rem; padding: 1px 5px; background: var(--re-bg-soft); border-radius: 3px; color: var(--re-text-muted); }
+  .search-trigger:hover {
+    border-color: var(--re-brand-500);
+    color: var(--re-text-secondary);
+    box-shadow: 0 0 0 3px rgba(91, 106, 208, 0.08);
+  }
+  .search-label {
+    flex: 1;
+    text-align: left;
+    font-weight: 400;
+    color: var(--re-text-muted);
+  }
+  .search-trigger kbd {
+    font-family: var(--re-font-sans);
+    font-size: 0.6875rem;
+    padding: 2px 6px;
+    background: var(--re-bg-elevated);
+    border: 1px solid var(--re-border);
+    border-radius: 4px;
+    color: var(--re-text-muted);
+    flex-shrink: 0;
+  }
 
   .locale-switch {
     padding: 4px 10px;
@@ -314,6 +345,8 @@ const currentPath = Astro.url.pathname.replace('/pt-br', '') || '/';
   @media (max-width: 768px) {
     .nav-desktop { display: none; }
     .hamburger { display: flex; }
+    .nav-search { max-width: none; margin: 0; flex: 0; }
+    .search-trigger { width: auto; padding: 7px; background: transparent; border-color: var(--re-border-strong); }
     .search-label, .search-kbd { display: none; }
   }
 </style>
