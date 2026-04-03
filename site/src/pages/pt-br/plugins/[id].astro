@@ -1,5 +1,5 @@
 ---
-import Base from '../../../layouts/Base.astro';
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import PluginDetail from '../../../components/PluginDetail.astro';
 import plugins from '../../../data/plugins.json';
 
@@ -19,6 +19,16 @@ function getName(p: any): string {
 }
 ---
 
-<Base lang={lang} title={`Plugin ${getName(plugin)}`}>
+<StarlightPage
+  frontmatter={{
+    title: `Plugin ${getName(plugin)}`,
+    description: plugin.summary_locales?.['pt-br'] ?? plugin.summary,
+    template: 'splash',
+    pagefind: true,
+    head: [],
+    tableOfContents: false,
+  }}
+  hasSidebar={false}
+>
   <PluginDetail lang={lang} plugin={plugin} />
-</Base>
+</StarlightPage>

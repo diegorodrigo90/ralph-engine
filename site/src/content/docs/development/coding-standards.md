@@ -3,7 +3,6 @@ title: "Coding Standards"
 description: "Code style and contribution guidelines"
 ---
 
-
 Ralph Engine uses a strict Rust-first quality baseline, but the repository should still feel approachable to contributors who are newer to Rust or open source work.
 
 These standards exist to keep code:
@@ -15,7 +14,7 @@ These standards exist to keep code:
 
 If you come from TypeScript, Go, Java, or another language, read these notes as a translation guide for how Ralph Engine expects Rust code to feel in practice.
 
-## Core rules
+## Core Rules
 
 - Public Rust APIs use `rustdoc` comments with `///` or `//!`.
 - Public undocumented items fail the repository lint contract.
@@ -28,7 +27,7 @@ If you come from TypeScript, Go, Java, or another language, read these notes as 
 - `unsafe` is forbidden by default.
 - `unwrap`, `expect`, `panic!`, `todo!`, and `unimplemented!` are forbidden in production code.
 
-## Design rules
+## Design Rules
 
 - Prefer clear names over clever names.
 - Prefer small functions with one responsibility.
@@ -37,7 +36,7 @@ If you come from TypeScript, Go, Java, or another language, read these notes as 
 - Apply DDD, SOLID, and object calisthenics only where they improve maintainability in idiomatic Rust.
 - Keep domain, application, and infrastructure concerns separated.
 
-## How to interpret these principles in Rust
+## How to Interpret These Principles in Rust
 
 - DDD means clear domain boundaries, not ceremony.
 - SOLID means small responsibilities and explicit contracts, often through focused traits and strong types.
@@ -51,7 +50,7 @@ In practice, prefer:
 - helper functions with one job
 - parsing, validation, and I/O separated from core business rules
 
-## Test rules
+## Test Rules
 
 Rust tests prefer the Arrange, Act, Assert structure.
 
@@ -80,14 +79,54 @@ The goal is simple: a contributor should be able to scan a test and understand s
 
 ## Commands
 
+Run the full validation contract:
+
 ```bash
 ./scripts/validate.sh --mode local
+```
+
+Verify cross-language plugin contracts:
+
+```bash
 npm run contracts:verify
+```
+
+Check formatting:
+
+```bash
 cargo fmt --all --check
+```
+
+Run clippy:
+
+```bash
 cargo clippy --workspace --all-targets --all-features -- -D warnings
+```
+
+Run all tests:
+
+```bash
 cargo test --workspace --all-targets --all-features
+```
+
+Generate coverage:
+
+```bash
 cargo llvm-cov --workspace --all-features --lcov --output-path coverage/lcov.info
+```
+
+Build rustdoc:
+
+```bash
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps
+```
+
+Check dependency licenses and vulnerabilities:
+
+```bash
 cargo deny check
+```
+
+```bash
 cargo audit
 ```

@@ -3,16 +3,44 @@ title: "Configuration"
 description: "Configure Ralph Engine with YAML files"
 ---
 
+Ralph Engine configuration is managed through typed Rust contracts. The CLI exposes the full configuration surface.
 
-Ralph Engine configuration is managed through typed Rust contracts. The CLI exposes the full configuration surface:
+## Inspecting Configuration
+
+Print the full default project config (YAML):
 
 ```bash
-ralph-engine config show-defaults    # Default project config (YAML)
-ralph-engine config locale           # Default locale settings
-ralph-engine config budgets          # Token and context budgets
-ralph-engine config layers           # Configuration resolution layers
-ralph-engine config show-plugin <id> # Plugin-specific resolved config
-ralph-engine config show-mcp-server <id> # MCP server resolved config
+ralph-engine config show-defaults
+```
+
+Print default locale settings:
+
+```bash
+ralph-engine config locale
+```
+
+Print prompt and context token budgets:
+
+```bash
+ralph-engine config budgets
+```
+
+Print the configuration resolution layer stack:
+
+```bash
+ralph-engine config layers
+```
+
+Print resolved config for a specific plugin:
+
+```bash
+ralph-engine config show-plugin <id>
+```
+
+Print resolved config for a specific MCP server:
+
+```bash
+ralph-engine config show-mcp-server <id>
 ```
 
 ## Project Configuration
@@ -35,9 +63,14 @@ Use `ralph-engine config layers` to inspect the full resolution chain.
 
 ## Diagnostics
 
-The `doctor` command analyzes your project configuration and suggests fixes:
+Print a diagnostic report:
 
 ```bash
-ralph-engine doctor                         # Show diagnostic report
-ralph-engine doctor apply-config config.yaml # Write patched config to file
+ralph-engine doctor
+```
+
+Write a patched config to file:
+
+```bash
+ralph-engine doctor apply-config config.yaml
 ```
