@@ -10,6 +10,7 @@ publisher: official
 trust_level: official
 plugin_version: 0.2.0-alpha.1
 plugin_api_version: 1.0.0
+runtime: true
 engine_version: ">=0.2.0-alpha.1"
 capabilities:
   - agent_runtime

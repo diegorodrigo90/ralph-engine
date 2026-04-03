@@ -1,12 +1,15 @@
-//! Official Codex runtime plugin metadata.
+//! Official Codex runtime plugin metadata and runtime.
+
+use std::path::Path;
 
 mod i18n;
 
 use re_mcp::{McpAvailability, McpLaunchPolicy, McpServerDescriptor, McpTransport};
 use re_plugin::{
-    AGENT_RUNTIME, MCP_CONTRIBUTION, PluginAgentDescriptor, PluginDescriptor, PluginKind,
-    PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginRuntimeHook,
-    PluginTrustLevel,
+    AGENT_RUNTIME, AgentBootstrapResult, CheckExecutionResult, MCP_CONTRIBUTION,
+    McpRegistrationResult, PluginAgentDescriptor, PluginCheckKind, PluginDescriptor, PluginKind,
+    PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText, PluginRuntime,
+    PluginRuntimeError, PluginRuntimeHook, PluginTrustLevel,
 };
 
 /// Stable plugin identifier.
@@ -92,8 +95,71 @@ pub const fn mcp_servers() -> &'static [McpServerDescriptor] {
     MCP_SERVERS
 }
 
+/// Returns a new instance of the Codex plugin runtime.
+#[must_use]
+pub fn runtime() -> CodexRuntime {
+    CodexRuntime
+}
+
+const AGENT_BINARY: &str = "codex";
+
+/// Codex plugin runtime.
+pub struct CodexRuntime;
+
+impl PluginRuntime for CodexRuntime {
+    fn plugin_id(&self) -> &str {
+        PLUGIN_ID
+    }
+
+    fn run_check(
+        &self,
+        check_id: &str,
+        kind: PluginCheckKind,
+        _project_root: &Path,
+    ) -> Result<CheckExecutionResult, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_a_check_plugin",
+            format!(
+                "Codex does not provide check '{check_id}' (kind: {})",
+                kind.as_str()
+            ),
+        ))
+    }
+
+    fn bootstrap_agent(&self, agent_id: &str) -> Result<AgentBootstrapResult, PluginRuntimeError> {
+        let found = re_plugin::probe_binary_on_path(AGENT_BINARY).is_some();
+        Ok(AgentBootstrapResult {
+            agent_id: agent_id.to_owned(),
+            ready: found,
+            message: if found {
+                format!("Binary '{AGENT_BINARY}' found. Agent ready.")
+            } else {
+                format!("Binary '{AGENT_BINARY}' not found. Install to enable.")
+            },
+        })
+    }
+
+    fn register_mcp_server(
+        &self,
+        server_id: &str,
+    ) -> Result<McpRegistrationResult, PluginRuntimeError> {
+        let found = re_plugin::probe_binary_on_path(AGENT_BINARY).is_some();
+        Ok(McpRegistrationResult {
+            server_id: server_id.to_owned(),
+            ready: found,
+            message: if found {
+                format!("MCP server backed by '{AGENT_BINARY}' is available.")
+            } else {
+                format!("MCP server requires '{AGENT_BINARY}'.")
+            },
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use re_plugin::PluginRuntime;
+
     use super::{
         AGENTS, PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, mcp_servers,
         runtime_hooks,
@@ -211,5 +277,17 @@ mod tests {
         assert!(manifest.contains("- mcp_contribution"));
         assert!(manifest.contains("id: official.codex.session"));
         assert!(manifest.contains("plugin_api_version: 1"));
+    }
+
+    #[test]
+    fn runtime_plugin_id_matches() {
+        let rt = super::runtime();
+        assert_eq!(rt.plugin_id(), PLUGIN_ID);
+    }
+
+    #[test]
+    fn runtime_bootstrap_agent_returns_result() {
+        let rt = super::runtime();
+        assert!(rt.bootstrap_agent("official.codex.session").is_ok());
     }
 }
