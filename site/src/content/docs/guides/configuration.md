@@ -51,6 +51,44 @@ Running `ralph-engine templates scaffold official.basic.starter .` creates a `.r
 - `.ralph-engine/prompt.md` — project-specific prompt content
 - `.ralph-engine/hooks.yaml` — hook configuration (when using BMAD plugin)
 
+### Example config.yaml
+
+```yaml
+# Agent runtime — which AI coding assistant to use
+agent:
+  type: "claude"           # claude | codex | claudebox
+  cooldown_seconds: 10
+  max_work_items_per_session: 1
+
+# Workflow instructions injected into agent sessions
+workflow:
+  instructions: |
+    Follow a minimal implementation loop.
+    Read the work item, implement the change, run tests,
+    and leave the tree reviewable.
+
+# Execution limits
+execution:
+  max_post_agent_retries: 0
+  max_retry_output_chars: 800
+
+# Work item tracker
+tracker:
+  type: "file"
+  status_file: "sprint-status.yaml"
+
+# Circuit breaker — stop after repeated failures
+circuit_breaker:
+  max_failures: 3
+  cooldown_minutes: 5
+
+# Research tools (Archon RAG, Context7, web search)
+research:
+  enabled: false
+  strategy: "always"
+  tools: []
+```
+
 ## Configuration Layers
 
 Configuration is resolved through a layered system:
