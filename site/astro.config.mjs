@@ -120,8 +120,12 @@ export default defineConfig({
       social: {
         github: 'https://github.com/diegorodrigo90/ralph-engine',
       },
+      components: {
+        Header: './src/components/starlight/Header.astro',
+      },
       customCss: [
         './src/styles/starlight-custom.css',
+        './src/styles/site-components.css',
       ],
       lastUpdated: true,
       editLink: {

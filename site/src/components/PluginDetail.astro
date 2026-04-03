@@ -324,7 +324,7 @@ const copySvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
         href={`https://github.com/diegorodrigo90/ralph-engine/tree/main/plugins/official/${plugin.id.replace('official.', '')}`}
         target="_blank" rel="noopener" class="btn btn-secondary"
       >{t(lang, 'plugin.source')} &rarr;</a>
-      <a href={localePath(lang, '/docs/getting-started/installation')} class="btn btn-secondary">{t(lang, 'plugin.docs')}</a>
+      <a href={localePath(lang, '/getting-started/installation/')} class="btn btn-secondary">{t(lang, 'plugin.docs')}</a>
       <a href={localePath(lang, '/plugins/')} class="btn btn-secondary">{t(lang, 'plugin.all')}</a>
     </div>
 
@@ -542,3 +542,16 @@ const copySvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" str
     .install-grid { grid-template-columns: 1fr; }
   }
 </style>
+
+<script is:inline>
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.copy-btn');
+    if (!btn) return;
+    var text = btn.getAttribute('data-copy');
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(function () {
+      btn.classList.add('copied');
+      setTimeout(function () { btn.classList.remove('copied'); }, 2000);
+    });
+  });
+</script>
