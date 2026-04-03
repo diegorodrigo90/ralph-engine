@@ -3,41 +3,74 @@ title: "Configuração"
 description: "Configure o Ralph Engine com arquivos YAML"
 ---
 
+A configuração do Ralph Engine é gerenciada por contratos tipados em Rust. A CLI expõe toda a superfície de configuração.
 
-A configuração do Ralph Engine é gerenciada por contratos tipados em Rust. A CLI expõe toda a superfície de configuração:
+## Inspecionando a Configuração
+
+Exiba a configuração padrão completa do projeto (YAML):
 
 ```bash
-ralph-engine config show-defaults    # Config padrão do projeto (YAML)
-ralph-engine config locale           # Configuração de idioma
-ralph-engine config budgets          # Limites de tokens e contexto
-ralph-engine config layers           # Camadas de resolução de config
-ralph-engine config show-plugin <id> # Config resolvida de um plugin
-ralph-engine config show-mcp-server <id> # Config resolvida de um servidor MCP
+ralph-engine config show-defaults
+```
+
+Exiba as configurações padrão de idioma:
+
+```bash
+ralph-engine config locale
+```
+
+Exiba os limites de tokens de prompt e contexto:
+
+```bash
+ralph-engine config budgets
+```
+
+Exiba a pilha de camadas de resolução de configuração:
+
+```bash
+ralph-engine config layers
+```
+
+Exiba a configuração resolvida de um plugin específico:
+
+```bash
+ralph-engine config show-plugin <id>
+```
+
+Exiba a configuração resolvida de um servidor MCP específico:
+
+```bash
+ralph-engine config show-mcp-server <id>
 ```
 
 ## Configuração do Projeto
 
-Execute `ralph-engine templates scaffold official.basic.starter .` para criar o diretório `.ralph-engine/` com os arquivos de configuração:
+Executar `ralph-engine templates scaffold official.basic.starter .` cria um diretório `.ralph-engine/` com os arquivos de configuração do projeto:
 
 - `.ralph-engine/config.yaml` — configuração do projeto
-- `.ralph-engine/prompt.md` — conteúdo de prompt do projeto
+- `.ralph-engine/prompt.md` — conteúdo de prompt específico do projeto
 - `.ralph-engine/hooks.yaml` — configuração de hooks (ao usar o plugin BMAD)
 
 ## Camadas de Configuração
 
-A configuração é resolvida em camadas:
+A configuração é resolvida por um sistema em camadas:
 
-1. **Padrões do runtime** — embutidos no binário
+1. **Padrões embutidos** — distribuídos com o runtime
 2. **Padrões dos plugins** — declarados por cada plugin
 3. **Config do projeto** — de `.ralph-engine/config.yaml`
 
-Use `ralph-engine config layers` para inspecionar a cadeia completa.
+Use `ralph-engine config layers` para inspecionar a cadeia completa de resolução.
 
 ## Diagnóstico
 
-O comando `doctor` analisa a configuração do projeto e sugere correções:
+Exiba um relatório de diagnóstico:
 
 ```bash
-ralph-engine doctor                         # Relatório de diagnóstico
-ralph-engine doctor apply-config config.yaml # Grava config corrigida em arquivo
+ralph-engine doctor
+```
+
+Grave uma configuração corrigida em arquivo:
+
+```bash
+ralph-engine doctor apply-config config.yaml
 ```

@@ -3,181 +3,452 @@ title: "Comandos CLI"
 description: "Referência completa de comandos CLI"
 ---
 
+Todos os comandos aceitam `--locale <locale-id>` (ou `-L <locale-id>`) para trocar o idioma em uma única invocação. Sem esse flag, a CLI resolve o idioma a partir de `RALPH_ENGINE_LOCALE`, depois do locale do SO (`LC_ALL`, `LC_MESSAGES`, `LANG`), e por fim usa inglês como padrão.
 
-A base atual em Rust expõe uma superfície mínima de CLI enquanto o runtime é reconstruído.
+## Opções Globais
 
-## Comandos
+Exibir ajuda:
 
 ```bash
-ralph-engine
 ralph-engine --help
+```
+
+Exibir versão:
+
+```bash
 ralph-engine --version
+```
+
+Trocar idioma para uma invocação:
+
+```bash
 ralph-engine --locale <locale-id>
-ralph-engine <comando> --help
-ralph-engine agents
+```
+
+## agents
+
+Gerenciar registros tipados de agent runtimes.
+
+```bash
 ralph-engine agents list
+```
+
+Listar todos os agent runtimes registrados.
+
+```bash
 ralph-engine agents show <agent-id>
+```
+
+Exibir o contrato tipado de um agent runtime.
+
+```bash
 ralph-engine agents plan <agent-id>
+```
+
+Exibir o plano executável de bootstrap de um agent runtime.
+
+```bash
 ralph-engine agents launch <agent-id>
-ralph-engine capabilities
+```
+
+Executar a implementação `PluginRuntime.bootstrap_agent()` do plugin. Para plugins agent-runtime (claude, claudebox, codex), verifica se o binário do agente existe no PATH.
+
+## capabilities
+
+Inspecionar o registro de capabilities do runtime.
+
+```bash
 ralph-engine capabilities list
+```
+
+Listar todas as capabilities registradas entre plugins.
+
+```bash
 ralph-engine capabilities show <capability-id>
-ralph-engine checks
+```
+
+Exibir detalhes de uma capability.
+
+## checks
+
+Gerenciar verificações de validação do runtime (em tempo de prepare e doctor).
+
+```bash
 ralph-engine checks list
+```
+
+Listar todas as verificações registradas.
+
+```bash
 ralph-engine checks show <check-id>
+```
+
+Exibir detalhes de uma verificação.
+
+```bash
 ralph-engine checks plan <check-id>
+```
+
+Exibir o plano de execução de uma verificação.
+
+```bash
 ralph-engine checks run <check-id>
-ralph-engine doctor
-ralph-engine doctor runtime
-ralph-engine doctor config
-ralph-engine doctor apply-config <output-path>
-ralph-engine doctor write-config <output-path>
-ralph-engine hooks
-ralph-engine hooks list
-ralph-engine hooks show <hook-id>
-ralph-engine hooks plan <hook-id>
-ralph-engine locales
-ralph-engine locales list
-ralph-engine locales show <locale-id>
-ralph-engine policies
-ralph-engine policies list
-ralph-engine policies show <policy-id>
-ralph-engine policies plan <policy-id>
-ralph-engine providers
-ralph-engine providers list
-ralph-engine providers show <provider-id>
-ralph-engine providers plan <provider-id>
-ralph-engine config
-ralph-engine config budgets
-ralph-engine config layers
-ralph-engine config locale
-ralph-engine config show-budgets
+```
+
+Executar uma verificação contra a topologia resolvida. Retorna um resultado localizado de aprovação/reprovação com findings e ações de remediação.
+
+## config
+
+Inspecionar contratos de configuração.
+
+```bash
 ralph-engine config show-defaults
-ralph-engine config show-layers
-ralph-engine config show-locale
-ralph-engine config show-mcp-server <server-id>
+```
+
+Exibir a configuração padrão completa do projeto (YAML).
+
+```bash
+ralph-engine config locale
+```
+
+Exibir o contrato padrão de locale.
+
+```bash
+ralph-engine config budgets
+```
+
+Exibir os limites de tokens de prompt e contexto.
+
+```bash
+ralph-engine config layers
+```
+
+Exibir a pilha de resolução de configuração.
+
+```bash
 ralph-engine config show-plugin <plugin-id>
-ralph-engine plugins
-ralph-engine plugins list
-ralph-engine plugins show <plugin-id>
-ralph-engine runtime
-ralph-engine runtime show
-ralph-engine runtime status
-ralph-engine runtime issues
-ralph-engine runtime plan
-ralph-engine runtime agent-plans
-ralph-engine runtime provider-plans
-ralph-engine runtime check-plans
-ralph-engine runtime policy-plans
-ralph-engine runtime mcp-plans
-ralph-engine runtime patch
-ralph-engine runtime patched-config
-ralph-engine runtime apply-config <output-path>
-ralph-engine runtime write-patched-config <output-path>
-ralph-engine prompts
-ralph-engine prompts list
-ralph-engine prompts show <prompt-id>
-ralph-engine prompts asset <prompt-id> <asset-path>
-ralph-engine prompts materialize <prompt-id> <output-dir>
-ralph-engine templates
-ralph-engine templates list
-ralph-engine templates show <template-id>
-ralph-engine templates asset <template-id> <asset-path>
-ralph-engine templates scaffold <template-id> <output-dir>
-ralph-engine templates materialize <template-id> <output-dir>
-ralph-engine mcp
+```
+
+Exibir a configuração resolvida de um plugin com proveniência.
+
+```bash
+ralph-engine config show-mcp-server <server-id>
+```
+
+Exibir a configuração resolvida de um servidor MCP com proveniência.
+
+## doctor
+
+Diagnosticar e remediar a configuração do projeto.
+
+```bash
+ralph-engine doctor
+```
+
+Exibir um relatório de diagnóstico compondo status do runtime, issues pendentes e ações de remediação.
+
+```bash
+ralph-engine doctor runtime
+```
+
+Exibir o componente de runtime do relatório de diagnóstico.
+
+```bash
+ralph-engine doctor config
+```
+
+Renderizar a configuração de projeto resultante da aplicação da remediação sobre os defaults atuais.
+
+```bash
+ralph-engine doctor apply-config <output-path>
+```
+
+Persistir a configuração de remediação em um arquivo.
+
+```bash
+ralph-engine doctor write-config <output-path>
+```
+
+Alias de compatibilidade para `doctor apply-config`.
+
+## hooks
+
+Inspecionar registros de hooks de ciclo de vida do runtime.
+
+```bash
+ralph-engine hooks list
+```
+
+Listar todos os hooks registrados.
+
+```bash
+ralph-engine hooks show <hook-id>
+```
+
+Exibir detalhes de um hook.
+
+```bash
+ralph-engine hooks plan <hook-id>
+```
+
+Exibir o mapa de superfícies de um hook (quais templates, prompts, agentes, checks, providers, policies e registros MCP ele controla).
+
+## locales
+
+Inspecionar o catálogo de locales suportados.
+
+```bash
+ralph-engine locales list
+```
+
+Listar todos os locales suportados com nomes nativos.
+
+```bash
+ralph-engine locales show <locale-id>
+```
+
+Exibir detalhes do locale incluindo nome nativo e regras de fallback para inglês.
+
+## mcp
+
+Gerenciar registros de servidores Model Context Protocol.
+
+```bash
 ralph-engine mcp list
+```
+
+Listar todos os servidores MCP registrados.
+
+```bash
 ralph-engine mcp show <server-id>
+```
+
+Exibir o contrato tipado de lançamento MCP (modelo de processo, policy de lançamento, fronteiras de comando, policy de diretório de trabalho, policy de ambiente, disponibilidade).
+
+```bash
 ralph-engine mcp plan <server-id>
+```
+
+Exibir o plano tipado de lançamento derivado do contrato.
+
+```bash
 ralph-engine mcp launch <server-id>
+```
+
+Validar e opcionalmente iniciar um servidor MCP. Servidores `SpawnProcess` são iniciados em foreground. Servidores `PluginRuntime` executam `register_mcp_server()` para verificar prontidão.
+
+```bash
 ralph-engine mcp status
+```
+
+Avaliar a prontidão de lançamento de todos os servidores MCP registrados (prontidão, saúde, estado de habilitação, transporte, issues, ações).
+
+```bash
 ralph-engine mcp status <server-id>
 ```
 
-A CLI também aceita o flag global `--locale <locale-id>` ou `-L <locale-id>` para que uma única invocação troque o idioma explicitamente sem depender do ambiente. Quando nenhum flag explícito é passado, a CLI continua fazendo fallback para `RALPH_ENGINE_LOCALE` e depois para o contrato tipado de locale padrão.
+Exibir status detalhado de um servidor MCP específico.
 
-O comando `plugins show` imprime o contrato imutável do plugin, incluindo lifecycle, fronteira de carregamento, runtime hooks e o estado de ativação resolvido.
+## plugins
 
-A família `agents` imprime o registro tipado de agent runtimes para que integrações oficiais de agente permaneçam explícitas, em vez de ficarem escondidas só em listagens genéricas de capability.
+Inspecionar o registro de plugins.
 
-O comando `agents plan` imprime o plano executável de bootstrap de um agent runtime tipado, para que os passos operacionais de inicialização fiquem ligados à própria superfície de agente em vez de vazarem apenas pela saída agregada do runtime.
+```bash
+ralph-engine plugins list
+```
 
-O comando `agents launch` executa o `PluginRuntime.bootstrap_agent()` do plugin e reporta se o agente está pronto para operar. Para plugins agent-runtime (claude, claudebox, codex), verifica se o binário do agente existe no PATH do sistema.
+Listar todos os plugins registrados.
 
-O comando `templates scaffold` é um alias para `templates materialize` — ambos gravam os assets de um template tipado em um diretório de saída.
+```bash
+ralph-engine plugins show <plugin-id>
+```
 
-A família `capabilities` imprime o registro tipado de capabilities do runtime para que os providers permaneçam explícitos e modulares.
+Exibir o contrato imutável do plugin (lifecycle, fronteira de carregamento, runtime hooks, estado de ativação resolvido).
 
-A família `templates` imprime o registro tipado de templates do runtime para que providers de template permaneçam explícitos e separados das listagens genéricas de capability, enquanto a responsabilidade de scaffolding continua pertencendo ao tooling.
+## policies
 
-O comando `templates materialize` grava o conjunto de assets embutidos pertencente a um template tipado em um diretório de saída, para que o scaffolding oficial continue explícito, pertencente ao plugin e inspecionável em vez de ficar escondido atrás de comportamento implícito de gerador.
+Inspecionar registros de policies do runtime.
 
-A família `prompts` imprime o registro tipado de prompts do runtime para que providers de prompt permaneçam explícitos e separados das listagens genéricas de capability, enquanto a montagem de prompt continua sendo uma superfície modular do runtime em vez de virar comportamento implícito em comandos locais.
+```bash
+ralph-engine policies list
+```
 
-O comando `prompts materialize` grava o conjunto de assets embutidos pertencente a uma superfície tipada de prompt em um diretório de saída, para que assets reutilizáveis de prompt permaneçam explícitos, pertencentes ao plugin e executáveis em vez de ficarem escondidos atrás de comportamento ad hoc de comando.
+Listar todas as policies registradas.
 
-A família `checks` imprime o registro tipado de checks do runtime para que contribuições de validação de prepare e doctor permaneçam explícitas, em vez de ficarem escondidas só como capabilities genéricas.
+```bash
+ralph-engine policies show <policy-id>
+```
 
-O comando `checks plan` imprime o plano tipado de execução de uma contribuição de runtime check, para que os passos de `prepare` e `doctor` permaneçam ligados à própria superfície de verificação em vez de vazarem apenas pela saída agregada do runtime.
+Exibir detalhes de uma policy.
 
-O comando `checks run` executa uma verificação tipada do runtime contra a topologia resolvida canônica e retorna um resultado localizado de aprovação ou reprovação com os findings atuais e as ações de remediação, para que os providers oficiais de check deixem de ser só metadado e passem a ser uma superfície executável do runtime.
+```bash
+ralph-engine policies plan <policy-id>
+```
 
-A família `doctor` imprime o relatório tipado de diagnóstico do runtime, compondo status, issues pendentes e ações de remediação a partir de um snapshot compartilhado do runtime, em vez de espalhar o diagnóstico por lógicas ad hoc em cada comando.
+Exibir o plano de enforcement de uma policy.
 
-O comando `doctor config` renderiza a mesma configuração de projeto resultante da aplicação do patch de remediação do runtime sobre os defaults atuais, para que o fluxo de diagnóstico aponte diretamente para um alvo de remediação inspecionável em vez de parar só na análise.
+## prompts
 
-O comando `doctor apply-config` persiste esse mesmo alvo de remediação em um caminho de saída, para que o fluxo de diagnóstico produza um artefato concreto de próximo passo em vez de parar em YAML renderizado.
+Gerenciar registros de prompts do runtime.
 
-O comando `doctor write-config` continua disponível como alias de compatibilidade para `doctor apply-config`.
+```bash
+ralph-engine prompts list
+```
 
-A família `config locale` imprime o contrato tipado do locale padrão, para que o i18n da CLI permaneça inspecionável em vez de ficar implícito nos defaults do runtime.
+Listar todos os prompts registrados.
 
-A família `locales` imprime o catálogo tipado de locales suportados, para que cobertura de idioma, nome nativo e regra de fallback para inglês permaneçam explícitos e versionados.
+```bash
+ralph-engine prompts show <prompt-id>
+```
 
-A família `config budgets` imprime o contrato tipado de limites de prompt e contexto, para que os tetos de tokens permaneçam explícitos na fundação do runtime em vez de ficarem escondidos em lógica futura de provider.
+Exibir detalhes de um prompt.
 
-A família `hooks` imprime o registro tipado de runtime hooks do runtime para que os providers permaneçam explícitos e modulares.
+```bash
+ralph-engine prompts asset <prompt-id> <asset-path>
+```
 
-O comando `hooks plan` imprime o mapa tipado de superfícies pertencentes a um runtime hook, para que templates, prompts, agentes, verificações, providers, policies e registros de MCP permaneçam inspecionáveis a partir da fronteira do hook que os orquestra, em vez de vazarem apenas pela saída agregada do runtime.
+Exibir um asset específico do bundle embutido de um prompt.
 
-A família `policies` imprime o registro tipado de policies do runtime para que os providers de policy permaneçam explícitos, inspecionáveis e separados de listagens genéricas de capability.
+```bash
+ralph-engine prompts materialize <prompt-id> <output-dir>
+```
 
-O comando `policies plan` imprime o plano tipado de enforcement de uma contribuição de policy, para que os passos de guardrail permaneçam ligados à própria superfície de policy em vez de vazarem apenas pela saída agregada do runtime.
+Gravar o bundle de assets embutido de um prompt em um diretório de saída.
 
-A família `providers` imprime o registro tipado de providers do runtime para que contribuições de data source, context provider, forge provider e remote control permaneçam explícitas, em vez de ficarem escondidas só na saída genérica de capability.
+## providers
 
-O comando `providers plan` imprime o plano executável de registro de uma contribuição tipada de provider, para que os passos operacionais de registro permaneçam ligados à própria superfície do provider em vez de vazarem apenas pela saída agregada do runtime.
+Inspecionar registros de providers do runtime (fontes de dados, provedores de contexto, provedores forge, controle remoto).
 
-O comando `mcp show` imprime o contrato tipado de lançamento do MCP, incluindo modelo de processo, policy de lançamento, fronteiras de comando, policy de diretório de trabalho, policy de ambiente e disponibilidade.
+```bash
+ralph-engine providers list
+```
 
-O comando `mcp plan` imprime o plano tipado de lançamento derivado desse contrato, para que bootstrap gerenciado por plugin e execução por spawn de processo permaneçam reutilizáveis fora de formatação local do comando.
+Listar todos os providers registrados.
 
-O comando `mcp launch` valida e opcionalmente inicia um servidor MCP. Para servidores `SpawnProcess`, spawna o binário em foreground se encontrado no PATH. Para servidores `PluginRuntime`, executa `PluginRuntime.register_mcp_server()` para verificar prontidão.
+```bash
+ralph-engine providers show <provider-id>
+```
 
-O comando `mcp status` avalia a prontidão de lançamento de todos os servidores MCP registrados e reporta prontidão, saúde, estado de habilitação, transporte, problemas e ações recomendadas. Quando um ID de servidor é fornecido, exibe o status detalhado daquele servidor específico.
+Exibir detalhes de um provider.
 
-O comando `runtime show` imprime a topologia resolvida do runtime, incluindo ativação efetiva de plugin, registro de capability, registro de template, registro de prompt, registro de agent runtime, registro de check, registro de provider, registro de policy, registro de hook e enablement de MCP.
+```bash
+ralph-engine providers plan <provider-id>
+```
 
-O comando `runtime status` imprime o resumo tipado de health do runtime, incluindo providers habilitados e desabilitados em plugins, capabilities, templates, prompts, agent runtimes tipados, checks tipados, providers tipados, policies, runtime hooks e servidores MCP.
+Exibir o plano de registro de um provider.
 
-O comando `runtime issues` imprime a lista tipada de issues pendentes do runtime e as ações recomendadas, incluindo templates, prompts, agent runtimes tipados, checks tipados, providers tipados, providers de policy e providers de runtime hook desabilitados, em vez de depender de heurísticas locais em cada comando.
+## runtime
 
-O comando `runtime plan` imprime o plano tipado de remediação derivado da topologia resolvida, incluindo enablement de templates, de prompts, de agent runtimes tipados, de checks tipados, de providers tipados, de policy e de hook, para que o próximo passo de enablement permaneça explícito e modular em vez de ser inferido ad hoc na CLI.
+Inspecionar e remediar a topologia resolvida do runtime.
 
-O comando `runtime agent-plans` imprime os planos executáveis de bootstrap de agentes que permanecem habilitados no snapshot resolvido do runtime, para que os passos operacionais de inicialização de agentes fiquem visíveis ao lado de topologia, health, issues e remediação.
+```bash
+ralph-engine runtime show
+```
 
-O comando `runtime provider-plans` imprime os planos executáveis de registro de providers que permanecem habilitados no snapshot resolvido do runtime, para que o registro operacional de providers permaneça visível ao lado de topologia, health, issues, remediação e bootstrap de agentes.
+Exibir a topologia resolvida do runtime (ativação de plugins, registro de capabilities, registro de templates/prompts/agentes/checks/providers/policies/hooks, enablement de MCP).
 
-O comando `runtime check-plans` imprime os planos executáveis de verificações tipadas que permanecem habilitados no snapshot resolvido do runtime, para que os passos de execução de `prepare` e `doctor` permaneçam visíveis ao lado de topologia, health, issues, remediação e outros planos do runtime.
+```bash
+ralph-engine runtime status
+```
 
-O comando `runtime policy-plans` imprime os planos executáveis de enforcement de políticas que permanecem habilitados no snapshot resolvido do runtime, para que os passos de guardrail e enforcement permaneçam visíveis ao lado de topologia, health, issues, remediação e outros planos do runtime.
+Exibir o resumo de saúde do runtime (contagens de habilitados/desabilitados em todos os tipos de registro).
 
-O comando `runtime mcp-plans` imprime os planos executáveis de lançamento MCP que permanecem habilitados no snapshot resolvido do runtime, para que os passos operacionais de lançamento fiquem visíveis ao lado de topologia, health, issues e remediação.
+```bash
+ralph-engine runtime issues
+```
 
-O comando `runtime patch` renderiza o patch tipado de configuração que remedia a topologia degradada atual, incluindo ativações de plugin e enablement por servidor MCP, para que a recuperação do runtime permaneça explícita e reutilizável em vez de ficar apenas como plano textual.
+Exibir issues pendentes do runtime e ações recomendadas.
 
-O comando `runtime patched-config` renderiza a configuração de projeto resultante da aplicação do patch tipado de runtime sobre os defaults atuais, para que o operador possa inspecionar o resultado efetivo da remediação antes de persistir essa configuração em outro lugar.
+```bash
+ralph-engine runtime plan
+```
 
-O comando `runtime apply-config` persiste esse alvo de remediação totalmente materializado em um caminho de saída, para que a recuperação do runtime saia da inspeção e vire um passo explícito e reproduzível de escrita em arquivo.
+Exibir o plano de remediação do runtime (passos de enablement para todos os tipos de provider).
 
-O comando `runtime write-patched-config` continua disponível como alias de compatibilidade para `runtime apply-config`.
+```bash
+ralph-engine runtime agent-plans
+```
+
+Exibir planos executáveis de bootstrap de agentes habilitados.
+
+```bash
+ralph-engine runtime provider-plans
+```
+
+Exibir planos executáveis de registro de providers habilitados.
+
+```bash
+ralph-engine runtime check-plans
+```
+
+Exibir planos executáveis de verificações habilitadas.
+
+```bash
+ralph-engine runtime policy-plans
+```
+
+Exibir planos executáveis de enforcement de policies habilitadas.
+
+```bash
+ralph-engine runtime mcp-plans
+```
+
+Exibir planos executáveis de lançamento MCP para servidores habilitados.
+
+```bash
+ralph-engine runtime patch
+```
+
+Renderizar o patch de configuração que remedia a topologia degradada atual.
+
+```bash
+ralph-engine runtime patched-config
+```
+
+Renderizar a configuração de projeto resultante da aplicação do patch sobre os defaults atuais.
+
+```bash
+ralph-engine runtime apply-config <output-path>
+```
+
+Persistir a configuração corrigida em um arquivo.
+
+```bash
+ralph-engine runtime write-patched-config <output-path>
+```
+
+Alias de compatibilidade para `runtime apply-config`.
+
+## templates
+
+Gerenciar registros de templates do runtime.
+
+```bash
+ralph-engine templates list
+```
+
+Listar todos os templates registrados.
+
+```bash
+ralph-engine templates show <template-id>
+```
+
+Exibir detalhes de um template.
+
+```bash
+ralph-engine templates asset <template-id> <asset-path>
+```
+
+Exibir um asset específico do bundle embutido de um template.
+
+```bash
+ralph-engine templates scaffold <template-id> <output-dir>
+```
+
+Gravar o bundle de assets embutido de um template em um diretório de saída. Alias para `templates materialize`.
+
+```bash
+ralph-engine templates materialize <template-id> <output-dir>
+```
+
+Gravar o bundle de assets embutido de um template em um diretório de saída.
