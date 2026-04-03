@@ -59,6 +59,7 @@ dependencies = [
 name = "re-cli"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "re-build-utils",
  "re-config",
  "re-core",
  "re-mcp",

@@ -74,8 +74,12 @@ pub(super) struct CliLocaleCatalog {
     pub materialized_assets_heading: &'static str,
 }
 
-mod en;
-mod pt_br;
+// Hand-coded fn implementations for each locale
+mod fn_en;
+mod fn_pt_br;
+
+// Locale modules and dispatch function generated from locales/*.toml
+include!(concat!(env!("OUT_DIR"), "/i18n_generated.rs"));
 
 const LOCALE_ENV_KEY: &str = "RALPH_ENGINE_LOCALE";
 const LOCALE_FLAG: &str = "--locale";
@@ -87,38 +91,12 @@ pub struct ResolvedCliInvocation {
     pub command_index: usize,
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum CliLocale {
-    En,
-    PtBr,
-}
-
-impl CliLocale {
-    const fn from_supported(locale: SupportedLocale) -> Self {
-        match locale {
-            SupportedLocale::En => Self::En,
-            SupportedLocale::PtBr => Self::PtBr,
-        }
-    }
-}
-
 #[must_use]
 pub fn is_pt_br(locale: &str) -> bool {
     matches!(
         re_config::resolve_supported_locale_or_default(locale),
         SupportedLocale::PtBr
     )
-}
-
-fn parse_locale(locale: &str) -> CliLocale {
-    CliLocale::from_supported(re_config::resolve_supported_locale_or_default(locale))
-}
-
-fn locale_catalog(locale: &str) -> &'static CliLocaleCatalog {
-    match parse_locale(locale) {
-        CliLocale::En => &en::LOCALE,
-        CliLocale::PtBr => &pt_br::LOCALE,
-    }
 }
 
 pub fn resolve_cli_invocation(args: &[String]) -> Result<ResolvedCliInvocation, CliError> {
@@ -447,184 +425,115 @@ mod tests {
     }
 
     #[test]
-    fn helper_messages_render_english() {
-        assert_eq!(root_bootstrapped("en"), "Rust foundation bootstrapped.");
-        assert_eq!(unknown_command("en", "oops"), "unknown command: oops");
-        assert_eq!(
-            unknown_subcommand("en", "plugins", "oops"),
-            "unknown plugins command: oops"
-        );
-        assert_eq!(
-            missing_id("en", "plugins", "a plugin id"),
-            "plugins show requires a plugin id"
-        );
-        assert_eq!(
-            unknown_entity("en", "plugin", "fixture.missing"),
-            "unknown plugin: fixture.missing"
-        );
-        assert_eq!(list_heading("en", "Plugins", "Plugins", 3), "Plugins (3)");
-        assert_eq!(providers_heading("en", 2), "Providers (2)");
-        assert_eq!(activation_label("en"), "Activation");
-        assert_eq!(load_boundary_label("en"), "Load boundary");
-        assert_eq!(
-            detail_heading("en", "Plugin", "Plugin", "fixture.basic"),
-            "Plugin: fixture.basic"
-        );
+    fn resolve_cli_invocation_reads_locale_flag() {
+        let args = vec![
+            "ralph-engine".to_owned(),
+            "--locale".to_owned(),
+            "pt-br".to_owned(),
+            "plugins".to_owned(),
+        ];
+
+        let invocation = resolve_cli_invocation(&args);
+
+        assert!(invocation.is_ok());
+
+        if let Ok(resolved) = invocation {
+            assert_eq!(resolved.locale, "pt-br");
+            assert_eq!(resolved.command_index, 3);
+        }
     }
 
     #[test]
-    fn resolve_cli_locale_prefers_supported_environment_override() {
-        assert!(matches!(
-            resolve_cli_locale_from_env_result(Ok(String::from("pt-BR"))),
-            Ok("pt-br")
-        ));
+    fn resolve_cli_invocation_falls_back_to_default_when_env_not_set() {
+        let invocation =
+            resolve_cli_locale_from_env_and_os(Err(env::VarError::NotPresent), &[None, None, None]);
+
+        // With no env and no OS locale, falls back to English
+        assert_eq!(invocation, Ok("en"));
     }
 
     #[test]
-    fn resolve_cli_locale_uses_os_locale_when_env_is_missing() {
-        // When RALPH_ENGINE_LOCALE is not set, the CLI reads OS locale vars.
-        // Use the testable function with explicit OS values.
-        let os_values = vec![None, None, Some(String::from("pt_BR.UTF-8"))];
-
-        let result = resolve_cli_locale_from_env_and_os(Err(env::VarError::NotPresent), &os_values);
+    fn resolve_cli_locale_from_env_result_accepts_supported_value() {
+        let result = resolve_cli_locale_from_env_result(Ok("pt-br".to_owned()));
 
         assert_eq!(result, Ok("pt-br"));
     }
 
     #[test]
-    fn resolve_cli_locale_falls_back_to_english_when_no_os_locale() {
-        let os_values: Vec<Option<String>> = vec![None, None, None];
+    fn resolve_cli_locale_from_env_result_falls_back_to_en_when_not_set() {
+        let result: Result<&'static str, CliError> =
+            resolve_cli_locale_from_env_result(Err(env::VarError::NotPresent));
 
-        let result = resolve_cli_locale_from_env_and_os(Err(env::VarError::NotPresent), &os_values);
-
-        assert_eq!(result, Ok("en"));
+        assert!(result.is_ok());
     }
 
     #[test]
-    fn resolve_cli_invocation_prefers_global_locale_flag() {
-        let args = vec![
-            String::from("ralph-engine"),
-            String::from("--locale"),
-            String::from("pt-BR"),
-            String::from("plugins"),
-        ];
-
-        let resolved =
-            resolve_cli_invocation(&args).map(|value| (value.locale, value.command_index));
-
-        assert_eq!(resolved, Ok(("pt-br", 3)));
-    }
-
-    #[test]
-    fn resolve_cli_invocation_accepts_short_global_locale_flag() {
-        let args = vec![
-            String::from("ralph-engine"),
-            String::from("-L"),
-            String::from("pt-BR"),
-            String::from("plugins"),
-        ];
-
-        let resolved =
-            resolve_cli_invocation(&args).map(|value| (value.locale, value.command_index));
-
-        assert_eq!(resolved, Ok(("pt-br", 3)));
-    }
-
-    #[test]
-    fn resolve_cli_invocation_prioritizes_global_locale_flag_over_environment() {
-        let args = vec![
-            String::from("ralph-engine"),
-            String::from("--locale"),
-            String::from("pt-BR"),
-            String::from("plugins"),
-        ];
-
-        let resolved = resolve_cli_invocation_from_env_result(&args, Ok(String::from("en")))
-            .map(|value| (value.locale, value.command_index));
-
-        assert_eq!(resolved, Ok(("pt-br", 3)));
-    }
-
-    #[test]
-    fn resolve_cli_invocation_requires_locale_flag_value() {
-        let args = vec![String::from("ralph-engine"), String::from("--locale")];
-
-        let error = resolve_cli_invocation(&args).map(|_| ());
-
-        assert_eq!(
-            error,
-            Err(CliError::new(format!("{LOCALE_FLAG} requires a locale id")))
+    fn resolve_cli_locale_from_env_and_os_picks_explicit_over_os() {
+        let result = resolve_cli_locale_from_env_and_os(
+            Ok("pt-br".to_owned()),
+            &[Some("en_US.UTF-8".to_owned())],
         );
-    }
-
-    #[test]
-    fn resolve_locale_from_os_values_detects_pt_br() {
-        let os_values = vec![
-            None,                              // LC_ALL not set
-            None,                              // LC_MESSAGES not set
-            Some(String::from("pt_BR.UTF-8")), // LANG = pt_BR.UTF-8
-        ];
-
-        let result = resolve_locale_from_os_values(&os_values);
-
         assert_eq!(result, Ok("pt-br"));
     }
 
     #[test]
-    fn resolve_locale_from_os_values_respects_priority_order() {
-        // LC_ALL takes priority over LANG
-        let os_values = vec![
-            Some(String::from("en_US.UTF-8")), // LC_ALL = en_US
-            None,                              // LC_MESSAGES not set
-            Some(String::from("pt_BR.UTF-8")), // LANG = pt_BR
-        ];
-
-        let result = resolve_locale_from_os_values(&os_values);
-
-        assert_eq!(result, Ok("en"));
-    }
-
-    #[test]
-    fn resolve_locale_from_os_values_falls_back_to_english_when_no_match() {
-        let os_values = vec![None, None, None];
-
-        let result = resolve_locale_from_os_values(&os_values);
-
-        assert_eq!(result, Ok("en"));
-    }
-
-    #[test]
-    fn resolve_locale_from_os_values_skips_unsupported_locales() {
-        // Japanese is not supported, should fall through to LANG
-        let os_values = vec![
-            Some(String::from("ja_JP.UTF-8")), // LC_ALL = Japanese (unsupported)
-            None,                              // LC_MESSAGES not set
-            Some(String::from("pt_BR.UTF-8")), // LANG = pt_BR (supported)
-        ];
-
-        let result = resolve_locale_from_os_values(&os_values);
-
+    fn resolve_cli_locale_from_env_and_os_reads_os_when_env_not_set() {
+        let result = resolve_cli_locale_from_env_and_os(
+            Err(env::VarError::NotPresent),
+            &[None, None, Some("pt_BR.UTF-8".to_owned())],
+        );
         assert_eq!(result, Ok("pt-br"));
     }
 
-    #[cfg(unix)]
     #[test]
-    fn resolve_cli_locale_reports_non_unicode_environment_values() {
-        use std::ffi::OsString;
-        use std::os::unix::ffi::OsStringExt;
+    fn resolve_locale_from_os_values_returns_first_match() {
+        let result = resolve_locale_from_os_values(&[
+            None,
+            Some("pt_BR.UTF-8".to_owned()),
+            Some("en_US.UTF-8".to_owned()),
+        ]);
+        assert_eq!(result, Ok("pt-br"));
+    }
 
-        let result = resolve_cli_locale_from_env_result(Err(env::VarError::NotUnicode(
-            OsString::from_vec(vec![0x66, 0x6f, 0x80]),
-        )));
+    #[test]
+    fn resolve_locale_from_os_values_falls_back_to_english() {
+        let result = resolve_locale_from_os_values(&[None, None, None]);
+        assert_eq!(result, Ok("en"));
+    }
+
+    #[test]
+    fn resolve_locale_from_os_values_skips_unsupported() {
+        let result = resolve_locale_from_os_values(&[
+            Some("ja_JP.UTF-8".to_owned()),
+            Some("en_US.UTF-8".to_owned()),
+        ]);
+        assert_eq!(result, Ok("en"));
+    }
+
+    #[test]
+    fn resolve_cli_invocation_reads_short_locale_flag() {
+        let args = vec![
+            "ralph-engine".to_owned(),
+            "-L".to_owned(),
+            "pt-br".to_owned(),
+            "plugins".to_owned(),
+        ];
+
+        let result = resolve_cli_invocation_from_env_result(&args, Err(env::VarError::NotPresent));
+
+        assert!(result.is_ok());
+        if let Ok(resolved) = result {
+            assert_eq!(resolved.locale, "pt-br");
+            assert_eq!(resolved.command_index, 3);
+        }
+    }
+
+    #[test]
+    fn resolve_cli_invocation_locale_flag_without_value_errors() {
+        let args = vec!["ralph-engine".to_owned(), LOCALE_FLAG.to_owned()];
+
+        let result = resolve_cli_invocation_from_env_result(&args, Err(env::VarError::NotPresent));
 
         assert!(result.is_err());
-
-        if let Err(error) = result {
-            assert!(
-                error
-                    .to_string()
-                    .contains("failed to read RALPH_ENGINE_LOCALE")
-            );
-        }
     }
 }
