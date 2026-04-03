@@ -1494,3 +1494,92 @@ fn binary_agents_launch_rejects_unknown_agent() {
 
     assert!(!output.status.success());
 }
+
+// ── Project config file loading tests ────────────────────────────
+
+#[test]
+fn doctor_reads_project_config_and_enables_plugins() {
+    // Without config: only official.basic is enabled (1 plugin).
+    // With config enabling bmad+claude: doctor should show more enabled.
+    let tmp = unique_temp_dir("config-load");
+    std::fs::create_dir_all(tmp.join(".ralph-engine")).expect("should create .ralph-engine dir");
+    std::fs::write(
+        tmp.join(".ralph-engine/config.yaml"),
+        "\
+schema_version: 1
+default_locale: en
+plugins:
+  - id: official.basic
+    activation: enabled
+  - id: official.bmad
+    activation: enabled
+  - id: official.claude
+    activation: enabled
+  - id: official.claudebox
+    activation: disabled
+  - id: official.codex
+    activation: disabled
+  - id: official.github
+    activation: enabled
+  - id: official.hello-world
+    activation: disabled
+  - id: official.ssh
+    activation: disabled
+  - id: official.tdd-strict
+    activation: enabled
+mcp:
+  enabled: true
+  discovery: official_only
+  servers:
+    - id: official.claude.session
+      enabled: true
+    - id: official.claudebox.session
+      enabled: false
+    - id: official.codex.session
+      enabled: false
+    - id: official.github.repository
+      enabled: true
+budgets:
+  prompt_tokens: 8192
+  context_tokens: 32768
+",
+    )
+    .expect("should write config");
+
+    let mut command = english_command();
+    command.current_dir(&tmp);
+    command.args(["doctor"]);
+
+    let output = command.output().expect("binary should run");
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+
+    // With config: 5 plugins enabled (basic, bmad, claude, github, tdd-strict)
+    assert!(
+        stdout.contains("enabled=5"),
+        "doctor should show 5 enabled plugins when project config is present.\nGot: {stdout}"
+    );
+
+    std::fs::remove_dir_all(&tmp).ok();
+}
+
+#[test]
+fn doctor_without_config_shows_default_enabled_count() {
+    // In a directory without .ralph-engine/config.yaml, only basic is enabled.
+    let tmp = unique_temp_dir("no-config");
+    std::fs::create_dir_all(&tmp).expect("should create temp dir");
+
+    let mut command = english_command();
+    command.current_dir(&tmp);
+    command.args(["doctor"]);
+
+    let output = command.output().expect("binary should run");
+    let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
+
+    // Default: only official.basic enabled (1 plugin)
+    assert!(
+        stdout.contains("enabled=1"),
+        "doctor without config should show 1 enabled plugin.\nGot: {stdout}"
+    );
+
+    std::fs::remove_dir_all(&tmp).ok();
+}

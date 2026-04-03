@@ -671,3 +671,418 @@ pub fn render_runtime_budgets_yaml(budgets: &RuntimeBudgetConfig) -> String {
     ]
     .join("\n")
 }
+
+// ── YAML config parsing ──────────────────────────────────────────
+
+/// Errors returned by the project configuration parser.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ConfigParseError {
+    /// A required top-level key is missing.
+    MissingKey(&'static str),
+    /// A value could not be parsed into the expected type.
+    InvalidValue {
+        /// The key that contained the bad value.
+        key: &'static str,
+        /// Human-readable description of what went wrong.
+        detail: String,
+    },
+    /// A list entry is malformed (missing required sub-key).
+    MalformedEntry {
+        /// Parent section name.
+        section: &'static str,
+        /// Sub-key that was expected.
+        expected_key: &'static str,
+        /// Zero-based index of the entry in the list.
+        index: usize,
+    },
+}
+
+impl core::fmt::Display for ConfigParseError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::MissingKey(key) => write!(f, "missing required key: {key}"),
+            Self::InvalidValue { key, detail } => {
+                write!(f, "invalid value for '{key}': {detail}")
+            }
+            Self::MalformedEntry {
+                section,
+                expected_key,
+                index,
+            } => write!(
+                f,
+                "malformed entry in '{section}' at index {index}: missing '{expected_key}'"
+            ),
+        }
+    }
+}
+
+/// Parses a project configuration YAML document into an owned config.
+///
+/// The parser accepts the exact format produced by
+/// [`render_owned_project_config_yaml`] and tolerates comments, blank
+/// lines, and trailing whitespace.  It does **not** implement a
+/// general-purpose YAML parser — only the Ralph Engine config contract.
+///
+/// # Errors
+///
+/// Returns [`ConfigParseError`] when required keys are missing or values
+/// are not in the expected format.
+pub fn parse_owned_project_config_yaml(
+    content: &str,
+) -> Result<OwnedProjectConfig, ConfigParseError> {
+    let lines: Vec<&str> = content.lines().collect();
+
+    let schema_version = extract_scalar(&lines, "schema_version")
+        .ok_or(ConfigParseError::MissingKey("schema_version"))?
+        .parse::<u8>()
+        .map_err(|_| ConfigParseError::InvalidValue {
+            key: "schema_version",
+            detail: "expected integer 1–255".to_owned(),
+        })?;
+
+    let default_locale_raw = extract_scalar(&lines, "default_locale")
+        .ok_or(ConfigParseError::MissingKey("default_locale"))?;
+    let default_locale =
+        canonical_locale_id(default_locale_raw).ok_or_else(|| ConfigParseError::InvalidValue {
+            key: "default_locale",
+            detail: format!("unsupported locale '{default_locale_raw}'"),
+        })?;
+
+    let plugins = parse_plugin_entries(&lines)?;
+    let mcp = parse_mcp_section(&lines)?;
+    let budgets = parse_budgets_section(&lines)?;
+
+    Ok(OwnedProjectConfig {
+        schema_version,
+        default_locale,
+        plugins,
+        mcp,
+        budgets,
+    })
+}
+
+// ── private helpers ──────────────────────────────────────────────
+
+/// Extracts the value of a top-level `key: value` line.
+fn extract_scalar<'a>(lines: &[&'a str], key: &str) -> Option<&'a str> {
+    let prefix = format!("{key}:");
+    lines.iter().find_map(|line| {
+        let trimmed = line.trim();
+        trimmed.strip_prefix(&prefix).map(str::trim)
+    })
+}
+
+/// Parses the `plugins:` list into typed entries.
+fn parse_plugin_entries(lines: &[&str]) -> Result<Vec<PluginConfig>, ConfigParseError> {
+    let entries = collect_list_entries(lines, "plugins:");
+    let mut plugins = Vec::with_capacity(entries.len());
+
+    for (i, entry) in entries.iter().enumerate() {
+        let id = entry_value(entry, "id").ok_or(ConfigParseError::MalformedEntry {
+            section: "plugins",
+            expected_key: "id",
+            index: i,
+        })?;
+        let activation_raw =
+            entry_value(entry, "activation").ok_or(ConfigParseError::MalformedEntry {
+                section: "plugins",
+                expected_key: "activation",
+                index: i,
+            })?;
+        let activation = match activation_raw {
+            "enabled" => PluginActivation::Enabled,
+            "disabled" => PluginActivation::Disabled,
+            other => {
+                return Err(ConfigParseError::InvalidValue {
+                    key: "plugins[].activation",
+                    detail: format!("expected 'enabled' or 'disabled', got '{other}'"),
+                });
+            }
+        };
+        plugins.push(PluginConfig {
+            id: leak_str(id),
+            activation,
+        });
+    }
+
+    Ok(plugins)
+}
+
+/// Parses the `mcp:` section.
+fn parse_mcp_section(lines: &[&str]) -> Result<OwnedMcpConfig, ConfigParseError> {
+    let mcp_start = lines
+        .iter()
+        .position(|l| l.trim() == "mcp:")
+        .ok_or(ConfigParseError::MissingKey("mcp"))?;
+    let mcp_lines = &lines[mcp_start..];
+
+    let enabled = extract_scalar(mcp_lines, "enabled")
+        .ok_or(ConfigParseError::MissingKey("mcp.enabled"))?
+        == "true";
+
+    let discovery_raw = extract_scalar(mcp_lines, "discovery")
+        .ok_or(ConfigParseError::MissingKey("mcp.discovery"))?;
+    let discovery = match discovery_raw {
+        "official_only" => McpDiscovery::OfficialOnly,
+        other => {
+            return Err(ConfigParseError::InvalidValue {
+                key: "mcp.discovery",
+                detail: format!("unsupported discovery policy '{other}'"),
+            });
+        }
+    };
+
+    let server_entries = collect_list_entries(mcp_lines, "servers:");
+    let mut servers = Vec::with_capacity(server_entries.len());
+
+    for (i, entry) in server_entries.iter().enumerate() {
+        let id = entry_value(entry, "id").ok_or(ConfigParseError::MalformedEntry {
+            section: "mcp.servers",
+            expected_key: "id",
+            index: i,
+        })?;
+        let enabled_raw =
+            entry_value(entry, "enabled").ok_or(ConfigParseError::MalformedEntry {
+                section: "mcp.servers",
+                expected_key: "enabled",
+                index: i,
+            })?;
+        servers.push(McpServerConfig {
+            id: leak_str(id),
+            enabled: enabled_raw == "true",
+        });
+    }
+
+    Ok(OwnedMcpConfig {
+        enabled,
+        discovery,
+        servers,
+    })
+}
+
+/// Parses the `budgets:` section.
+fn parse_budgets_section(lines: &[&str]) -> Result<RuntimeBudgetConfig, ConfigParseError> {
+    let budgets_start = lines
+        .iter()
+        .position(|l| l.trim() == "budgets:")
+        .ok_or(ConfigParseError::MissingKey("budgets"))?;
+    let budget_lines = &lines[budgets_start..];
+
+    let prompt_tokens = extract_scalar(budget_lines, "prompt_tokens")
+        .ok_or(ConfigParseError::MissingKey("budgets.prompt_tokens"))?
+        .parse::<u32>()
+        .map_err(|_| ConfigParseError::InvalidValue {
+            key: "budgets.prompt_tokens",
+            detail: "expected positive integer".to_owned(),
+        })?;
+
+    let context_tokens = extract_scalar(budget_lines, "context_tokens")
+        .ok_or(ConfigParseError::MissingKey("budgets.context_tokens"))?
+        .parse::<u32>()
+        .map_err(|_| ConfigParseError::InvalidValue {
+            key: "budgets.context_tokens",
+            detail: "expected positive integer".to_owned(),
+        })?;
+
+    Ok(RuntimeBudgetConfig {
+        prompt_tokens,
+        context_tokens,
+    })
+}
+
+/// Collects YAML list entries (lines starting with `- `) under a section header.
+///
+/// Each entry is a slice of consecutive indented lines following a `- ` marker.
+fn collect_list_entries<'a>(lines: &[&'a str], header: &str) -> Vec<Vec<&'a str>> {
+    let Some(start) = lines
+        .iter()
+        .position(|l| l.trim_start().starts_with(header))
+    else {
+        return Vec::new();
+    };
+
+    let header_indent = indent_level(lines[start]);
+    let entry_indent = header_indent + 2;
+    let mut entries: Vec<Vec<&'a str>> = Vec::new();
+    let mut current: Option<Vec<&'a str>> = None;
+
+    for line in &lines[start + 1..] {
+        let trimmed = line.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
+
+        let line_indent = indent_level(line);
+        if line_indent < entry_indent {
+            break; // left the section
+        }
+
+        if trimmed.starts_with("- ") && line_indent == entry_indent {
+            if let Some(entry) = current.take() {
+                entries.push(entry);
+            }
+            current = Some(vec![trimmed]);
+        } else if let Some(ref mut entry) = current {
+            entry.push(trimmed);
+        }
+    }
+
+    if let Some(entry) = current {
+        entries.push(entry);
+    }
+
+    entries
+}
+
+/// Extracts a value from within a list entry (e.g., `"id"` from `"- id: foo"` or `"id: foo"`).
+fn entry_value<'a>(entry: &[&'a str], key: &str) -> Option<&'a str> {
+    let dash_prefix = format!("- {key}:");
+    let plain_prefix = format!("{key}:");
+
+    entry.iter().find_map(|line| {
+        let trimmed = line.trim();
+        trimmed
+            .strip_prefix(&dash_prefix)
+            .or_else(|| trimmed.strip_prefix(&plain_prefix))
+            .map(str::trim)
+    })
+}
+
+/// Returns the leading whitespace count of a line.
+fn indent_level(line: &str) -> usize {
+    line.len() - line.trim_start().len()
+}
+
+/// Leaks a string slice into a `&'static str`.
+///
+/// Config is loaded once at startup and lives for the process lifetime,
+/// so this avoids the need for owned `String` fields in the typed config
+/// structs that use `&'static str`.
+fn leak_str(s: &str) -> &'static str {
+    Box::leak(s.to_owned().into_boxed_str())
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::panic)]
+mod parse_tests {
+    use super::*;
+
+    #[test]
+    fn roundtrip_default_config() {
+        let original = materialize_project_config(&default_project_config());
+        let yaml = render_owned_project_config_yaml(&original);
+        let parsed =
+            parse_owned_project_config_yaml(&yaml).unwrap_or_else(|e| panic!("parse failed: {e}"));
+
+        assert_eq!(parsed.schema_version, original.schema_version);
+        assert_eq!(parsed.default_locale, original.default_locale);
+        assert_eq!(parsed.plugins.len(), original.plugins.len());
+        assert_eq!(parsed.budgets, original.budgets);
+        assert_eq!(parsed.mcp.enabled, original.mcp.enabled);
+        assert_eq!(parsed.mcp.discovery, original.mcp.discovery);
+    }
+
+    #[test]
+    fn roundtrip_full_config_with_all_plugins() {
+        let config = OwnedProjectConfig {
+            schema_version: 1,
+            default_locale: "pt-br",
+            plugins: vec![
+                PluginConfig::new("official.basic", PluginActivation::Enabled),
+                PluginConfig::new("official.bmad", PluginActivation::Enabled),
+                PluginConfig::new("official.claude", PluginActivation::Disabled),
+            ],
+            mcp: OwnedMcpConfig {
+                enabled: true,
+                discovery: McpDiscovery::OfficialOnly,
+                servers: vec![
+                    McpServerConfig::new("official.claude.session", true),
+                    McpServerConfig::new("official.github.repository", false),
+                ],
+            },
+            budgets: RuntimeBudgetConfig {
+                prompt_tokens: 4096,
+                context_tokens: 16384,
+            },
+        };
+
+        let yaml = render_owned_project_config_yaml(&config);
+        let parsed =
+            parse_owned_project_config_yaml(&yaml).unwrap_or_else(|e| panic!("parse failed: {e}"));
+
+        assert_eq!(parsed.schema_version, 1);
+        assert_eq!(parsed.default_locale, "pt-br");
+        assert_eq!(parsed.plugins.len(), 3);
+        assert_eq!(parsed.plugins[0].id, "official.basic");
+        assert_eq!(parsed.plugins[0].activation, PluginActivation::Enabled);
+        assert_eq!(parsed.plugins[2].id, "official.claude");
+        assert_eq!(parsed.plugins[2].activation, PluginActivation::Disabled);
+        assert_eq!(parsed.mcp.servers.len(), 2);
+        assert!(parsed.mcp.servers[0].enabled);
+        assert!(!parsed.mcp.servers[1].enabled);
+        assert_eq!(parsed.budgets.prompt_tokens, 4096);
+    }
+
+    #[test]
+    fn parse_tolerates_comments_and_blank_lines() {
+        let yaml = "\
+# Ralph Engine project configuration
+schema_version: 1
+
+default_locale: en
+
+# Plugins
+plugins:
+  - id: official.basic
+    activation: enabled
+
+mcp:
+  enabled: true
+  discovery: official_only
+  servers:
+    - id: official.claude.session
+      enabled: true
+
+budgets:
+  prompt_tokens: 8192
+  context_tokens: 32768
+";
+        let parsed =
+            parse_owned_project_config_yaml(yaml).unwrap_or_else(|e| panic!("parse failed: {e}"));
+        assert_eq!(parsed.plugins.len(), 1);
+        assert_eq!(parsed.plugins[0].id, "official.basic");
+    }
+
+    #[test]
+    fn parse_rejects_missing_schema_version() {
+        let yaml = "default_locale: en\nplugins:\nmcp:\n  enabled: true\n  discovery: official_only\n  servers:\nbudgets:\n  prompt_tokens: 8192\n  context_tokens: 32768";
+        let err = parse_owned_project_config_yaml(yaml).unwrap_err();
+        assert_eq!(err, ConfigParseError::MissingKey("schema_version"));
+    }
+
+    #[test]
+    fn parse_rejects_invalid_activation() {
+        let yaml = "schema_version: 1\ndefault_locale: en\nplugins:\n  - id: test.plugin\n    activation: maybe\nmcp:\n  enabled: true\n  discovery: official_only\n  servers:\nbudgets:\n  prompt_tokens: 8192\n  context_tokens: 32768";
+        let err = parse_owned_project_config_yaml(yaml).unwrap_err();
+        matches!(
+            err,
+            ConfigParseError::InvalidValue {
+                key: "plugins[].activation",
+                ..
+            }
+        );
+    }
+
+    #[test]
+    fn parse_rejects_unsupported_locale() {
+        let yaml = "schema_version: 1\ndefault_locale: fr\nplugins:\nmcp:\n  enabled: true\n  discovery: official_only\n  servers:\nbudgets:\n  prompt_tokens: 8192\n  context_tokens: 32768";
+        let err = parse_owned_project_config_yaml(yaml).unwrap_err();
+        matches!(
+            err,
+            ConfigParseError::InvalidValue {
+                key: "default_locale",
+                ..
+            }
+        );
+    }
+}
