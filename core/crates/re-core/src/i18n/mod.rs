@@ -41,15 +41,12 @@ pub(super) struct RuntimeLocaleCatalog {
     pub translate_runtime_reason: fn(&str) -> String,
 }
 
-mod en;
-mod pt_br;
+// Hand-coded fn implementations for each locale
+mod fn_en;
+mod fn_pt_br;
 
-fn locale_catalog(locale: &str) -> &'static RuntimeLocaleCatalog {
-    match re_config::resolve_supported_locale_or_default(locale) {
-        re_config::SupportedLocale::En => &en::LOCALE,
-        re_config::SupportedLocale::PtBr => &pt_br::LOCALE,
-    }
-}
+// Locale modules and dispatch function generated from locales/*.toml
+include!(concat!(env!("OUT_DIR"), "/i18n_generated.rs"));
 
 macro_rules! locale_label {
     ($fn_name:ident, $field:ident) => {
