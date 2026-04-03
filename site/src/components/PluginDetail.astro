@@ -134,7 +134,7 @@ const docSections = plugin.docs?.locales?.[lang] ?? plugin.docs?.default ?? [];
             {docSections.map((section: any) => (
               <div class="plugin-docs-section">
                 <h3>{section.heading}</h3>
-                <div class="plugin-docs-body" set:html={section.body} />
+                <div class="sl-markdown-content" set:html={section.body} />
               </div>
             ))}
           </div>
@@ -439,62 +439,8 @@ const docSections = plugin.docs?.locales?.[lang] ?? plugin.docs?.default ?? [];
     margin-bottom: var(--re-space-2);
   }
 
-  .plugin-docs-body {
-    font-size: 0.9375rem;
-    color: var(--re-text-secondary);
-    line-height: 1.7;
-  }
-
-  .plugin-docs-body p { margin-bottom: 0.75rem; }
-  .plugin-docs-body p:last-child { margin-bottom: 0; }
-
-  .plugin-docs-body ul, .plugin-docs-body ol {
-    padding-left: 1.5rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .plugin-docs-body li { margin-bottom: 0.25rem; }
-
-  .plugin-docs-body code {
-    font-family: var(--re-font-mono);
-    font-size: 0.85em;
-    padding: 0.15em 0.4em;
-    background: var(--re-bg-code, var(--re-bg-soft));
-    border-radius: 0.25rem;
-  }
-
-  .plugin-docs-body pre {
-    padding: var(--re-space-4);
-    background: var(--re-bg-code, #22272e);
-    border-radius: 0.5rem;
-    overflow-x: auto;
-    margin-bottom: 0.75rem;
-  }
-
-  .plugin-docs-body pre code {
-    padding: 0;
-    background: none;
-  }
-
-  .plugin-docs-body table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 0.75rem;
-    font-size: 0.875rem;
-  }
-
-  .plugin-docs-body th, .plugin-docs-body td {
-    padding: 0.5rem 0.75rem;
-    border: 1px solid var(--re-border);
-    text-align: left;
-  }
-
-  .plugin-docs-body th {
-    background: var(--re-bg-soft);
-    font-weight: 600;
-  }
-
-  .plugin-docs-body strong { color: var(--re-text-primary); }
+  /* Plugin docs body uses Starlight's sl-markdown-content class
+     for consistent prose styling (tables, lists, code, headings) */
 
   .resource-section { margin-top: var(--re-space-8); }
   .resource-section h2 { font-size: 1.25rem; margin-bottom: var(--re-space-4); }
