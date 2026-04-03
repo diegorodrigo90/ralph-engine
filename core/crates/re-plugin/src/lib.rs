@@ -114,6 +114,8 @@ pub const FORGE_PROVIDER: PluginCapability = PluginCapability::new("forge_provid
 pub const REMOTE_CONTROL: PluginCapability = PluginCapability::new("remote_control");
 /// Policy enforcement capability.
 pub const POLICY: PluginCapability = PluginCapability::new("policy");
+/// Workflow orchestration capability (resolve work items, build prompts).
+pub const WORKFLOW: PluginCapability = PluginCapability::new("workflow");
 
 /// Canonical ordered list of reviewed plugin capabilities.
 pub const ALL_PLUGIN_CAPABILITIES: &[PluginCapability] = &[
@@ -128,6 +130,7 @@ pub const ALL_PLUGIN_CAPABILITIES: &[PluginCapability] = &[
     FORGE_PROVIDER,
     REMOTE_CONTROL,
     POLICY,
+    WORKFLOW,
 ];
 
 /// Parses one reviewed plugin capability identifier.
@@ -174,6 +177,7 @@ pub fn runtime_surface_for_capability(
             Some(PluginRuntimeSurface::Providers)
         }
         POLICY => Some(PluginRuntimeSurface::Policies),
+        WORKFLOW => None, // Workflow uses hooks, not a dedicated surface
         _ => None,
     }
 }
@@ -738,6 +742,10 @@ define_plugin_enum! {
         RemoteControlBootstrap => "remote_control_bootstrap",
         /// The plugin contributes policy enforcement behavior.
         PolicyEnforcement => "policy_enforcement",
+        /// The plugin contributes work-item resolution for the `run` command.
+        WorkItemResolution => "work_item_resolution",
+        /// The plugin contributes agent launch behavior for the `run` command.
+        AgentLaunch => "agent_launch",
     }
 }
 
@@ -1044,6 +1052,65 @@ pub struct AgentBootstrapResult {
     pub message: String,
 }
 
+/// A resolved work item from a workflow plugin.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorkItemResolution {
+    /// Original identifier as provided by the user.
+    pub raw_id: String,
+    /// Plugin-assigned canonical identifier (e.g., `"5.3"` for BMAD).
+    pub canonical_id: String,
+    /// Human-readable title of the work item.
+    pub title: String,
+    /// File path to the work item source (relative to project root).
+    pub source_path: Option<String>,
+    /// Plugin-specific structured metadata (opaque to core).
+    pub metadata: Vec<(String, String)>,
+}
+
+/// Summary of one available work item for listing.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct WorkItemSummary {
+    /// Canonical work item identifier.
+    pub id: String,
+    /// Human-readable title.
+    pub title: String,
+    /// Current status (e.g., `"todo"`, `"in_progress"`, `"done"`).
+    pub status: String,
+}
+
+/// Assembled prompt context for an agent session.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PromptContext {
+    /// The primary prompt/instruction text.
+    pub prompt_text: String,
+    /// Additional context files to pass to the agent.
+    pub context_files: Vec<ContextFile>,
+    /// Work item identifier this context was built for.
+    pub work_item_id: String,
+}
+
+/// One context file included in a prompt assembly.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ContextFile {
+    /// Label for the context file (e.g., `"story"`, `"project-rules"`).
+    pub label: String,
+    /// Content of the file.
+    pub content: String,
+}
+
+/// Result of launching an agent.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentLaunchResult {
+    /// Agent identifier that was launched.
+    pub agent_id: String,
+    /// Whether the agent completed successfully.
+    pub success: bool,
+    /// Exit code from the agent process, if applicable.
+    pub exit_code: Option<i32>,
+    /// Human-readable summary of what happened.
+    pub message: String,
+}
+
 /// Result of registering an MCP server.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct McpRegistrationResult {
@@ -1102,6 +1169,71 @@ pub trait PluginRuntime: Send + Sync {
         &self,
         server_id: &str,
     ) -> Result<McpRegistrationResult, PluginRuntimeError>;
+
+    /// Resolves a work-item identifier into structured metadata.
+    ///
+    /// Called when `run <work-item-id>` needs the workflow plugin to
+    /// parse and locate a work item. The format of `work_item_id` is
+    /// plugin-specific (e.g., BMAD uses `"5.3"` dot notation for epic.story).
+    fn resolve_work_item(
+        &self,
+        _work_item_id: &str,
+        _project_root: &Path,
+    ) -> Result<WorkItemResolution, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_a_workflow_plugin",
+            format!("Plugin '{}' does not resolve work items", self.plugin_id()),
+        ))
+    }
+
+    /// Lists available work items from the project tracker.
+    ///
+    /// Called when `run --list` asks the workflow plugin to enumerate
+    /// actionable items from the configured tracker.
+    fn list_work_items(
+        &self,
+        _project_root: &Path,
+    ) -> Result<Vec<WorkItemSummary>, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_a_workflow_plugin",
+            format!("Plugin '{}' does not list work items", self.plugin_id()),
+        ))
+    }
+
+    /// Builds the prompt context for an agent session targeting one work item.
+    ///
+    /// Called after `resolve_work_item` succeeds. The workflow plugin
+    /// assembles story text, acceptance criteria, project rules, and any
+    /// other context the agent needs.
+    fn build_prompt_context(
+        &self,
+        _resolution: &WorkItemResolution,
+        _project_root: &Path,
+    ) -> Result<PromptContext, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_a_workflow_plugin",
+            format!(
+                "Plugin '{}' does not build prompt context",
+                self.plugin_id()
+            ),
+        ))
+    }
+
+    /// Launches an agent with the given prompt context.
+    ///
+    /// Called after prompt context is assembled. The agent plugin spawns
+    /// the actual process (e.g., `claude` CLI) with the prompt.
+    fn launch_agent(
+        &self,
+        _agent_id: &str,
+        _context: &PromptContext,
+        _project_root: &Path,
+    ) -> Result<AgentLaunchResult, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_an_agent_plugin",
+            format!("Plugin '{}' does not launch agents", self.plugin_id()),
+        ))
+    }
 }
 
 // ---------------------------------------------------------------------------
