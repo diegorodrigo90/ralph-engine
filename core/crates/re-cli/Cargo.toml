@@ -18,6 +18,7 @@ re-core = { path = "../re-core", version = "0.2.0-alpha.1" }
 re-mcp = { path = "../re-mcp", version = "0.2.0-alpha.1" }
 re-official = { path = "../re-official", version = "0.2.0-alpha.1" }
 re-plugin = { path = "../re-plugin", version = "0.2.0-alpha.1" }
+sentry = { version = "0.38", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls"] }
 
 [build-dependencies]
 re-build-utils = { path = "../re-build-utils", version = "0.2.0-alpha.1" }
