@@ -82,6 +82,7 @@ ralph-engine mcp
 ralph-engine mcp list
 ralph-engine mcp show <server-id>
 ralph-engine mcp plan <server-id>
+ralph-engine mcp launch <server-id>
 ralph-engine mcp status
 ralph-engine mcp status <server-id>
 ```
@@ -139,6 +140,8 @@ O comando `providers plan` imprime o plano executável de registro de uma contri
 O comando `mcp show` imprime o contrato tipado de lançamento do MCP, incluindo modelo de processo, policy de lançamento, fronteiras de comando, policy de diretório de trabalho, policy de ambiente e disponibilidade.
 
 O comando `mcp plan` imprime o plano tipado de lançamento derivado desse contrato, para que bootstrap gerenciado por plugin e execução por spawn de processo permaneçam reutilizáveis fora de formatação local do comando.
+
+O comando `mcp launch` verifica a prontidão de lançamento de um servidor, checando se o binário necessário existe no PATH do sistema (para policies `SpawnProcess`) ou reportando que bootstrap gerenciado por plugin é necessário (para policies `PluginRuntime`).
 
 O comando `mcp status` avalia a prontidão de lançamento de todos os servidores MCP registrados e reporta prontidão, saúde, estado de habilitação, transporte, problemas e ações recomendadas. Quando um ID de servidor é fornecido, exibe o status detalhado daquele servidor específico.
 

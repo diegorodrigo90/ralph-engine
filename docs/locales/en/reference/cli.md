@@ -82,6 +82,7 @@ ralph-engine mcp
 ralph-engine mcp list
 ralph-engine mcp show <server-id>
 ralph-engine mcp plan <server-id>
+ralph-engine mcp launch <server-id>
 ralph-engine mcp status
 ralph-engine mcp status <server-id>
 ```
@@ -139,6 +140,8 @@ The `providers plan` command prints the executable registration plan for one typ
 The `mcp show` command prints the typed MCP launch contract, including process model, launch policy, command boundaries, working-directory policy, environment policy, and availability.
 
 The `mcp plan` command prints the typed MCP launch plan derived from that contract, so plugin-managed bootstrap and spawn-process execution stay reusable outside command-local formatting.
+
+The `mcp launch` command probes a server's launch readiness by checking whether the required binary exists on the system PATH (for `SpawnProcess` policies) or reporting that plugin-managed bootstrap is required (for `PluginRuntime` policies).
 
 The `mcp status` command evaluates launch readiness for all registered MCP servers and reports readiness, health, enabled state, transport, issues, and recommended actions. When a server ID is provided, it shows the detailed status for that specific server.
 
