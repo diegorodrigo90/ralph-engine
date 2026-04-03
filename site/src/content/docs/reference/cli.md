@@ -97,6 +97,18 @@ ralph-engine checks run <check-id>
 
 Execute one check against the resolved topology. Returns a localized pass/fail result with findings and remediation actions.
 
+```bash
+ralph-engine checks asset <check-id> <asset-path>
+```
+
+Print a specific asset from a check's embedded bundle.
+
+```bash
+ralph-engine checks materialize <check-id> <output-dir>
+```
+
+Write the check's embedded asset bundle to an output directory.
+
 ## config
 
 Inspect configuration contracts.
@@ -286,6 +298,24 @@ ralph-engine policies plan <policy-id>
 ```
 
 Show the enforcement plan for one policy.
+
+```bash
+ralph-engine policies run <policy-id>
+```
+
+Execute one policy enforcement. Returns a localized pass/fail result.
+
+```bash
+ralph-engine policies asset <policy-id> <asset-path>
+```
+
+Print a specific asset from a policy's embedded bundle.
+
+```bash
+ralph-engine policies materialize <policy-id> <output-dir>
+```
+
+Write the policy's embedded asset bundle to an output directory.
 
 ## prompts
 
