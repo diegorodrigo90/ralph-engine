@@ -92,8 +92,8 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 - `core/crates/re-config/` SHALL also own the canonical typed locale contract and supported-locale catalog for runtime-facing surfaces.
 - `re-core` and `re-cli` SHALL expose typed runtime capability, template, prompt, agent, check, provider, policy, and hook registration so new capabilities can be added through shared contracts instead of command-local branching.
 - `plugins/official/` SHALL own Rust-first official plugins.
-- `docs/` SHALL remain a distinct top-level owned surface.
-- `site/` SHALL own the public web surfaces, including `landing/`, `plugins/`, and `ui/`.
+- `site/` SHALL own all public web surfaces: landing pages, plugin catalog, and documentation (Astro + Starlight).
+- `site/src/content/docs/` SHALL own docs content (EN at root, PT-BR under `pt-br/`).
 - `packaging/` SHALL own npm and Homebrew packaging.
 - `tools/create-ralph-engine/` SHALL own plugin scaffolding for `npx create-ralph-engine-plugin`. Runtime catalog surfaces SHALL NOT turn scaffolding into a generic runtime responsibility.
 - CLI surfaces SHALL support `en` and `pt-br` through typed locale catalogs, and new locales SHALL be additive rather than requiring handler rewrites.
@@ -126,10 +126,9 @@ cargo audit
 npm run contracts:verify
 ```
 
-For public-surface-only change sets, the `public` validation step SHALL cover both:
+For public-surface-only change sets, the `public` validation step SHALL cover:
 
-- `npm --prefix docs run build`
-- `./scripts/assemble-public-surfaces.sh .site-dist`
+- `cd site && npm run build` (Astro + Starlight + Pagefind in a single build)
 
 CI cache design SHALL follow these rules:
 
@@ -157,7 +156,6 @@ CI cache design SHALL follow these rules:
 
 ## Documentation Sync
 
-- `README.md`, `docs/`, and `llms.txt` SHALL be updated together when durable user-facing behavior changes.
-- `docs/development/roadmap.md` SHALL stay strategic and current.
-- `docs/development/backlog.md` SHALL stay tactical.
+- `README.md`, `site/src/content/docs/`, and `llms.txt` SHALL be updated together when durable user-facing behavior changes.
+- Roadmap and backlog docs SHALL stay strategic and current within the docs content collection.
 - Public docs in this repository SHALL describe shipped behavior and reviewed public contracts. Internal handoffs, private progress notes, and process artifacts SHALL NOT be committed here.
