@@ -1583,3 +1583,104 @@ fn doctor_without_config_shows_default_enabled_count() {
 
     std::fs::remove_dir_all(&tmp).ok();
 }
+
+// ── Run command smoke tests ──────────────────────────────────────
+
+#[test]
+fn binary_run_without_args_shows_usage_error() {
+    let tmp = unique_temp_dir("run-no-args");
+    std::fs::create_dir_all(&tmp).expect("should create temp dir");
+
+    let mut command = english_command();
+    command.current_dir(&tmp);
+    command.args(["run"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
+    assert!(
+        stderr.contains("Work item ID required"),
+        "run without args should show usage error.\nGot: {stderr}"
+    );
+
+    std::fs::remove_dir_all(&tmp).ok();
+}
+
+#[test]
+fn binary_run_without_config_shows_config_error() {
+    let tmp = unique_temp_dir("run-no-config");
+    std::fs::create_dir_all(&tmp).expect("should create temp dir");
+
+    let mut command = english_command();
+    command.current_dir(&tmp);
+    command.args(["run", "5.3"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
+    assert!(
+        stderr.contains("config not found") || stderr.contains("materialize"),
+        "run without config should suggest creating config.\nGot: {stderr}"
+    );
+
+    std::fs::remove_dir_all(&tmp).ok();
+}
+
+#[test]
+fn binary_run_without_run_section_shows_missing_field_error() {
+    let tmp = unique_temp_dir("run-no-run-section");
+    std::fs::create_dir_all(tmp.join(".ralph-engine")).expect("should create dir");
+    std::fs::write(
+        tmp.join(".ralph-engine/config.yaml"),
+        "schema_version: 1\ndefault_locale: en\nplugins:\n  - id: official.basic\n    activation: enabled\nmcp:\n  enabled: true\n  discovery: official_only\n  servers:\nbudgets:\n  prompt_tokens: 8192\n  context_tokens: 32768\n",
+    )
+    .expect("should write config");
+
+    let mut command = english_command();
+    command.current_dir(&tmp);
+    command.args(["run", "5.3"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
+    assert!(
+        stderr.contains("workflow_plugin"),
+        "run without run: section should mention workflow_plugin.\nGot: {stderr}"
+    );
+
+    std::fs::remove_dir_all(&tmp).ok();
+}
+
+#[test]
+fn binary_run_list_without_config_shows_config_error() {
+    let tmp = unique_temp_dir("run-list-no-config");
+    std::fs::create_dir_all(&tmp).expect("should create temp dir");
+
+    let mut command = english_command();
+    command.current_dir(&tmp);
+    command.args(["run", "--list"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(!output.status.success());
+
+    std::fs::remove_dir_all(&tmp).ok();
+}
+
+#[test]
+fn binary_run_plan_without_id_shows_error() {
+    let mut command = english_command();
+    command.args(["run", "plan"]);
+
+    let output = command.output().expect("binary should run");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
+    assert!(
+        stderr.contains("work item ID"),
+        "run plan without ID should ask for one.\nGot: {stderr}"
+    );
+}
