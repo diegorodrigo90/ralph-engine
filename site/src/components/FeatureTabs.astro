@@ -26,11 +26,11 @@ const { lang } = Astro.props;
       <input type="radio" name="feature-tab" id="tab-plugins" />
       <input type="radio" name="feature-tab" id="tab-checks" />
 
-      <div class="tab-list" role="tablist">
-        <label for="tab-manifest" role="tab">{t(lang, 'tabs.manifest')}</label>
-        <label for="tab-doctor" role="tab">{t(lang, 'tabs.doctor')}</label>
-        <label for="tab-plugins" role="tab">{t(lang, 'tabs.plugins')}</label>
-        <label for="tab-checks" role="tab">{t(lang, 'tabs.checks')}</label>
+      <div class="tab-list" aria-label="CLI examples">
+        <label for="tab-manifest">{t(lang, 'tabs.manifest')}</label>
+        <label for="tab-doctor">{t(lang, 'tabs.doctor')}</label>
+        <label for="tab-plugins">{t(lang, 'tabs.plugins')}</label>
+        <label for="tab-checks">{t(lang, 'tabs.checks')}</label>
       </div>
 
       <div class="tab-panel">
