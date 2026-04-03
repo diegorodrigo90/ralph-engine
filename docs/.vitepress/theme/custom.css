@@ -87,71 +87,93 @@ body {
   background: transparent;
 }
 
+/* Nav bar — match Astro site style: clean, simple, no pills */
 .VPNavBar {
-  background: color-mix(in srgb, var(--vp-c-bg-elv) 86%, transparent) !important;
-  backdrop-filter: blur(16px);
+  background: rgba(250, 251, 252, 0.85) !important;
+  backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.dark .VPNavBar {
+  background: rgba(11, 17, 32, 0.85) !important;
 }
 
 .VPNavBar .container,
 .VPDoc .container,
 .VPFooter .container {
-  max-width: 1180px;
+  max-width: 1120px;
 }
 
 .VPNavBarTitle {
-  margin-right: 18px;
+  margin-right: 16px;
 }
 
 .VPNavBarTitle .title {
   font-weight: 700;
-  letter-spacing: -0.015em;
+  font-size: 1rem;
 }
 
 .VPNavBarTitle .logo {
-  height: 40px !important;
+  height: 32px !important;
   width: auto !important;
 }
 
 .VPNavBarMenu {
-  gap: 8px;
+  gap: 4px;
 }
 
+/* Nav links — flat text, no borders, match Astro */
 .VPNavBarMenuLink,
 .VPNavScreenMenuLink {
-  border: 1px solid transparent;
-  border-radius: 16px;
-  padding: 8px 14px;
-  font-weight: 600;
-  transition:
-    background-color 180ms ease,
-    border-color 180ms ease,
-    color 180ms ease,
-    transform 180ms ease;
+  border: none;
+  border-radius: 0;
+  padding: 4px 12px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--vp-c-text-2);
+  transition: color 150ms ease;
 }
 
 .VPNavBarMenuLink:hover,
-.VPNavBarMenuLink.active,
 .VPNavScreenMenuLink:hover {
-  border-color: var(--vp-c-brand-soft);
-  background: color-mix(in srgb, var(--vp-c-brand-soft) 72%, var(--vp-c-bg-elv));
-  transform: translateY(-1px);
+  color: var(--vp-c-text-1);
+  background: transparent;
+  border: none;
+  transform: none;
 }
 
+.VPNavBarMenuLink.active {
+  color: var(--vp-c-text-1);
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  transform: none;
+}
+
+/* Social link + switch — subtle borders like Astro */
 .VPNavBarExtra {
-  gap: 10px;
-}
-
-.VPNavBarExtra .VPSocialLink,
-.VPNavBarExtra .VPSwitch,
-.VPLocalNav .menu {
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--vp-c-bg-elv) 88%, transparent);
+  gap: 8px;
 }
 
 .VPNavBarExtra .VPSocialLink {
-  padding: 8px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  padding: 6px;
+  transition: border-color 150ms;
+}
+
+.VPNavBarExtra .VPSocialLink:hover {
+  border-color: var(--vp-c-brand-1);
+}
+
+.VPNavBarExtra .VPSwitch {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+}
+
+.VPLocalNav .menu {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
 }
 
 .VPLocalNav {
@@ -356,7 +378,119 @@ body {
   display: none !important;
 }
 
-/* Also prevent opening in new tab — override via JS in theme/index.ts */
+/* Hide VitePress native search — Pagefind is used for unified search across all pages.
+   Users can still press Ctrl+K which will navigate to the Astro search modal. */
+.VPNavBarSearch,
+.VPNavBarSearchButton {
+  display: none !important;
+}
+
+/* Pagefind search button — matches Astro nav search trigger */
+.re-search-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 0.8125rem;
+  font-family: var(--vp-font-family-base);
+  color: var(--vp-c-text-3);
+  background: none;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: border-color 150ms, color 150ms;
+  margin-right: 8px;
+}
+
+.re-search-btn:hover {
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-brand-1);
+}
+
+.re-search-label {
+  font-weight: 500;
+}
+
+.re-search-btn kbd {
+  font-family: var(--vp-font-family-base);
+  font-size: 0.6875rem;
+  padding: 1px 5px;
+  background: var(--vp-c-bg-soft);
+  border-radius: 3px;
+  color: var(--vp-c-text-3);
+}
+
+/* Pagefind search modal */
+.re-search-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+}
+
+.re-search-modal.is-open {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+}
+
+.re-search-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.re-search-content {
+  position: relative;
+  width: min(640px, calc(100% - 40px));
+  max-height: 70vh;
+  background: var(--vp-c-bg);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  overflow: auto;
+  padding: 16px;
+}
+
+.re-search-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: var(--vp-c-text-3);
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.re-search-close:hover {
+  color: var(--vp-c-text-1);
+}
+
+/* Pagefind UI theme integration */
+#re-pagefind {
+  --pagefind-ui-scale: 0.9;
+  --pagefind-ui-primary: var(--vp-c-brand-1);
+  --pagefind-ui-text: var(--vp-c-text-1);
+  --pagefind-ui-background: var(--vp-c-bg);
+  --pagefind-ui-border: var(--vp-c-divider);
+  --pagefind-ui-tag: var(--vp-c-bg-soft);
+  --pagefind-ui-border-width: 1px;
+  --pagefind-ui-border-radius: 8px;
+  --pagefind-ui-font: var(--vp-font-family-base);
+}
+
+@media (max-width: 768px) {
+  .re-search-label { display: none; }
+  .re-search-btn kbd { display: none; }
+}
 
 @media (max-width: 960px) {
   .VPNavBarMenuLink {
