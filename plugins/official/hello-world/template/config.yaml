@@ -1,0 +1,5 @@
+agent:
+  type: claude
+workflow:
+  instructions: |
+    Follow the Hello World workflow.

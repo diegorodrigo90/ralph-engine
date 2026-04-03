@@ -1,0 +1,7 @@
+[plugin]
+name = "Olá Mundo"
+summary = "Plugin de exemplo mínimo — use como referência para criar o seu."
+
+[template]
+name = "Starter Olá Mundo"
+summary = "Template starter mínimo para aprender o Ralph Engine."

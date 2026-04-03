@@ -14,7 +14,8 @@ members = [
   "plugins/official/claudebox",
   "plugins/official/codex",
   "plugins/official/github",
-  "plugins/official/ssh"
+  "plugins/official/ssh",
+  "plugins/official/hello-world"
 ]
 resolver = "2"
 
