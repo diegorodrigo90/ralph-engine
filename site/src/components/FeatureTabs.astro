@@ -34,22 +34,28 @@ const { lang } = Astro.props;
       </div>
 
       <div class="tab-panel">
-        <div class="code-block">
-          <code><pre set:text={`id: official.claude
-kind: agent_runtime
-display_name: Claude
-summary: Claude agent runtime and MCP session integration.
-publisher: official
-trust_level: official
-plugin_version: 0.2.0-alpha.1
-runtime: true
-capabilities:
-  - agent_runtime
-  - mcp_contribution
-agents:
-  - id: official.claude.session
-    display_name: Claude session
-    summary: Claude runtime session for Ralph Engine.`} /></code>
+        <div class="terminal">
+          <div class="terminal-bar">
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+            <span class="terminal-dot"></span>
+          </div>
+          <div class="terminal-body">
+            <div class="terminal-prompt">cat plugins/official/claude/manifest.yaml</div>
+            <div class="terminal-output">
+              <div>id: official.claude</div>
+              <div>kind: agent_runtime</div>
+              <div>display_name: Claude</div>
+              <div>summary: Claude agent runtime and MCP session integration.</div>
+              <div>publisher: official</div>
+              <div>trust_level: official</div>
+              <div>plugin_version: 0.2.0-alpha.1</div>
+              <div>runtime: true</div>
+              <div>capabilities:</div>
+              <div>  - agent_runtime</div>
+              <div>  - mcp_contribution</div>
+            </div>
+          </div>
         </div>
       </div>
 
