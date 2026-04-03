@@ -56,6 +56,11 @@
   background: var(--re-accent-hover);
 }
 
+/* Dark mode: bright orange needs dark text for WCAG AA contrast (4.5:1) */
+:root[data-theme='dark'] .btn-primary {
+  color: #1a1a2e;
+}
+
 .btn-brand {
   background: var(--re-brand-500);
   color: #fff;

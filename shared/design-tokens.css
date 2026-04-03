@@ -17,9 +17,9 @@
   --re-brand-800: #2c337a;
   --re-brand-900: #1e235c;
 
-  /* Accent — Warm orange for CTAs */
-  --re-accent:       #e45635;
-  --re-accent-hover: #c94428;
+  /* Accent — Warm orange for CTAs (WCAG AA: ≥4.5:1 with white text) */
+  --re-accent:       #d04025;
+  --re-accent-hover: #b83920;
   --re-accent-soft:  #fef2f0;
 
   /* Backgrounds */
