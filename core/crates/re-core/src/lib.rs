@@ -2,6 +2,42 @@
 
 mod i18n;
 
+/// Generates an enum with `as_str()` from a single declaration.
+///
+/// Same pattern as `define_plugin_enum!` in re-plugin but without
+/// `#[non_exhaustive]` (these are crate-internal enums) and without
+/// `Display` (only added where needed).
+macro_rules! define_runtime_enum {
+    (
+        $(#[$meta:meta])*
+        pub enum $name:ident {
+            $(
+                $(#[$variant_meta:meta])*
+                $variant:ident => $str_val:literal
+            ),+ $(,)?
+        }
+    ) => {
+        $(#[$meta])*
+        #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+        pub enum $name {
+            $(
+                $(#[$variant_meta])*
+                $variant,
+            )+
+        }
+
+        impl $name {
+            /// Returns the stable string identifier for this variant.
+            #[must_use]
+            pub const fn as_str(self) -> &'static str {
+                match self {
+                    $(Self::$variant => $str_val,)+
+                }
+            }
+        }
+    };
+}
+
 use re_config::{
     ConfigScope, McpServerConfig, OwnedProjectConfig, PluginActivation, PluginConfig,
     apply_project_config_patch, default_project_config,
@@ -31,171 +67,95 @@ pub fn banner() -> String {
     )
 }
 
-/// Typed runtime phase identifier.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RuntimePhase {
-    /// The runtime foundation is bootstrapped but not fully resolved.
-    Bootstrapped,
-    /// The runtime has a resolved plugin and MCP topology.
-    Ready,
-}
-
-impl RuntimePhase {
-    /// Returns the stable runtime-phase identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Bootstrapped => "bootstrapped",
-            Self::Ready => "ready",
-        }
+define_runtime_enum! {
+    /// Typed runtime phase identifier.
+    pub enum RuntimePhase {
+        /// The runtime foundation is bootstrapped but not fully resolved.
+        Bootstrapped => "bootstrapped",
+        /// The runtime has a resolved plugin and MCP topology.
+        Ready => "ready",
     }
 }
 
-/// Typed runtime health identifier.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RuntimeHealth {
-    /// The runtime is fully operable for its resolved topology.
-    Healthy,
-    /// The runtime still depends on explicit activation or operator action.
-    Degraded,
-}
-
-impl RuntimeHealth {
-    /// Returns the stable runtime-health identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Healthy => "healthy",
-            Self::Degraded => "degraded",
-        }
+define_runtime_enum! {
+    /// Typed runtime health identifier.
+    pub enum RuntimeHealth {
+        /// The runtime is fully operable for its resolved topology.
+        Healthy => "healthy",
+        /// The runtime still depends on explicit activation or operator action.
+        Degraded => "degraded",
     }
 }
 
-/// Typed runtime issue identifier.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RuntimeIssueKind {
-    /// A plugin is registered but still disabled.
-    PluginDisabled,
-    /// A capability provider is registered but still disabled.
-    CapabilityDisabled,
-    /// A template provider is registered but still disabled.
-    TemplateDisabled,
-    /// A prompt provider is registered but still disabled.
-    PromptProviderDisabled,
-    /// An agent runtime provider is registered but still disabled.
-    AgentRuntimeDisabled,
-    /// A runtime check is registered but still disabled.
-    CheckDisabled,
-    /// A provider contribution is registered but still disabled.
-    ProviderDisabled,
-    /// A policy provider is registered but still disabled.
-    PolicyDisabled,
-    /// A runtime-hook provider is registered but still disabled.
-    HookDisabled,
-    /// An MCP server is registered but still disabled.
-    McpServerDisabled,
-}
-
-impl RuntimeIssueKind {
-    /// Returns the stable runtime-issue identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::PluginDisabled => "plugin_disabled",
-            Self::CapabilityDisabled => "capability_disabled",
-            Self::TemplateDisabled => "template_disabled",
-            Self::PromptProviderDisabled => "prompt_provider_disabled",
-            Self::AgentRuntimeDisabled => "agent_runtime_disabled",
-            Self::CheckDisabled => "check_disabled",
-            Self::ProviderDisabled => "provider_disabled",
-            Self::PolicyDisabled => "policy_disabled",
-            Self::HookDisabled => "hook_disabled",
-            Self::McpServerDisabled => "mcp_server_disabled",
-        }
+define_runtime_enum! {
+    /// Typed runtime issue identifier.
+    pub enum RuntimeIssueKind {
+        /// A plugin is registered but still disabled.
+        PluginDisabled => "plugin_disabled",
+        /// A capability provider is registered but still disabled.
+        CapabilityDisabled => "capability_disabled",
+        /// A template provider is registered but still disabled.
+        TemplateDisabled => "template_disabled",
+        /// A prompt provider is registered but still disabled.
+        PromptProviderDisabled => "prompt_provider_disabled",
+        /// An agent runtime provider is registered but still disabled.
+        AgentRuntimeDisabled => "agent_runtime_disabled",
+        /// A runtime check is registered but still disabled.
+        CheckDisabled => "check_disabled",
+        /// A provider contribution is registered but still disabled.
+        ProviderDisabled => "provider_disabled",
+        /// A policy provider is registered but still disabled.
+        PolicyDisabled => "policy_disabled",
+        /// A runtime-hook provider is registered but still disabled.
+        HookDisabled => "hook_disabled",
+        /// An MCP server is registered but still disabled.
+        McpServerDisabled => "mcp_server_disabled",
     }
 }
 
-/// Typed runtime action identifier.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RuntimeActionKind {
-    /// Enable a plugin in the resolved configuration.
-    EnablePlugin,
-    /// Re-enable a disabled capability provider.
-    EnableCapabilityProvider,
-    /// Re-enable a disabled template provider.
-    EnableTemplateProvider,
-    /// Re-enable a disabled prompt provider.
-    EnablePromptProvider,
-    /// Re-enable a disabled agent runtime provider.
-    EnableAgentRuntimeProvider,
-    /// Re-enable a disabled runtime check provider.
-    EnableCheckProvider,
-    /// Re-enable a disabled provider contribution.
-    EnableProvider,
-    /// Re-enable a disabled policy provider.
-    EnablePolicyProvider,
-    /// Re-enable a disabled runtime-hook provider.
-    EnableHookProvider,
-    /// Opt in to a disabled MCP contribution.
-    EnableMcpServer,
-}
-
-impl RuntimeActionKind {
-    /// Returns the stable runtime-action identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::EnablePlugin => "enable_plugin",
-            Self::EnableCapabilityProvider => "enable_capability_provider",
-            Self::EnableTemplateProvider => "enable_template_provider",
-            Self::EnablePromptProvider => "enable_prompt_provider",
-            Self::EnableAgentRuntimeProvider => "enable_agent_runtime_provider",
-            Self::EnableCheckProvider => "enable_check_provider",
-            Self::EnableProvider => "enable_provider",
-            Self::EnablePolicyProvider => "enable_policy_provider",
-            Self::EnableHookProvider => "enable_hook_provider",
-            Self::EnableMcpServer => "enable_mcp_server",
-        }
+define_runtime_enum! {
+    /// Typed runtime action identifier.
+    pub enum RuntimeActionKind {
+        /// Enable a plugin in the resolved configuration.
+        EnablePlugin => "enable_plugin",
+        /// Re-enable a disabled capability provider.
+        EnableCapabilityProvider => "enable_capability_provider",
+        /// Re-enable a disabled template provider.
+        EnableTemplateProvider => "enable_template_provider",
+        /// Re-enable a disabled prompt provider.
+        EnablePromptProvider => "enable_prompt_provider",
+        /// Re-enable a disabled agent runtime provider.
+        EnableAgentRuntimeProvider => "enable_agent_runtime_provider",
+        /// Re-enable a disabled runtime check provider.
+        EnableCheckProvider => "enable_check_provider",
+        /// Re-enable a disabled provider contribution.
+        EnableProvider => "enable_provider",
+        /// Re-enable a disabled policy provider.
+        EnablePolicyProvider => "enable_policy_provider",
+        /// Re-enable a disabled runtime-hook provider.
+        EnableHookProvider => "enable_hook_provider",
+        /// Opt in to a disabled MCP contribution.
+        EnableMcpServer => "enable_mcp_server",
     }
 }
 
-/// Typed runtime-check outcome identifier.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RuntimeCheckOutcome {
-    /// The check completed without unresolved findings.
-    Passed,
-    /// The check completed with unresolved findings.
-    Failed,
-}
-
-impl RuntimeCheckOutcome {
-    /// Returns the stable runtime-check outcome identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Passed => "passed",
-            Self::Failed => "failed",
-        }
+define_runtime_enum! {
+    /// Typed runtime-check outcome identifier.
+    pub enum RuntimeCheckOutcome {
+        /// The check completed without unresolved findings.
+        Passed => "passed",
+        /// The check completed with unresolved findings.
+        Failed => "failed",
     }
 }
 
-/// Typed runtime-policy outcome identifier.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RuntimePolicyOutcome {
-    /// The policy can be enforced from the resolved runtime topology.
-    Passed,
-    /// The policy still depends on operator action or a missing hook.
-    Failed,
-}
-
-impl RuntimePolicyOutcome {
-    /// Returns the stable runtime-policy outcome identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Passed => "passed",
-            Self::Failed => "failed",
-        }
+define_runtime_enum! {
+    /// Typed runtime-policy outcome identifier.
+    pub enum RuntimePolicyOutcome {
+        /// The policy can be enforced from the resolved runtime topology.
+        Passed => "passed",
+        /// The policy still depends on operator action or a missing hook.
+        Failed => "failed",
     }
 }
 
@@ -286,23 +246,13 @@ impl RuntimePolicyResult {
     }
 }
 
-/// Typed launch-readiness assessment for one MCP server.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum McpServerReadiness {
-    /// The server is enabled and ready to launch.
-    Ready,
-    /// The server cannot be launched because of unresolved issues.
-    NotReady,
-}
-
-impl McpServerReadiness {
-    /// Returns the stable string identifier for the readiness state.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Ready => "ready",
-            Self::NotReady => "not_ready",
-        }
+define_runtime_enum! {
+    /// Typed launch-readiness assessment for one MCP server.
+    pub enum McpServerReadiness {
+        /// The server is enabled and ready to launch.
+        Ready => "ready",
+        /// The server cannot be launched because of unresolved issues.
+        NotReady => "not_ready",
     }
 }
 
@@ -695,23 +645,13 @@ impl RuntimePolicyEnforcementPlan {
     }
 }
 
-/// Typed runtime check-kind identifier.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RuntimeCheckKind {
-    /// Prepare-time validation contribution.
-    Prepare,
-    /// Doctor-time validation contribution.
-    Doctor,
-}
-
-impl RuntimeCheckKind {
-    /// Returns the stable runtime-check identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Prepare => "prepare",
-            Self::Doctor => "doctor",
-        }
+define_runtime_enum! {
+    /// Typed runtime check-kind identifier.
+    pub enum RuntimeCheckKind {
+        /// Prepare-time validation contribution.
+        Prepare => "prepare",
+        /// Doctor-time validation contribution.
+        Doctor => "doctor",
     }
 }
 
@@ -722,11 +662,10 @@ pub const ALL_RUNTIME_CHECK_KINDS: &[RuntimeCheckKind] =
 /// Parses one stable runtime-check identifier.
 #[must_use]
 pub fn parse_runtime_check_kind(value: &str) -> Option<RuntimeCheckKind> {
-    match value {
-        "prepare" => Some(RuntimeCheckKind::Prepare),
-        "doctor" => Some(RuntimeCheckKind::Doctor),
-        _ => None,
-    }
+    ALL_RUNTIME_CHECK_KINDS
+        .iter()
+        .find(|kind| kind.as_str() == value)
+        .copied()
 }
 
 /// Resolves the typed runtime-check surface declared by one plugin capability.
@@ -825,29 +764,17 @@ impl RuntimeCheckRegistration {
     }
 }
 
-/// Typed runtime provider-kind identifier.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RuntimeProviderKind {
-    /// Data-source provider contribution.
-    DataSource,
-    /// Context-provider contribution.
-    ContextProvider,
-    /// Forge-provider contribution.
-    ForgeProvider,
-    /// Remote-control contribution.
-    RemoteControl,
-}
-
-impl RuntimeProviderKind {
-    /// Returns the stable runtime-provider identifier.
-    #[must_use]
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::DataSource => "data_source",
-            Self::ContextProvider => "context_provider",
-            Self::ForgeProvider => "forge_provider",
-            Self::RemoteControl => "remote_control",
-        }
+define_runtime_enum! {
+    /// Typed runtime provider-kind identifier.
+    pub enum RuntimeProviderKind {
+        /// Data-source provider contribution.
+        DataSource => "data_source",
+        /// Context-provider contribution.
+        ContextProvider => "context_provider",
+        /// Forge-provider contribution.
+        ForgeProvider => "forge_provider",
+        /// Remote-control contribution.
+        RemoteControl => "remote_control",
     }
 }
 
@@ -862,13 +789,10 @@ pub const ALL_RUNTIME_PROVIDER_KINDS: &[RuntimeProviderKind] = &[
 /// Parses one stable runtime-provider identifier.
 #[must_use]
 pub fn parse_runtime_provider_kind(value: &str) -> Option<RuntimeProviderKind> {
-    match value {
-        "data_source" => Some(RuntimeProviderKind::DataSource),
-        "context_provider" => Some(RuntimeProviderKind::ContextProvider),
-        "forge_provider" => Some(RuntimeProviderKind::ForgeProvider),
-        "remote_control" => Some(RuntimeProviderKind::RemoteControl),
-        _ => None,
-    }
+    ALL_RUNTIME_PROVIDER_KINDS
+        .iter()
+        .find(|kind| kind.as_str() == value)
+        .copied()
 }
 
 /// Resolves the typed runtime-provider surface declared by one plugin capability.
