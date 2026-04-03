@@ -6,6 +6,19 @@ display_name_locales:
 summary: Codex runtime and MCP session integration.
 summary_locales:
   pt-br: Integração do runtime Codex com sessão MCP.
+description: >
+  Integrates OpenAI's Codex CLI as an agent runtime for Ralph Engine workflows.
+  Detects the codex binary on your PATH, validates readiness, and provides
+  an MCP server contribution for session management. Use `ralph-engine agents
+  launch official.codex.session` to bootstrap a Codex-powered coding session
+  with your project configuration pre-loaded.
+description_locales:
+  pt-br: >
+    Integra o Codex CLI da OpenAI como runtime de agente para workflows do
+    Ralph Engine. Detecta o binário codex no seu PATH, valida disponibilidade
+    e fornece uma contribuição de servidor MCP para gerenciamento de sessão.
+    Use `ralph-engine agents launch official.codex.session` para iniciar uma
+    sessão de código com Codex com a configuração do seu projeto pré-carregada.
 publisher: official
 trust_level: official
 plugin_version: 0.2.0-alpha.1

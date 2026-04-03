@@ -1,24 +1,41 @@
-# official/bmad
+# official.bmad
 
-Workflow plugin for BMAD starter templates and prompt bundles.
+Workflow plugin for BMAD scaffolding and prompts.
 
-## Surfaces
+## Overview
 
-- Kind: `template`
-- Runtime hooks:
-  - `scaffold`
-  - `prompt_assembly`
-  - `prepare`
-- Template contributions:
-  - `official.bmad.starter`
-- Prompt contributions:
-  - `official.bmad.workflow`
+Full BMAD Method integration for Ralph Engine. The BMAD (Business-Method-Architecture-Development) method is a structured approach to AI-assisted software development with specialized agents for each phase: analysis, planning, architecture, implementation, and review.
 
-## What it owns
+## What it ships
 
-- the BMAD starter template bundle under `template/`
-- the reusable workflow prompt asset bundle
-- localized plugin, template, and prompt metadata
-- typed check and prompt descriptors exported by the crate
+- A starter template with pre-configured BMAD agents and workflow definitions
+- Prompt fragments that get assembled into agent sessions for BMAD workflows
+- Prepare-time checks that validate your project is ready for BMAD workflows
+- Doctor checks that diagnose BMAD configuration health
 
-This plugin is the official workflow-oriented provider in the catalog. Template and prompt assets stay plugin-owned and can now be inspected or materialized directly through the CLI.
+## How to use
+
+Start a new BMAD project:
+
+```
+ralph-engine templates materialize official.bmad.starter ./my-project
+```
+
+This creates a `.ralph-engine/` directory with BMAD-specific configuration including agent definitions, workflow templates, and prompt bundles.
+
+## Checks
+
+The plugin includes two check types:
+
+- `official.bmad.prepare` — validates that required files exist and configuration is valid before starting a workflow
+- `official.bmad.doctor` — comprehensive diagnostic that checks agent definitions, prompt integrity, and workflow consistency
+
+## When to use
+
+Use this plugin when:
+
+- You want structured AI-assisted development with defined phases
+- Your team follows a sprint-based workflow with stories and acceptance criteria
+- You need multiple specialized agents (analyst, architect, PM, dev, QA)
+
+For a simpler setup without BMAD, use `official.basic` instead.

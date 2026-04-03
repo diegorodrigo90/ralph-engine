@@ -6,6 +6,19 @@ display_name_locales:
 summary: Strict TDD policy and template guardrails.
 summary_locales:
   pt-br: Política estrita de TDD com guardrails de template.
+description: >
+  Enforces strict Test-Driven Development discipline in Ralph Engine projects.
+  Includes a starter template pre-configured with TDD guardrails and a policy
+  that validates the RED-GREEN-REFACTOR cycle is followed for every acceptance
+  criterion. The policy checks that tests are written before implementation,
+  that each AC has at least one test, and that test names follow conventions.
+description_locales:
+  pt-br: >
+    Aplica disciplina estrita de Test-Driven Development em projetos Ralph Engine.
+    Inclui um template starter pré-configurado com guardrails TDD e uma política
+    que valida que o ciclo RED-GREEN-REFACTOR é seguido para cada critério de
+    aceitação. A política verifica que testes são escritos antes da implementação,
+    que cada AC tem pelo menos um teste e que nomes de testes seguem convenções.
 publisher: official
 trust_level: official
 plugin_version: 0.2.0-alpha.1

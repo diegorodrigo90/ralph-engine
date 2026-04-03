@@ -6,6 +6,20 @@ display_name_locales:
 summary: Claude Box runtime and MCP session integration.
 summary_locales:
   pt-br: Integração do runtime Claude Box com sessão MCP.
+description: >
+  Integrates Claude Box (sandboxed Claude environment) as an agent runtime.
+  Claude Box provides an isolated container with filesystem access, browser
+  automation, and sudo capabilities. This plugin detects the claudebox binary,
+  validates readiness, and contributes an MCP server for session management.
+  Ideal for workflows that need full system access without affecting the host.
+description_locales:
+  pt-br: >
+    Integra o Claude Box (ambiente Claude isolado) como runtime de agente.
+    O Claude Box fornece um container isolado com acesso ao filesystem,
+    automação de browser e capacidades sudo. Este plugin detecta o binário
+    claudebox, valida disponibilidade e contribui um servidor MCP para
+    gerenciamento de sessão. Ideal para workflows que precisam de acesso
+    completo ao sistema sem afetar o host.
 publisher: official
 trust_level: official
 plugin_version: 0.2.0-alpha.1

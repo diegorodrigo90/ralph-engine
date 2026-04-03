@@ -95,6 +95,26 @@
   background: none;
 }
 
+/* Dark command block — matches Expressive Code github-dark-dimmed */
+.dark-cmd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--re-space-2);
+  padding: var(--re-space-4) var(--re-space-5);
+  background: #22272e;
+  border: 1px solid #373e47;
+  border-radius: 0.75rem;
+  font-family: var(--re-font-mono);
+  font-size: 0.875rem;
+  color: #adbac7;
+  overflow-x: auto;
+}
+
+.dark-cmd code { background: none; color: inherit; }
+.copy-btn-dark { color: #545d68; }
+.copy-btn-dark:hover { color: #adbac7; background: #2d333b; }
+
 /* Cards */
 .card {
   background: var(--re-card-bg);
@@ -125,6 +145,13 @@
   background: var(--re-brand-50);
   color: var(--re-brand-600);
 }
+
+/* Kind-colored pills */
+.pill-template { background: var(--re-kind-template-soft); color: var(--re-kind-template); }
+.pill-agent_runtime { background: var(--re-kind-agent-soft); color: var(--re-kind-agent); }
+.pill-mcp_contribution { background: var(--re-kind-mcp-soft); color: var(--re-kind-mcp); }
+.pill-policy { background: var(--re-kind-policy-soft); color: var(--re-kind-policy); }
+.pill-remote_control { background: var(--re-kind-remote-soft); color: var(--re-kind-remote); }
 
 /* Grid utilities */
 .grid-2 {

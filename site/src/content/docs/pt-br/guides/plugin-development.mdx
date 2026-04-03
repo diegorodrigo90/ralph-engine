@@ -102,6 +102,39 @@ re-plugin = { version = "0.2.0-alpha.1" }
 re-build-utils = { version = "0.2.0-alpha.1" }
 ```
 
+## Documentar seu Plugin
+
+Adicione um `README.md` no diretório do plugin. Ele será renderizado na página do plugin no site do Ralph Engine. Use seções `## Heading` para organizar o conteúdo:
+
+```markdown
+# acme.my-tool
+
+Resumo curto.
+
+## Visão geral
+
+O que seu plugin faz e por que alguém usaria.
+
+## Como usar
+
+Instruções passo a passo.
+
+## Configuração
+
+Opções disponíveis e exemplos.
+```
+
+Para traduções, adicione arquivos específicos por locale junto ao padrão:
+
+- `README.md` — padrão (inglês)
+- `README.pt-br.md` — português (Brasil)
+
+Se um README traduzido não estiver disponível, o site usa o padrão. Os campos `description` e `description_locales` no `manifest.yaml` fornecem a descrição curta mostrada no catálogo de plugins.
+
+:::note
+Conteúdo de README de plugins da comunidade é sanitizado no build — tags HTML e scripts são removidos. Apenas texto puro é renderizado.
+:::
+
 ## Implementar o Runtime
 
 Todo plugin implementa o trait `PluginRuntime`. O trait tem três métodos:
