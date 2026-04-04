@@ -96,6 +96,10 @@ pub struct SidebarPanel {
     pub plugin_id: String,
 }
 
+/// Agent process ID (set when a real agent is launched).
+/// Used by pause/resume to send `SIGSTOP`/`SIGCONT`.
+pub type AgentPid = Option<u32>;
+
 /// The TUI shell — manages terminal lifecycle and render loop.
 ///
 /// Create via [`TuiShell::new`], then call [`TuiShell::run_demo`]
@@ -107,8 +111,12 @@ pub struct TuiShell {
     activity_lines: Vec<String>,
     tool_count: usize,
     should_quit: bool,
+    /// Whether we're waiting for quit confirmation.
+    quit_pending: bool,
     /// Plugin-contributed sidebar panels (from auto-discovery).
     sidebar_panels: Vec<SidebarPanel>,
+    /// Agent process ID for pause/resume signals.
+    agent_pid: AgentPid,
 }
 
 impl TuiShell {
@@ -122,7 +130,9 @@ impl TuiShell {
             activity_lines: Vec::new(),
             tool_count: 0,
             should_quit: false,
+            quit_pending: false,
             sidebar_panels: Vec::new(),
+            agent_pid: None,
         }
     }
 
@@ -160,6 +170,37 @@ impl TuiShell {
     /// Sets the sidebar panels from auto-discovered plugin contributions.
     pub fn set_sidebar_panels(&mut self, panels: Vec<SidebarPanel>) {
         self.sidebar_panels = panels;
+    }
+
+    /// Sets the agent process ID for pause/resume signal delivery.
+    pub fn set_agent_pid(&mut self, pid: u32) {
+        self.agent_pid = Some(pid);
+    }
+
+    /// Pushes the startup banner with config details into the activity
+    /// stream. The logo image is rendered separately by the caller
+    /// using [`crate::logo::render_logo`].
+    pub fn push_startup_banner(&mut self) {
+        self.push_activity(String::new());
+        self.push_activity(format!("  ◎ Ralph Engine v{}", env!("CARGO_PKG_VERSION")));
+        self.push_activity(format!("  Agent:   {}", self.config.agent_id));
+        self.push_activity(format!("  Work:    {}", self.config.title));
+        self.push_activity(format!("  Plugins: {} panels", self.sidebar_panels.len()));
+        self.push_activity(String::new());
+        self.push_activity("  Initializing...".to_owned());
+        self.push_activity(String::new());
+    }
+
+    /// Whether the TUI is waiting for quit confirmation.
+    #[must_use]
+    pub fn is_quit_pending(&self) -> bool {
+        self.quit_pending
+    }
+
+    /// Whether the TUI should exit.
+    #[must_use]
+    pub fn should_quit(&self) -> bool {
+        self.should_quit
     }
 
     /// Processes a normalized agent event, updating TUI state and activity.
@@ -244,25 +285,54 @@ impl TuiShell {
     }
 
     /// Handles a key press event.
-    fn handle_key(&mut self, code: KeyCode) {
+    pub fn handle_key(&mut self, code: KeyCode) {
+        // Quit confirmation flow: q → "Quit? (y/n)" → y confirms
+        if self.quit_pending {
+            match code {
+                KeyCode::Char('y' | 'Y') => {
+                    tracing::info!("user confirmed quit");
+                    self.should_quit = true;
+                }
+                _ => {
+                    self.quit_pending = false;
+                    self.push_activity(">> Quit cancelled.".to_owned());
+                }
+            }
+            return;
+        }
+
         match code {
             KeyCode::Char('q') => {
-                tracing::info!("user requested quit");
-                self.should_quit = true;
+                self.quit_pending = true;
+                self.push_activity(
+                    ">> Quit? Press 'y' to confirm, any other key to cancel.".to_owned(),
+                );
             }
             KeyCode::Char('p') => {
-                let new_state = if self.state == TuiState::Running {
-                    TuiState::Paused
+                if self.state == TuiState::Running {
+                    // Pause: send SIGSTOP to agent if running
+                    if let Some(pid) = self.agent_pid
+                        && let Err(e) = crate::process::pause_process(pid)
+                    {
+                        self.push_activity(format!(">> Pause failed: {e}"));
+                        return;
+                    }
+                    self.set_state(TuiState::Paused);
+                    self.push_activity(">> Agent paused. Press 'p' to resume.".to_owned());
                 } else if self.state == TuiState::Paused {
-                    TuiState::Running
-                } else {
-                    self.state
-                };
-                self.set_state(new_state);
-                self.push_activity(format!(">> State: {}", new_state.label()));
+                    // Resume: send SIGCONT to agent
+                    if let Some(pid) = self.agent_pid
+                        && let Err(e) = crate::process::resume_process(pid)
+                    {
+                        self.push_activity(format!(">> Resume failed: {e}"));
+                        return;
+                    }
+                    self.set_state(TuiState::Running);
+                    self.push_activity(">> Agent resumed.".to_owned());
+                }
             }
             KeyCode::Char('?') => {
-                self.push_activity(">> Help: [q] quit  [p] pause/resume  [?] help".to_owned());
+                self.push_activity(">> Keys: [q] quit  [p] pause/resume  [?] help".to_owned());
             }
             _ => {}
         }
@@ -277,7 +347,18 @@ impl TuiShell {
     /// - Wide (>= 160): control + activity + sidebar
     pub fn render_frame(&self, frame: &mut Frame<'_>) {
         let area = frame.area();
+        self.render_in(frame, area);
+    }
 
+    /// Renders the TUI into a specific sub-area of the frame.
+    ///
+    /// Used when the logo occupies the top portion of the screen.
+    pub fn render_frame_in_area(&self, frame: &mut Frame<'_>, area: Rect) {
+        self.render_in(frame, area);
+    }
+
+    /// Internal render implementation for a given area.
+    fn render_in(&self, frame: &mut Frame<'_>, area: Rect) {
         // Check minimum size
         if layout::is_terminal_too_small(area) {
             let msg = format!(
@@ -387,6 +468,21 @@ impl TuiShell {
 
     /// Renders the help bar at the bottom, adapted to layout tier.
     fn render_help(&self, frame: &mut Frame<'_>, zones: &layout::LayoutZones) {
+        if self.quit_pending {
+            let warn = Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD);
+            let spans = vec![
+                Span::styled(" Quit? ", warn),
+                Span::styled(
+                    "[y] yes  [any key] cancel",
+                    Style::default().fg(Color::DarkGray),
+                ),
+            ];
+            frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
+            return;
+        }
+
         let dim = Style::default().fg(Color::DarkGray);
         let mut spans = vec![
             Span::styled(" [?]", dim),
@@ -397,7 +493,6 @@ impl TuiShell {
             Span::styled(" quit ", dim),
         ];
 
-        // Show layout tier indicator
         let tier_label = match zones.tier {
             layout::LayoutTier::Compact => "compact",
             layout::LayoutTier::Standard => "standard",
@@ -405,7 +500,7 @@ impl TuiShell {
         };
         spans.push(Span::styled(
             format!(" │ {tier_label}"),
-            Style::default().fg(Color::Indexed(59)), // dark gray
+            Style::default().fg(Color::Indexed(59)),
         ));
 
         frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
@@ -656,16 +751,24 @@ mod tests {
     }
 
     #[test]
-    fn handle_key_q_sets_quit() {
-        let mut shell = TuiShell::new(TuiConfig {
-            mode: TuiMode::Autonomous,
-            title: "Test".to_owned(),
-            agent_id: "test.agent".to_owned(),
-            locale: "en".to_owned(),
-        });
-        assert!(!shell.should_quit);
+    fn handle_key_q_requires_confirmation() {
+        let mut shell = empty_shell();
+        assert!(!shell.should_quit());
+
+        // First q: sets pending, does NOT quit
         shell.handle_key(KeyCode::Char('q'));
-        assert!(shell.should_quit);
+        assert!(!shell.should_quit());
+        assert!(shell.is_quit_pending());
+
+        // Any non-y key: cancels quit
+        shell.handle_key(KeyCode::Char('n'));
+        assert!(!shell.should_quit());
+        assert!(!shell.is_quit_pending());
+
+        // q then y: confirms quit
+        shell.handle_key(KeyCode::Char('q'));
+        shell.handle_key(KeyCode::Char('y'));
+        assert!(shell.should_quit());
     }
 
     #[test]

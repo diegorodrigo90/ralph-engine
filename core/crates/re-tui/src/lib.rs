@@ -16,6 +16,7 @@ pub mod events;
 pub mod keybindings;
 pub mod layout;
 mod logging;
+pub mod logo;
 pub mod process;
 mod terminal;
 
