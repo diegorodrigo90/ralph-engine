@@ -1,3 +1,4 @@
+# ── Existing labels (entity, surface, asset) ──────────────────────
 root_bootstrapped = "Rust foundation bootstrapped."
 providers_label = "Providers"
 name_label = "Name"
@@ -43,3 +44,94 @@ provider_entity_label = "provider"
 locale_entity_label = "locale"
 mcp_server_entity_label = "mcp server"
 materialized_assets_heading = "Materialized assets"
+
+# ── Help / usage ──────────────────────────────────────────────────
+usage_help = "Usage: ralph-engine [--locale <id>] <command> [arguments]"
+commands_heading = "Commands:"
+set_locale_help = "Set the locale (en, pt-br)"
+show_version_help = "Show version"
+show_help_help = "Show this help"
+subcommand_label = "subcommand"
+subcommands_heading = "Subcommands:"
+usage_label = "Usage"
+
+# ── Run command ───────────────────────────────────────────────────
+run_id_required = "Work item ID required. Use `ralph-engine run <id>` or `ralph-engine run --list`."
+run_no_items = "No actionable work items found."
+run_available_items = "Available work items"
+run_work_item_id_label = "work item ID"
+run_workflow_label = "Workflow"
+run_agent_label = "Agent"
+run_work_item_label = "Work item"
+run_prompt_size_label = "Prompt size"
+run_agent_ready_label = "Agent ready"
+run_execution_plan = "Execution plan"
+run_source_label = "Source"
+run_context_files_label = "context files"
+run_hint_label = "Hint"
+run_agent_not_ready = "Agent not ready"
+run_work_item_not_found = "Work item not found"
+run_use_list_hint = "Use `ralph-engine run --list` to see available items."
+run_launching_agent = "Launching agent"
+run_agent_completed = "Agent completed"
+run_agent_failed = "Agent failed"
+run_missing_agent_id = "Missing 'run.agent_id' in .ralph-engine/config.yaml."
+run_config_not_found = "Project config not found. Run `ralph-engine init` to create one."
+run_missing_workflow_plugin = "Missing 'run.workflow_plugin' in .ralph-engine/config.yaml.\nExample:\n  run:\n    workflow_plugin: <workflow-plugin-id>\n    agent_plugin: <agent-plugin-id>\n    agent_id: <agent-id>"
+run_missing_agent_plugin = "Missing 'run.agent_plugin' in .ralph-engine/config.yaml.\nExample:\n  run:\n    agent_plugin: <agent-plugin-id>"
+run_workflow_no_runtime = "Workflow plugin does not provide a runtime"
+run_agent_no_runtime = "Agent plugin does not provide a runtime"
+run_autonomous_rejected = "Autonomous mode not accepted. Aborting."
+run_cwd_error = "Failed to resolve working directory"
+run_autonomous_warning = "⚠️  AUTONOMOUS MODE WARNING\n\nralph-engine run launches an AI agent that can:\n- Read and write files in this project\n- Execute shell commands\n- Make git commits\n\nThe agent runs with auto-accept permissions to work autonomously.\nThis is equivalent to --dangerously-skip-permissions in Claude Code.\n\nOnly run this in projects you trust.\n\nAccept and continue? [y/N] "
+
+# ── Init command ──────────────────────────────────────────────────
+init_help = "Usage: ralph-engine init [directory]\n\nInteractively initialize a new Ralph Engine project.\nCreates .ralph-engine/ with config, hooks, and prompt files.\n\nTemplates and plugins are auto-discovered from the catalog."
+init_exists_warning = ".ralph-engine/ already exists.\n  WARNING: Overwriting will DELETE all current configuration."
+init_overwrite_prompt = "Overwrite?"
+init_cancelled = "Cancelled."
+init_no_templates = "No templates found in catalog. Cannot initialize."
+init_select_template = "Select a template:"
+init_enable_additional = "Enable additional plugins? (comma-separated numbers, or Enter to skip)"
+init_enabled_label = "Enabled"
+init_additional_plugins = "additional plugins"
+init_enable_label = "Enable"
+init_created_label = "Created"
+init_done_prefix = "Done! Run"
+init_done_suffix = "to verify your setup."
+
+# ── Install command ───────────────────────────────────────────────
+install_help = "Usage: ralph-engine install [--pre] <publisher>/<name>\n\nInstall a community plugin from the Ralph Engine catalog.\nBy default, only stable releases are installed.\nUse --pre to allow prerelease versions (alpha, beta, rc).\n\nOptions:\n  --pre  Allow prerelease versions\n\nExamples:\n  ralph-engine install acme/jira-suite\n  ralph-engine install --pre acme/jira-suite\n  ralph-engine uninstall acme/jira-suite"
+install_ref_required = "Plugin reference required. Usage: ralph-engine install <publisher>/<name>"
+uninstall_ref_required = "Plugin reference required. Usage: ralph-engine uninstall <publisher>/<name>"
+install_success = "Plugin installed:"
+install_id_label = "ID:"
+install_location_label = "Location:"
+install_no_manifest = "Repository cloned but no manifest.yaml found. Not a valid Ralph Engine plugin."
+
+# ── Agents command ────────────────────────────────────────────────
+agents_bootstrap_probe = "Agent bootstrap probe"
+agents_bootstrap_registered = "Bootstrap hook registered"
+agents_bootstrap_not_registered = "Bootstrap hook NOT registered"
+agents_no_runtime = "Plugin does not provide a runtime implementation."
+
+# ── MCP command ───────────────────────────────────────────────────
+mcp_launch_probe = "MCP launch probe"
+mcp_no_runtime = "Plugin does not provide a runtime implementation."
+mcp_binary_found = "Binary found"
+mcp_spawning_label = "Spawning"
+mcp_process_exited = "Process exited"
+mcp_binary_not_found = "Binary NOT found in PATH"
+
+# ── Checks / Doctor command ───────────────────────────────────────
+checks_plugin_execution = "Plugin check execution"
+checks_file_validation = "Project file validation"
+checks_missing_label = "MISSING"
+checks_scaffold_hint = "Hint: run 'ralph-engine templates scaffold basic' to generate initial files"
+
+# ── Policies command ──────────────────────────────────────────────
+policies_file_validation = "Policy file validation"
+policies_missing_label = "MISSING"
+
+# ── Hooks command ─────────────────────────────────────────────────
+hooks_plan_heading = "Runtime hook plan"

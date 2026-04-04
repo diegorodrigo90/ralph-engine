@@ -117,7 +117,7 @@ fn probe_launch(server_id: Option<&str>, locale: &str) -> Result<String, CliErro
     })?;
 
     let plan = build_mcp_launch_plan(&server);
-    let heading = locale_str!(locale, "MCP launch probe", "Verificação de lançamento MCP");
+    let heading = i18n::mcp_launch_probe(locale);
 
     let mut lines = vec![
         format!("--- {heading}: {} ---", server.id),
@@ -161,12 +161,7 @@ fn launch_plugin_runtime_server(
             }
         },
         None => {
-            let msg = locale_str!(
-                locale,
-                "Plugin does not provide a runtime implementation.",
-                "Plugin não fornece implementação de runtime."
-            );
-            lines.push(msg.to_owned());
+            lines.push(i18n::mcp_no_runtime(locale).to_owned());
         }
     }
 }
@@ -183,11 +178,17 @@ fn launch_spawn_process_server(
 
     match re_plugin::probe_binary_on_path(command.program) {
         Some(path) => {
-            let found_label = locale_str!(locale, "Binary found", "Binário encontrado");
-            lines.push(format!("{} {found_label}: {path}", super::STATUS_OK));
+            lines.push(format!(
+                "{} {}: {path}",
+                super::STATUS_OK,
+                i18n::mcp_binary_found(locale)
+            ));
 
-            let spawn_label = locale_str!(locale, "Spawning", "Iniciando");
-            lines.push(format!("{spawn_label}: {}", command.render_invocation()));
+            lines.push(format!(
+                "{}: {}",
+                i18n::mcp_spawning_label(locale),
+                command.render_invocation()
+            ));
 
             // Flush output before blocking spawn
             println!("{}", lines.join("\n"));
@@ -204,8 +205,7 @@ fn launch_spawn_process_server(
 
             match status {
                 Ok(exit) => {
-                    let exit_label = locale_str!(locale, "Process exited", "Processo encerrado");
-                    lines.push(format!("{exit_label}: {exit}"));
+                    lines.push(format!("{}: {exit}", i18n::mcp_process_exited(locale)));
                 }
                 Err(e) => {
                     return Err(CliError::new(format!(
@@ -216,29 +216,14 @@ fn launch_spawn_process_server(
             }
         }
         None => {
-            let label = locale_str!(
-                locale,
-                "Binary NOT found in PATH",
-                "Binário NÃO encontrado no PATH"
-            );
             lines.push(format!(
-                "{} {label}: {}",
+                "{} {}: {}",
                 super::STATUS_MISSING,
+                i18n::mcp_binary_not_found(locale),
                 command.program
             ));
 
-            let hint = locale_str!(
-                locale,
-                format!(
-                    "Hint: install '{}' or add it to PATH to enable this MCP server",
-                    command.program
-                ),
-                format!(
-                    "Dica: instale '{}' ou adicione-o ao PATH para habilitar este servidor MCP",
-                    command.program
-                )
-            );
-            lines.push(hint.to_owned());
+            lines.push(i18n::mcp_install_hint(locale, command.program));
         }
     }
 

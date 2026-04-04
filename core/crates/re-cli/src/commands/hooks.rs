@@ -91,11 +91,7 @@ fn render_hook_detail(
 fn render_hook_plan(hook: re_plugin::PluginRuntimeHook, locale: &str) -> String {
     let mut lines = vec![format!(
         "{}: {}",
-        if locale == "pt-br" {
-            "Plano de hook de runtime"
-        } else {
-            "Runtime hook plan"
-        },
+        i18n::hooks_plan_heading(locale),
         hook.as_str()
     )];
 

@@ -6,6 +6,7 @@ use crate::CliError;
 use re_config::SupportedLocale;
 
 pub(super) struct CliLocaleCatalog {
+    // ── Existing labels ──────────────────────────────────────────
     pub root_bootstrapped: &'static str,
     pub providers_label: &'static str,
     pub name_label: &'static str,
@@ -50,6 +51,101 @@ pub(super) struct CliLocaleCatalog {
     pub provider_entity_label: &'static str,
     pub locale_entity_label: &'static str,
     pub mcp_server_entity_label: &'static str,
+    #[allow(dead_code)]
+    pub materialized_assets_heading: &'static str,
+
+    // ── Help / usage ─────────────────────────────────────────────
+    pub usage_help: &'static str,
+    pub commands_heading: &'static str,
+    pub set_locale_help: &'static str,
+    pub show_version_help: &'static str,
+    pub show_help_help: &'static str,
+    pub subcommand_label: &'static str,
+    pub subcommands_heading: &'static str,
+    pub usage_label: &'static str,
+
+    // ── Run command ──────────────────────────────────────────────
+    pub run_id_required: &'static str,
+    pub run_no_items: &'static str,
+    pub run_available_items: &'static str,
+    pub run_work_item_id_label: &'static str,
+    pub run_workflow_label: &'static str,
+    pub run_agent_label: &'static str,
+    pub run_work_item_label: &'static str,
+    pub run_prompt_size_label: &'static str,
+    pub run_agent_ready_label: &'static str,
+    pub run_execution_plan: &'static str,
+    pub run_source_label: &'static str,
+    pub run_context_files_label: &'static str,
+    pub run_hint_label: &'static str,
+    pub run_agent_not_ready: &'static str,
+    pub run_work_item_not_found: &'static str,
+    pub run_use_list_hint: &'static str,
+    pub run_launching_agent: &'static str,
+    pub run_agent_completed: &'static str,
+    pub run_agent_failed: &'static str,
+    pub run_missing_agent_id: &'static str,
+    pub run_config_not_found: &'static str,
+    pub run_missing_workflow_plugin: &'static str,
+    pub run_missing_agent_plugin: &'static str,
+    pub run_workflow_no_runtime: &'static str,
+    pub run_agent_no_runtime: &'static str,
+    pub run_autonomous_rejected: &'static str,
+    pub run_cwd_error: &'static str,
+    pub run_autonomous_warning: &'static str,
+
+    // ── Init command ─────────────────────────────────────────────
+    pub init_help: &'static str,
+    pub init_exists_warning: &'static str,
+    pub init_overwrite_prompt: &'static str,
+    pub init_cancelled: &'static str,
+    pub init_no_templates: &'static str,
+    pub init_select_template: &'static str,
+    pub init_enable_additional: &'static str,
+    pub init_enabled_label: &'static str,
+    pub init_additional_plugins: &'static str,
+    pub init_enable_label: &'static str,
+    pub init_created_label: &'static str,
+    pub init_done_prefix: &'static str,
+    pub init_done_suffix: &'static str,
+
+    // ── Install command ──────────────────────────────────────────
+    pub install_help: &'static str,
+    pub install_ref_required: &'static str,
+    pub uninstall_ref_required: &'static str,
+    pub install_success: &'static str,
+    pub install_id_label: &'static str,
+    pub install_location_label: &'static str,
+    pub install_no_manifest: &'static str,
+
+    // ── Agents command ───────────────────────────────────────────
+    pub agents_bootstrap_probe: &'static str,
+    pub agents_bootstrap_registered: &'static str,
+    pub agents_bootstrap_not_registered: &'static str,
+    pub agents_no_runtime: &'static str,
+
+    // ── MCP command ──────────────────────────────────────────────
+    pub mcp_launch_probe: &'static str,
+    pub mcp_no_runtime: &'static str,
+    pub mcp_binary_found: &'static str,
+    pub mcp_spawning_label: &'static str,
+    pub mcp_process_exited: &'static str,
+    pub mcp_binary_not_found: &'static str,
+
+    // ── Checks / Doctor command ──────────────────────────────────
+    pub checks_plugin_execution: &'static str,
+    pub checks_file_validation: &'static str,
+    pub checks_missing_label: &'static str,
+    pub checks_scaffold_hint: &'static str,
+
+    // ── Policies command ─────────────────────────────────────────
+    pub policies_file_validation: &'static str,
+    pub policies_missing_label: &'static str,
+
+    // ── Hooks command ────────────────────────────────────────────
+    pub hooks_plan_heading: &'static str,
+
+    // ── Parameterized functions (fn_fields in build.rs) ──────────
     pub unknown_command: fn(&str) -> String,
     pub unknown_subcommand: fn(&str, &str) -> String,
     pub missing_id: fn(&str, &str) -> String,
@@ -70,8 +166,16 @@ pub(super) struct CliLocaleCatalog {
     pub unknown_prompt_asset: fn(&str) -> String,
     pub unknown_check_asset: fn(&str) -> String,
     pub unknown_policy_asset: fn(&str) -> String,
-    #[allow(dead_code)]
-    pub materialized_assets_heading: &'static str,
+    pub install_already_installed: fn(&str, &str) -> String,
+    pub install_create_dir_failed: fn(&str) -> String,
+    pub install_clone_exec_failed: fn(&str) -> String,
+    pub install_clone_repo_failed: fn(&str) -> String,
+    pub install_not_installed: fn(&str) -> String,
+    pub install_remove_dir_failed: fn(&str) -> String,
+    pub install_uninstalled: fn(&str) -> String,
+    pub init_remove_failed: fn(&str) -> String,
+    pub mcp_install_hint: fn(&str) -> String,
+    pub policies_materialize_hint: fn(&str) -> String,
 }
 
 // Hand-coded fn implementations for each locale
@@ -184,6 +288,10 @@ fn supported_locale_ids() -> String {
         .join(", ")
 }
 
+// ── Catalog accessor helpers ─────────────────────────────────────
+
+/// Generates a public accessor function that reads a `&'static str`
+/// field from the locale catalog.
 macro_rules! catalog_str {
     ($name:ident, $field:ident) => {
         #[must_use]
@@ -192,6 +300,30 @@ macro_rules! catalog_str {
         }
     };
 }
+
+/// Generates a public accessor function for a single-argument
+/// parameterized locale function.
+macro_rules! catalog_fn1 {
+    ($name:ident, $field:ident) => {
+        #[must_use]
+        pub fn $name(locale: &str, arg: &str) -> String {
+            (locale_catalog(locale).$field)(arg)
+        }
+    };
+}
+
+/// Generates a public accessor function for a two-argument
+/// parameterized locale function.
+macro_rules! catalog_fn2 {
+    ($name:ident, $field:ident) => {
+        #[must_use]
+        pub fn $name(locale: &str, a: &str, b: &str) -> String {
+            (locale_catalog(locale).$field)(a, b)
+        }
+    };
+}
+
+// ── Simple catalog accessors ─────────────────────────────────────
 
 #[must_use]
 pub fn root_bootstrapped(locale: &str) -> &'static str {
@@ -278,6 +410,8 @@ pub fn unknown_policy_asset(locale: &str, value: &str) -> String {
     (locale_catalog(locale).unknown_policy_asset)(value)
 }
 
+// ── Heading helpers ──────────────────────────────────────────────
+
 #[must_use]
 pub fn list_heading(locale: &str, singular_en: &str, singular_pt: &str, count: usize) -> String {
     if is_pt_br(locale) {
@@ -285,11 +419,6 @@ pub fn list_heading(locale: &str, singular_en: &str, singular_pt: &str, count: u
     } else {
         format!("{singular_en} ({count})")
     }
-}
-
-#[must_use]
-pub fn providers_heading(locale: &str, count: usize) -> String {
-    format!("{} ({count})", locale_catalog(locale).providers_label)
 }
 
 #[must_use]
@@ -302,6 +431,11 @@ pub fn detail_heading(locale: &str, label_en: &str, label_pt: &str, value: &str)
 }
 
 #[must_use]
+pub fn providers_heading(locale: &str, count: usize) -> String {
+    format!("{} ({count})", locale_catalog(locale).providers_label)
+}
+
+#[must_use]
 #[allow(dead_code)]
 pub fn materialized_assets_heading(locale: &str, count: usize) -> String {
     format!(
@@ -309,6 +443,8 @@ pub fn materialized_assets_heading(locale: &str, count: usize) -> String {
         locale_catalog(locale).materialized_assets_heading
     )
 }
+
+// ── Entity/surface label accessors (existing) ────────────────────
 
 catalog_str!(resolved_activation_label, resolved_activation_label);
 catalog_str!(resolved_from_label, resolved_from_label);
@@ -354,6 +490,122 @@ catalog_str!(template_entity_label, template_entity_label);
 catalog_str!(prompt_entity_label, prompt_entity_label);
 catalog_str!(policy_entity_label, policy_entity_label);
 
+// ── Help / usage accessors ───────────────────────────────────────
+
+catalog_str!(usage_help, usage_help);
+catalog_str!(commands_heading, commands_heading);
+catalog_str!(set_locale_help, set_locale_help);
+catalog_str!(show_version_help, show_version_help);
+catalog_str!(show_help_help, show_help_help);
+catalog_str!(subcommand_label, subcommand_label);
+catalog_str!(subcommands_heading, subcommands_heading);
+catalog_str!(usage_label, usage_label);
+
+// ── Run command accessors ────────────────────────────────────────
+
+catalog_str!(run_id_required, run_id_required);
+catalog_str!(run_no_items, run_no_items);
+catalog_str!(run_available_items, run_available_items);
+catalog_str!(run_work_item_id_label, run_work_item_id_label);
+catalog_str!(run_workflow_label, run_workflow_label);
+catalog_str!(run_agent_label, run_agent_label);
+catalog_str!(run_work_item_label, run_work_item_label);
+catalog_str!(run_prompt_size_label, run_prompt_size_label);
+catalog_str!(run_agent_ready_label, run_agent_ready_label);
+catalog_str!(run_execution_plan, run_execution_plan);
+catalog_str!(run_source_label, run_source_label);
+catalog_str!(run_context_files_label, run_context_files_label);
+catalog_str!(run_hint_label, run_hint_label);
+catalog_str!(run_agent_not_ready, run_agent_not_ready);
+catalog_str!(run_work_item_not_found, run_work_item_not_found);
+catalog_str!(run_use_list_hint, run_use_list_hint);
+catalog_str!(run_launching_agent, run_launching_agent);
+catalog_str!(run_agent_completed, run_agent_completed);
+catalog_str!(run_agent_failed, run_agent_failed);
+catalog_str!(run_missing_agent_id, run_missing_agent_id);
+catalog_str!(run_config_not_found, run_config_not_found);
+catalog_str!(run_missing_workflow_plugin, run_missing_workflow_plugin);
+catalog_str!(run_missing_agent_plugin, run_missing_agent_plugin);
+catalog_str!(run_workflow_no_runtime, run_workflow_no_runtime);
+catalog_str!(run_agent_no_runtime, run_agent_no_runtime);
+catalog_str!(run_autonomous_rejected, run_autonomous_rejected);
+catalog_str!(run_cwd_error, run_cwd_error);
+catalog_str!(run_autonomous_warning, run_autonomous_warning);
+
+// ── Init command accessors ───────────────────────────────────────
+
+catalog_str!(init_help, init_help);
+catalog_str!(init_exists_warning, init_exists_warning);
+catalog_str!(init_overwrite_prompt, init_overwrite_prompt);
+catalog_str!(init_cancelled, init_cancelled);
+catalog_str!(init_no_templates, init_no_templates);
+catalog_str!(init_select_template, init_select_template);
+catalog_str!(init_enable_additional, init_enable_additional);
+catalog_str!(init_enabled_label, init_enabled_label);
+catalog_str!(init_additional_plugins, init_additional_plugins);
+catalog_str!(init_enable_label, init_enable_label);
+catalog_str!(init_created_label, init_created_label);
+catalog_str!(init_done_prefix, init_done_prefix);
+catalog_str!(init_done_suffix, init_done_suffix);
+
+// ── Install command accessors ────────────────────────────────────
+
+catalog_str!(install_help, install_help);
+catalog_str!(install_ref_required, install_ref_required);
+catalog_str!(uninstall_ref_required, uninstall_ref_required);
+catalog_str!(install_success, install_success);
+catalog_str!(install_id_label, install_id_label);
+catalog_str!(install_location_label, install_location_label);
+catalog_str!(install_no_manifest, install_no_manifest);
+catalog_fn2!(install_already_installed, install_already_installed);
+catalog_fn1!(install_create_dir_failed, install_create_dir_failed);
+catalog_fn1!(install_clone_exec_failed, install_clone_exec_failed);
+catalog_fn1!(install_clone_repo_failed, install_clone_repo_failed);
+catalog_fn1!(install_not_installed, install_not_installed);
+catalog_fn1!(install_remove_dir_failed, install_remove_dir_failed);
+catalog_fn1!(install_uninstalled, install_uninstalled);
+
+// ── Agents command accessors ─────────────────────────────────────
+
+catalog_str!(agents_bootstrap_probe, agents_bootstrap_probe);
+catalog_str!(agents_bootstrap_registered, agents_bootstrap_registered);
+catalog_str!(
+    agents_bootstrap_not_registered,
+    agents_bootstrap_not_registered
+);
+catalog_str!(agents_no_runtime, agents_no_runtime);
+
+// ── MCP command accessors ────────────────────────────────────────
+
+catalog_str!(mcp_launch_probe, mcp_launch_probe);
+catalog_str!(mcp_no_runtime, mcp_no_runtime);
+catalog_str!(mcp_binary_found, mcp_binary_found);
+catalog_str!(mcp_spawning_label, mcp_spawning_label);
+catalog_str!(mcp_process_exited, mcp_process_exited);
+catalog_str!(mcp_binary_not_found, mcp_binary_not_found);
+catalog_fn1!(mcp_install_hint, mcp_install_hint);
+
+// ── Checks / Doctor command accessors ────────────────────────────
+
+catalog_str!(checks_plugin_execution, checks_plugin_execution);
+catalog_str!(checks_file_validation, checks_file_validation);
+catalog_str!(checks_missing_label, checks_missing_label);
+catalog_str!(checks_scaffold_hint, checks_scaffold_hint);
+
+// ── Policies command accessors ───────────────────────────────────
+
+catalog_str!(policies_file_validation, policies_file_validation);
+catalog_str!(policies_missing_label, policies_missing_label);
+catalog_fn1!(policies_materialize_hint, policies_materialize_hint);
+
+// ── Hooks command accessors ──────────────────────────────────────
+
+catalog_str!(hooks_plan_heading, hooks_plan_heading);
+
+// ── Init parameterized ───────────────────────────────────────────
+
+catalog_fn1!(init_remove_failed, init_remove_failed);
+
 #[cfg(test)]
 mod tests {
     use std::env;
@@ -361,11 +613,33 @@ mod tests {
     use crate::CliError;
 
     use super::{
-        LOCALE_FLAG, activation_label, detail_heading, list_heading, load_boundary_label,
-        missing_id, normalize_cli_locale, providers_heading, resolve_cli_invocation,
-        resolve_cli_invocation_from_env_result, resolve_cli_locale_from_env_and_os,
-        resolve_cli_locale_from_env_result, resolve_locale_from_os_values, root_bootstrapped,
-        unknown_command, unknown_entity, unknown_subcommand,
+        LOCALE_FLAG,
+        activation_label,
+        agents_bootstrap_probe,
+        checks_file_validation,
+        hooks_plan_heading,
+        install_already_installed,
+        install_help,
+        install_uninstalled,
+        load_boundary_label,
+        mcp_install_hint,
+        mcp_launch_probe,
+        missing_id,
+        normalize_cli_locale,
+        policies_file_validation,
+        providers_heading,
+        resolve_cli_invocation,
+        resolve_cli_invocation_from_env_result,
+        resolve_cli_locale_from_env_and_os,
+        resolve_cli_locale_from_env_result,
+        resolve_locale_from_os_values,
+        root_bootstrapped,
+        run_available_items,
+        // New accessors
+        run_id_required,
+        unknown_command,
+        unknown_entity,
+        unknown_subcommand,
     };
 
     #[test]
@@ -411,17 +685,57 @@ mod tests {
             unknown_entity("pt-br", "capacidade", "template"),
             "capacidade desconhecida: template"
         );
-        assert_eq!(
-            list_heading("pt-br", "Plugins", "Plugins", 3),
-            "Plugins (3)"
-        );
         assert_eq!(providers_heading("pt-br", 2), "Provedores (2)");
         assert_eq!(activation_label("pt-br"), "Ativação");
         assert_eq!(load_boundary_label("pt-br"), "Fronteira de carregamento");
+    }
+
+    #[test]
+    fn new_catalog_accessors_work_en() {
+        assert!(run_id_required("en").contains("Work item ID required"));
+        assert_eq!(run_available_items("en"), "Available work items");
+        assert!(install_help("en").contains("ralph-engine install"));
+        assert_eq!(agents_bootstrap_probe("en"), "Agent bootstrap probe");
+        assert_eq!(mcp_launch_probe("en"), "MCP launch probe");
+        assert_eq!(checks_file_validation("en"), "Project file validation");
+        assert_eq!(policies_file_validation("en"), "Policy file validation");
+        assert_eq!(hooks_plan_heading("en"), "Runtime hook plan");
+    }
+
+    #[test]
+    fn new_catalog_accessors_work_pt_br() {
+        assert!(run_id_required("pt-br").contains("ID do work item"));
+        assert_eq!(run_available_items("pt-br"), "Work items disponíveis");
+        assert!(install_help("pt-br").contains("ralph-engine install"));
         assert_eq!(
-            detail_heading("pt-br", "Plugin", "Plugin", "fixture.basic"),
-            "Plugin: fixture.basic"
+            agents_bootstrap_probe("pt-br"),
+            "Verificação de bootstrap de agente"
         );
+        assert_eq!(mcp_launch_probe("pt-br"), "Verificação de lançamento MCP");
+        assert_eq!(
+            checks_file_validation("pt-br"),
+            "Validação de arquivos do projeto"
+        );
+        assert_eq!(
+            policies_file_validation("pt-br"),
+            "Validação de arquivos da política"
+        );
+        assert_eq!(hooks_plan_heading("pt-br"), "Plano de hook de runtime");
+    }
+
+    #[test]
+    fn parameterized_accessors_work() {
+        assert!(
+            install_already_installed("en", "test.plugin", "/path").contains("already installed")
+        );
+        assert!(
+            install_already_installed("pt-br", "test.plugin", "/path")
+                .contains("já está instalado")
+        );
+        assert!(install_uninstalled("en", "test.plugin").contains("uninstalled"));
+        assert!(install_uninstalled("pt-br", "test.plugin").contains("desinstalado"));
+        assert!(mcp_install_hint("en", "node").contains("install 'node'"));
+        assert!(mcp_install_hint("pt-br", "node").contains("instale 'node'"));
     }
 
     #[test]

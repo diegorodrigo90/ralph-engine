@@ -2,14 +2,8 @@
 
 use crate::{CliError, i18n};
 
-/// Selects between English and Portuguese text based on locale.
-/// Eliminates the `if locale == "pt-br" { ... } else { ... }` pattern
-/// that was duplicated 20+ times across command handlers.
-macro_rules! locale_str {
-    ($locale:expr, $en:expr, $pt_br:expr) => {
-        if i18n::is_pt_br($locale) { $pt_br } else { $en }
-    };
-}
+// All locale strings are now in TOML catalogs (locales/*.toml).
+// The locale_str! macro has been removed — use i18n::* accessors instead.
 
 /// Standard status markers used in command output.
 const STATUS_OK: &str = "[OK]";
@@ -166,19 +160,12 @@ pub fn execute(args: &[String]) -> Result<String, CliError> {
 }
 
 fn render_help(locale: &str) -> String {
-    let usage = locale_str!(
-        locale,
-        "Usage: ralph-engine [--locale <id>] <command> [arguments]",
-        "Uso: ralph-engine [--locale <id>] <comando> [argumentos]"
-    );
-    let commands_label = locale_str!(locale, "Commands:", "Comandos:");
-
     let mut lines = vec![
         re_core::banner(),
         String::new(),
-        usage.to_owned(),
+        i18n::usage_help(locale).to_owned(),
         String::new(),
-        commands_label.to_owned(),
+        i18n::commands_heading(locale).to_owned(),
     ];
 
     for command in COMMANDS {
@@ -189,19 +176,15 @@ fn render_help(locale: &str) -> String {
     lines.push("Flags:".to_owned());
     lines.push(format!(
         "  --locale <id>, -L <id>   {}",
-        locale_str!(
-            locale,
-            "Set the locale (en, pt-br)",
-            "Define o idioma (en, pt-br)"
-        )
+        i18n::set_locale_help(locale)
     ));
     lines.push(format!(
         "  --version, -V            {}",
-        locale_str!(locale, "Show version", "Mostra a versão")
+        i18n::show_version_help(locale)
     ));
     lines.push(format!(
         "  --help, -h               {}",
-        locale_str!(locale, "Show this help", "Mostra esta ajuda")
+        i18n::show_help_help(locale)
     ));
 
     lines.join("\n")
@@ -220,9 +203,9 @@ fn dispatch_command(command_name: &str, args: &[String], locale: &str) -> Result
 }
 
 fn render_command_help(command: &CommandDescriptor, locale: &str) -> String {
-    let sub_label = locale_str!(locale, "subcommand", "subcomando");
-    let subs_label = locale_str!(locale, "Subcommands:", "Subcomandos:");
-    let usage_prefix = locale_str!(locale, "Usage", "Uso");
+    let sub_label = i18n::subcommand_label(locale);
+    let subs_label = i18n::subcommands_heading(locale);
+    let usage_prefix = i18n::usage_label(locale);
 
     let mut lines = vec![
         format!(

@@ -21,39 +21,9 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         .collect();
 
     match filtered.first().map(|s| s.as_str()) {
-        Some("--help" | "-h") => Ok(locale_str!(
-            locale,
-            "Usage: ralph-engine install [--pre] <publisher>/<name>\n\n\
-             Install a community plugin from the Ralph Engine catalog.\n\
-             By default, only stable releases are installed.\n\
-             Use --pre to allow prerelease versions (alpha, beta, rc).\n\n\
-             Options:\n\
-             \x20 --pre  Allow prerelease versions\n\n\
-             Examples:\n\
-             \x20 ralph-engine install acme/jira-suite\n\
-             \x20 ralph-engine install --pre acme/jira-suite\n\
-             \x20 ralph-engine uninstall acme/jira-suite",
-            "Uso: ralph-engine install [--pre] <publisher>/<nome>\n\n\
-             Instala um plugin da comunidade do catálogo Ralph Engine.\n\
-             Por padrão, apenas versões estáveis são instaladas.\n\
-             Use --pre para permitir versões prerelease (alpha, beta, rc).\n\n\
-             Opções:\n\
-             \x20 --pre  Permitir versões prerelease\n\n\
-             Exemplos:\n\
-             \x20 ralph-engine install acme/jira-suite\n\
-             \x20 ralph-engine install --pre acme/jira-suite\n\
-             \x20 ralph-engine uninstall acme/jira-suite"
-        )
-        .to_owned()),
+        Some("--help" | "-h") => Ok(i18n::install_help(locale).to_owned()),
         Some(plugin_ref) => install_plugin(plugin_ref, allow_prerelease, locale),
-        None => Err(CliError::new(
-            locale_str!(
-                locale,
-                "Plugin reference required. Usage: ralph-engine install <publisher>/<name>",
-                "Referência do plugin necessária. Uso: ralph-engine install <publisher>/<nome>"
-            )
-            .to_owned(),
-        )),
+        None => Err(CliError::new(i18n::install_ref_required(locale))),
     }
 }
 
@@ -61,14 +31,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 pub fn execute_uninstall(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
         Some(plugin_ref) => uninstall_plugin(plugin_ref, locale),
-        None => Err(CliError::new(
-            locale_str!(
-                locale,
-                "Plugin reference required. Usage: ralph-engine uninstall <publisher>/<name>",
-                "Referência do plugin necessária. Uso: ralph-engine uninstall <publisher>/<nome>"
-            )
-            .to_owned(),
-        )),
+        None => Err(CliError::new(i18n::uninstall_ref_required(locale))),
     }
 }
 
@@ -87,30 +50,17 @@ fn install_plugin(
     let plugins_dir = Path::new(".ralph-engine/plugins");
     let plugin_dir = plugins_dir.join(&plugin_id);
     if plugin_dir.exists() {
-        let msg = if i18n::is_pt_br(locale) {
-            format!(
-                "Plugin '{plugin_id}' já está instalado em {}",
-                plugin_dir.display()
-            )
-        } else {
-            format!(
-                "Plugin '{plugin_id}' is already installed at {}",
-                plugin_dir.display()
-            )
-        };
-        return Err(CliError::new(msg));
+        return Err(CliError::new(i18n::install_already_installed(
+            locale,
+            &plugin_id,
+            &plugin_dir.display().to_string(),
+        )));
     }
 
     let repo_url = format!("https://github.com/{publisher}/ralph-engine-plugin-{name}.git");
 
-    std::fs::create_dir_all(plugins_dir).map_err(|err| {
-        let msg = if i18n::is_pt_br(locale) {
-            format!("Falha ao criar diretório de plugins: {err}")
-        } else {
-            format!("Failed to create plugins directory: {err}")
-        };
-        CliError::new(msg)
-    })?;
+    std::fs::create_dir_all(plugins_dir)
+        .map_err(|err| CliError::new(i18n::install_create_dir_failed(locale, &err.to_string())))?;
 
     let status = std::process::Command::new("git")
         .args([
@@ -121,34 +71,18 @@ fn install_plugin(
             &plugin_dir.to_string_lossy(),
         ])
         .status()
-        .map_err(|err| {
-            let msg = if i18n::is_pt_br(locale) {
-                format!("Falha ao executar git clone: {err}")
-            } else {
-                format!("Failed to run git clone: {err}")
-            };
-            CliError::new(msg)
-        })?;
+        .map_err(|err| CliError::new(i18n::install_clone_exec_failed(locale, &err.to_string())))?;
 
     if !status.success() {
-        let msg = if i18n::is_pt_br(locale) {
-            format!("Falha ao clonar {repo_url}. Verifique se o repositório existe e é público.")
-        } else {
-            format!("Failed to clone {repo_url}. Check that the repository exists and is public.")
-        };
-        return Err(CliError::new(msg));
+        return Err(CliError::new(i18n::install_clone_repo_failed(
+            locale, &repo_url,
+        )));
     }
 
     let manifest_path = plugin_dir.join("manifest.yaml");
     if !manifest_path.exists() {
         let _ = std::fs::remove_dir_all(&plugin_dir);
-        let msg = if i18n::is_pt_br(locale) {
-            "Repositório clonado mas manifest.yaml não encontrado. Não é um plugin Ralph Engine válido.".to_owned()
-        } else {
-            "Repository cloned but no manifest.yaml found. Not a valid Ralph Engine plugin."
-                .to_owned()
-        };
-        return Err(CliError::new(msg));
+        return Err(CliError::new(i18n::install_no_manifest(locale)));
     }
 
     let config_path = Path::new(".ralph-engine/config.yaml");
@@ -161,9 +95,9 @@ fn install_plugin(
 
     Ok(format!(
         "{}\n  {} {plugin_id}\n  {} {}",
-        locale_str!(locale, "Plugin installed:", "Plugin instalado:"),
-        locale_str!(locale, "ID:", "ID:"),
-        locale_str!(locale, "Location:", "Local:"),
+        i18n::install_success(locale),
+        i18n::install_id_label(locale),
+        i18n::install_location_label(locale),
         plugin_dir.display()
     ))
 }
@@ -175,22 +109,13 @@ fn uninstall_plugin(plugin_ref: &str, locale: &str) -> Result<String, CliError> 
 
     let plugin_dir = Path::new(".ralph-engine/plugins").join(&plugin_id);
     if !plugin_dir.exists() {
-        let msg = if i18n::is_pt_br(locale) {
-            format!("Plugin '{plugin_id}' não está instalado.")
-        } else {
-            format!("Plugin '{plugin_id}' is not installed.")
-        };
-        return Err(CliError::new(msg));
+        return Err(CliError::new(i18n::install_not_installed(
+            locale, &plugin_id,
+        )));
     }
 
-    std::fs::remove_dir_all(&plugin_dir).map_err(|err| {
-        let msg = if i18n::is_pt_br(locale) {
-            format!("Falha ao remover diretório do plugin: {err}")
-        } else {
-            format!("Failed to remove plugin directory: {err}")
-        };
-        CliError::new(msg)
-    })?;
+    std::fs::remove_dir_all(&plugin_dir)
+        .map_err(|err| CliError::new(i18n::install_remove_dir_failed(locale, &err.to_string())))?;
 
     let config_path = Path::new(".ralph-engine/config.yaml");
     if let Ok(config) = std::fs::read_to_string(config_path) {
@@ -201,12 +126,7 @@ fn uninstall_plugin(plugin_ref: &str, locale: &str) -> Result<String, CliError> 
         let _ = std::fs::write(config_path, filtered.join("\n"));
     }
 
-    let msg = if i18n::is_pt_br(locale) {
-        format!("Plugin '{plugin_id}' desinstalado.")
-    } else {
-        format!("Plugin '{plugin_id}' uninstalled.")
-    };
-    Ok(msg)
+    Ok(i18n::install_uninstalled(locale, &plugin_id))
 }
 
 /// Parses "publisher/name" or "publisher.name" into (publisher, name).

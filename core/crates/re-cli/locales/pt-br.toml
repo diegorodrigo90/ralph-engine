@@ -1,3 +1,4 @@
+# ── Existing labels (entity, surface, asset) ──────────────────────
 root_bootstrapped = "Fundação Rust inicializada."
 providers_label = "Provedores"
 name_label = "Nome"
@@ -43,3 +44,94 @@ provider_entity_label = "provedor"
 locale_entity_label = "idioma"
 mcp_server_entity_label = "servidor MCP"
 materialized_assets_heading = "Assets materializados"
+
+# ── Help / usage ──────────────────────────────────────────────────
+usage_help = "Uso: ralph-engine [--locale <id>] <comando> [argumentos]"
+commands_heading = "Comandos:"
+set_locale_help = "Define o idioma (en, pt-br)"
+show_version_help = "Mostra a versão"
+show_help_help = "Mostra esta ajuda"
+subcommand_label = "subcomando"
+subcommands_heading = "Subcomandos:"
+usage_label = "Uso"
+
+# ── Run command ───────────────────────────────────────────────────
+run_id_required = "ID do work item obrigatório. Use `ralph-engine run <id>` ou `ralph-engine run --list`."
+run_no_items = "Nenhum work item encontrado."
+run_available_items = "Work items disponíveis"
+run_work_item_id_label = "ID do work item"
+run_workflow_label = "Workflow"
+run_agent_label = "Agente"
+run_work_item_label = "Work item"
+run_prompt_size_label = "Tamanho do prompt"
+run_agent_ready_label = "Agente pronto"
+run_execution_plan = "Plano de execução"
+run_source_label = "Fonte"
+run_context_files_label = "arquivos de contexto"
+run_hint_label = "Dica"
+run_agent_not_ready = "Agente não está pronto"
+run_work_item_not_found = "Work item não encontrado"
+run_use_list_hint = "Use `ralph-engine run --list` para ver itens disponíveis."
+run_launching_agent = "Lançando agente"
+run_agent_completed = "Agente finalizado"
+run_agent_failed = "Agente falhou"
+run_missing_agent_id = "Campo 'run.agent_id' ausente em .ralph-engine/config.yaml."
+run_config_not_found = "Configuração do projeto não encontrada. Execute `ralph-engine init` para criar."
+run_missing_workflow_plugin = "Campo 'run.workflow_plugin' ausente em .ralph-engine/config.yaml.\nExemplo:\n  run:\n    workflow_plugin: <id-plugin-workflow>\n    agent_plugin: <id-plugin-agente>\n    agent_id: <id-agente>"
+run_missing_agent_plugin = "Campo 'run.agent_plugin' ausente em .ralph-engine/config.yaml.\nExemplo:\n  run:\n    agent_plugin: <id-plugin-agente>"
+run_workflow_no_runtime = "Plugin de workflow não fornece runtime"
+run_agent_no_runtime = "Plugin de agente não fornece runtime"
+run_autonomous_rejected = "Modo autônomo não aceito. Abortando."
+run_cwd_error = "Falha ao resolver diretório de trabalho"
+run_autonomous_warning = "⚠️  AVISO DE MODO AUTÔNOMO\n\nralph-engine run lança um agente de IA que pode:\n- Ler e escrever arquivos neste projeto\n- Executar comandos no shell\n- Fazer commits no git\n\nO agente roda com permissões auto-aceitas para trabalhar de forma autônoma.\nEquivalente a --dangerously-skip-permissions no Claude Code.\n\nExecute apenas em projetos que você confia.\n\nAceitar e continuar? [y/N] "
+
+# ── Init command ──────────────────────────────────────────────────
+init_help = "Uso: ralph-engine init [diretório]\n\nInicializa interativamente um novo projeto Ralph Engine.\nCria .ralph-engine/ com config, hooks e arquivos de prompt.\n\nTemplates e plugins são auto-descobertos do catálogo."
+init_exists_warning = ".ralph-engine/ já existe.\n  AVISO: Sobrescrever vai APAGAR toda configuração atual."
+init_overwrite_prompt = "Sobrescrever?"
+init_cancelled = "Cancelado."
+init_no_templates = "Nenhum template encontrado no catálogo. Não é possível inicializar."
+init_select_template = "Selecione um template:"
+init_enable_additional = "Ativar plugins adicionais? (números separados por vírgula, ou Enter para pular)"
+init_enabled_label = "Ativou"
+init_additional_plugins = "plugins adicionais"
+init_enable_label = "Ativar"
+init_created_label = "Criado"
+init_done_prefix = "Pronto! Execute"
+init_done_suffix = "para verificar."
+
+# ── Install command ───────────────────────────────────────────────
+install_help = "Uso: ralph-engine install [--pre] <publisher>/<nome>\n\nInstala um plugin da comunidade do catálogo Ralph Engine.\nPor padrão, apenas versões estáveis são instaladas.\nUse --pre para permitir versões prerelease (alpha, beta, rc).\n\nOpções:\n  --pre  Permitir versões prerelease\n\nExemplos:\n  ralph-engine install acme/jira-suite\n  ralph-engine install --pre acme/jira-suite\n  ralph-engine uninstall acme/jira-suite"
+install_ref_required = "Referência do plugin necessária. Uso: ralph-engine install <publisher>/<nome>"
+uninstall_ref_required = "Referência do plugin necessária. Uso: ralph-engine uninstall <publisher>/<nome>"
+install_success = "Plugin instalado:"
+install_id_label = "ID:"
+install_location_label = "Local:"
+install_no_manifest = "Repositório clonado mas manifest.yaml não encontrado. Não é um plugin Ralph Engine válido."
+
+# ── Agents command ────────────────────────────────────────────────
+agents_bootstrap_probe = "Verificação de bootstrap de agente"
+agents_bootstrap_registered = "Hook de bootstrap registrado"
+agents_bootstrap_not_registered = "Hook de bootstrap NÃO registrado"
+agents_no_runtime = "Plugin não fornece implementação de runtime."
+
+# ── MCP command ───────────────────────────────────────────────────
+mcp_launch_probe = "Verificação de lançamento MCP"
+mcp_no_runtime = "Plugin não fornece implementação de runtime."
+mcp_binary_found = "Binário encontrado"
+mcp_spawning_label = "Iniciando"
+mcp_process_exited = "Processo encerrado"
+mcp_binary_not_found = "Binário NÃO encontrado no PATH"
+
+# ── Checks / Doctor command ───────────────────────────────────────
+checks_plugin_execution = "Verificação do plugin"
+checks_file_validation = "Validação de arquivos do projeto"
+checks_missing_label = "FALTANDO"
+checks_scaffold_hint = "Dica: execute 'ralph-engine templates scaffold basic' para gerar os arquivos iniciais"
+
+# ── Policies command ──────────────────────────────────────────────
+policies_file_validation = "Validação de arquivos da política"
+policies_missing_label = "FALTANDO"
+
+# ── Hooks command ─────────────────────────────────────────────────
+hooks_plan_heading = "Plano de hook de runtime"
