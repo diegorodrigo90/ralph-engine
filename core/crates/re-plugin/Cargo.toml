@@ -1,5 +1,6 @@
 [package]
 name = "re-plugin"
+description = "Plugin trait system and runtime contracts for Ralph Engine"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

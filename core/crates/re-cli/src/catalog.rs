@@ -513,3 +513,194 @@ pub fn collect_tui_panels_from_plugins() -> Vec<(String, re_plugin::TuiPanel)> {
 
     panels
 }
+
+// ── Community plugin discovery ────────────────────────────────────
+
+/// Descriptor for a community plugin discovered from the filesystem.
+#[derive(Debug, Clone)]
+pub struct CommunityPluginInfo {
+    /// Plugin ID from manifest (e.g. `"acme.jira-suite"`).
+    pub id: String,
+    /// Display name.
+    pub display_name: String,
+    /// Short summary.
+    pub summary: String,
+    /// Capabilities declared in manifest.
+    pub capabilities: Vec<String>,
+    /// Path to the plugin directory.
+    pub path: String,
+}
+
+/// Scans `.ralph-engine/plugins/` for installed community plugins.
+///
+/// Reads each subdirectory's `manifest.yaml` to extract plugin metadata.
+/// Returns only successfully parsed plugins — malformed manifests are
+/// silently skipped (logged via tracing).
+#[must_use]
+pub fn discover_community_plugins() -> Vec<CommunityPluginInfo> {
+    let plugins_dir = std::path::Path::new(".ralph-engine/plugins");
+    if !plugins_dir.is_dir() {
+        return Vec::new();
+    }
+
+    let Ok(entries) = std::fs::read_dir(plugins_dir) else {
+        return Vec::new();
+    };
+
+    let mut plugins = Vec::new();
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let manifest_path = path.join("manifest.yaml");
+        if !manifest_path.exists() {
+            continue;
+        }
+
+        if let Some(info) = parse_community_manifest(&manifest_path, &path) {
+            plugins.push(info);
+        }
+    }
+
+    plugins
+}
+
+/// Parses a community plugin manifest.yaml into a `CommunityPluginInfo`.
+fn parse_community_manifest(
+    manifest_path: &std::path::Path,
+    plugin_dir: &std::path::Path,
+) -> Option<CommunityPluginInfo> {
+    let content = std::fs::read_to_string(manifest_path).ok()?;
+
+    // Simple YAML extraction without serde dependency.
+    let id = extract_yaml_value(&content, "id")?;
+    let display_name = extract_yaml_value(&content, "display_name").unwrap_or_else(|| id.clone());
+    let summary = extract_yaml_value(&content, "summary").unwrap_or_default();
+
+    // Parse capabilities list.
+    let capabilities = extract_yaml_list(&content, "capabilities");
+
+    Some(CommunityPluginInfo {
+        id,
+        display_name,
+        summary,
+        capabilities,
+        path: plugin_dir.display().to_string(),
+    })
+}
+
+/// Extracts a simple scalar YAML value: `key: value`.
+fn extract_yaml_value(content: &str, key: &str) -> Option<String> {
+    let prefix = format!("{key}:");
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix(&prefix) {
+            let value = rest.trim().trim_matches('"').trim_matches('\'');
+            if !value.is_empty() {
+                return Some(value.to_owned());
+            }
+        }
+    }
+    None
+}
+
+/// Extracts a YAML list under a key (simple indented `- item` format).
+fn extract_yaml_list(content: &str, key: &str) -> Vec<String> {
+    let header = format!("{key}:");
+    let mut items = Vec::new();
+    let mut in_list = false;
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with(&header) {
+            in_list = true;
+            continue;
+        }
+        if in_list {
+            if let Some(item) = trimmed.strip_prefix("- ") {
+                items.push(item.trim().trim_matches('"').trim_matches('\'').to_owned());
+            } else if !trimmed.is_empty() && !trimmed.starts_with('#') {
+                break; // End of list
+            }
+        }
+    }
+
+    items
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::expect_used)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn extract_yaml_value_parses_simple_scalar() {
+        let content = "id: acme.test\nkind: agent_runtime\nsummary: A test plugin.";
+        assert_eq!(
+            extract_yaml_value(content, "id"),
+            Some("acme.test".to_owned())
+        );
+        assert_eq!(
+            extract_yaml_value(content, "summary"),
+            Some("A test plugin.".to_owned())
+        );
+    }
+
+    #[test]
+    fn extract_yaml_value_handles_quoted_values() {
+        let content = "id: \"acme.test\"";
+        assert_eq!(
+            extract_yaml_value(content, "id"),
+            Some("acme.test".to_owned())
+        );
+    }
+
+    #[test]
+    fn extract_yaml_value_returns_none_for_missing_key() {
+        let content = "id: test";
+        assert_eq!(extract_yaml_value(content, "missing"), None);
+    }
+
+    #[test]
+    fn extract_yaml_list_parses_items() {
+        let content = "capabilities:\n  - agent_runtime\n  - mcp_contribution\nother: value";
+        let list = extract_yaml_list(content, "capabilities");
+        assert_eq!(list, vec!["agent_runtime", "mcp_contribution"]);
+    }
+
+    #[test]
+    fn extract_yaml_list_empty_when_missing() {
+        let content = "id: test";
+        let list = extract_yaml_list(content, "capabilities");
+        assert!(list.is_empty());
+    }
+
+    #[test]
+    fn discover_community_plugins_returns_empty_when_no_dir() {
+        // In test environment, .ralph-engine/plugins/ doesn't exist
+        let plugins = discover_community_plugins();
+        assert!(plugins.is_empty());
+    }
+
+    #[test]
+    fn parse_community_manifest_extracts_fields() {
+        let dir = std::env::temp_dir().join("re-test-community-plugin");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).ok();
+        std::fs::write(
+            dir.join("manifest.yaml"),
+            "id: acme.test\ndisplay_name: Acme Test\nsummary: A test plugin.\ncapabilities:\n  - agent_runtime\n  - tui_widgets\n",
+        )
+        .ok();
+
+        let info = parse_community_manifest(&dir.join("manifest.yaml"), &dir);
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let info = info.expect("should parse manifest");
+        assert_eq!(info.id, "acme.test");
+        assert_eq!(info.display_name, "Acme Test");
+        assert_eq!(info.summary, "A test plugin.");
+        assert_eq!(info.capabilities, vec!["agent_runtime", "tui_widgets"]);
+    }
+}

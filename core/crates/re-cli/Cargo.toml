@@ -1,5 +1,6 @@
 [package]
 name = "re-cli"
+description = "Plugin-first CLI for agentic coding workflows"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
