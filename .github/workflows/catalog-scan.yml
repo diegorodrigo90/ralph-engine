@@ -1,0 +1,47 @@
+name: Catalog Scan
+
+on:
+  schedule:
+    # Daily at 06:00 UTC
+    - cron: '0 6 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+
+      - name: Scan community plugins
+        env:
+          SCAN_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: GITHUB_TOKEN="$SCAN_TOKEN" node scripts/scan-community-plugins.mjs
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet site/src/data/plugins.json site/public/plugins/index.json; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit catalog update
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add site/src/data/plugins.json site/public/plugins/index.json
+          git commit -m "chore(catalog): update community plugin index"
+          git push

@@ -26,6 +26,7 @@ mod embedded_assets;
 mod grouped_surfaces;
 mod hooks;
 mod init;
+mod install;
 mod locales;
 mod mcp;
 mod plugins;
@@ -87,6 +88,11 @@ const COMMANDS: &[CommandDescriptor] = &[
         handler: init::execute,
     },
     CommandDescriptor {
+        name: "install",
+        subcommands: &[],
+        handler: install::execute,
+    },
+    CommandDescriptor {
         name: "locales",
         subcommands: &["list", "show"],
         handler: locales::execute,
@@ -130,6 +136,11 @@ const COMMANDS: &[CommandDescriptor] = &[
         name: "templates",
         subcommands: &["list", "show", "asset", "scaffold", "materialize"],
         handler: templates::execute,
+    },
+    CommandDescriptor {
+        name: "uninstall",
+        subcommands: &[],
+        handler: install::execute_uninstall,
     },
 ];
 

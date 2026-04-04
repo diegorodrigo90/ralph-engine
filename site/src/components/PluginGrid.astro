@@ -1,7 +1,8 @@
 ---
 import type { Locale } from '../i18n/utils';
 import { t, localePath } from '../i18n/utils';
-import plugins from '../data/plugins.json';
+import catalog from '../data/plugins.json';
+const plugins = catalog.plugins;
 
 interface Props {
   lang: Locale;

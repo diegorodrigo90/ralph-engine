@@ -254,28 +254,35 @@ const plugins = pluginDirs.map((name) => {
   return { ...sanitized, iconUrl, description, description_locales, docs };
 });
 
-// Write for Astro build-time import
+// Single source of truth: standardized catalog format.
+// Both Astro (build-time import) and public API (static JSON) read from here.
+// Community plugins are merged by scripts/scan-community-plugins.mjs.
+//
+// Format: { schema_version, generated_at, count, community_count, plugins[] }
+// See AGENTS.md "Plugin Catalog Format" section for the full spec.
+const catalog = {
+  schema_version: 1,
+  generated_at: new Date().toISOString(),
+  count: plugins.length,
+  community_count: 0,
+  last_scan: null,
+  icon_contract: {
+    discovery: 'Auto — place icon.svg (preferred), icon.png, icon.jpg, or icon.webp in plugin root',
+    svg: { viewbox: '0 0 24 24', style: 'stroke-based, stroke-width 2', security: 'Sanitized at build time' },
+    png: { min_size: '128x128', background: 'transparent' },
+  },
+  plugins,
+};
+
+// Write single source — used by both Astro build and public API.
 const dataDir = join(siteRoot, 'src', 'data');
 mkdirSync(dataDir, { recursive: true });
-writeFileSync(join(dataDir, 'plugins.json'), JSON.stringify(plugins, null, 2));
+writeFileSync(join(dataDir, 'plugins.json'), JSON.stringify(catalog, null, 2));
 
-// Write public machine-readable catalog
+// Copy to public for static API access (ralphengine.com/plugins/index.json).
 const publicPluginsDir = join(siteRoot, 'public', 'plugins');
 mkdirSync(publicPluginsDir, { recursive: true });
-writeFileSync(
-  join(publicPluginsDir, 'index.json'),
-  JSON.stringify({
-    version: 1,
-    generated_at: new Date().toISOString(),
-    count: plugins.length,
-    icon_contract: {
-      discovery: 'Auto — place icon.svg (preferred), icon.png, icon.jpg, or icon.webp in plugin root',
-      svg: { viewbox: '0 0 24 24', style: 'stroke-based, stroke-width 2', security: 'Sanitized at build time' },
-      png: { min_size: '128x128', background: 'transparent' },
-    },
-    plugins,
-  }, null, 2),
-);
+writeFileSync(join(publicPluginsDir, 'index.json'), JSON.stringify(catalog, null, 2));
 
 const withIcons = plugins.filter(p => p.iconUrl).length;
 console.log(`Generated plugin data: ${plugins.length} plugins, ${withIcons} with icons.`);
