@@ -23,6 +23,7 @@ const SUPPORTED_CAPABILITIES = new Set([
   "mcp_contribution",
   "policy",
   "workflow",
+  "tui_widgets",
 ]);
 
 const DEFAULT_CAPABILITIES_BY_KIND = new Map([
@@ -50,6 +51,7 @@ const CAPABILITY_IMPORT_NAMES = new Map([
   ["remote_control", "REMOTE_CONTROL"],
   ["policy", "POLICY"],
   ["workflow", "WORKFLOW"],
+  ["tui_widgets", "TUI_WIDGETS"],
 ]);
 
 const CAPABILITY_RUNTIME_HOOKS = new Map([
@@ -65,6 +67,7 @@ const CAPABILITY_RUNTIME_HOOKS = new Map([
   ["remote_control", "PluginRuntimeHook::RemoteControlBootstrap"],
   ["policy", "PluginRuntimeHook::PolicyEnforcement"],
   ["workflow", "PluginRuntimeHook::WorkItemResolution"],
+  ["tui_widgets", "PluginRuntimeHook::TuiContribution"],
 ]);
 
 const KIND_VARIANTS = new Map([
