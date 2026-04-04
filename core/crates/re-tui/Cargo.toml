@@ -11,6 +11,8 @@ authors.workspace = true
 
 [dependencies]
 ratatui = "0.30"
+ratatui-image = { version = "10.0", default-features = false, features = ["crossterm", "serde"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-appender = "0.2"

@@ -1,14 +1,29 @@
 //! TUI dashboard demo command.
 //!
 //! Launches the ratatui-based terminal dashboard with simulated
-//! agent activity. In production, `ralph-engine run` uses the TUI
-//! by default — this command exists for testing the dashboard.
+//! agent activity and logo rendering. In production, `ralph-engine run`
+//! uses the TUI by default — this command exists for testing.
 
 use crate::CliError;
 
-/// Executes the TUI demo with simulated agent activity.
+/// Simulated agent events for the demo.
+const DEMO_EVENTS: &[&str] = &[
+    r#"{"type":"system","text":"Session initialized"}"#,
+    r#"{"type":"content_block_start","content_block":{"type":"tool_use","name":"Read","id":"t1"}}"#,
+    r#"{"type":"content_block_delta","delta":{"type":"text_delta","text":"Reading AGENTS.md..."}}"#,
+    r#"{"type":"tool_result","name":"Read","content":"58 Golden Rules"}"#,
+    r#"{"type":"content_block_start","content_block":{"type":"tool_use","name":"Grep","id":"t2"}}"#,
+    r#"{"type":"content_block_delta","delta":{"type":"text_delta","text":"Scanning for violations..."}}"#,
+    r#"{"type":"tool_result","name":"Grep","content":"0 violations"}"#,
+    r#"{"type":"content_block_delta","delta":{"type":"text_delta","text":"All checks passed. Quality gates green."}}"#,
+];
+
+/// Executes the TUI demo.
 #[cfg_attr(coverage_nightly, coverage(off))]
 pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
+    use ratatui::crossterm::event::{self, Event, KeyEventKind};
+    use ratatui::layout::{Constraint, Layout};
+
     let config = re_tui::TuiConfig {
         mode: re_tui::TuiMode::Autonomous,
         title: "Demo task".to_owned(),
@@ -35,29 +50,67 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
         },
     ]);
 
-    // Seed initial activity
-    let demo_lines = [
-        r#"{"type":"system","text":"Session initialized"}"#,
-        r#"{"type":"content_block_start","content_block":{"type":"tool_use","name":"Read","id":"t1"}}"#,
-        r#"{"type":"content_block_delta","delta":{"type":"text_delta","text":"Reading AGENTS.md..."}}"#,
-        r#"{"type":"tool_result","name":"Read","content":"58 Golden Rules"}"#,
-        r#"{"type":"content_block_start","content_block":{"type":"tool_use","name":"Grep","id":"t2"}}"#,
-        r#"{"type":"content_block_delta","delta":{"type":"text_delta","text":"Scanning for violations..."}}"#,
-        r#"{"type":"tool_result","name":"Grep","content":"0 violations"}"#,
-        r#"{"type":"content_block_delta","delta":{"type":"text_delta","text":"All checks passed."}}"#,
-    ];
+    shell.push_startup_banner();
 
-    for (i, line) in demo_lines.iter().enumerate() {
-        let event = re_tui::parse_stream_line(line);
-        shell.process_event(&event);
-        let pct = ((i + 1) as f32 / demo_lines.len() as f32 * 100.0) as u16;
-        shell.set_progress(pct);
-    }
+    // Try to create logo image (best-effort — works without it)
+    let mut logo_protocol = re_tui::logo::create_logo();
 
-    shell.push_activity(String::new());
-    shell.push_activity(">> Press 'p' to pause, '?' for help, 'q' to quit".to_owned());
+    let mut terminal = ratatui::init();
+    let mut event_index = 0usize;
+    let mut tick_counter = 0u32;
 
-    shell.run_demo().map_err(|e| CliError::new(e.message))?;
+    let result: Result<(), String> = (|| {
+        loop {
+            terminal
+                .draw(|frame| {
+                    let area = frame.area();
 
+                    // If logo available, split top area for logo + dashboard
+                    if let Some(ref mut protocol) = logo_protocol {
+                        let rows = Layout::vertical([
+                            Constraint::Length(6), // Logo area
+                            Constraint::Fill(1),   // Dashboard
+                        ])
+                        .split(area);
+
+                        re_tui::logo::render_logo(frame, rows[0], protocol);
+
+                        // Render dashboard in remaining space using a sub-frame trick:
+                        // we render the shell into the lower area
+                        shell.render_frame_in_area(frame, rows[1]);
+                    } else {
+                        shell.render_frame(frame);
+                    }
+                })
+                .map_err(|e| format!("render: {e}"))?;
+
+            // Feed demo events
+            #[allow(clippy::manual_is_multiple_of)]
+            if tick_counter % 8 == 0 && event_index < DEMO_EVENTS.len() {
+                let ev = re_tui::parse_stream_line(DEMO_EVENTS[event_index]);
+                shell.process_event(&ev);
+                event_index += 1;
+                let pct = ((event_index as f32 / DEMO_EVENTS.len() as f32) * 100.0) as u16;
+                shell.set_progress(pct);
+            }
+            tick_counter += 1;
+
+            if event::poll(std::time::Duration::from_millis(100))
+                .map_err(|e| format!("poll: {e}"))?
+                && let Event::Key(key) = event::read().map_err(|e| format!("read: {e}"))?
+                && key.kind == KeyEventKind::Press
+            {
+                shell.handle_key(key.code);
+            }
+
+            if shell.should_quit() {
+                break;
+            }
+        }
+        Ok(())
+    })();
+
+    ratatui::restore();
+    result.map_err(CliError::new)?;
     Ok("TUI demo exited.".to_owned())
 }
