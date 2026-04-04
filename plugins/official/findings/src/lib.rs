@@ -10,10 +10,11 @@ use std::path::Path;
 mod i18n;
 
 use re_plugin::{
-    AgentBootstrapResult, CheckExecutionResult, McpRegistrationResult, PROMPT_FRAGMENTS,
-    PluginCheckKind, PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary,
-    PluginLocalizedText, PluginPromptAsset, PluginPromptDescriptor, PluginProviderDescriptor,
-    PluginRuntime, PluginRuntimeError, PluginRuntimeHook, PluginTrustLevel, PromptContribution,
+    AgentBootstrapResult, CONTEXT_PROVIDER, CheckExecutionResult, McpRegistrationResult,
+    PROMPT_FRAGMENTS, PluginCheckKind, PluginDescriptor, PluginKind, PluginLifecycleStage,
+    PluginLoadBoundary, PluginLocalizedText, PluginPromptAsset, PluginPromptDescriptor,
+    PluginProviderDescriptor, PluginRuntime, PluginRuntimeError, PluginRuntimeHook,
+    PluginTrustLevel, PromptContribution,
 };
 
 /// Stable plugin identifier.
@@ -23,7 +24,7 @@ const LOCALIZED_NAMES: &[PluginLocalizedText] = i18n::localized_plugin_names();
 const PLUGIN_SUMMARY: &str = i18n::plugin_summary();
 const LOCALIZED_SUMMARIES: &[PluginLocalizedText] = i18n::localized_plugin_summaries();
 const PLUGIN_VERSION: &str = env!("CARGO_PKG_VERSION");
-const CAPABILITIES: &[re_plugin::PluginCapability] = &[PROMPT_FRAGMENTS];
+const CAPABILITIES: &[re_plugin::PluginCapability] = &[CONTEXT_PROVIDER, PROMPT_FRAGMENTS];
 const LIFECYCLE: &[PluginLifecycleStage] =
     &[PluginLifecycleStage::Discover, PluginLifecycleStage::Load];
 const RUNTIME_HOOKS: &[PluginRuntimeHook] = &[PluginRuntimeHook::PromptAssembly];
@@ -207,9 +208,10 @@ mod tests {
     }
 
     #[test]
-    fn plugin_declares_prompt_fragments_capability() {
+    fn plugin_declares_expected_capabilities() {
         let caps = capabilities();
-        assert!(!caps.is_empty());
+        assert_eq!(caps.len(), 2);
+        assert!(caps.iter().any(|c| c.as_str() == "context_provider"));
         assert!(caps.iter().any(|c| c.as_str() == "prompt_fragments"));
     }
 
@@ -255,6 +257,7 @@ mod tests {
         let manifest = manifest_document();
         assert!(manifest.contains("id: official.findings"));
         assert!(manifest.contains("kind: context_provider"));
+        assert!(manifest.contains("- context_provider"));
         assert!(manifest.contains("- prompt_fragments"));
         assert!(manifest.contains("plugin_api_version: 1"));
     }

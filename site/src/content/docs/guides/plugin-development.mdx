@@ -35,7 +35,7 @@ Plugins are Rust crates with a `manifest.yaml` that Ralph Engine auto-discovers 
 | `--publisher` | Yes | Publisher namespace. Use your org name (e.g., `acme`). |
 | `--kind` | Yes | Plugin kind. Determines which capabilities and trait methods are relevant. |
 
-Valid `--kind` values: `template`, `agent_runtime`, `mcp_contribution`, `policy`, `remote_control`.
+Valid `--kind` values: `template`, `agent_runtime`, `mcp_contribution`, `policy`, `remote_control`, `context_provider`.
 
 ## Generated Files
 
@@ -166,7 +166,27 @@ pub trait PluginRuntime: Send + Sync {
 }
 ```
 
-Not all methods need real implementations. A template plugin only cares about `run_check` (to validate project files). An agent runtime plugin focuses on `bootstrap_agent`. Return `Err(PluginRuntimeError::new(...))` for operations your plugin does not support:
+The trait also provides two optional methods for the `run` command pipeline:
+
+```rust
+/// Returns tool names/patterns this plugin requires for agent sessions.
+/// The core collects tools from ALL enabled plugins, deduplicates,
+/// and passes the merged list to the agent plugin.
+fn required_tools(&self) -> &[&str] {
+    &[] // default: no required tools
+}
+
+/// Returns prompt sections this plugin contributes to agent sessions.
+/// Called after build_prompt_context — each contribution is appended
+/// to the prompt text and added to the context files.
+fn prompt_contributions(&self, _project_root: &Path) -> Vec<PromptContribution> {
+    Vec::new() // default: no contributions
+}
+```
+
+These methods enable **auto-discovery**: each plugin declares its tool requirements and prompt content without the user configuring them manually. The `run` command collects from all enabled plugins automatically.
+
+Not all methods need real implementations. A template plugin only cares about `run_check` (to validate project files). An agent runtime plugin focuses on `bootstrap_agent`. A context provider plugin implements `prompt_contributions` to inject content into agent prompts. Return `Err(PluginRuntimeError::new(...))` for operations your plugin does not support:
 
 ```rust
 fn bootstrap_agent(
@@ -248,6 +268,7 @@ ralph-engine plugins list
 |------|------------|----------|
 | `template` | Templates, prompts | Project scaffolding and starter files |
 | `agent_runtime` | Agents, MCP servers | Agent integration (Claude, Codex, custom) |
+| `context_provider` | Prompt fragments | Runtime content injection into agent prompts (e.g., findings, knowledge bases) |
 | `mcp_contribution` | MCP servers | External tool integration without agent runtime |
 | `policy` | Policies, checks | Enforcement rules (TDD, lint, compliance) |
 | `remote_control` | Providers | Remote execution (SSH, containers, cloud) |
