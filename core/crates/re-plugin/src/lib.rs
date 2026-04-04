@@ -1123,6 +1123,38 @@ pub struct AgentLaunchResult {
     pub message: String,
 }
 
+/// A spawned agent process for TUI integration.
+///
+/// The TUI render loop reads `stdout` for stream-json events and
+/// uses `pid` for pause/resume signal delivery.
+pub struct SpawnedAgent {
+    /// OS process ID for signal delivery (`SIGSTOP`/`SIGCONT`).
+    pub pid: u32,
+    /// Agent stdout for reading stream-json events.
+    /// Use `take_stdout()` to move it to the reader thread.
+    pub stdout: Option<std::process::ChildStdout>,
+    /// The child process handle (for `wait()`).
+    pub child: std::process::Child,
+    /// Path to temporary context file (cleaned up on drop).
+    pub context_file: Option<std::path::PathBuf>,
+}
+
+impl SpawnedAgent {
+    /// Takes the stdout handle (moves ownership to caller).
+    /// Returns `None` if already taken.
+    pub fn take_stdout(&mut self) -> Option<std::process::ChildStdout> {
+        self.stdout.take()
+    }
+}
+
+impl Drop for SpawnedAgent {
+    fn drop(&mut self) {
+        if let Some(ref path) = self.context_file {
+            let _ = std::fs::remove_file(path);
+        }
+    }
+}
+
 /// Result of registering an MCP server.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct McpRegistrationResult {
@@ -1231,10 +1263,10 @@ pub trait PluginRuntime: Send + Sync {
         ))
     }
 
-    /// Launches an agent with the given prompt context.
+    /// Launches an agent with the given prompt context (blocking).
     ///
     /// Called after prompt context is assembled. The agent plugin spawns
-    /// the actual process (e.g., `claude` CLI) with the prompt.
+    /// the actual process and waits for completion. Used in `--no-tui` mode.
     fn launch_agent(
         &self,
         _agent_id: &str,
@@ -1244,6 +1276,23 @@ pub trait PluginRuntime: Send + Sync {
         Err(PluginRuntimeError::new(
             "not_an_agent_plugin",
             format!("Plugin '{}' does not launch agents", self.plugin_id()),
+        ))
+    }
+
+    /// Spawns an agent process and returns it for TUI integration.
+    ///
+    /// Unlike `launch_agent()` which blocks until completion, this method
+    /// returns the child process immediately. The caller (TUI render loop)
+    /// reads stdout events and manages the process lifecycle.
+    fn spawn_agent(
+        &self,
+        _agent_id: &str,
+        _context: &PromptContext,
+        _project_root: &Path,
+    ) -> Result<SpawnedAgent, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_an_agent_plugin",
+            format!("Plugin '{}' does not spawn agents", self.plugin_id()),
         ))
     }
 

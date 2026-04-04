@@ -344,52 +344,43 @@ fn run_work_item(work_item_id: &str, locale: &str, verbose: bool) -> Result<Stri
         );
     }
 
-    // 4. Print launch info
-    dbg_log(verbose, "[step 4/5] printing launch info...");
-    let launch_msg = format!(
-        "--- {} ---\n{}: {} — {}\n{}: {}\n",
-        i18n::run_launching_agent(locale),
-        i18n::run_work_item_label(locale),
-        resolution.canonical_id,
-        resolution.title,
-        i18n::run_agent_label(locale),
-        agent_id,
-    );
-    println!("{launch_msg}");
+    // 4. Check for --no-tui flag
+    let no_tui = std::env::args().any(|a| a == "--no-tui" || a == "--headless");
 
-    use std::io::Write as _;
-    let _ = std::io::stdout().flush();
+    if no_tui {
+        // Headless mode: blocking launch, stream to stderr (original behavior)
+        dbg_log(verbose, "[step 4/4] launching agent (headless)...");
+        let result = agent_runtime
+            .launch_agent(agent_id, &context, &cwd)
+            .map_err(|err| CliError::new(err.to_string()))?;
 
-    // 5. Launch agent
-    dbg_log(verbose, "[step 5/5] spawning agent process...");
-    let result = agent_runtime
-        .launch_agent(agent_id, &context, &cwd)
-        .map_err(|err| CliError::new(err.to_string()))?;
-
-    dbg_log(
-        verbose,
-        &format!(
-            "[step 5/5] agent result: success={}, exit_code={:?}, message='{}'",
-            result.success, result.exit_code, result.message
-        ),
-    );
-
-    if result.success {
-        Ok(format!(
-            "\n--- {} ---\n{}",
-            i18n::run_agent_completed(locale),
-            result.message
-        ))
+        if result.success {
+            Ok(format!(
+                "\n--- {} ---\n{}",
+                i18n::run_agent_completed(locale),
+                result.message
+            ))
+        } else {
+            let code_info = result
+                .exit_code
+                .map(|c| format!(" (exit code: {c})"))
+                .unwrap_or_default();
+            Err(CliError::new(format!(
+                "{}{code_info}: {}",
+                i18n::run_agent_failed(locale),
+                result.message
+            )))
+        }
     } else {
-        let code_info = result
-            .exit_code
-            .map(|c| format!(" (exit code: {c})"))
-            .unwrap_or_default();
-        Err(CliError::new(format!(
-            "{}{code_info}: {}",
-            i18n::run_agent_failed(locale),
-            result.message
-        )))
+        // TUI mode: spawn agent, run dashboard with live events
+        run_with_tui(
+            agent_runtime.as_ref(),
+            agent_id,
+            &context,
+            &cwd,
+            &resolution,
+            locale,
+        )
     }
 }
 
@@ -400,6 +391,116 @@ type PluginRuntimePair = (
     Box<dyn re_plugin::PluginRuntime>,
     Box<dyn re_plugin::PluginRuntime>,
 );
+
+/// Runs the agent with TUI dashboard.
+///
+/// Spawns the agent as a child process, then runs the ratatui render loop
+/// reading stream-json events from stdout and displaying them in real-time.
+#[cfg_attr(coverage_nightly, coverage(off))]
+fn run_with_tui(
+    agent_runtime: &dyn re_plugin::PluginRuntime,
+    agent_id: &str,
+    context: &re_plugin::PromptContext,
+    cwd: &std::path::Path,
+    resolution: &re_plugin::WorkItemResolution,
+    locale: &str,
+) -> Result<String, CliError> {
+    use ratatui::crossterm::event::{self, Event, KeyEventKind};
+    use std::io::BufRead as _;
+
+    // Spawn agent (non-blocking)
+    let mut spawned = agent_runtime
+        .spawn_agent(agent_id, context, cwd)
+        .map_err(|err| CliError::new(err.to_string()))?;
+
+    // Set up TUI
+    let tui_config = re_tui::TuiConfig {
+        mode: re_tui::TuiMode::Autonomous,
+        title: format!("{} — {}", resolution.canonical_id, resolution.title),
+        agent_id: agent_id.to_owned(),
+        locale: locale.to_owned(),
+    };
+
+    let mut shell = re_tui::TuiShell::new(tui_config);
+    shell.set_agent_pid(spawned.pid);
+
+    // Collect plugin panels
+    let panels: Vec<re_tui::SidebarPanel> = catalog::collect_tui_panels_from_plugins()
+        .into_iter()
+        .map(|(plugin_id, panel)| re_tui::SidebarPanel {
+            title: panel.title,
+            lines: panel.lines,
+            plugin_id,
+        })
+        .collect();
+    shell.set_sidebar_panels(panels);
+    shell.push_startup_banner();
+
+    // Non-blocking stdout reader via thread
+    let (tx, rx) = std::sync::mpsc::channel::<String>();
+    if let Some(stdout) = spawned.take_stdout() {
+        std::thread::spawn(move || {
+            let reader = std::io::BufReader::new(stdout);
+            for line in reader.lines() {
+                let Ok(line) = line else { break };
+                if tx.send(line).is_err() {
+                    break;
+                }
+            }
+        });
+    }
+
+    // TUI render loop
+    let mut terminal = ratatui::init();
+    let result: Result<(), String> = (|| {
+        loop {
+            // Read agent events (non-blocking)
+            while let Ok(line) = rx.try_recv() {
+                let event = re_tui::parse_stream_line(&line);
+                shell.process_event(&event);
+                if event.is_terminal() {
+                    shell.set_progress(100);
+                }
+            }
+
+            terminal
+                .draw(|frame| shell.render_frame(frame))
+                .map_err(|e| format!("render: {e}"))?;
+
+            if event::poll(std::time::Duration::from_millis(50))
+                .map_err(|e| format!("poll: {e}"))?
+                && let Event::Key(key) = event::read().map_err(|e| format!("read: {e}"))?
+                && key.kind == KeyEventKind::Press
+            {
+                shell.handle_key(key.code);
+            }
+
+            if shell.should_quit() {
+                break;
+            }
+
+            // Check if agent process exited
+            if let Ok(Some(_status)) = spawned.child.try_wait() {
+                // Drain remaining events
+                while let Ok(line) = rx.try_recv() {
+                    let event = re_tui::parse_stream_line(&line);
+                    shell.process_event(&event);
+                }
+                if shell.state() == re_tui::TuiState::Running {
+                    shell.set_state(re_tui::TuiState::Complete);
+                    shell.set_progress(100);
+                    shell.push_activity(">> Agent process exited.".to_owned());
+                }
+            }
+        }
+        Ok(())
+    })();
+
+    ratatui::restore();
+    result.map_err(CliError::new)?;
+
+    Ok(format!("--- {} ---", i18n::run_agent_completed(locale)))
+}
 
 /// Resolves the workflow and agent plugin runtimes from project config.
 fn resolve_run_plugins(locale: &str, verbose: bool) -> Result<PluginRuntimePair, CliError> {

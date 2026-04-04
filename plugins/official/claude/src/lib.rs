@@ -285,6 +285,81 @@ impl PluginRuntime for ClaudeRuntime {
         })
     }
 
+    /// Spawns the agent process for TUI integration (non-blocking).
+    #[cfg_attr(coverage_nightly, coverage(off))]
+    fn spawn_agent(
+        &self,
+        _agent_id: &str,
+        context: &PromptContext,
+        project_root: &Path,
+    ) -> Result<re_plugin::SpawnedAgent, PluginRuntimeError> {
+        if re_plugin::probe_binary_on_path(AGENT_BINARY).is_none() {
+            return Err(PluginRuntimeError::new(
+                "agent_not_installed",
+                format!("'{AGENT_BINARY}' not found on PATH."),
+            ));
+        }
+
+        let ts = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.subsec_nanos())
+            .unwrap_or(0);
+        let context_file = std::env::temp_dir().join(format!(
+            "ralph-engine-context-{}-{ts}.md",
+            std::process::id()
+        ));
+        std::fs::write(&context_file, &context.prompt_text).map_err(|err| {
+            PluginRuntimeError::new(
+                "context_write_failed",
+                format!("Failed to write context file: {err}"),
+            )
+        })?;
+
+        let config_path = project_root.join(".ralph-engine/config.yaml");
+        let config_content = std::fs::read_to_string(&config_path).unwrap_or_default();
+        let autonomous = project_root
+            .join(".ralph-engine/.accepted-autonomous")
+            .exists();
+
+        let agent_config = re_plugin::agent_helpers::build_agent_command_config(
+            &re_plugin::agent_helpers::AgentCommandInput {
+                binary: AGENT_BINARY,
+                base_tools: BASE_ALLOWED_TOOLS,
+                default_max_turns: DEFAULT_MAX_TURNS,
+                work_item_id: &context.work_item_id,
+                discovered_tools: &context.discovered_tools,
+                config_content: &config_content,
+                autonomous,
+                context_file: context_file.clone(),
+            },
+        );
+
+        let mut cmd = re_plugin::agent_helpers::build_command(&agent_config);
+        let mut child = cmd
+            .current_dir(project_root)
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .map_err(|err| {
+                let _ = std::fs::remove_file(&context_file);
+                PluginRuntimeError::new(
+                    "agent_spawn_failed",
+                    format!("Failed to spawn '{AGENT_BINARY}': {err}"),
+                )
+            })?;
+
+        let pid = child.id();
+        let stdout = child.stdout.take();
+
+        Ok(re_plugin::SpawnedAgent {
+            pid,
+            stdout,
+            child,
+            context_file: Some(context_file),
+        })
+    }
+
     /// Contributes a TUI sidebar panel showing agent connection status.
     fn tui_contributions(&self) -> Vec<re_plugin::TuiPanel> {
         let binary_available = re_plugin::probe_binary_on_path("claude").is_some();

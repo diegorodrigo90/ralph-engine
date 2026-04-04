@@ -81,6 +81,7 @@ pub(super) struct CliLocaleCatalog {
     pub run_agent_not_ready: &'static str,
     pub run_work_item_not_found: &'static str,
     pub run_use_list_hint: &'static str,
+    #[allow(dead_code)]
     pub run_launching_agent: &'static str,
     pub run_agent_completed: &'static str,
     pub run_agent_failed: &'static str,
@@ -519,7 +520,7 @@ catalog_str!(run_hint_label, run_hint_label);
 catalog_str!(run_agent_not_ready, run_agent_not_ready);
 catalog_str!(run_work_item_not_found, run_work_item_not_found);
 catalog_str!(run_use_list_hint, run_use_list_hint);
-catalog_str!(run_launching_agent, run_launching_agent);
+// run_launching_agent: available in TOML catalog, not currently used in code.
 catalog_str!(run_agent_completed, run_agent_completed);
 catalog_str!(run_agent_failed, run_agent_failed);
 catalog_str!(run_missing_agent_id, run_missing_agent_id);
