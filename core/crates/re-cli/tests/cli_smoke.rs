@@ -385,7 +385,7 @@ fn binary_prompts_list_succeeds() {
     // Assert
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    assert!(stdout.contains("Prompts (1)"));
+    assert!(stdout.contains("Prompts ("));
     assert!(stdout.contains("official.bmad.workflow"));
 }
 
@@ -910,7 +910,7 @@ fn binary_runtime_show_succeeds() {
     assert!(stdout.contains("Plugins ("));
     assert!(stdout.contains("Capabilities ("));
     assert!(stdout.contains("Templates ("));
-    assert!(stdout.contains("Prompts (1)"));
+    assert!(stdout.contains("Prompts ("));
     assert!(stdout.contains("Agent runtimes ("));
     assert!(stdout.contains("Checks ("));
     assert!(stdout.contains("Providers ("));

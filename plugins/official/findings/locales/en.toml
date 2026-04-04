@@ -1,0 +1,7 @@
+[plugin]
+name = "Findings"
+summary = "Feedback loop plugin — injects past findings into agent prompts."
+
+[prompt]
+name = "Findings prompt"
+summary = "Injects accumulated learnings from past runs into agent prompts."

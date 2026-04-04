@@ -118,6 +118,25 @@ fn run_plan(work_item_id: Option<&str>, locale: &str, verbose: bool) -> Result<S
     );
     context.discovered_tools = discovered_tools;
 
+    // Collect prompt contributions from plugins (e.g., findings).
+    let contributions = catalog::collect_prompt_contributions_from_plugins(&cwd);
+    for contrib in &contributions {
+        dbg_log(
+            verbose,
+            &format!(
+                "prompt contribution: '{}' ({} bytes)",
+                contrib.label,
+                contrib.content.len()
+            ),
+        );
+        context.prompt_text.push_str("\n\n");
+        context.prompt_text.push_str(&contrib.content);
+        context.context_files.push(re_plugin::ContextFile {
+            label: contrib.label.clone(),
+            content: contrib.content.clone(),
+        });
+    }
+
     dbg_log(
         verbose,
         &format!(
@@ -308,6 +327,26 @@ fn run_work_item(work_item_id: &str, locale: &str, verbose: bool) -> Result<Stri
         ),
     );
     context.discovered_tools = discovered_tools;
+
+    // Collect prompt contributions from all enabled plugins (e.g., findings).
+    let contributions = catalog::collect_prompt_contributions_from_plugins(&cwd);
+    for contrib in &contributions {
+        dbg_log(
+            verbose,
+            &format!(
+                "[step 3/5] prompt contribution: '{}' ({} bytes)",
+                contrib.label,
+                contrib.content.len()
+            ),
+        );
+        // Insert contributions before constraints (constraints must stay last).
+        context.prompt_text.push_str("\n\n");
+        context.prompt_text.push_str(&contrib.content);
+        context.context_files.push(re_plugin::ContextFile {
+            label: contrib.label.clone(),
+            content: contrib.content.clone(),
+        });
+    }
 
     dbg_log(
         verbose,

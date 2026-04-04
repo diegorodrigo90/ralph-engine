@@ -489,24 +489,6 @@ impl PluginRuntime for BmadRuntime {
             });
         }
 
-        // ── 2b. LEARNINGS: accumulated findings from past runs ──────
-        // Feedback loop: past CR findings, quality gate failures, and
-        // architectural violations feed into future prompts so agents
-        // do not repeat the same mistakes.
-        let learnings_path = project_root.join(".ralph-engine/learnings.md");
-        if let Ok(learnings) = std::fs::read_to_string(&learnings_path) {
-            prompt_parts.push(format!(
-                "<learnings>\n\
-                 ## Past Findings (review BEFORE implementing)\n\n\
-                 {learnings}\n\
-                 </learnings>"
-            ));
-            context_files.push(re_plugin::ContextFile {
-                label: "learnings".to_owned(),
-                content: learnings,
-            });
-        }
-
         // ── 3. CONSTRAINTS: workflow + tracking (end = highest attention) ──
         // The last section of the system prompt gets the most attention.
         // Put non-negotiable requirements here: workflow order, mandatory
@@ -539,8 +521,14 @@ impl PluginRuntime for BmadRuntime {
              - `{tracker_file}`: change story {epic}.{story} status to `done`\n\
              - Story file: add Dev Agent Record with AC→test mapping\n\
              - Run ALL quality gates before commit (tests, type-check, build)\n\
-             - Review <learnings> section before implementing (avoid past mistakes)\n\
-             - After code review: append new findings to `.ralph-engine/learnings.md`",
+             \n\
+             ## Findings (MANDATORY — create or edit)\n\
+             - BEFORE implementing: review <findings> section to avoid past mistakes\n\
+             - AFTER code review: you MUST edit `.ralph-engine/findings.md`:\n\
+               - If the file does NOT exist, CREATE it with a header and your findings\n\
+               - If it exists, APPEND new findings at the end\n\
+               - Each finding: root cause analysis, not just the symptom\n\
+               - Even if CR found zero issues, note what went well as confirmation",
         ));
 
         prompt_parts.push(format!(

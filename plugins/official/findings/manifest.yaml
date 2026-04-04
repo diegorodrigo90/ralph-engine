@@ -1,0 +1,29 @@
+id: official.findings
+kind: context_provider
+display_name: Findings
+display_name_locales:
+  pt-br: Achados
+summary: Feedback loop plugin — injects past findings into agent prompts.
+summary_locales:
+  pt-br: Plugin de feedback loop — injeta achados passados nos prompts de agentes.
+description: >
+  Reads `.ralph-engine/findings.md` at runtime and contributes a `<findings>`
+  section to the agent prompt. Enables a feedback loop where code review findings
+  and quality gate failures accumulate across runs, preventing agents from
+  repeating the same mistakes. The file format and content are project-defined;
+  this plugin only reads and injects.
+description_locales:
+  pt-br: >
+    Lê `.ralph-engine/findings.md` em runtime e contribui uma seção `<findings>`
+    ao prompt do agente. Habilita um feedback loop onde achados de code review e
+    falhas de quality gate acumulam entre execuções, prevenindo que agentes repitam
+    os mesmos erros. O formato e conteúdo do arquivo são definidos pelo projeto;
+    este plugin apenas lê e injeta.
+publisher: official
+trust_level: official
+plugin_version: 0.2.0-alpha.1
+plugin_api_version: 1.0.0
+engine_version: ">=0.2.0-alpha.1"
+runtime: true
+capabilities:
+  - prompt_fragments
