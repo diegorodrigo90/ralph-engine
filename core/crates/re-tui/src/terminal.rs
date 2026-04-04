@@ -135,6 +135,43 @@ impl TuiShell {
         self.tool_count += 1;
     }
 
+    /// Processes a normalized agent event, updating TUI state and activity.
+    ///
+    /// This is the main integration point between the stream-json parser
+    /// and the TUI display. Call this for each [`AgentEvent`] received
+    /// from the agent's stdout.
+    pub fn process_event(&mut self, event: &crate::events::AgentEvent) {
+        use crate::events::AgentEvent;
+
+        match event {
+            AgentEvent::TextDelta(_) => {
+                // Text deltas are appended as-is to the activity stream.
+                self.push_activity(event.activity_line());
+            }
+            AgentEvent::ToolUse { .. } => {
+                self.increment_tools();
+                self.push_activity(event.activity_line());
+            }
+            AgentEvent::ToolResult { .. } => {
+                self.push_activity(event.activity_line());
+            }
+            AgentEvent::Complete { is_error } => {
+                self.push_activity(event.activity_line());
+                if *is_error {
+                    self.set_state(TuiState::Error);
+                } else {
+                    self.set_state(TuiState::Complete);
+                }
+            }
+            AgentEvent::System(_) | AgentEvent::Unknown(_) => {
+                let line = event.activity_line();
+                if !line.is_empty() {
+                    self.push_activity(line);
+                }
+            }
+        }
+    }
+
     /// Runs the TUI demo loop — enters raw mode, renders, handles
     /// input, and restores terminal on exit.
     ///
@@ -800,5 +837,90 @@ mod tests {
             output.contains("test.claude"),
             "header should render with gauge, got:\n{output}"
         );
+    }
+
+    // ── process_event tests ──────────────────────────────────────
+
+    use crate::events::AgentEvent;
+
+    fn empty_shell() -> TuiShell {
+        TuiShell::new(TuiConfig {
+            mode: TuiMode::Autonomous,
+            title: "Test".to_owned(),
+            agent_id: "test.agent".to_owned(),
+            locale: "en".to_owned(),
+        })
+    }
+
+    #[test]
+    fn process_event_text_delta_appends() {
+        let mut shell = empty_shell();
+        shell.process_event(&AgentEvent::TextDelta("Hello".to_owned()));
+        assert_eq!(shell.activity_lines.len(), 1);
+        assert_eq!(shell.activity_lines[0], "Hello");
+    }
+
+    #[test]
+    fn process_event_tool_use_increments_count() {
+        let mut shell = empty_shell();
+        shell.process_event(&AgentEvent::ToolUse {
+            name: "Read".to_owned(),
+        });
+        assert_eq!(shell.tool_count, 1);
+        assert!(shell.activity_lines[0].contains("Tool: Read"));
+    }
+
+    #[test]
+    fn process_event_complete_sets_state() {
+        let mut shell = empty_shell();
+        shell.process_event(&AgentEvent::Complete { is_error: false });
+        assert_eq!(shell.state(), TuiState::Complete);
+
+        let mut shell2 = empty_shell();
+        shell2.process_event(&AgentEvent::Complete { is_error: true });
+        assert_eq!(shell2.state(), TuiState::Error);
+    }
+
+    #[test]
+    fn process_event_tool_result_appends() {
+        let mut shell = empty_shell();
+        shell.process_event(&AgentEvent::ToolResult {
+            name: "Bash".to_owned(),
+            success: true,
+        });
+        assert!(shell.activity_lines[0].contains("Bash [OK]"));
+    }
+
+    #[test]
+    fn process_event_system_appends() {
+        let mut shell = empty_shell();
+        shell.process_event(&AgentEvent::System("Starting session".to_owned()));
+        assert!(shell.activity_lines[0].contains("Starting session"));
+    }
+
+    #[test]
+    fn process_event_unknown_skips_empty() {
+        let mut shell = empty_shell();
+        shell.process_event(&AgentEvent::Unknown(String::new()));
+        assert!(shell.activity_lines.is_empty());
+    }
+
+    #[test]
+    fn process_event_sequence() {
+        let mut shell = empty_shell();
+        shell.process_event(&AgentEvent::System("Init".to_owned()));
+        shell.process_event(&AgentEvent::ToolUse {
+            name: "Read".to_owned(),
+        });
+        shell.process_event(&AgentEvent::ToolResult {
+            name: "Read".to_owned(),
+            success: true,
+        });
+        shell.process_event(&AgentEvent::TextDelta("Processing...".to_owned()));
+        shell.process_event(&AgentEvent::Complete { is_error: false });
+
+        assert_eq!(shell.activity_lines.len(), 5);
+        assert_eq!(shell.tool_count, 1);
+        assert_eq!(shell.state(), TuiState::Complete);
     }
 }
