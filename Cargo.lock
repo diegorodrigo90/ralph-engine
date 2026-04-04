@@ -1150,6 +1150,7 @@ dependencies = [
  "re-plugin-claude",
  "re-plugin-claudebox",
  "re-plugin-codex",
+ "re-plugin-findings",
  "re-plugin-github",
  "re-plugin-hello-world",
  "re-plugin-ssh",
@@ -1205,6 +1206,14 @@ version = "0.2.0-alpha.1"
 dependencies = [
  "re-build-utils",
  "re-mcp",
+ "re-plugin",
+]
+
+[[package]]
+name = "re-plugin-findings"
+version = "0.2.0-alpha.1"
+dependencies = [
+ "re-build-utils",
  "re-plugin",
 ]
 

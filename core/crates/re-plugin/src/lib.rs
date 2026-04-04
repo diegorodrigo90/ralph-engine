@@ -1254,6 +1254,27 @@ pub trait PluginRuntime: Send + Sync {
     fn required_tools(&self) -> &[&str] {
         &[]
     }
+
+    /// Returns prompt sections this plugin contributes to agent sessions.
+    ///
+    /// Called by the core `run` command after `build_prompt_context`.
+    /// Each contribution is appended to the prompt text and added
+    /// to the context files. This enables plugins like `official.findings`
+    /// to inject content without coupling to the workflow plugin.
+    ///
+    /// Default: no contributions (most plugins don't contribute prompts).
+    fn prompt_contributions(&self, _project_root: &Path) -> Vec<PromptContribution> {
+        Vec::new()
+    }
+}
+
+/// A prompt section contributed by a plugin at runtime.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PromptContribution {
+    /// Short label for logging and context file tracking.
+    pub label: String,
+    /// The prompt text to inject (with XML tags if desired).
+    pub content: String,
 }
 
 // ---------------------------------------------------------------------------

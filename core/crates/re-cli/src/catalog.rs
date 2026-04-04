@@ -390,3 +390,26 @@ pub fn collect_required_tools_from_plugins() -> Vec<String> {
 
     tools
 }
+
+/// Collects prompt contributions from all enabled plugin runtimes.
+///
+/// Iterates over every enabled plugin that provides a runtime, calls
+/// `prompt_contributions()`, and returns the merged list. This enables
+/// plugins like `official.findings` to inject content (learnings,
+/// context, etc.) into agent prompts without coupling to the workflow
+/// plugin.
+#[must_use]
+pub fn collect_prompt_contributions_from_plugins(
+    project_root: &std::path::Path,
+) -> Vec<re_plugin::PromptContribution> {
+    let snapshot = official_runtime_snapshot();
+    let mut contributions = Vec::new();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
+            contributions.extend(runtime.prompt_contributions(project_root));
+        }
+    }
+
+    contributions
+}

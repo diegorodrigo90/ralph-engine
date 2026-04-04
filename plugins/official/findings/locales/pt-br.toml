@@ -1,0 +1,7 @@
+[plugin]
+name = "Achados"
+summary = "Plugin de feedback loop — injeta achados passados nos prompts de agentes."
+
+[prompt]
+name = "Prompt de achados"
+summary = "Injeta aprendizados acumulados de execuções anteriores nos prompts de agentes."

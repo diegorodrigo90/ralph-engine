@@ -197,9 +197,9 @@ Appended system prompt content goes at the END of the agent's built-in instructi
 
 ### Feedback Loop (Learnings)
 
-- WHEN `.ralph-engine/learnings.md` exists, the BMAD plugin SHALL read it and include it in the prompt as a `<learnings>` section between `<rules>` and `<constraints>`.
-- The `<constraints>` section SHALL instruct the agent to review past learnings before implementing, and to update the file after code review.
-- The format, categories, and content of `learnings.md` SHALL be defined by the project, not by Ralph Engine. RE only reads and injects.
+- WHEN `.ralph-engine/findings.md` exists, the BMAD plugin SHALL read it and include it in the prompt as a `<findings>` section between `<rules>` and `<constraints>`.
+- The `<constraints>` section SHALL instruct the agent to review past findings before implementing, and to update the file after code review.
+- The format, categories, and content of `findings.md` SHALL be defined by the project, not by Ralph Engine. RE only reads and injects.
 
 ### Tool Auto-Discovery
 
