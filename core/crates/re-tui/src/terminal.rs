@@ -72,6 +72,9 @@ pub struct TuiConfig {
     pub title: String,
     /// Agent identifier shown in header.
     pub agent_id: String,
+    /// Resolved locale for i18n (e.g. `"en"`, `"pt-br"`).
+    /// Auto-detected from env/OS or config.
+    pub locale: String,
 }
 
 /// The TUI shell — manages terminal lifecycle and render loop.
@@ -476,6 +479,7 @@ mod tests {
             mode: TuiMode::Autonomous,
             title: "Test".to_owned(),
             agent_id: "test.agent".to_owned(),
+            locale: "en".to_owned(),
         });
         assert_eq!(shell.state(), TuiState::Running);
         assert_eq!(shell.progress, 0);
@@ -489,6 +493,7 @@ mod tests {
             mode: TuiMode::Autonomous,
             title: "Test".to_owned(),
             agent_id: "test.agent".to_owned(),
+            locale: "en".to_owned(),
         });
         shell.push_activity("hello".to_owned());
         shell.push_activity("world".to_owned());
@@ -503,6 +508,7 @@ mod tests {
             mode: TuiMode::Autonomous,
             title: "Test".to_owned(),
             agent_id: "test.agent".to_owned(),
+            locale: "en".to_owned(),
         });
         for i in 0..10_001 {
             shell.push_activity(format!("line {i}"));
@@ -519,6 +525,7 @@ mod tests {
             mode: TuiMode::Guided,
             title: "Test".to_owned(),
             agent_id: "test.agent".to_owned(),
+            locale: "en".to_owned(),
         });
         assert_eq!(shell.state(), TuiState::Running);
         shell.set_state(TuiState::Paused);
@@ -533,6 +540,7 @@ mod tests {
             mode: TuiMode::Autonomous,
             title: "Test".to_owned(),
             agent_id: "test.agent".to_owned(),
+            locale: "en".to_owned(),
         });
         shell.set_progress(150);
         assert_eq!(shell.progress, 100);
@@ -544,6 +552,7 @@ mod tests {
             mode: TuiMode::Autonomous,
             title: "Test".to_owned(),
             agent_id: "test.agent".to_owned(),
+            locale: "en".to_owned(),
         });
         shell.increment_tools();
         shell.increment_tools();
@@ -557,6 +566,7 @@ mod tests {
             mode: TuiMode::Autonomous,
             title: "Test".to_owned(),
             agent_id: "test.agent".to_owned(),
+            locale: "en".to_owned(),
         });
         assert!(!shell.should_quit);
         shell.handle_key(KeyCode::Char('q'));
@@ -569,6 +579,7 @@ mod tests {
             mode: TuiMode::Autonomous,
             title: "Test".to_owned(),
             agent_id: "test.agent".to_owned(),
+            locale: "en".to_owned(),
         });
         assert_eq!(shell.state(), TuiState::Running);
         shell.handle_key(KeyCode::Char('p'));
@@ -583,6 +594,7 @@ mod tests {
             mode: TuiMode::Autonomous,
             title: "Test".to_owned(),
             agent_id: "test.agent".to_owned(),
+            locale: "en".to_owned(),
         });
         shell.handle_key(KeyCode::Char('?'));
         assert!(shell.activity_lines.last().unwrap().contains("help"));
@@ -594,6 +606,7 @@ mod tests {
             mode: TuiMode::Autonomous,
             title: "Test".to_owned(),
             agent_id: "test.agent".to_owned(),
+            locale: "en".to_owned(),
         });
         shell.set_state(TuiState::Complete);
         shell.handle_key(KeyCode::Char('p'));
@@ -626,6 +639,7 @@ mod tests {
             mode: TuiMode::Autonomous,
             title: "Test Task".to_owned(),
             agent_id: "test.claude".to_owned(),
+            locale: "en".to_owned(),
         });
         shell.push_activity(">> Tool Call: search".to_owned());
         shell.push_activity(">> Result: found 3 items".to_owned());
@@ -733,6 +747,7 @@ mod tests {
             mode: TuiMode::Guided,
             title: "Fix Bug".to_owned(),
             agent_id: "test.claude".to_owned(),
+            locale: "en".to_owned(),
         });
         let output = render_to_buffer(&shell, 200, 60);
         assert!(
