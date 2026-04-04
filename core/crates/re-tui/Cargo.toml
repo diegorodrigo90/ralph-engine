@@ -1,0 +1,20 @@
+[package]
+name = "re-tui"
+description = "Terminal dashboard framework for Ralph Engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+authors.workspace = true
+
+[dependencies]
+ratatui = "0.30"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-appender = "0.2"
+directories = "6"
+
+[lints]
+workspace = true
