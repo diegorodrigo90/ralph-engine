@@ -1,28 +1,38 @@
-# ralph-engine BMAD template
+# ralph-engine project configuration (BMAD starter template)
+# Docs: https://ralph-engine.dev/guides/configuration
 
-agent:
-  type: "claude"
-  cooldown_seconds: 10
-  max_work_items_per_session: 1
+schema_version: 1
+default_locale: en
+
+plugins:
+  - id: official.basic
+    activation: enabled
+  - id: official.bmad
+    activation: enabled
+  - id: official.claude
+    activation: enabled
+
+# Agent execution settings.
+# Core reads workflow_plugin + agent_plugin. Agent plugin reads the rest.
+run:
+  workflow_plugin: official.bmad
+  agent_plugin: official.claude
+  agent_id: official.claude.session
+  # Additional tools beyond the base set (Bash,Read,Edit,Write,Glob,Grep).
+  # Add MCP tools, Skill, Agent, WebSearch, etc. Comma-separated.
+  # Base tools are always included — this list adds project-specific extras.
+  allowed_tools: "Agent,Skill"
+  max_turns: 200
+
+# Plugin-owned sections (read by BMAD, not by core)
+tracker:
+  status_file: sprint-status.yaml
+
+paths:
+  stories: stories/
 
 workflow:
   instructions: |
     Follow the BMAD workflow conventions configured for this project.
-    Use the available commands, prompt fragments, and required checks supplied by the BMAD plugin.
-
-execution:
-  max_post_agent_retries: 0
-  max_retry_output_chars: 1200
-
-tracker:
-  type: "file"
-  status_file: "sprint-status.yaml"
-
-circuit_breaker:
-  max_failures: 3
-  cooldown_minutes: 5
-
-research:
-  enabled: false
-  strategy: "always"
-  tools: []
+    Use the available commands, prompt fragments, and required checks
+    supplied by the BMAD plugin.

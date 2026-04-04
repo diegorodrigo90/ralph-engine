@@ -101,11 +101,22 @@ fn run_plan(work_item_id: Option<&str>, locale: &str, verbose: bool) -> Result<S
         ),
     );
 
-    // Build prompt
+    // Build prompt + discover tools
     dbg_log(verbose, "building prompt context...");
-    let context = workflow_runtime
+    let mut context = workflow_runtime
         .build_prompt_context(&resolution, &cwd)
         .map_err(|err| CliError::new(err.to_string()))?;
+
+    let discovered_tools = catalog::collect_required_tools_from_plugins();
+    dbg_log(
+        verbose,
+        &format!(
+            "discovered {} tools from plugins: {:?}",
+            discovered_tools.len(),
+            discovered_tools
+        ),
+    );
+    context.discovered_tools = discovered_tools;
 
     dbg_log(
         verbose,
@@ -280,11 +291,23 @@ fn run_work_item(work_item_id: &str, locale: &str, verbose: bool) -> Result<Stri
         ),
     );
 
-    // 3. Build prompt
+    // 3. Build prompt + collect discovered tools from all enabled plugins
     dbg_log(verbose, "[step 3/5] building prompt context...");
-    let context = workflow_runtime
+    let mut context = workflow_runtime
         .build_prompt_context(&resolution, &cwd)
         .map_err(|err| CliError::new(err.to_string()))?;
+
+    // Auto-discover tools required by all enabled plugins.
+    let discovered_tools = catalog::collect_required_tools_from_plugins();
+    dbg_log(
+        verbose,
+        &format!(
+            "[step 3/5] discovered {} tools from plugins: {:?}",
+            discovered_tools.len(),
+            discovered_tools
+        ),
+    );
+    context.discovered_tools = discovered_tools;
 
     dbg_log(
         verbose,

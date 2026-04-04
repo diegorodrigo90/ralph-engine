@@ -178,6 +178,23 @@ pub fn runtime() -> BmadRuntime {
 /// the project filesystem.
 pub struct BmadRuntime;
 
+/// Tools required by the BMAD workflow for autonomous agent sessions.
+/// Archon MCP for RAG research, Context7 for library docs, and
+/// Skill/Agent for BMAD agent orchestration.
+const BMAD_REQUIRED_TOOLS: &[&str] = &[
+    "Skill",
+    "Agent",
+    "WebSearch",
+    "WebFetch",
+    "mcp__archon__rag_search_knowledge_base",
+    "mcp__archon__rag_search_code_examples",
+    "mcp__archon__rag_get_available_sources",
+    "mcp__archon__manage_task",
+    "mcp__archon__find_tasks",
+    "mcp__plugin_context7_context7__resolve-library-id",
+    "mcp__plugin_context7_context7__query-docs",
+];
+
 /// Files required by the prepare check.
 const PREPARE_REQUIRED: &[&str] = &[".ralph-engine/config.yaml"];
 
@@ -393,6 +410,12 @@ impl PluginRuntime for BmadRuntime {
         Ok(items)
     }
 
+    /// BMAD workflow plugin requires research tools (Archon RAG, Context7)
+    /// and orchestration tools (Skill, Agent) for autonomous story execution.
+    fn required_tools(&self) -> &[&str] {
+        BMAD_REQUIRED_TOOLS
+    }
+
     fn build_prompt_context(
         &self,
         resolution: &WorkItemResolution,
@@ -401,55 +424,142 @@ impl PluginRuntime for BmadRuntime {
         let mut context_files = Vec::new();
         let mut prompt_parts = Vec::new();
 
-        // 1. Read workflow instructions from config
-        let config_path = project_root.join(".ralph-engine/config.yaml");
-        if let Ok(content) = std::fs::read_to_string(&config_path)
-            && let Some(instructions) = extract_workflow_instructions(&content)
-        {
-            prompt_parts.push(format!("## Instructions\n\n{instructions}"));
-        }
+        // Prompt structure optimized for LLM attention patterns:
+        //
+        // --append-system-prompt-file content goes at the END of the
+        // system prompt (after the agent's built-in instructions).
+        // Research shows "lost in the middle" effect: 30%+ accuracy
+        // drop for content buried in the middle. Beginning and end
+        // get highest attention.
+        //
+        // Order within our appended block:
+        //   1. Task (story) — HIGH attention (start of our block)
+        //   2. Context/rules — MEDIUM attention (middle, reference)
+        //   3. Constraints — HIGH attention (end = very last thing)
+        //
+        // XML tags improve parsing and enable prompt caching.
 
-        // 2. Read story file if available
+        // ── 1. TASK: story + workflow (start = high attention) ────
+        let config_path = project_root.join(".ralph-engine/config.yaml");
         if let Some(ref path) = resolution.source_path {
-            let full_path = project_root.join(path);
+            let full_path = if std::path::Path::new(path).is_absolute() {
+                std::path::PathBuf::from(path)
+            } else {
+                project_root.join(path)
+            };
             if let Ok(story_content) = std::fs::read_to_string(&full_path) {
                 prompt_parts.push(format!(
-                    "## Work Item: {} — {}\n\n{}",
+                    "<task>\n## Work Item: {} — {}\n\n{}\n</task>",
                     resolution.canonical_id, resolution.title, story_content
                 ));
                 context_files.push(re_plugin::ContextFile {
-                    label: "story".to_owned(),
+                    label: format!("story-{}", resolution.canonical_id),
                     content: story_content,
                 });
             }
         } else {
             prompt_parts.push(format!(
-                "## Work Item: {} — {}\n\nNo story file found. Implement based on the title and project context.",
+                "<task>\n## Work Item: {} — {}\n\n\
+                 No story file found. Implement based on the title and project context.\n</task>",
                 resolution.canonical_id, resolution.title
             ));
         }
 
-        // 3. Read project prompt (rules/context)
-        let prompt_path = project_root.join(".ralph-engine/prompt.md");
-        if let Ok(project_rules) = std::fs::read_to_string(&prompt_path) {
-            prompt_parts.push(format!("## Project Context\n\n{project_rules}"));
+        // ── 2. CONTEXT: project rules + prompt (middle = reference) ──
+        // Rules digest is a condensed single-file covering golden rules,
+        // global ACs, coding principles, and quality gates. Useful for
+        // agents that do NOT load CLAUDE.md natively (Codex, Aider, etc).
+        // For Claude Code, this overlaps with .claude/rules/ but provides
+        // a pre-prioritized summary.
+        let digest_path = project_root.join(".ralph-engine/rules-digest.md");
+        if let Ok(digest) = std::fs::read_to_string(&digest_path) {
+            prompt_parts.push(format!("<rules>\n{digest}\n</rules>"));
             context_files.push(re_plugin::ContextFile {
-                label: "project-rules".to_owned(),
-                content: project_rules,
+                label: "rules-digest".to_owned(),
+                content: digest,
             });
         }
+
+        let prompt_path = project_root.join(".ralph-engine/prompt.md");
+        if let Ok(project_ctx) = std::fs::read_to_string(&prompt_path) {
+            prompt_parts.push(format!("<context>\n{project_ctx}\n</context>"));
+            context_files.push(re_plugin::ContextFile {
+                label: "project-context".to_owned(),
+                content: project_ctx,
+            });
+        }
+
+        // ── 2b. LEARNINGS: accumulated findings from past runs ──────
+        // Feedback loop: past CR findings, quality gate failures, and
+        // architectural violations feed into future prompts so agents
+        // do not repeat the same mistakes.
+        let learnings_path = project_root.join(".ralph-engine/learnings.md");
+        if let Ok(learnings) = std::fs::read_to_string(&learnings_path) {
+            prompt_parts.push(format!(
+                "<learnings>\n\
+                 ## Past Findings (review BEFORE implementing)\n\n\
+                 {learnings}\n\
+                 </learnings>"
+            ));
+            context_files.push(re_plugin::ContextFile {
+                label: "learnings".to_owned(),
+                content: learnings,
+            });
+        }
+
+        // ── 3. CONSTRAINTS: workflow + tracking (end = highest attention) ──
+        // The last section of the system prompt gets the most attention.
+        // Put non-negotiable requirements here: workflow order, mandatory
+        // tracking updates, quality gates. Outcome-based over prescriptive.
+        let (tracker_file, _) = read_bmad_paths(&config_path);
+        let epic = resolution
+            .metadata
+            .iter()
+            .find(|(k, _)| k == "epic")
+            .map_or("?", |(_, v)| v.as_str());
+        let story = resolution
+            .metadata
+            .iter()
+            .find(|(k, _)| k == "story")
+            .map_or("?", |(_, v)| v.as_str());
+
+        let mut constraints = Vec::new();
+
+        // Workflow instructions from config (user-defined process).
+        if let Ok(content) = std::fs::read_to_string(&config_path)
+            && let Some(instructions) = extract_workflow_instructions(&content)
+        {
+            constraints.push(format!("## Workflow\n{instructions}"));
+        }
+
+        // Tracking — BMAD plugin-level, always injected.
+        constraints.push(format!(
+            "## Tracking (MANDATORY)\n\
+             After implementation, update these files:\n\
+             - `{tracker_file}`: change story {epic}.{story} status to `done`\n\
+             - Story file: add Dev Agent Record with AC→test mapping\n\
+             - Run ALL quality gates before commit (tests, type-check, build)\n\
+             - Review <learnings> section before implementing (avoid past mistakes)\n\
+             - After code review: append new findings to `.ralph-engine/learnings.md`",
+        ));
+
+        prompt_parts.push(format!(
+            "<constraints>\n{}\n</constraints>",
+            constraints.join("\n\n")
+        ));
 
         if prompt_parts.is_empty() {
             return Err(PluginRuntimeError::new(
                 "empty_prompt",
-                "No content available to build prompt (no story file, no instructions, no project rules)".to_owned(),
+                "No content available to build prompt (no story, no rules, no context)".to_owned(),
             ));
         }
 
         Ok(PromptContext {
-            prompt_text: prompt_parts.join("\n\n---\n\n"),
+            prompt_text: prompt_parts.join("\n\n"),
             context_files,
             work_item_id: resolution.canonical_id.clone(),
+            discovered_tools: Vec::new(), // Populated by core run command
         })
     }
 }
@@ -788,6 +898,16 @@ mod tests {
         assert!(output.findings[0].contains("prompt.md"));
 
         let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn runtime_declares_required_tools() {
+        let rt = super::runtime();
+        let tools = rt.required_tools();
+        assert!(!tools.is_empty());
+        assert!(tools.contains(&"Skill"));
+        assert!(tools.contains(&"mcp__archon__rag_search_knowledge_base"));
+        assert!(tools.contains(&"mcp__plugin_context7_context7__query-docs"));
     }
 
     #[test]

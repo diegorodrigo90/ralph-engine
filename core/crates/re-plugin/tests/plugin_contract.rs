@@ -1125,11 +1125,15 @@ mod community_plugin_e2e {
                     prompt_text: String::new(),
                     context_files: Vec::new(),
                     work_item_id: "5.3".to_owned(),
+                    discovered_tools: Vec::new(),
                 },
                 root,
             )
             .unwrap_err();
         assert_eq!(launch_err.code, "not_an_agent_plugin");
+
+        // required_tools default returns empty
+        assert!(rt.required_tools().is_empty());
     }
 
     #[test]
