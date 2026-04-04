@@ -201,6 +201,8 @@ define_plugin_enum! {
         McpContribution => "mcp_contribution",
         /// Policy plugin.
         Policy => "policy",
+        /// Workflow orchestration plugin.
+        Workflow => "workflow",
     }
 }
 

@@ -28,7 +28,8 @@
         "template",
         "remote_control",
         "mcp_contribution",
-        "policy"
+        "policy",
+        "workflow"
       ]
     },
     "display_name": {
@@ -101,7 +102,8 @@
           "template",
           "remote_control",
           "mcp_contribution",
-          "policy"
+          "policy",
+          "workflow"
         ]
       }
     },
