@@ -1,7 +1,9 @@
 {
-  "version": 1,
-  "generated_at": "2026-04-04T11:40:20.983Z",
+  "schema_version": 1,
+  "generated_at": "2026-04-04T14:24:47.921Z",
   "count": 10,
+  "community_count": 0,
+  "last_scan": null,
   "icon_contract": {
     "discovery": "Auto — place icon.svg (preferred), icon.png, icon.jpg, or icon.webp in plugin root",
     "svg": {
