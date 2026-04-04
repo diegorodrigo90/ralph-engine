@@ -367,6 +367,44 @@ ralph-engine providers plan <provider-id>
 
 Show the registration plan for one provider.
 
+## run
+
+Execute work items through the workflow + agent plugin pipeline.
+
+```bash
+ralph-engine run <id>
+```
+
+Resolve a work item, build the prompt, and launch the configured agent. On first use, prompts for autonomous mode acceptance (saved to `.ralph-engine/.accepted-autonomous`).
+
+The execution flow has five steps:
+
+1. **Probe agent** — verify the agent binary is available
+2. **Resolve work item** — the workflow plugin locates the item by ID
+3. **Build prompt** — assemble task context, plugin contributions, and discovered tools
+4. **Print launch info** — display the work item and agent being used
+5. **Launch agent** — spawn the agent process with the assembled prompt
+
+```bash
+ralph-engine run --list
+```
+
+List actionable work items from the workflow plugin. Each item shows its ID, title, and status.
+
+```bash
+ralph-engine run plan <id>
+```
+
+Dry-run: resolve the work item and show the execution plan without launching the agent. Displays the workflow plugin, agent plugin, work item metadata, prompt size, context file count, and agent readiness status.
+
+```bash
+ralph-engine run --verbose <id>
+ralph-engine run --verbose --list
+ralph-engine run --verbose plan <id>
+```
+
+Enable debug logging. Prints step-by-step details to stderr: config resolution, plugin runtime selection, work item resolution, tool discovery, prompt assembly size, and agent process results.
+
 ## runtime
 
 Inspect and remediate the resolved runtime topology.

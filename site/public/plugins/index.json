@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "generated_at": "2026-04-04T01:16:44.419Z",
-  "count": 9,
+  "generated_at": "2026-04-04T11:09:28.620Z",
+  "count": 10,
   "icon_contract": {
     "discovery": "Auto — place icon.svg (preferred), icon.png, icon.jpg, or icon.webp in plugin root",
     "svg": {
@@ -493,8 +493,47 @@
       }
     },
     {
+      "id": "official.findings",
+      "kind": "context_provider",
+      "display_name": "Findings",
+      "display_name_locales": {
+        "pt-br": "Achados"
+      },
+      "summary": "Feedback loop plugin — injects past findings into agent prompts.",
+      "summary_locales": {
+        "pt-br": "Plugin de feedback loop — injeta achados passados nos prompts de agentes."
+      },
+      "description": "Reads `.ralph-engine/findings.md` at runtime and contributes a `` section to the agent prompt. Enables a feedback loop where code review findings and quality gate failures accumulate across runs, preventing agents from repeating the same mistakes. The file format and content are project-defined; this plugin only reads and injects.",
+      "description_locales": {
+        "pt-br": "Lê `.ralph-engine/findings.md` em runtime e contribui uma seção `` ao prompt do agente. Habilita um feedback loop onde achados de code review e falhas de quality gate acumulam entre execuções, prevenindo que agentes repitam os mesmos erros. O formato e conteúdo do arquivo são definidos pelo projeto; este plugin apenas lê e injeta."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "capabilities": [
+        "prompt_fragments"
+      ],
+      "prompts": [
+        {
+          "id": "official.findings.findings",
+          "display_name": "Findings prompt",
+          "display_name_locales": {
+            "pt-br": "Prompt de achados"
+          },
+          "summary": "Injects accumulated findings into agent prompts as a <findings> section.",
+          "summary_locales": {
+            "pt-br": "Injeta achados acumulados nos prompts de agentes como seção <findings>."
+          }
+        }
+      ],
+      "iconUrl": null
+    },
+    {
       "id": "official.github",
-      "kind": "mcp_contribution",
+      "kind": "data_source",
       "display_name": "GitHub",
       "display_name_locales": {
         "pt-br": "GitHub"

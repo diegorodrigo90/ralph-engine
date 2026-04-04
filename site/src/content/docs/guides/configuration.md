@@ -99,6 +99,27 @@ circuit_breaker:
   cooldown_minutes: 5
 ```
 
+## Run Configuration
+
+The `run:` section configures the `ralph-engine run` command, which executes work items through a workflow plugin and an agent plugin.
+
+```yaml
+run:
+  workflow_plugin: official.bmad     # Plugin that resolves work items
+  agent_plugin: official.claude      # Plugin that launches the agent
+  agent_id: official.claude.session  # Agent identifier to launch
+```
+
+| Key | Required | Description |
+|-----|----------|-------------|
+| `workflow_plugin` | Yes | Plugin ID that provides `resolve_work_item()` and `build_prompt_context()`. Determines how work items are discovered and how prompts are assembled. |
+| `agent_plugin` | Yes | Plugin ID that provides `bootstrap_agent()` and `launch_agent()`. Determines which AI agent is spawned. |
+| `agent_id` | Yes | Stable agent identifier passed to the agent plugin. Must match an agent registered by the agent plugin (e.g., `official.claude.session`). |
+
+The workflow plugin and agent plugin are resolved from the official plugin catalog at runtime. Both must provide a `PluginRuntime` implementation.
+
+Additional tools beyond what plugins auto-discover can be configured in the project's `.ralph-engine/config.yaml` under the agent's own configuration section. See the agent plugin documentation for details.
+
 ## Configuration Layers
 
 Configuration is resolved through a layered system:

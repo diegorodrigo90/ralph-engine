@@ -17,13 +17,14 @@ const KIND_CAPABILITY_REQUIREMENTS = new Map([
   ["remote_control", "remote_control"],
   ["mcp_contribution", "mcp_contribution"],
   ["policy", "policy"],
+  ["workflow", "workflow"],
 ]);
 const CONTRIBUTION_CAPABILITY_REQUIREMENTS = new Map([
   ["templates", ["template"]],
   ["prompts", ["prompt_fragments"]],
   ["agents", ["agent_runtime"]],
   ["checks", ["prepare_checks", "doctor_checks"]],
-  ["providers", ["data_source", "context_provider", "forge_provider", "remote_control"]],
+  ["providers", ["data_source", "forge_provider", "remote_control"]],
   ["policies", ["policy"]],
 ]);
 

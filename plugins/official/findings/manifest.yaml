@@ -26,6 +26,7 @@ plugin_api_version: 1.0.0
 engine_version: ">=0.2.0-alpha.1"
 runtime: true
 capabilities:
+  - context_provider
   - prompt_fragments
 prompts:
   - id: official.findings.findings
