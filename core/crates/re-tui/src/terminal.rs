@@ -5,11 +5,13 @@
 //! skeleton with zone-based layout.
 
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind};
-use ratatui::layout::{Constraint, Layout};
+use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Gauge, Paragraph};
+use ratatui::widgets::{Block, Borders, Gauge, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
+
+use crate::layout;
 
 /// TUI operating mode.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -199,26 +201,49 @@ impl TuiShell {
         }
     }
 
-    /// Renders the TUI frame with zone-based layout.
+    /// Renders the TUI frame with responsive zone-based layout.
+    ///
+    /// Layout adapts to terminal size:
+    /// - Compact (< 120 cols): activity only
+    /// - Standard (120-159): activity + sidebar
+    /// - Wide (>= 160): control + activity + sidebar
     fn render(&self, frame: &mut Frame<'_>) {
         let area = frame.area();
 
-        let zones = Layout::vertical([
-            Constraint::Length(1), // Header
-            Constraint::Fill(1),   // Activity stream
-            Constraint::Length(1), // Metrics bar
-            Constraint::Length(1), // Help bar
-        ])
-        .split(area);
+        // Check minimum size
+        if layout::is_terminal_too_small(area) {
+            let msg = format!(
+                "Terminal too small ({}x{}). Minimum: {}x{}.",
+                area.width,
+                area.height,
+                crate::MIN_TERMINAL_WIDTH,
+                crate::MIN_TERMINAL_HEIGHT,
+            );
+            frame.render_widget(
+                Paragraph::new(msg).style(Style::default().fg(Color::Red)),
+                area,
+            );
+            return;
+        }
 
-        self.render_header(frame, zones[0]);
-        self.render_activity(frame, zones[1]);
-        self.render_metrics(frame, zones[2]);
-        self.render_help(frame, zones[3]);
+        let zones = layout::compute_zones(area);
+
+        self.render_header(frame, zones.header);
+        self.render_activity(frame, zones.activity);
+        self.render_metrics(frame, zones.metrics);
+        self.render_help(frame, &zones);
+
+        if let Some(sidebar) = zones.sidebar {
+            self.render_sidebar(frame, sidebar);
+        }
+
+        if let Some(control) = zones.control {
+            self.render_control_panel(frame, control);
+        }
     }
 
     /// Renders the header bar with title, agent, state, and progress.
-    fn render_header(&self, frame: &mut Frame<'_>, area: ratatui::layout::Rect) {
+    fn render_header(&self, frame: &mut Frame<'_>, area: Rect) {
         let state_label = self.state.label();
         let state_color = self.state.color();
 
@@ -258,7 +283,7 @@ impl TuiShell {
     }
 
     /// Renders the activity stream (main viewport).
-    fn render_activity(&self, frame: &mut Frame<'_>, area: ratatui::layout::Rect) {
+    fn render_activity(&self, frame: &mut Frame<'_>, area: Rect) {
         let visible_lines = area.height as usize;
         let start = self.activity_lines.len().saturating_sub(visible_lines);
         let lines: Vec<Line<'_>> = self.activity_lines[start..]
@@ -278,7 +303,7 @@ impl TuiShell {
     }
 
     /// Renders the metrics bar.
-    fn render_metrics(&self, frame: &mut Frame<'_>, area: ratatui::layout::Rect) {
+    fn render_metrics(&self, frame: &mut Frame<'_>, area: Rect) {
         let metrics = Line::from(vec![
             Span::styled(
                 format!(" Tools: {} ", self.tool_count),
@@ -292,17 +317,94 @@ impl TuiShell {
         frame.render_widget(Paragraph::new(metrics), area);
     }
 
-    /// Renders the help bar at the bottom.
-    fn render_help(&self, frame: &mut Frame<'_>, area: ratatui::layout::Rect) {
-        let help = Line::from(vec![
-            Span::styled(" [?]", Style::default().fg(Color::DarkGray)),
-            Span::styled(" help ", Style::default().fg(Color::DarkGray)),
-            Span::styled(" [p]", Style::default().fg(Color::DarkGray)),
-            Span::styled(" pause ", Style::default().fg(Color::DarkGray)),
-            Span::styled(" [q]", Style::default().fg(Color::DarkGray)),
-            Span::styled(" quit ", Style::default().fg(Color::DarkGray)),
-        ]);
-        frame.render_widget(Paragraph::new(help), area);
+    /// Renders the help bar at the bottom, adapted to layout tier.
+    fn render_help(&self, frame: &mut Frame<'_>, zones: &layout::LayoutZones) {
+        let dim = Style::default().fg(Color::DarkGray);
+        let mut spans = vec![
+            Span::styled(" [?]", dim),
+            Span::styled(" help ", dim),
+            Span::styled(" [p]", dim),
+            Span::styled(" pause ", dim),
+            Span::styled(" [q]", dim),
+            Span::styled(" quit ", dim),
+        ];
+
+        // Show layout tier indicator
+        let tier_label = match zones.tier {
+            layout::LayoutTier::Compact => "compact",
+            layout::LayoutTier::Standard => "standard",
+            layout::LayoutTier::Wide => "wide",
+        };
+        spans.push(Span::styled(
+            format!(" │ {tier_label}"),
+            Style::default().fg(Color::Indexed(59)), // dark gray
+        ));
+
+        frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
+    }
+
+    /// Renders the sidebar zone (plugin panels placeholder).
+    ///
+    /// In future stories (RE-2a.5), this will render auto-discovered
+    /// plugin panels via `tui_contributions()`.
+    fn render_sidebar(&self, frame: &mut Frame<'_>, area: Rect) {
+        let block = Block::default()
+            .borders(Borders::LEFT)
+            .border_style(Style::default().fg(Color::DarkGray))
+            .title(" Plugins ")
+            .title_style(Style::default().fg(Color::Cyan));
+
+        let inner = block.inner(area);
+        frame.render_widget(block, area);
+
+        // Placeholder content — will be replaced by plugin panels
+        let lines = vec![
+            Line::styled(" (no plugins)", Style::default().fg(Color::DarkGray)),
+            Line::raw(""),
+            Line::styled(" Alt+1..9 to toggle", Style::default().fg(Color::DarkGray)),
+        ];
+        frame.render_widget(Paragraph::new(lines), inner);
+    }
+
+    /// Renders the control panel zone (guided mode actions).
+    ///
+    /// Only visible in Wide tier (>= 160 cols). Provides quick-access
+    /// controls for pause/resume/feedback in guided mode.
+    fn render_control_panel(&self, frame: &mut Frame<'_>, area: Rect) {
+        let block = Block::default()
+            .borders(Borders::RIGHT)
+            .border_style(Style::default().fg(Color::DarkGray))
+            .title(" Control ")
+            .title_style(Style::default().fg(Color::Cyan));
+
+        let inner = block.inner(area);
+        frame.render_widget(block, area);
+
+        let state_color = self.state.color();
+        let mode_label = match self.config.mode {
+            TuiMode::Autonomous => "Autonomous",
+            TuiMode::Guided => "Guided",
+        };
+
+        let lines = vec![
+            Line::styled(
+                format!(" Mode: {mode_label}"),
+                Style::default().fg(Color::White),
+            ),
+            Line::styled(
+                format!(" State: {}", self.state.label()),
+                Style::default().fg(state_color),
+            ),
+            Line::raw(""),
+            Line::styled(
+                format!(" Work: {}", self.config.title),
+                Style::default().fg(Color::White),
+            ),
+            Line::raw(""),
+            Line::styled(" [p] Pause/Resume", Style::default().fg(Color::DarkGray)),
+            Line::styled(" [q] Quit", Style::default().fg(Color::DarkGray)),
+        ];
+        frame.render_widget(Paragraph::new(lines), inner);
     }
 }
 
