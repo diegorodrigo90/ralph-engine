@@ -432,23 +432,59 @@ impl TuiShell {
     }
 
     /// Renders the activity stream (main viewport).
+    ///
+    /// When the activity stream is short enough, the logo is shown
+    /// at the top of the viewport. As more events arrive, the logo
+    /// scrolls up naturally with the content.
     fn render_activity(&self, frame: &mut Frame<'_>, area: Rect) {
         let visible_lines = area.height as usize;
-        let start = self.activity_lines.len().saturating_sub(visible_lines);
-        let lines: Vec<Line<'_>> = self.activity_lines[start..]
+
+        // Build logo lines (responsive to width)
+        let logo_lines = crate::logo::build_logo_lines(area.width);
+        let logo_count = logo_lines.len();
+
+        // Build activity lines with syntax coloring
+        let activity: Vec<Line<'_>> = self
+            .activity_lines
             .iter()
             .map(|s| {
                 if s.starts_with(">> Tool") {
                     Line::styled(s.as_str(), Style::default().fg(Color::Blue))
-                } else if s.starts_with(">> State:") {
+                } else if s.starts_with(">> State:") || s.starts_with(">> Agent") {
                     Line::styled(s.as_str(), Style::default().fg(Color::Yellow))
+                } else if s.starts_with(">> Quit") {
+                    Line::styled(s.as_str(), Style::default().fg(Color::Red))
+                } else if s.starts_with(">> Keys:") {
+                    Line::styled(s.as_str(), Style::default().fg(Color::DarkGray))
                 } else {
                     Line::raw(s.as_str())
                 }
             })
             .collect();
 
-        frame.render_widget(Paragraph::new(lines), area);
+        // Combine: logo + activity
+        let total = logo_count + activity.len();
+        let start = total.saturating_sub(visible_lines);
+
+        let mut all_lines: Vec<Line<'_>> = Vec::with_capacity(visible_lines);
+
+        // Add logo lines (skip if scrolled past)
+        for (i, line) in logo_lines.into_iter().enumerate() {
+            if i >= start {
+                all_lines.push(line);
+            }
+        }
+
+        // Add activity lines (skip if scrolled past)
+        let activity_start = start.saturating_sub(logo_count);
+        for line in activity.into_iter().skip(activity_start) {
+            if all_lines.len() >= visible_lines {
+                break;
+            }
+            all_lines.push(line);
+        }
+
+        frame.render_widget(Paragraph::new(all_lines), area);
     }
 
     /// Renders the metrics bar.
