@@ -35,7 +35,7 @@ Plugins são crates Rust com um `manifest.yaml` que o Ralph Engine descobre auto
 | `--publisher` | Sim | Namespace do publisher. Use o nome da sua organização (ex: `acme`). |
 | `--kind` | Sim | Tipo do plugin. Determina quais capabilities e métodos do trait são relevantes. |
 
-Valores válidos para `--kind`: `template`, `agent_runtime`, `mcp_contribution`, `policy`, `remote_control`.
+Valores válidos para `--kind`: `template`, `agent_runtime`, `mcp_contribution`, `policy`, `remote_control`, `context_provider`.
 
 ## Arquivos Gerados
 
@@ -166,7 +166,27 @@ pub trait PluginRuntime: Send + Sync {
 }
 ```
 
-Nem todos os métodos precisam de implementações reais. Um plugin de template só usa o `run_check` (para validar arquivos do projeto). Um plugin de agent runtime foca no `bootstrap_agent`. Retorne `Err(PluginRuntimeError::new(...))` para operações que seu plugin não suporta:
+O trait também fornece dois métodos opcionais para o pipeline do comando `run`:
+
+```rust
+/// Returns tool names/patterns this plugin requires for agent sessions.
+/// The core collects tools from ALL enabled plugins, deduplicates,
+/// and passes the merged list to the agent plugin.
+fn required_tools(&self) -> &[&str] {
+    &[] // default: no required tools
+}
+
+/// Returns prompt sections this plugin contributes to agent sessions.
+/// Called after build_prompt_context — each contribution is appended
+/// to the prompt text and added to the context files.
+fn prompt_contributions(&self, _project_root: &Path) -> Vec<PromptContribution> {
+    Vec::new() // default: no contributions
+}
+```
+
+Esses métodos permitem **auto-discovery**: cada plugin declara seus requisitos de ferramentas e conteúdo de prompt sem que o usuário configure manualmente. O comando `run` coleta de todos os plugins habilitados automaticamente.
+
+Nem todos os métodos precisam de implementações reais. Um plugin de template só usa o `run_check` (para validar arquivos do projeto). Um plugin de agent runtime foca no `bootstrap_agent`. Um plugin de context provider implementa `prompt_contributions` para injetar conteúdo nos prompts do agente. Retorne `Err(PluginRuntimeError::new(...))` para operações que seu plugin não suporta:
 
 ```rust
 fn bootstrap_agent(
@@ -248,6 +268,7 @@ ralph-engine plugins list
 |------|-----------|------------|
 | `template` | Templates, prompts | Scaffolding de projetos e arquivos iniciais |
 | `agent_runtime` | Agents, MCP servers | Integração com agentes (Claude, Codex, custom) |
+| `context_provider` | Prompt fragments | Injeção de conteúdo em tempo de execução nos prompts do agente (ex: findings, bases de conhecimento) |
 | `mcp_contribution` | MCP servers | Integração com ferramentas externas sem agent runtime |
 | `policy` | Policies, checks | Regras de enforcement (TDD, lint, compliance) |
 | `remote_control` | Providers | Execução remota (SSH, containers, cloud) |
