@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-04-04T11:32:02.688Z",
+  "generated_at": "2026-04-04T11:36:55.699Z",
   "count": 10,
   "icon_contract": {
     "discovery": "Auto — place icon.svg (preferred), icon.png, icon.jpg, or icon.webp in plugin root",
@@ -36,6 +36,14 @@
       "plugin_api_version": "1.0.0",
       "engine_version": ">=0.2.0-alpha.1",
       "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "load"
+      ],
+      "runtime_hooks": [
+        "scaffold"
+      ],
       "capabilities": [
         "template"
       ],
@@ -129,6 +137,19 @@
       "plugin_api_version": "1.0.0",
       "engine_version": ">=0.2.0-alpha.1",
       "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "validate",
+        "load"
+      ],
+      "runtime_hooks": [
+        "scaffold",
+        "prompt_assembly",
+        "prepare",
+        "doctor",
+        "work_item_resolution"
+      ],
       "capabilities": [
         "template",
         "prompt_fragments",
@@ -264,6 +285,15 @@
       "plugin_version": "0.2.0-alpha.1",
       "plugin_api_version": "1.0.0",
       "runtime": true,
+      "lifecycle": [
+        "discover",
+        "load"
+      ],
+      "runtime_hooks": [
+        "agent_bootstrap",
+        "mcp_registration",
+        "agent_launch"
+      ],
       "engine_version": ">=0.2.0-alpha.1",
       "capabilities": [
         "agent_runtime",
@@ -352,6 +382,15 @@
       "plugin_version": "0.2.0-alpha.1",
       "plugin_api_version": "1.0.0",
       "runtime": true,
+      "lifecycle": [
+        "discover",
+        "load"
+      ],
+      "runtime_hooks": [
+        "agent_bootstrap",
+        "mcp_registration",
+        "agent_launch"
+      ],
       "engine_version": ">=0.2.0-alpha.1",
       "capabilities": [
         "agent_runtime",
@@ -432,6 +471,15 @@
       "plugin_version": "0.2.0-alpha.1",
       "plugin_api_version": "1.0.0",
       "runtime": true,
+      "lifecycle": [
+        "discover",
+        "load"
+      ],
+      "runtime_hooks": [
+        "agent_bootstrap",
+        "mcp_registration",
+        "agent_launch"
+      ],
       "engine_version": ">=0.2.0-alpha.1",
       "capabilities": [
         "agent_runtime",
@@ -513,6 +561,13 @@
       "plugin_api_version": "1.0.0",
       "engine_version": ">=0.2.0-alpha.1",
       "runtime": true,
+      "lifecycle": [
+        "discover",
+        "load"
+      ],
+      "runtime_hooks": [
+        "prompt_assembly"
+      ],
       "capabilities": [
         "context_provider",
         "prompt_fragments"
@@ -552,6 +607,17 @@
       "plugin_version": "0.2.0-alpha.1",
       "plugin_api_version": "1.0.0",
       "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "load"
+      ],
+      "runtime_hooks": [
+        "mcp_registration",
+        "data_source_registration",
+        "context_provider_registration",
+        "forge_provider_registration"
+      ],
       "engine_version": ">=0.2.0-alpha.1",
       "capabilities": [
         "data_source",
@@ -668,6 +734,14 @@
       "plugin_api_version": "1.0.0",
       "engine_version": ">=0.2.0-alpha.1",
       "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "load"
+      ],
+      "runtime_hooks": [
+        "scaffold"
+      ],
       "capabilities": [
         "template"
       ],
@@ -760,6 +834,13 @@
       "plugin_version": "0.2.0-alpha.1",
       "plugin_api_version": "1.0.0",
       "runtime": true,
+      "lifecycle": [
+        "discover",
+        "load"
+      ],
+      "runtime_hooks": [
+        "remote_control_bootstrap"
+      ],
       "engine_version": ">=0.2.0-alpha.1",
       "capabilities": [
         "remote_control"
@@ -849,6 +930,16 @@
       "plugin_api_version": "1.0.0",
       "engine_version": ">=0.2.0-alpha.1",
       "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "validate",
+        "load"
+      ],
+      "runtime_hooks": [
+        "scaffold",
+        "policy_enforcement"
+      ],
       "capabilities": [
         "template",
         "policy"

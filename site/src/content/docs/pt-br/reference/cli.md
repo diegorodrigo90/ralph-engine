@@ -367,6 +367,44 @@ ralph-engine providers plan <provider-id>
 
 Exibir o plano de registro de um provider.
 
+## run
+
+Executar itens de trabalho através do pipeline de workflow + plugin de agente.
+
+```bash
+ralph-engine run <id>
+```
+
+Resolve um item de trabalho, monta o prompt e lança o agente configurado. No primeiro uso, solicita aceitação do modo autônomo (salvo em `.ralph-engine/.accepted-autonomous`).
+
+O fluxo de execução tem cinco etapas:
+
+1. **Verificar agente** — verificar se o binário do agente está disponível
+2. **Resolver item de trabalho** — o plugin de workflow localiza o item pelo ID
+3. **Montar prompt** — reunir contexto da tarefa, contribuições de plugins e ferramentas descobertas
+4. **Exibir info de lançamento** — mostrar o item de trabalho e o agente sendo utilizado
+5. **Lançar agente** — iniciar o processo do agente com o prompt montado
+
+```bash
+ralph-engine run --list
+```
+
+Listar itens de trabalho acionáveis do plugin de workflow. Cada item exibe seu ID, título e status.
+
+```bash
+ralph-engine run plan <id>
+```
+
+Dry-run: resolver o item de trabalho e exibir o plano de execução sem lançar o agente. Mostra o plugin de workflow, plugin de agente, metadados do item de trabalho, tamanho do prompt, contagem de arquivos de contexto e status de prontidão do agente.
+
+```bash
+ralph-engine run --verbose <id>
+ralph-engine run --verbose --list
+ralph-engine run --verbose plan <id>
+```
+
+Habilitar logging de debug. Exibe detalhes passo a passo no stderr: resolução de config, seleção de runtime do plugin, resolução do item de trabalho, discovery de ferramentas, tamanho do prompt montado e resultados do processo do agente.
+
 ## runtime
 
 Inspecionar e remediar a topologia resolvida do runtime.

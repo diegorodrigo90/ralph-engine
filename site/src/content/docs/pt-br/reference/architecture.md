@@ -42,3 +42,41 @@ Ralph Engine é um runtime open-source, orientado a plugins, para fluxos de dese
 - Topologia do runtime, saúde, reporting de issues, reporting de doctor, plano de ações do runtime e registro de runtime hooks evoluem por registros tipados e contratos compartilhados para que ativação de plugin, registro de capability, registro de hook e enablement de MCP permaneçam explícitos em vez de reconstruídos ad hoc por comando.
 - Capabilities desabilitadas e runtime hooks desabilitados permanecem visíveis no health e na remediação do runtime; não se tornam metadado invisível só porque a topologia resolveu.
 - Fronteiras de carregamento de plugin permanecem tipadas para que integração in-process, subprocess e remota possam evoluir sem branching ad hoc no runtime.
+
+## Pipeline do Comando Run
+
+O comando `run` orquestra a execução de itens de trabalho por meio de um pipeline de cinco etapas:
+
+1. **Verificar agente** — chamar `bootstrap_agent()` no plugin de agente para verificar se o binário está instalado e pronto.
+2. **Resolver item de trabalho** — chamar `resolve_work_item()` no plugin de workflow. Retorna o ID canônico, título, caminho de origem e metadados.
+3. **Montar prompt** — chamar `build_prompt_context()` no plugin de workflow, depois enriquecer com ferramentas descobertas automaticamente e contribuições de prompt dos plugins.
+4. **Exibir info de lançamento** — mostrar o item de trabalho e o agente para o usuário.
+5. **Lançar agente** — chamar `launch_agent()` no plugin de agente com o `PromptContext` montado.
+
+### Montagem do Prompt
+
+O prompt é montado em camadas:
+
+- **Contexto da tarefa** — o plugin de workflow lê o arquivo do item de trabalho (story, issue, spec) e constrói o prompt base com descrição da tarefa, critérios de aceitação e regras relevantes do projeto.
+- **Contribuições de plugins** — o `prompt_contributions()` de cada plugin habilitado é chamado. Contribuições são adicionadas ao texto do prompt e rastreadas como arquivos de contexto. O plugin `official.findings` usa esse mecanismo para injetar findings anteriores.
+- **Restrições** — restrições definidas pelo workflow (quality gates, padrões de código) são adicionadas por último.
+
+### Auto-Discovery de Ferramentas
+
+Em vez de exigir que o usuário liste todas as ferramentas que um agente precisa, o comando `run` coleta ferramentas de todos os plugins habilitados:
+
+1. Cada plugin implementa `required_tools()` retornando nomes ou padrões de ferramentas necessárias (ex: padrões de ferramentas MCP).
+2. O core coleta de todos os plugins habilitados, remove duplicatas e mescla com ferramentas configuradas em `.ralph-engine/config.yaml`.
+3. A lista mesclada é passada ao plugin de agente via `PromptContext.discovered_tools`.
+
+Isso significa que instalar um plugin que precisa de ferramentas MCP específicas torna automaticamente essas ferramentas disponíveis para o agente.
+
+### Loop de Feedback
+
+O plugin `official.findings` cria um loop de feedback entre sessões de agente:
+
+1. Após uma execução, findings (issues de code review, falhas de quality gate, aprendizados) são escritos em `.ralph-engine/findings.md`.
+2. Na execução seguinte, o plugin de findings lê esse arquivo e injeta como uma seção `<findings>` no prompt.
+3. O agente vê erros anteriores antes de implementar, reduzindo erros repetidos.
+
+O formato do arquivo é definido pelo projeto — o plugin lê e injeta sem fazer parsing.
