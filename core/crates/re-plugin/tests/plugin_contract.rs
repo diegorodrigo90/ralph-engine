@@ -545,6 +545,7 @@ fn kind_as_str_is_stable() {
             "remote_control",
             "mcp_contribution",
             "policy",
+            "workflow",
         ]
     );
 }

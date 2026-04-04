@@ -7,6 +7,7 @@ const SUPPORTED_KINDS = new Set([
   "remote_control",
   "mcp_contribution",
   "policy",
+  "workflow",
 ]);
 
 const SUPPORTED_CAPABILITIES = new Set([
@@ -21,6 +22,7 @@ const SUPPORTED_CAPABILITIES = new Set([
   "remote_control",
   "mcp_contribution",
   "policy",
+  "workflow",
 ]);
 
 const DEFAULT_CAPABILITIES_BY_KIND = new Map([
@@ -32,6 +34,7 @@ const DEFAULT_CAPABILITIES_BY_KIND = new Map([
   ["context_provider", ["context_provider"]],
   ["data_source", ["data_source"]],
   ["policy", ["policy"]],
+  ["workflow", ["workflow"]],
 ]);
 
 const CAPABILITY_IMPORT_NAMES = new Map([
@@ -46,6 +49,7 @@ const CAPABILITY_IMPORT_NAMES = new Map([
   ["forge_provider", "FORGE_PROVIDER"],
   ["remote_control", "REMOTE_CONTROL"],
   ["policy", "POLICY"],
+  ["workflow", "WORKFLOW"],
 ]);
 
 const CAPABILITY_RUNTIME_HOOKS = new Map([
@@ -60,6 +64,7 @@ const CAPABILITY_RUNTIME_HOOKS = new Map([
   ["forge_provider", "PluginRuntimeHook::ForgeProviderRegistration"],
   ["remote_control", "PluginRuntimeHook::RemoteControlBootstrap"],
   ["policy", "PluginRuntimeHook::PolicyEnforcement"],
+  ["workflow", "PluginRuntimeHook::WorkItemResolution"],
 ]);
 
 const KIND_VARIANTS = new Map([
@@ -71,6 +76,7 @@ const KIND_VARIANTS = new Map([
   ["remote_control", "PluginKind::RemoteControl"],
   ["mcp_contribution", "PluginKind::McpContribution"],
   ["policy", "PluginKind::Policy"],
+  ["workflow", "PluginKind::Workflow"],
 ]);
 
 function capabilityImportName(capability) {
