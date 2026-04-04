@@ -492,3 +492,24 @@ pub fn collect_cli_contributions_from_plugins() -> Vec<(String, re_plugin::CliCo
 
     contributions
 }
+
+/// Collects TUI panel contributions from all enabled plugins.
+///
+/// Auto-discovers panels via `tui_contributions()` on each plugin
+/// that has the `tui_widgets` capability. Returns panels with
+/// their source plugin ID for attribution.
+#[must_use]
+pub fn collect_tui_panels_from_plugins() -> Vec<(String, re_plugin::TuiPanel)> {
+    let snapshot = official_runtime_snapshot();
+    let mut panels = Vec::new();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
+            for panel in runtime.tui_contributions() {
+                panels.push((plugin.descriptor.id.to_owned(), panel));
+            }
+        }
+    }
+
+    panels
+}
