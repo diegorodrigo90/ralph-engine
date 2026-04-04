@@ -1,5 +1,6 @@
 [package]
 name = "re-config"
+description = "Typed configuration contracts for Ralph Engine"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
