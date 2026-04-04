@@ -165,12 +165,15 @@ impl PluginRuntime for CodexRuntime {
         if re_plugin::probe_binary_on_path(AGENT_BINARY).is_none() {
             return Err(PluginRuntimeError::new(
                 "agent_not_installed",
-                format!("'{AGENT_BINARY}' not found on PATH."),
+                format!(
+                    "'{AGENT_BINARY}' not found on PATH.\n\
+                     Install Codex CLI from: https://github.com/openai/codex"
+                ),
             ));
         }
 
+        // Codex uses a different CLI interface — pass prompt directly
         let status = std::process::Command::new(AGENT_BINARY)
-            .arg("--print")
             .arg(&context.prompt_text)
             .current_dir(project_root)
             .stdin(std::process::Stdio::inherit())

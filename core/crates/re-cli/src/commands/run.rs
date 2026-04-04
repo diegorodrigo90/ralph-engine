@@ -216,6 +216,9 @@ fn run_work_item(work_item_id: &str, locale: &str, verbose: bool) -> Result<Stri
         ),
     );
 
+    // Check autonomous mode acceptance
+    ensure_autonomous_acceptance(&cwd, locale, verbose)?;
+
     let agent_id = config.run.agent_id.ok_or_else(|| {
         CliError::new(locale_str!(
             locale,
@@ -438,6 +441,96 @@ fn resolve_run_plugins(locale: &str, verbose: bool) -> Result<PluginRuntimePair,
     );
 
     Ok((workflow_runtime, agent_runtime))
+}
+
+/// Path to the autonomous mode acceptance file.
+const AUTONOMOUS_ACCEPTANCE_FILE: &str = ".ralph-engine/.accepted-autonomous";
+
+/// Ensures the user has accepted autonomous execution mode.
+///
+/// On first run, displays a warning and asks for confirmation via stdin.
+/// Saves acceptance to a file so subsequent runs skip the prompt.
+fn ensure_autonomous_acceptance(
+    project_root: &std::path::Path,
+    locale: &str,
+    verbose: bool,
+) -> Result<(), CliError> {
+    let acceptance_path = project_root.join(AUTONOMOUS_ACCEPTANCE_FILE);
+
+    if acceptance_path.exists() {
+        dbg_log(verbose, "autonomous mode: previously accepted");
+        return Ok(());
+    }
+
+    dbg_log(verbose, "autonomous mode: first run, asking for acceptance");
+
+    let warning = locale_str!(
+        locale,
+        "⚠️  AUTONOMOUS MODE WARNING\n\n\
+         ralph-engine run launches an AI agent that can:\n\
+         - Read and write files in this project\n\
+         - Execute shell commands\n\
+         - Make git commits\n\n\
+         The agent runs with auto-accept permissions to work autonomously.\n\
+         This is equivalent to --dangerously-skip-permissions in Claude Code.\n\n\
+         Only run this in projects you trust.\n\n\
+         Accept and continue? [y/N] ",
+        "⚠️  AVISO DE MODO AUTÔNOMO\n\n\
+         ralph-engine run lança um agente de IA que pode:\n\
+         - Ler e escrever arquivos neste projeto\n\
+         - Executar comandos no shell\n\
+         - Fazer commits no git\n\n\
+         O agente roda com permissões auto-aceitas para trabalhar de forma autônoma.\n\
+         Equivalente a --dangerously-skip-permissions no Claude Code.\n\n\
+         Execute apenas em projetos que você confia.\n\n\
+         Aceitar e continuar? [y/N] "
+    );
+
+    eprint!("{warning}");
+    use std::io::Write as _;
+    let _ = std::io::stderr().flush();
+
+    let mut input = String::new();
+    std::io::stdin()
+        .read_line(&mut input)
+        .map_err(|err| CliError::new(format!("Failed to read input: {err}")))?;
+
+    let accepted = matches!(
+        input.trim().to_lowercase().as_str(),
+        "y" | "yes" | "s" | "sim"
+    );
+
+    if !accepted {
+        return Err(CliError::new(locale_str!(
+            locale,
+            "Autonomous mode not accepted. Aborting.",
+            "Modo autônomo não aceito. Abortando."
+        )));
+    }
+
+    // Save acceptance
+    std::fs::write(&acceptance_path, format!(
+        "# Autonomous mode accepted on {}\n# User confirmed risk awareness for ralph-engine run.\n",
+        chrono_free_now()
+    ))
+    .map_err(|err| CliError::new(format!("Failed to save acceptance: {err}")))?;
+
+    dbg_log(
+        verbose,
+        &format!(
+            "autonomous mode: accepted, saved to {}",
+            acceptance_path.display()
+        ),
+    );
+    Ok(())
+}
+
+/// Returns a basic ISO-ish timestamp without chrono dependency.
+fn chrono_free_now() -> String {
+    let duration = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default();
+    format!("unix:{}", duration.as_secs())
 }
 
 /// Returns the current working directory or a typed error.
