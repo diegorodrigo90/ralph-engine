@@ -169,26 +169,56 @@ impl PluginRuntime for ClaudeRuntime {
             return Err(PluginRuntimeError::new(
                 "agent_not_installed",
                 format!(
-                    "'{AGENT_BINARY}' not found on PATH. Install Claude CLI: https://docs.anthropic.com/en/docs/claude-code"
+                    "'{AGENT_BINARY}' not found on PATH.\n\
+                     Install: curl -fsSL https://claude.ai/install.sh | bash\n\
+                     Docs: https://code.claude.com/docs/en/quickstart"
                 ),
             ));
         }
 
-        // Write prompt to temp file for the agent to read
-        let prompt_file =
-            std::env::temp_dir().join(format!("ralph-engine-prompt-{}.md", std::process::id()));
-        std::fs::write(&prompt_file, &context.prompt_text).map_err(|err| {
+        // Write context to temp file for --append-system-prompt-file.
+        // This injects story + instructions + project rules into the system
+        // prompt without replacing Claude Code's built-in capabilities.
+        let context_file =
+            std::env::temp_dir().join(format!("ralph-engine-context-{}.md", std::process::id()));
+        std::fs::write(&context_file, &context.prompt_text).map_err(|err| {
             PluginRuntimeError::new(
-                "prompt_write_failed",
-                format!("Failed to write prompt file: {err}"),
+                "context_write_failed",
+                format!("Failed to write context file: {err}"),
             )
         })?;
 
-        // Launch claude with the prompt
-        // Uses --print to pass the prompt as initial message
-        let status = std::process::Command::new(AGENT_BINARY)
-            .arg("--print")
-            .arg(&context.prompt_text)
+        // Launch claude as a full interactive session:
+        // - --append-system-prompt-file: injects work item context (preserves
+        //   built-in Claude Code capabilities like CLAUDE.md, tools, hooks)
+        // - --permission-mode acceptEdits: auto-accepts file edits without
+        //   prompting, but still asks for dangerous bash commands
+        // - Positional arg: initial user message that starts the session
+        // - No --print: Claude runs interactively with full tool use
+        //
+        // Docs: https://code.claude.com/docs/en/cli-usage
+        let initial_message = format!(
+            "Implement work item {}. Follow the instructions and story in the system prompt context. \
+             Use the project's DoR/DoD rules. Commit when done.",
+            context.work_item_id
+        );
+
+        // Use autonomous mode if user accepted (file created by run command).
+        let autonomous = project_root
+            .join(".ralph-engine/.accepted-autonomous")
+            .exists();
+
+        let mut cmd = std::process::Command::new(AGENT_BINARY);
+        cmd.arg("--append-system-prompt-file").arg(&context_file);
+
+        if autonomous {
+            cmd.arg("--dangerously-skip-permissions");
+        } else {
+            cmd.arg("--permission-mode").arg("acceptEdits");
+        }
+
+        let status = cmd
+            .arg(&initial_message)
             .current_dir(project_root)
             .stdin(std::process::Stdio::inherit())
             .stdout(std::process::Stdio::inherit())
@@ -196,7 +226,7 @@ impl PluginRuntime for ClaudeRuntime {
             .status();
 
         // Clean up temp file
-        let _ = std::fs::remove_file(&prompt_file);
+        let _ = std::fs::remove_file(&context_file);
 
         match status {
             Ok(exit) => {

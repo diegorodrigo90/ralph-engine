@@ -165,18 +165,41 @@ impl PluginRuntime for ClaudeBoxRuntime {
         if re_plugin::probe_binary_on_path(AGENT_BINARY).is_none() {
             return Err(PluginRuntimeError::new(
                 "agent_not_installed",
-                format!("'{AGENT_BINARY}' not found on PATH."),
+                format!(
+                    "'{AGENT_BINARY}' not found on PATH.\n\
+                     Install: curl -fsSL https://claude.ai/install.sh | bash"
+                ),
             ));
         }
 
+        let context_file =
+            std::env::temp_dir().join(format!("ralph-engine-context-{}.md", std::process::id()));
+        std::fs::write(&context_file, &context.prompt_text).map_err(|err| {
+            PluginRuntimeError::new(
+                "context_write_failed",
+                format!("Failed to write context file: {err}"),
+            )
+        })?;
+
+        let initial_message = format!(
+            "Implement work item {}. Follow the instructions and story in the system prompt context. \
+             Use the project's DoR/DoD rules. Commit when done.",
+            context.work_item_id
+        );
+
         let status = std::process::Command::new(AGENT_BINARY)
-            .arg("--print")
-            .arg(&context.prompt_text)
+            .arg("--append-system-prompt-file")
+            .arg(&context_file)
+            .arg("--permission-mode")
+            .arg("acceptEdits")
+            .arg(&initial_message)
             .current_dir(project_root)
             .stdin(std::process::Stdio::inherit())
             .stdout(std::process::Stdio::inherit())
             .stderr(std::process::Stdio::inherit())
             .status();
+
+        let _ = std::fs::remove_file(&context_file);
 
         match status {
             Ok(exit) => Ok(AgentLaunchResult {
