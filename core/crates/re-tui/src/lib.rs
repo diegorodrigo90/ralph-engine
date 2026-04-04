@@ -13,11 +13,13 @@
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 pub mod events;
+pub mod keybindings;
 pub mod layout;
 mod logging;
 mod terminal;
 
 pub use events::{AgentEvent, parse_stream_line, parse_stream_lines};
+pub use keybindings::{KeybindingRegistry, format_key, is_core_key};
 pub use layout::{LayoutTier, LayoutZones, compute_zones, is_terminal_too_small};
 pub use logging::{LogConfig, init_logging};
 pub use terminal::{SidebarPanel, TuiConfig, TuiMode, TuiShell, TuiState};
