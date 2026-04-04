@@ -65,6 +65,7 @@ pub(super) struct CliLocaleCatalog {
     pub usage_label: &'static str,
 
     // ── Run command ──────────────────────────────────────────────
+    #[allow(dead_code)]
     pub run_id_required: &'static str,
     pub run_no_items: &'static str,
     pub run_available_items: &'static str,
@@ -504,7 +505,7 @@ catalog_str!(usage_label, usage_label);
 
 // ── Run command accessors ────────────────────────────────────────
 
-catalog_str!(run_id_required, run_id_required);
+// run_id_required: available in TOML catalog, not used — run without args enters loop mode.
 catalog_str!(run_no_items, run_no_items);
 catalog_str!(run_available_items, run_available_items);
 catalog_str!(run_work_item_id_label, run_work_item_id_label);
@@ -614,33 +615,13 @@ mod tests {
     use crate::CliError;
 
     use super::{
-        LOCALE_FLAG,
-        activation_label,
-        agents_bootstrap_probe,
-        checks_file_validation,
-        hooks_plan_heading,
-        install_already_installed,
-        install_help,
-        install_uninstalled,
-        load_boundary_label,
-        mcp_install_hint,
-        mcp_launch_probe,
-        missing_id,
-        normalize_cli_locale,
-        policies_file_validation,
-        providers_heading,
-        resolve_cli_invocation,
-        resolve_cli_invocation_from_env_result,
-        resolve_cli_locale_from_env_and_os,
-        resolve_cli_locale_from_env_result,
-        resolve_locale_from_os_values,
-        root_bootstrapped,
-        run_available_items,
-        // New accessors
-        run_id_required,
-        unknown_command,
-        unknown_entity,
-        unknown_subcommand,
+        LOCALE_FLAG, activation_label, agents_bootstrap_probe, checks_file_validation,
+        hooks_plan_heading, install_already_installed, install_help, install_uninstalled,
+        load_boundary_label, mcp_install_hint, mcp_launch_probe, missing_id, normalize_cli_locale,
+        policies_file_validation, providers_heading, resolve_cli_invocation,
+        resolve_cli_invocation_from_env_result, resolve_cli_locale_from_env_and_os,
+        resolve_cli_locale_from_env_result, resolve_locale_from_os_values, root_bootstrapped,
+        run_available_items, unknown_command, unknown_entity, unknown_subcommand,
     };
 
     #[test]
@@ -693,7 +674,6 @@ mod tests {
 
     #[test]
     fn new_catalog_accessors_work_en() {
-        assert!(run_id_required("en").contains("Work item ID required"));
         assert_eq!(run_available_items("en"), "Available work items");
         assert!(install_help("en").contains("ralph-engine install"));
         assert_eq!(agents_bootstrap_probe("en"), "Agent bootstrap probe");
@@ -705,7 +685,6 @@ mod tests {
 
     #[test]
     fn new_catalog_accessors_work_pt_br() {
-        assert!(run_id_required("pt-br").contains("ID do work item"));
         assert_eq!(run_available_items("pt-br"), "Work items disponíveis");
         assert!(install_help("pt-br").contains("ralph-engine install"));
         assert_eq!(

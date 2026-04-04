@@ -17,7 +17,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         Some("--list") => list_work_items(locale, verbose),
         Some("plan") => run_plan(filtered.get(1).copied(), locale, verbose),
         Some(id) if !id.starts_with('-') => run_work_item(id, locale, verbose),
-        None => Err(CliError::new(i18n::run_id_required(locale))),
+        None => run_loop(locale, verbose),
         Some(other) => Err(CliError::new(i18n::unknown_subcommand(
             locale, "run", other,
         ))),
@@ -61,6 +61,79 @@ fn list_work_items(locale: &str, verbose: bool) -> Result<String, CliError> {
         lines.push(format!("  {} | {} | {}", item.id, item.title, item.status));
     }
     Ok(lines.join("\n"))
+}
+
+/// Autonomous loop: picks the next ready work item and executes it,
+/// repeating until no more items are available or the user quits.
+///
+/// This is the core "Autonomous AI Dev Loop" — `ralph-engine run`
+/// without arguments enters this mode.
+fn run_loop(locale: &str, verbose: bool) -> Result<String, CliError> {
+    dbg_log(verbose, "entering autonomous loop...");
+    let cwd = current_dir_or_error(locale)?;
+
+    // Acceptance check (once per session)
+    ensure_autonomous_acceptance(&cwd, locale, verbose)?;
+
+    let mut completed = 0usize;
+
+    loop {
+        // Reload plugins each iteration (config may change between runs)
+        let (workflow_runtime, _agent_runtime) = resolve_run_plugins(locale, verbose)?;
+
+        // Get next actionable work item
+        let items = workflow_runtime
+            .list_work_items(&cwd)
+            .map_err(|err| CliError::new(err.to_string()))?;
+
+        let next = items.iter().find(|item| {
+            let s = item.status.to_lowercase();
+            s == "ready-for-dev" || s == "todo" || s == "ready"
+        });
+
+        let Some(item) = next else {
+            dbg_log(verbose, "no more actionable work items");
+            break;
+        };
+
+        let item_id = item.id.clone();
+        let item_title = item.title.clone();
+
+        dbg_log(
+            verbose,
+            &format!("next work item: {item_id} — {item_title}"),
+        );
+
+        eprintln!(
+            "\n--- [{}/{}] {} — {} ---\n",
+            completed + 1,
+            items.len(),
+            item_id,
+            item_title,
+        );
+
+        // Execute the work item (TUI or headless)
+        match run_work_item(&item_id, locale, verbose) {
+            Ok(msg) => {
+                completed += 1;
+                dbg_log(verbose, &format!("completed: {item_id} — {msg}"));
+            }
+            Err(err) => {
+                // Log error but continue to next item
+                eprintln!("Error on {item_id}: {err}");
+                dbg_log(verbose, &format!("failed: {item_id} — {err}"));
+                break; // Stop on error — user should investigate
+            }
+        }
+    }
+
+    if completed == 0 {
+        Ok(i18n::run_no_items(locale).to_owned())
+    } else {
+        Ok(format!(
+            "Autonomous loop completed. {completed} work item(s) executed."
+        ))
+    }
 }
 
 /// Shows the execution plan without launching the agent (dry run).
@@ -639,21 +712,9 @@ fn current_dir_or_error(locale: &str) -> Result<std::path::PathBuf, CliError> {
 mod tests {
     use super::*;
 
-    #[test]
-    fn execute_without_args_returns_usage_error() {
-        let result = execute(&[], "en");
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.0.contains("Work item ID required"));
-    }
-
-    #[test]
-    fn execute_without_args_returns_usage_error_pt_br() {
-        let result = execute(&[], "pt-br");
-        assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.0.contains("ID do work item"));
-    }
+    // Note: execute(&[], ..) and execute(&["--verbose"], ..) call run_loop()
+    // which reads stdin for acceptance — cannot be unit tested (Rule 55).
+    // These are covered by cli_smoke.rs with pre-accepted autonomous file.
 
     #[test]
     fn execute_with_unknown_flag_returns_error() {
@@ -662,11 +723,8 @@ mod tests {
     }
 
     #[test]
-    fn verbose_flag_is_stripped_from_args() {
-        // --verbose alone should still require work item ID
-        let result = execute(&["--verbose".to_owned()], "en");
+    fn execute_with_specific_id_without_config_returns_error() {
+        let result = execute(&["5.3".to_owned()], "en");
         assert!(result.is_err());
-        let err = result.unwrap_err();
-        assert!(err.0.contains("Work item ID required"));
     }
 }
