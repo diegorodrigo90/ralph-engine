@@ -25,6 +25,11 @@ plugin_version: 0.2.0-alpha.1
 plugin_api_version: 1.0.0
 engine_version: ">=0.2.0-alpha.1"
 runtime: true
+lifecycle:
+  - discover
+  - load
+runtime_hooks:
+  - prompt_assembly
 capabilities:
   - context_provider
   - prompt_fragments
