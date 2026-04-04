@@ -1396,6 +1396,62 @@ pub trait PluginRuntime: Send + Sync {
         })
     }
 
+    /// Pauses a spawned agent. Called by TUI when user presses pause.
+    ///
+    /// Default implementation sends SIGSTOP via `kill` command.
+    /// Plugins can override for agent-specific pause behavior
+    /// (e.g., API-based pause, session checkpoint).
+    fn pause_agent(&self, pid: u32) -> Result<(), PluginRuntimeError> {
+        std::process::Command::new("kill")
+            .args(["-STOP", &pid.to_string()])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map_err(|e| PluginRuntimeError::new("pause_failed", format!("SIGSTOP failed: {e}")))?;
+        Ok(())
+    }
+
+    /// Resumes a paused agent. Called by TUI when user presses resume.
+    ///
+    /// Default implementation sends SIGCONT via `kill` command.
+    /// Plugins can override for agent-specific resume behavior.
+    fn resume_agent(&self, pid: u32) -> Result<(), PluginRuntimeError> {
+        std::process::Command::new("kill")
+            .args(["-CONT", &pid.to_string()])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map_err(|e| {
+                PluginRuntimeError::new("resume_failed", format!("SIGCONT failed: {e}"))
+            })?;
+        Ok(())
+    }
+
+    /// Injects user feedback into the agent context for the next run.
+    ///
+    /// Called when the user provides feedback during a pause. The default
+    /// implementation writes feedback to a `.ralph-engine/.feedback.md` file.
+    /// Plugins can override to use agent-specific injection mechanisms
+    /// (e.g., Claude `--resume`, Codex stdin pipe, API-based context update).
+    ///
+    /// Returns the path to the feedback file (for context merging on re-spawn).
+    fn inject_feedback(
+        &self,
+        feedback: &str,
+        project_root: &Path,
+    ) -> Result<std::path::PathBuf, PluginRuntimeError> {
+        let feedback_path = project_root.join(".ralph-engine/.feedback.md");
+        std::fs::write(&feedback_path, format!("## User Feedback\n\n{feedback}\n")).map_err(
+            |e| {
+                PluginRuntimeError::new(
+                    "feedback_write_failed",
+                    format!("Failed to write feedback: {e}"),
+                )
+            },
+        )?;
+        Ok(feedback_path)
+    }
+
     /// Returns TUI panel contributions for the dashboard sidebar.
     ///
     /// Plugins with the `tui_widgets` capability declare panels that
