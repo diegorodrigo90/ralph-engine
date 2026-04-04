@@ -612,4 +612,178 @@ mod tests {
         let err = TuiError::new("test error".to_owned());
         assert_eq!(err.to_string(), "test error");
     }
+
+    // ── Rendering snapshot tests ─────────────────────────────────
+    //
+    // Use TestBackend to capture rendered frames without a real terminal.
+    // These verify that the right content appears in the right zones.
+
+    use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
+
+    fn test_shell() -> TuiShell {
+        let mut shell = TuiShell::new(TuiConfig {
+            mode: TuiMode::Autonomous,
+            title: "Test Task".to_owned(),
+            agent_id: "test.claude".to_owned(),
+        });
+        shell.push_activity(">> Tool Call: search".to_owned());
+        shell.push_activity(">> Result: found 3 items".to_owned());
+        shell.set_progress(42);
+        shell.increment_tools();
+        shell
+    }
+
+    fn render_to_buffer(shell: &TuiShell, width: u16, height: u16) -> String {
+        let backend = TestBackend::new(width, height);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal.draw(|frame| shell.render(frame)).unwrap();
+        // Extract text content from the buffer
+        let buf = terminal.backend().buffer();
+        let mut output = String::new();
+        for y in 0..height {
+            for x in 0..width {
+                let cell = &buf[(x, y)];
+                output.push_str(cell.symbol());
+            }
+            output.push('\n');
+        }
+        output
+    }
+
+    #[test]
+    fn render_compact_shows_header_with_agent_id() {
+        let shell = test_shell();
+        let output = render_to_buffer(&shell, 80, 24);
+        assert!(
+            output.contains("test.claude"),
+            "header should show agent_id, got:\n{output}"
+        );
+        assert!(
+            output.contains("[RUNNING]"),
+            "header should show state, got:\n{output}"
+        );
+    }
+
+    #[test]
+    fn render_compact_shows_activity_lines() {
+        let shell = test_shell();
+        let output = render_to_buffer(&shell, 80, 24);
+        assert!(
+            output.contains("Tool Call: search"),
+            "activity should show tool call, got:\n{output}"
+        );
+        assert!(
+            output.contains("found 3 items"),
+            "activity should show result, got:\n{output}"
+        );
+    }
+
+    #[test]
+    fn render_compact_shows_metrics() {
+        let shell = test_shell();
+        let output = render_to_buffer(&shell, 80, 24);
+        assert!(
+            output.contains("Tools: 1"),
+            "metrics should show tool count, got:\n{output}"
+        );
+    }
+
+    #[test]
+    fn render_compact_shows_help_bar() {
+        let shell = test_shell();
+        let output = render_to_buffer(&shell, 80, 24);
+        assert!(
+            output.contains("[q]"),
+            "help bar should show quit key, got:\n{output}"
+        );
+        assert!(
+            output.contains("compact"),
+            "help bar should show tier, got:\n{output}"
+        );
+    }
+
+    #[test]
+    fn render_compact_no_sidebar() {
+        let shell = test_shell();
+        let output = render_to_buffer(&shell, 80, 24);
+        assert!(
+            !output.contains("Plugins"),
+            "compact mode should not show sidebar, got:\n{output}"
+        );
+    }
+
+    #[test]
+    fn render_standard_shows_sidebar() {
+        let shell = test_shell();
+        let output = render_to_buffer(&shell, 140, 40);
+        assert!(
+            output.contains("Plugins"),
+            "standard mode should show sidebar, got:\n{output}"
+        );
+        assert!(
+            output.contains("standard"),
+            "help should show standard tier, got:\n{output}"
+        );
+    }
+
+    #[test]
+    fn render_wide_shows_control_panel() {
+        let shell = TuiShell::new(TuiConfig {
+            mode: TuiMode::Guided,
+            title: "Fix Bug".to_owned(),
+            agent_id: "test.claude".to_owned(),
+        });
+        let output = render_to_buffer(&shell, 200, 60);
+        assert!(
+            output.contains("Control"),
+            "wide mode should show control panel, got:\n{output}"
+        );
+        assert!(
+            output.contains("Guided"),
+            "control panel should show mode, got:\n{output}"
+        );
+        assert!(
+            output.contains("Plugins"),
+            "wide mode should show sidebar, got:\n{output}"
+        );
+        assert!(
+            output.contains("wide"),
+            "help should show wide tier, got:\n{output}"
+        );
+    }
+
+    #[test]
+    fn render_too_small_shows_error() {
+        let shell = test_shell();
+        let output = render_to_buffer(&shell, 60, 20);
+        assert!(
+            output.contains("too small"),
+            "should show size error, got:\n{output}"
+        );
+    }
+
+    #[test]
+    fn render_paused_state_shows_in_header() {
+        let mut shell = test_shell();
+        shell.set_state(TuiState::Paused);
+        let output = render_to_buffer(&shell, 80, 24);
+        assert!(
+            output.contains("[PAUSED]"),
+            "header should show PAUSED, got:\n{output}"
+        );
+    }
+
+    #[test]
+    fn render_progress_gauge_shows_in_wide_header() {
+        let mut shell = test_shell();
+        shell.set_progress(75);
+        // Wide enough for inline gauge (> 60 cols)
+        let output = render_to_buffer(&shell, 100, 24);
+        // The gauge renders unicode blocks — just verify the header area is used
+        assert!(
+            output.contains("test.claude"),
+            "header should render with gauge, got:\n{output}"
+        );
+    }
 }
