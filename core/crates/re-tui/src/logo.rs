@@ -1,54 +1,121 @@
 //! Logo rendering for the TUI startup banner.
 //!
-//! Embeds the Ralph Engine logo as a PNG and renders it using
-//! `ratatui-image` with automatic protocol detection:
-//! Kitty > Sixel > iTerm2 > Unicode halfblocks.
+//! Hand-crafted Unicode representation of the Ralph Engine orbit logo.
+//! Uses ratatui Spans with brand colors for consistent rendering
+//! across all terminals — no image protocol dependencies.
 
-use ratatui::Frame;
-use ratatui::layout::Rect;
-use ratatui_image::picker::Picker;
-use ratatui_image::protocol::StatefulProtocol;
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::text::{Line, Span};
 
-/// Embedded logo PNG (dark theme — light text on transparent background).
-static LOGO_PNG: &[u8] = include_bytes!("../assets/logo-dark.png");
+/// Brand purple color (`#5B6AD0` → ANSI 256 index 105).
+const BRAND: Color = Color::Indexed(105);
 
-/// Pre-built logo state for rendering across frames.
-pub struct LogoState {
-    /// The protocol-specific image data.
-    pub protocol: StatefulProtocol,
-}
+/// Light text color for dark terminals.
+const TEXT_LIGHT: Color = Color::Indexed(252);
 
-/// Attempts to create a renderable logo image.
+/// Dim text color.
+const TEXT_DIM: Color = Color::Indexed(245);
+
+/// Builds the startup logo as styled ratatui Lines.
 ///
-/// Returns `None` if the terminal does not support image rendering
-/// or the PNG cannot be decoded. This is best-effort — the TUI
-/// works fine without the logo.
-#[cfg_attr(coverage_nightly, coverage(off))]
+/// Responsive: returns a compact version if `width` < 60.
 #[must_use]
-pub fn create_logo() -> Option<LogoState> {
-    let dyn_image = image::load_from_memory(LOGO_PNG).ok()?;
-    let picker = Picker::from_query_stdio().ok()?;
-    let protocol = picker.new_resize_protocol(dyn_image);
-    Some(LogoState { protocol })
+pub fn build_logo_lines(width: u16) -> Vec<Line<'static>> {
+    if width < 60 {
+        build_compact_logo()
+    } else {
+        build_full_logo()
+    }
 }
 
-/// Renders the logo image into the given area.
-#[cfg_attr(coverage_nightly, coverage(off))]
-pub fn render_logo(frame: &mut Frame<'_>, area: Rect, state: &mut LogoState) {
-    let image_widget =
-        ratatui_image::StatefulImage::default().resize(ratatui_image::Resize::Fit(None));
-    frame.render_stateful_widget(image_widget, area, &mut state.protocol);
+/// Full logo with orbit icon + text (for terminals >= 60 cols).
+fn build_full_logo() -> Vec<Line<'static>> {
+    let b = Style::default().fg(BRAND);
+    let bb = Style::default().fg(BRAND).add_modifier(Modifier::BOLD);
+    let w = Style::default().fg(TEXT_LIGHT).add_modifier(Modifier::BOLD);
+    let d = Style::default().fg(TEXT_DIM);
+
+    vec![
+        Line::from(""),
+        Line::from(vec![Span::styled("      ╭───╮ ", b), Span::styled("●", bb)]),
+        Line::from(vec![
+            Span::styled("    ╭╯", b),
+            Span::styled("     ╰╮", b),
+            Span::styled("    Ralph ", w),
+            Span::styled("Engine", bb),
+        ]),
+        Line::from(vec![
+            Span::styled("    │", b),
+            Span::styled("  ◉  ", bb),
+            Span::styled(" │", b),
+        ]),
+        Line::from(vec![
+            Span::styled("    ╰╮", b),
+            Span::styled("     ╭╯", b),
+            Span::styled("    Autonomous AI Dev Loop", d),
+        ]),
+        Line::from(vec![Span::styled("  ●", bb), Span::styled("  ╰───╯", b)]),
+        Line::from(""),
+    ]
+}
+
+/// Compact logo for narrow terminals (< 60 cols).
+fn build_compact_logo() -> Vec<Line<'static>> {
+    let bb = Style::default().fg(BRAND).add_modifier(Modifier::BOLD);
+    let w = Style::default().fg(TEXT_LIGHT).add_modifier(Modifier::BOLD);
+
+    vec![
+        Line::from(""),
+        Line::from(vec![
+            Span::styled("  ◎ ", bb),
+            Span::styled("Ralph ", w),
+            Span::styled("Engine", bb),
+        ]),
+        Line::from(""),
+    ]
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
 mod tests {
+    use super::*;
+
     #[test]
-    fn logo_png_is_valid() {
-        let img = image::load_from_memory(super::LOGO_PNG);
-        assert!(img.is_ok(), "embedded logo PNG should be decodable");
-        let img = img.unwrap();
-        assert!(img.width() > 0);
-        assert!(img.height() > 0);
+    fn full_logo_has_lines() {
+        let lines = build_logo_lines(80);
+        assert!(lines.len() >= 5, "full logo should have 5+ lines");
+    }
+
+    #[test]
+    fn compact_logo_has_lines() {
+        let lines = build_logo_lines(50);
+        assert!(lines.len() >= 2, "compact logo should have 2+ lines");
+    }
+
+    #[test]
+    fn full_logo_contains_brand_name() {
+        let lines = build_logo_lines(80);
+        let text: String = lines
+            .iter()
+            .flat_map(|l| l.spans.iter().map(|s| s.content.to_string()))
+            .collect();
+        assert!(text.contains("Ralph"), "logo should contain Ralph");
+        assert!(text.contains("Engine"), "logo should contain Engine");
+    }
+
+    #[test]
+    fn compact_logo_contains_brand_name() {
+        let lines = build_logo_lines(50);
+        let text: String = lines
+            .iter()
+            .flat_map(|l| l.spans.iter().map(|s| s.content.to_string()))
+            .collect();
+        assert!(text.contains("Ralph"));
+    }
+
+    #[test]
+    fn logo_responsive_threshold() {
+        let full = build_logo_lines(60);
+        let compact = build_logo_lines(59);
+        assert!(full.len() > compact.len());
     }
 }

@@ -1,8 +1,8 @@
 //! TUI dashboard demo command.
 //!
 //! Launches the ratatui-based terminal dashboard with simulated
-//! agent activity and logo rendering. In production, `ralph-engine run`
-//! uses the TUI by default — this command exists for testing.
+//! agent activity and logo. In production, `ralph-engine run` uses
+//! the TUI by default — this command exists for testing.
 
 use crate::CliError;
 
@@ -22,7 +22,6 @@ const DEMO_EVENTS: &[&str] = &[
 #[cfg_attr(coverage_nightly, coverage(off))]
 pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
     use ratatui::crossterm::event::{self, Event, KeyEventKind};
-    use ratatui::layout::{Constraint, Layout};
 
     let config = re_tui::TuiConfig {
         mode: re_tui::TuiMode::Autonomous,
@@ -52,9 +51,6 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
 
     shell.push_startup_banner();
 
-    // Try to create logo image (best-effort — works without it)
-    let mut logo_protocol = re_tui::logo::create_logo();
-
     let mut terminal = ratatui::init();
     let mut event_index = 0usize;
     let mut tick_counter = 0u32;
@@ -62,31 +58,11 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
     let result: Result<(), String> = (|| {
         loop {
             terminal
-                .draw(|frame| {
-                    let area = frame.area();
-
-                    // If logo available, split top area for logo + dashboard
-                    if let Some(ref mut protocol) = logo_protocol {
-                        let rows = Layout::vertical([
-                            Constraint::Length(6), // Logo area
-                            Constraint::Fill(1),   // Dashboard
-                        ])
-                        .split(area);
-
-                        re_tui::logo::render_logo(frame, rows[0], protocol);
-
-                        // Render dashboard in remaining space using a sub-frame trick:
-                        // we render the shell into the lower area
-                        shell.render_frame_in_area(frame, rows[1]);
-                    } else {
-                        shell.render_frame(frame);
-                    }
-                })
+                .draw(|frame| shell.render_frame(frame))
                 .map_err(|e| format!("render: {e}"))?;
 
-            // Feed demo events
-            #[allow(clippy::manual_is_multiple_of)]
-            if tick_counter % 8 == 0 && event_index < DEMO_EVENTS.len() {
+            // Feed demo events every ~800ms
+            if tick_counter.rem_euclid(8) == 0 && event_index < DEMO_EVENTS.len() {
                 let ev = re_tui::parse_stream_line(DEMO_EVENTS[event_index]);
                 shell.process_event(&ev);
                 event_index += 1;
