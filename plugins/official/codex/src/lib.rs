@@ -162,7 +162,22 @@ impl PluginRuntime for CodexRuntime {
         })
     }
 
-    // I/O boundary: spawns real subprocess. Validated by E2E runs.
+    // I/O boundary: spawns `codex exec` subprocess with `--json` output.
+    // Pure logic (tool merging, config parsing) tested via agent_helpers.
+    // Validated end-to-end by `ralph-engine run` integration runs.
+    //
+    // Codex CLI uses `codex exec` for non-interactive mode (equivalent to
+    // Claude's `-p` mode). Key flags (from official docs):
+    //   codex exec "prompt"             Non-interactive, no TUI
+    //   --json                          Newline-delimited JSON events
+    //   --approval-mode full-auto       Auto-approve safe ops, sandbox writes
+    //   --sandbox workspace-write       Allow file writes in workspace
+    //
+    // Context injection: Codex reads AGENTS.md automatically from the
+    // project root. We pipe the rich context (story + rules + constraints)
+    // via stdin so it reaches the agent as the user prompt body.
+    //
+    // Docs: https://developers.openai.com/codex/cli/reference
     #[cfg_attr(coverage_nightly, coverage(off))]
     fn launch_agent(
         &self,
@@ -175,39 +190,79 @@ impl PluginRuntime for CodexRuntime {
                 "agent_not_installed",
                 format!(
                     "'{AGENT_BINARY}' not found on PATH.\n\
-                     Install Codex CLI from: https://github.com/openai/codex"
+                     Install: npm i -g @openai/codex\n\
+                     Docs: https://developers.openai.com/codex/cli"
                 ),
             ));
         }
 
-        // Codex uses a different CLI interface — pass prompt directly
-        let status = std::process::Command::new(AGENT_BINARY)
-            .arg(&context.prompt_text)
-            .current_dir(project_root)
-            .stdin(std::process::Stdio::inherit())
-            .stdout(std::process::Stdio::inherit())
-            .stderr(std::process::Stdio::inherit())
-            .status();
+        // Build user prompt with full context piped via stdin.
+        // Codex exec reads stdin as the prompt when no positional arg given.
+        let full_prompt = format!(
+            "Implement work item {}.\n\n\
+             Expected outcome: all acceptance criteria implemented with tests, \
+             quality gates passing, and tracking files updated.\n\n\
+             {}",
+            context.work_item_id, context.prompt_text,
+        );
 
-        match status {
-            Ok(exit) => Ok(AgentLaunchResult {
-                agent_id: agent_id.to_owned(),
-                success: exit.success(),
-                exit_code: exit.code(),
-                message: if exit.success() {
-                    "Agent session completed.".to_owned()
+        // Launch codex in non-interactive mode:
+        //   codex exec             Non-interactive agent loop (no TUI)
+        //   --json                 Newline-delimited JSON events on stdout
+        //   --approval-mode full-auto   Auto-approve safe operations
+        //   --sandbox workspace-write   Allow file writes in project dir
+        let mut cmd = std::process::Command::new(AGENT_BINARY);
+        cmd.arg("exec")
+            .arg(&full_prompt)
+            .arg("--json")
+            .arg("--approval-mode")
+            .arg("full-auto")
+            .arg("--sandbox")
+            .arg("workspace-write")
+            .current_dir(project_root);
+
+        // stdout piped (we parse JSON events), stderr inherited.
+        let mut child = cmd
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::inherit())
+            .spawn()
+            .map_err(|err| {
+                PluginRuntimeError::new(
+                    "agent_spawn_failed",
+                    format!("Failed to spawn '{AGENT_BINARY} exec': {err}"),
+                )
+            })?;
+
+        // Read JSON events from stdout (Codex --json format).
+        let message = re_plugin::agent_helpers::read_stream_json_events(child.stdout.take());
+
+        let exit_status = child.wait().map_err(|err| {
+            PluginRuntimeError::new(
+                "agent_wait_failed",
+                format!("Failed to wait for '{AGENT_BINARY}': {err}"),
+            )
+        })?;
+
+        let code = exit_status.code();
+        let success = exit_status.success();
+        Ok(AgentLaunchResult {
+            agent_id: agent_id.to_owned(),
+            success,
+            exit_code: code,
+            message: if success {
+                if message.is_empty() {
+                    "Agent session completed successfully.".to_owned()
                 } else {
-                    format!(
-                        "Agent exited with code {}.",
-                        exit.code().map_or("unknown".to_owned(), |c| c.to_string())
-                    )
-                },
-            }),
-            Err(err) => Err(PluginRuntimeError::new(
-                "agent_spawn_failed",
-                format!("Failed to spawn '{AGENT_BINARY}': {err}"),
-            )),
-        }
+                    message
+                }
+            } else {
+                format!(
+                    "Agent exited with code {}.",
+                    code.map_or("unknown".to_owned(), |c| c.to_string())
+                )
+            },
+        })
     }
 }
 
