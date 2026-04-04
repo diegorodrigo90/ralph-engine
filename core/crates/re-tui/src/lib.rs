@@ -16,12 +16,14 @@ pub mod events;
 pub mod keybindings;
 pub mod layout;
 mod logging;
+pub mod process;
 mod terminal;
 
 pub use events::{AgentEvent, parse_stream_line, parse_stream_lines};
 pub use keybindings::{KeybindingRegistry, format_key, is_core_key};
 pub use layout::{LayoutTier, LayoutZones, compute_zones, is_terminal_too_small};
 pub use logging::{LogConfig, init_logging};
+pub use process::{SessionState, StateEvent, StateListener};
 pub use terminal::{SidebarPanel, TuiConfig, TuiMode, TuiShell, TuiState};
 
 /// Minimum terminal width supported (columns).

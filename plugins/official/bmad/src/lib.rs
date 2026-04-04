@@ -558,6 +558,46 @@ impl PluginRuntime for BmadRuntime {
             discovered_tools: Vec::new(), // Populated by core run command
         })
     }
+
+    /// Contributes a TUI sidebar panel showing sprint progress.
+    fn tui_contributions(&self) -> Vec<re_plugin::TuiPanel> {
+        let cwd = std::env::current_dir().unwrap_or_default();
+        let config_path = cwd.join(".ralph-engine/config.yaml");
+        let (tracker_file, _) = read_bmad_paths(&config_path);
+        let tracker_path = cwd.join(&tracker_file);
+
+        let Ok(content) = std::fs::read_to_string(&tracker_path) else {
+            return Vec::new();
+        };
+
+        let mut todo = 0usize;
+        let mut doing = 0usize;
+        let mut done = 0usize;
+        for line in content.lines() {
+            let trimmed = line.trim();
+            if trimmed.starts_with('#') || trimmed.is_empty() {
+                continue;
+            }
+            if trimmed.ends_with("done") {
+                done += 1;
+            } else if trimmed.ends_with("in-progress") {
+                doing += 1;
+            } else {
+                todo += 1;
+            }
+        }
+
+        vec![re_plugin::TuiPanel {
+            id: "sprint-status".to_owned(),
+            title: "Sprint".to_owned(),
+            lines: vec![
+                format!("Done: {done}"),
+                format!("Doing: {doing}"),
+                format!("Todo: {todo}"),
+            ],
+            zone_hint: "sidebar".to_owned(),
+        }]
+    }
 }
 
 // ── BMAD config helpers (plugin-owned sections) ──────────────────
