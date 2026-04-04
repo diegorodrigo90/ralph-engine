@@ -1587,9 +1587,12 @@ fn doctor_without_config_shows_default_enabled_count() {
 // ── Run command smoke tests ──────────────────────────────────────
 
 #[test]
-fn binary_run_without_args_shows_usage_error() {
+fn binary_run_without_args_enters_loop_mode() {
     let tmp = unique_temp_dir("run-no-args");
-    std::fs::create_dir_all(&tmp).expect("should create temp dir");
+    let re_dir = tmp.join(".ralph-engine");
+    std::fs::create_dir_all(&re_dir).expect("should create .ralph-engine dir");
+    // Pre-accept autonomous mode so the loop doesn't block on stdin
+    std::fs::write(re_dir.join(".accepted-autonomous"), "# test\n").ok();
 
     let mut command = english_command();
     command.current_dir(&tmp);
@@ -1597,11 +1600,11 @@ fn binary_run_without_args_shows_usage_error() {
 
     let output = command.output().expect("binary should run");
 
-    assert!(!output.status.success());
+    // Without workflow config, loop fails — but it enters loop mode, not "ID required"
     let stderr = String::from_utf8(output.stderr).expect("stderr should be utf-8");
     assert!(
-        stderr.contains("Work item ID required"),
-        "run without args should show usage error.\nGot: {stderr}"
+        !stderr.contains("Work item ID required"),
+        "run without args should NOT show 'ID required' — should enter loop.\nGot: {stderr}"
     );
 
     std::fs::remove_dir_all(&tmp).ok();
