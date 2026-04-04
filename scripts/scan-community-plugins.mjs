@@ -295,7 +295,7 @@ async function main() {
   writeFileSync(CATALOG_PATH, catalogJson);
   // Keep public API in sync (DRY — same content, two locations for
   // different consumers: Astro build vs static HTTP).
-  writeFileSync(PUBLIC_INDEX_PATH, catalogJson);
+  writeFileSync(PUBLIC_CATALOG_PATH, catalogJson);
 
   console.log(`\nCatalog updated: ${officialPlugins.length} official + ${communityPlugins.length} community = ${allPlugins.length} total`);
 }
