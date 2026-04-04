@@ -31,6 +31,7 @@ mod run;
 mod runtime;
 pub(crate) mod runtime_state;
 mod templates;
+mod tui;
 
 struct CommandDescriptor {
     name: &'static str,
@@ -130,6 +131,11 @@ const COMMANDS: &[CommandDescriptor] = &[
         name: "templates",
         subcommands: &["list", "show", "asset", "scaffold", "materialize"],
         handler: templates::execute,
+    },
+    CommandDescriptor {
+        name: "tui",
+        subcommands: &[],
+        handler: tui::execute,
     },
     CommandDescriptor {
         name: "uninstall",
