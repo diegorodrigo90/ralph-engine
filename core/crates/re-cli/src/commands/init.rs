@@ -80,15 +80,28 @@ fn run_interactive_init(target_dir: &str, locale: &str) -> Result<String, CliErr
         ) {
             return Ok(locale_str!(locale, "  Cancelled.", "  Cancelado.").to_owned());
         }
-        std::fs::remove_dir_all(&re_dir)
-            .map_err(|err| CliError::new(format!("Failed to remove .ralph-engine/: {err}")))?;
+        std::fs::remove_dir_all(&re_dir).map_err(|err| {
+            CliError::new(
+                locale_str!(
+                    locale,
+                    format!("Failed to remove .ralph-engine/: {err}"),
+                    format!("Falha ao remover .ralph-engine/: {err}")
+                )
+                .to_string(),
+            )
+        })?;
     }
 
     // ── Auto-discover templates from catalog ─────────────────────────
     let templates = catalog::official_template_contributions();
     if templates.is_empty() {
         return Err(CliError::new(
-            "No templates found in catalog. Cannot initialize.".to_owned(),
+            locale_str!(
+                locale,
+                "No templates found in catalog. Cannot initialize.",
+                "Nenhum template encontrado no catálogo. Não é possível inicializar."
+            )
+            .to_owned(),
         ));
     }
 

@@ -103,8 +103,14 @@ fn install_plugin(
 
     let repo_url = format!("https://github.com/{publisher}/ralph-engine-plugin-{name}.git");
 
-    std::fs::create_dir_all(plugins_dir)
-        .map_err(|err| CliError::new(format!("Failed to create plugins directory: {err}")))?;
+    std::fs::create_dir_all(plugins_dir).map_err(|err| {
+        let msg = if i18n::is_pt_br(locale) {
+            format!("Falha ao criar diretório de plugins: {err}")
+        } else {
+            format!("Failed to create plugins directory: {err}")
+        };
+        CliError::new(msg)
+    })?;
 
     let status = std::process::Command::new("git")
         .args([
@@ -115,7 +121,14 @@ fn install_plugin(
             &plugin_dir.to_string_lossy(),
         ])
         .status()
-        .map_err(|err| CliError::new(format!("Failed to run git clone: {err}")))?;
+        .map_err(|err| {
+            let msg = if i18n::is_pt_br(locale) {
+                format!("Falha ao executar git clone: {err}")
+            } else {
+                format!("Failed to run git clone: {err}")
+            };
+            CliError::new(msg)
+        })?;
 
     if !status.success() {
         let msg = if i18n::is_pt_br(locale) {
@@ -170,8 +183,14 @@ fn uninstall_plugin(plugin_ref: &str, locale: &str) -> Result<String, CliError> 
         return Err(CliError::new(msg));
     }
 
-    std::fs::remove_dir_all(&plugin_dir)
-        .map_err(|err| CliError::new(format!("Failed to remove plugin directory: {err}")))?;
+    std::fs::remove_dir_all(&plugin_dir).map_err(|err| {
+        let msg = if i18n::is_pt_br(locale) {
+            format!("Falha ao remover diretório do plugin: {err}")
+        } else {
+            format!("Failed to remove plugin directory: {err}")
+        };
+        CliError::new(msg)
+    })?;
 
     let config_path = Path::new(".ralph-engine/config.yaml");
     if let Ok(config) = std::fs::read_to_string(config_path) {
