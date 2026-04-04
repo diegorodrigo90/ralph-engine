@@ -83,7 +83,7 @@ run_workflow_no_runtime = "Plugin de workflow não fornece runtime"
 run_agent_no_runtime = "Plugin de agente não fornece runtime"
 run_autonomous_rejected = "Modo autônomo não aceito. Abortando."
 run_cwd_error = "Falha ao resolver diretório de trabalho"
-run_autonomous_warning = "⚠️  AVISO DE MODO AUTÔNOMO\n\nralph-engine run lança um agente de IA que pode:\n- Ler e escrever arquivos neste projeto\n- Executar comandos no shell\n- Fazer commits no git\n\nO agente roda com permissões auto-aceitas para trabalhar de forma autônoma.\nEquivalente a --dangerously-skip-permissions no Claude Code.\n\nExecute apenas em projetos que você confia.\n\nAceitar e continuar? [y/N] "
+run_autonomous_warning = "⚠️  AVISO DE MODO AUTÔNOMO\n\nralph-engine run lança um agente de IA que trabalha de forma autônoma.\n\nIMPORTANTE: Agentes de IA podem e vão cometer erros.\nSempre revise as mudanças antes de enviar para produção.\n\nO agente pode:\n- Ler e escrever arquivos neste projeto\n- Executar comandos no shell\n- Fazer commits no git\n- Usar servidores MCP e ferramentas externas\n\nO agente roda com permissões auto-aceitas (modo permissivo).\nEquivalente a --dangerously-skip-permissions no Claude Code.\n\nRecomendações:\n- Trabalhe em uma branch, não na main\n- Revise o git diff após cada execução\n- Use `run plan` primeiro para visualizar antes de executar\n\nExecute apenas em projetos que você confia.\n\nAceitar e continuar? [y/N] "
 
 # ── Init command ──────────────────────────────────────────────────
 init_help = "Uso: ralph-engine init [diretório]\n\nInicializa interativamente um novo projeto Ralph Engine.\nCria .ralph-engine/ com config, hooks e arquivos de prompt.\n\nTemplates e plugins são auto-descobertos do catálogo."

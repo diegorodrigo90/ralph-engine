@@ -83,7 +83,7 @@ run_workflow_no_runtime = "Workflow plugin does not provide a runtime"
 run_agent_no_runtime = "Agent plugin does not provide a runtime"
 run_autonomous_rejected = "Autonomous mode not accepted. Aborting."
 run_cwd_error = "Failed to resolve working directory"
-run_autonomous_warning = "⚠️  AUTONOMOUS MODE WARNING\n\nralph-engine run launches an AI agent that can:\n- Read and write files in this project\n- Execute shell commands\n- Make git commits\n\nThe agent runs with auto-accept permissions to work autonomously.\nThis is equivalent to --dangerously-skip-permissions in Claude Code.\n\nOnly run this in projects you trust.\n\nAccept and continue? [y/N] "
+run_autonomous_warning = "⚠️  AUTONOMOUS MODE WARNING\n\nralph-engine run launches an AI agent that works autonomously.\n\nIMPORTANT: AI agents can and will make mistakes.\nAlways review changes before pushing to production.\n\nThe agent can:\n- Read and write files in this project\n- Execute shell commands\n- Make git commits\n- Use MCP servers and external tools\n\nThe agent runs with auto-accept permissions (permissive mode).\nThis is equivalent to --dangerously-skip-permissions in Claude Code.\n\nRecommendations:\n- Work on a branch, not main\n- Review git diff after each run\n- Use `run plan` first to preview before executing\n\nOnly run this in projects you trust.\n\nAccept and continue? [y/N] "
 
 # ── Init command ──────────────────────────────────────────────────
 init_help = "Usage: ralph-engine init [directory]\n\nInteractively initialize a new Ralph Engine project.\nCreates .ralph-engine/ with config, hooks, and prompt files.\n\nTemplates and plugins are auto-discovered from the catalog."
