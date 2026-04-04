@@ -101,6 +101,7 @@ When writing or editing docs:
 55. Tests SHALL NEVER call `stdin().read_line()` or any function that reads from stdin. In git hooks and CI pipelines, stdin is closed — `read_line()` blocks indefinitely, causing the entire hook to hang. Interactive functions SHALL be tested only via their non-interactive paths (e.g., `--help` flag, catalog verification). The interactive flow itself is validated by manual execution.
 56. ALL user-facing strings SHALL live in TOML locale catalogs (`locales/en.toml`, `locales/pt-br.toml`), compiled to typed Rust structs at build time. Code SHALL NEVER use `if locale == "pt-br"`, `is_pt_br()`, or `locale_str!()` for translations — these are anti-patterns that don't scale. Adding a new locale SHALL require ONLY adding a TOML file, zero code changes. Plugins own their own translations in their `locales/` directories. Build-time validation SHALL enforce that all locales have identical key sets (completeness check). Hand-coded formatter functions (`fn_*.rs`) are acceptable ONLY for unavoidable linguistic patterns (e.g., Portuguese grammatical gender).
 57. Core crates SHALL NEVER reference specific plugin identifiers (`official.bmad`, `official.claude`, etc.) in code or error messages. Plugin IDs in config examples SHALL use generic placeholders (`<workflow-plugin-id>`) or be deferred to documentation. Core discovers plugins via auto-discovery — it SHALL NOT assume which plugins exist.
+58. TUI code SHALL NEVER use `println!()`, `eprintln!()`, or any stdout/stderr output during raw mode. In TUI mode, stdout/stderr are occupied by the ratatui render loop — direct writes cause visual artifacts. ALL logging SHALL use `tracing::info!()` / `tracing::debug!()` which routes to the file appender. Use `--no-tui` flag for stderr output (CI, debugging, pipes).
 
 ## Structure
 
@@ -112,6 +113,7 @@ When writing or editing docs:
 - `core/crates/re-plugin/` SHALL also own typed plugin trust-level contracts so official and community plugin metadata stay aligned across runtime, CLI, and third-party manifests.
 - `core/crates/re-official/` SHALL own the typed built-in runtime catalog so official plugin wiring stays reusable and outside the CLI crate.
 - `core/crates/re-cli/` SHALL own the modular CLI surface and command registry.
+- `core/crates/re-tui/` SHALL own the ratatui-based TUI dashboard (layout, events, keybindings, logging).
 - `core/crates/re-config/` SHALL also own the canonical typed locale contract and supported-locale catalog for runtime-facing surfaces.
 - `re-core` and `re-cli` SHALL expose typed runtime capability, template, prompt, agent, check, provider, policy, and hook registration so new capabilities can be added through shared contracts instead of command-local branching.
 - `plugins/official/` SHALL own Rust-first official plugins.
