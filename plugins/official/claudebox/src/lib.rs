@@ -1,5 +1,7 @@
 //! Official Claude Box runtime plugin metadata and runtime.
 
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+
 use std::path::Path;
 
 mod i18n;
@@ -133,6 +135,8 @@ impl PluginRuntime for ClaudeBoxRuntime {
         ))
     }
 
+    // Binary probe: result depends on host environment.
+    #[cfg_attr(coverage_nightly, coverage(off))]
     fn bootstrap_agent(&self, agent_id: &str) -> Result<AgentBootstrapResult, PluginRuntimeError> {
         let found = re_plugin::probe_binary_on_path(AGENT_BINARY).is_some();
         Ok(AgentBootstrapResult {
@@ -146,6 +150,8 @@ impl PluginRuntime for ClaudeBoxRuntime {
         })
     }
 
+    // Binary probe: same machine-dependent branching.
+    #[cfg_attr(coverage_nightly, coverage(off))]
     fn register_mcp_server(
         &self,
         server_id: &str,
@@ -162,6 +168,9 @@ impl PluginRuntime for ClaudeBoxRuntime {
         })
     }
 
+    // I/O boundary: spawns real subprocess. Pure logic tested via
+    // agent_helpers. Validated by `ralph-engine run` E2E.
+    #[cfg_attr(coverage_nightly, coverage(off))]
     fn launch_agent(
         &self,
         agent_id: &str,
@@ -173,7 +182,8 @@ impl PluginRuntime for ClaudeBoxRuntime {
                 "agent_not_installed",
                 format!(
                     "'{AGENT_BINARY}' not found on PATH.\n\
-                     Install: curl -fsSL https://claude.ai/install.sh | bash"
+                     Install: curl -fsSL https://claude.ai/install.sh | bash\n\
+                     Docs: https://code.claude.com/docs/en/quickstart"
                 ),
             ));
         }
@@ -193,50 +203,28 @@ impl PluginRuntime for ClaudeBoxRuntime {
             )
         })?;
 
-        let user_prompt = format!(
-            "Implement work item {id}.\n\n\
-             Your system prompt contains the <task>, <rules>, <context>, and <constraints> sections.\n\
-             Expected outcome: all acceptance criteria implemented with tests, \
-             quality gates passing, and tracking files updated.",
-            id = context.work_item_id,
-        );
-
-        // Build allowed tools: base + discovered from plugins + config extras.
+        // Build command config (pure logic — testable).
         let config_path = project_root.join(".ralph-engine/config.yaml");
         let config_content = std::fs::read_to_string(&config_path).unwrap_or_default();
-        let config_extra = extract_run_setting(&config_content, "allowed_tools");
-        let allowed_tools = merge_all_tools(
-            BASE_ALLOWED_TOOLS,
-            &context.discovered_tools,
-            config_extra.as_deref(),
-        );
-        let max_turns = extract_run_setting(&config_content, "max_turns")
-            .unwrap_or(DEFAULT_MAX_TURNS.to_owned());
-
-        // Programmatic mode: -p + stream-json + allowedTools.
-        // claudebox has same CLI interface as claude.
-        let mut cmd = std::process::Command::new(AGENT_BINARY);
-        cmd.arg("-p")
-            .arg(&user_prompt)
-            .arg("--append-system-prompt-file")
-            .arg(&context_file)
-            .arg("--allowedTools")
-            .arg(&allowed_tools)
-            .arg("--output-format")
-            .arg("stream-json")
-            .arg("--verbose")
-            .arg("--max-turns")
-            .arg(&max_turns);
-
         let autonomous = project_root
             .join(".ralph-engine/.accepted-autonomous")
             .exists();
-        if autonomous {
-            cmd.arg("--dangerously-skip-permissions");
-        } else {
-            cmd.arg("--permission-mode").arg("auto");
-        }
 
+        let agent_config = re_plugin::agent_helpers::build_agent_command_config(
+            &re_plugin::agent_helpers::AgentCommandInput {
+                binary: AGENT_BINARY,
+                base_tools: BASE_ALLOWED_TOOLS,
+                default_max_turns: DEFAULT_MAX_TURNS,
+                work_item_id: &context.work_item_id,
+                discovered_tools: &context.discovered_tools,
+                config_content: &config_content,
+                autonomous,
+                context_file: context_file.clone(),
+            },
+        );
+
+        // Spawn the agent process (I/O boundary).
+        let mut cmd = re_plugin::agent_helpers::build_command(&agent_config);
         let mut child = cmd
             .current_dir(project_root)
             .stdin(std::process::Stdio::null())
@@ -251,7 +239,7 @@ impl PluginRuntime for ClaudeBoxRuntime {
                 )
             })?;
 
-        let message = read_stream_json_events(child.stdout.take());
+        let message = re_plugin::agent_helpers::read_stream_json_events(child.stdout.take());
 
         let exit_status = child.wait().map_err(|err| {
             let _ = std::fs::remove_file(&context_file);
@@ -285,133 +273,8 @@ impl PluginRuntime for ClaudeBoxRuntime {
     }
 }
 
-// ── Shared helpers (same as claude plugin) ─────────────────────────
-
-/// Merges tools from three sources: base + discovered + config extras.
-fn merge_all_tools(base: &[&str], discovered: &[String], config_extra: Option<&str>) -> String {
-    let mut tools: Vec<String> = base.iter().map(|s| (*s).to_owned()).collect();
-    for tool in discovered {
-        if !tools.contains(tool) {
-            tools.push(tool.clone());
-        }
-    }
-    if let Some(extra) = config_extra {
-        for tool in extra.split(',') {
-            let tool = tool.trim().to_owned();
-            if !tool.is_empty() && !tools.contains(&tool) {
-                tools.push(tool);
-            }
-        }
-    }
-    tools.join(",")
-}
-
-/// Extracts a simple `key: value` from the `run:` section of config YAML.
-fn extract_run_setting(config_content: &str, key: &str) -> Option<String> {
-    let mut in_run = false;
-    let prefix = format!("{key}:");
-    for line in config_content.lines() {
-        let trimmed = line.trim();
-        if trimmed == "run:" {
-            in_run = true;
-            continue;
-        }
-        if in_run && !line.starts_with(' ') && !line.starts_with('\t') && !trimmed.is_empty() {
-            break;
-        }
-        if in_run && trimmed.starts_with(&prefix) {
-            let val = trimmed[prefix.len()..].trim();
-            let val = val.trim_matches('"').trim_matches('\'');
-            let val = val.split('#').next().unwrap_or(val).trim();
-            if !val.is_empty() {
-                return Some(val.to_owned());
-            }
-        }
-    }
-    None
-}
-
-/// Reads stream-json events from stdout, forwards text to stderr.
-fn read_stream_json_events(stdout: Option<std::process::ChildStdout>) -> String {
-    use std::io::BufRead as _;
-    let Some(stdout) = stdout else {
-        return String::new();
-    };
-    let reader = std::io::BufReader::new(stdout);
-    let mut last_text = String::new();
-    for line in reader.lines() {
-        let Ok(line) = line else { break };
-        let trimmed = line.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-        if trimmed.contains("\"text_delta\"") {
-            if let Some(text) = extract_json_string_value(trimmed, "text") {
-                eprint!("{text}");
-                last_text.push_str(&text);
-                if last_text.len() > 2000 {
-                    let keep: String = last_text
-                        .chars()
-                        .rev()
-                        .take(1500)
-                        .collect::<Vec<_>>()
-                        .into_iter()
-                        .rev()
-                        .collect();
-                    last_text = keep;
-                }
-            }
-        } else if trimmed.contains("\"tool_use\"") && trimmed.contains("\"name\"") {
-            if let Some(tool_name) = extract_json_string_value(trimmed, "name") {
-                eprintln!("\n[tool: {tool_name}]");
-            }
-        } else if trimmed.contains("\"type\":\"result\"") {
-            if trimmed.contains("\"is_error\":true") {
-                eprintln!("\n[agent: error]");
-            } else {
-                eprintln!("\n[agent: completed]");
-            }
-        }
-    }
-    eprintln!();
-    let summary = last_text.trim().to_owned();
-    let truncated: String = summary.chars().take(500).collect();
-    if truncated.len() < summary.len() {
-        format!("{truncated}...")
-    } else {
-        summary
-    }
-}
-
-/// Extracts a JSON string value for a key from a line.
-fn extract_json_string_value(json_line: &str, key: &str) -> Option<String> {
-    let pattern = format!("\"{key}\":\"");
-    let start = json_line.rfind(&pattern)? + pattern.len();
-    let rest = &json_line[start..];
-    let mut result = String::new();
-    let mut chars = rest.chars();
-    loop {
-        match chars.next()? {
-            '\\' => match chars.next()? {
-                'n' => result.push('\n'),
-                't' => result.push('\t'),
-                'r' => result.push('\r'),
-                '"' => result.push('"'),
-                '\\' => result.push('\\'),
-                '/' => result.push('/'),
-                other => {
-                    result.push('\\');
-                    result.push(other);
-                }
-            },
-            '"' => break,
-            c => result.push(c),
-        }
-    }
-    Some(result)
-}
-
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use re_plugin::PluginRuntime;
 
@@ -437,15 +300,11 @@ mod tests {
     }
 
     #[test]
-    fn plugin_declares_at_least_one_capability() {
-        // Arrange
-        let declared_capabilities = capabilities();
-
-        // Act
-        let has_capabilities = !declared_capabilities.is_empty();
-
-        // Assert
-        assert!(has_capabilities);
+    fn plugin_declares_expected_capabilities() {
+        let caps = capabilities();
+        assert_eq!(caps.len(), 2);
+        assert!(caps.iter().any(|c| c.as_str() == "agent_runtime"));
+        assert!(caps.iter().any(|c| c.as_str() == "mcp_contribution"));
     }
 
     #[test]
@@ -487,26 +346,19 @@ mod tests {
 
     #[test]
     fn plugin_declares_lifecycle_stages() {
-        // Arrange
-        let declared_lifecycle = lifecycle();
-
-        // Act
-        let has_lifecycle = !declared_lifecycle.is_empty();
-
-        // Assert
-        assert!(has_lifecycle);
+        let stages = lifecycle();
+        assert_eq!(stages.len(), 2);
+        assert!(stages.iter().any(|s| s.as_str() == "discover"));
+        assert!(stages.iter().any(|s| s.as_str() == "load"));
     }
 
     #[test]
     fn plugin_declares_runtime_hooks() {
-        // Arrange
-        let declared_hooks = runtime_hooks();
-
-        // Act
-        let has_hooks = !declared_hooks.is_empty();
-
-        // Assert
-        assert!(has_hooks);
+        let hooks = runtime_hooks();
+        assert_eq!(hooks.len(), 3);
+        assert!(hooks.iter().any(|h| h.as_str() == "agent_bootstrap"));
+        assert!(hooks.iter().any(|h| h.as_str() == "mcp_registration"));
+        assert!(hooks.iter().any(|h| h.as_str() == "agent_launch"));
     }
 
     #[test]
@@ -545,8 +397,70 @@ mod tests {
     }
 
     #[test]
-    fn runtime_bootstrap_agent_returns_result() {
+    fn runtime_bootstrap_agent_returns_result_with_content() {
         let rt = super::runtime();
-        assert!(rt.bootstrap_agent("official.claudebox.session").is_ok());
+        let result = rt.bootstrap_agent("official.claudebox.session").unwrap();
+        assert_eq!(result.agent_id, "official.claudebox.session");
+        if result.ready {
+            assert!(result.message.contains("found"));
+        } else {
+            assert!(result.message.contains("not found"));
+        }
+    }
+
+    #[test]
+    fn runtime_register_mcp_returns_result_with_content() {
+        let rt = super::runtime();
+        let result = rt
+            .register_mcp_server("official.claudebox.session")
+            .unwrap();
+        assert_eq!(result.server_id, "official.claudebox.session");
+        if result.ready {
+            assert!(result.message.contains("available"));
+        } else {
+            assert!(result.message.contains("requires"));
+        }
+    }
+
+    #[test]
+    fn runtime_rejects_check() {
+        let rt = super::runtime();
+        let err = rt
+            .run_check(
+                "any",
+                re_plugin::PluginCheckKind::Prepare,
+                std::path::Path::new("/tmp"),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, "not_a_check_plugin");
+    }
+
+    #[test]
+    fn runtime_default_required_tools_is_empty() {
+        let rt = super::runtime();
+        assert!(rt.required_tools().is_empty());
+    }
+
+    #[test]
+    fn runtime_launch_agent_fails_without_binary() {
+        if re_plugin::probe_binary_on_path("claudebox").is_some() {
+            return;
+        }
+        let rt = super::runtime();
+        let context = re_plugin::PromptContext {
+            prompt_text: "test".to_owned(),
+            context_files: vec![],
+            work_item_id: "1.1".to_owned(),
+            discovered_tools: vec![],
+        };
+        let err = rt
+            .launch_agent(
+                "official.claudebox.session",
+                &context,
+                std::path::Path::new("/tmp"),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, "agent_not_installed");
+        assert!(err.message.contains("not found on PATH"));
     }
 }

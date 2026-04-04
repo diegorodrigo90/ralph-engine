@@ -215,6 +215,8 @@ impl PluginRuntime for BmadRuntime {
         let required = match kind {
             PluginCheckKind::Prepare => PREPARE_REQUIRED,
             PluginCheckKind::Doctor => DOCTOR_REQUIRED,
+            // Safety net for future PluginCheckKind variants (#[non_exhaustive]).
+            // Unreachable with current 2 variants — compile-required.
             _ => {
                 return Err(PluginRuntimeError::new(
                     "unsupported_check_kind",
@@ -315,9 +317,10 @@ impl PluginRuntime for BmadRuntime {
                             .find_map(|p| key.strip_prefix(p.as_str()))
                             .unwrap_or(key);
                         title = slug.replace('-', " ");
-                        // Capitalize first letter
-                        if let Some(first) = title.get(..1) {
-                            title = format!("{}{}", first.to_uppercase(), &title[1..]);
+                        // Capitalize first letter (UTF-8 safe — no byte slicing).
+                        if let Some(first_char) = title.chars().next() {
+                            let rest: String = title.chars().skip(1).collect();
+                            title = format!("{}{rest}", first_char.to_uppercase());
                         }
                     }
                     break;
@@ -668,6 +671,7 @@ fn find_story_file(
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used, clippy::panic)]
 mod tests {
     use re_plugin::{PluginCheckKind, PluginRuntime};
 
@@ -693,15 +697,14 @@ mod tests {
     }
 
     #[test]
-    fn plugin_declares_at_least_one_capability() {
-        // Arrange
-        let declared_capabilities = capabilities();
-
-        // Act
-        let has_capabilities = !declared_capabilities.is_empty();
-
-        // Assert
-        assert!(has_capabilities);
+    fn plugin_declares_expected_capabilities() {
+        let caps = capabilities();
+        assert_eq!(caps.len(), 5);
+        assert!(caps.iter().any(|c| c.as_str() == "template"));
+        assert!(caps.iter().any(|c| c.as_str() == "prompt_fragments"));
+        assert!(caps.iter().any(|c| c.as_str() == "prepare_checks"));
+        assert!(caps.iter().any(|c| c.as_str() == "doctor_checks"));
+        assert!(caps.iter().any(|c| c.as_str() == "workflow"));
     }
 
     #[test]
@@ -723,26 +726,23 @@ mod tests {
 
     #[test]
     fn plugin_declares_lifecycle_stages() {
-        // Arrange
-        let declared_lifecycle = lifecycle();
-
-        // Act
-        let has_lifecycle = !declared_lifecycle.is_empty();
-
-        // Assert
-        assert!(has_lifecycle);
+        let stages = lifecycle();
+        assert_eq!(stages.len(), 4);
+        assert!(stages.iter().any(|s| s.as_str() == "discover"));
+        assert!(stages.iter().any(|s| s.as_str() == "configure"));
+        assert!(stages.iter().any(|s| s.as_str() == "validate"));
+        assert!(stages.iter().any(|s| s.as_str() == "load"));
     }
 
     #[test]
     fn plugin_declares_runtime_hooks() {
-        // Arrange
-        let declared_hooks = runtime_hooks();
-
-        // Act
-        let has_hooks = !declared_hooks.is_empty();
-
-        // Assert
-        assert!(has_hooks);
+        let hooks = runtime_hooks();
+        assert_eq!(hooks.len(), 5);
+        assert!(hooks.iter().any(|h| h.as_str() == "scaffold"));
+        assert!(hooks.iter().any(|h| h.as_str() == "prompt_assembly"));
+        assert!(hooks.iter().any(|h| h.as_str() == "prepare"));
+        assert!(hooks.iter().any(|h| h.as_str() == "doctor"));
+        assert!(hooks.iter().any(|h| h.as_str() == "work_item_resolution"));
     }
 
     #[test]
@@ -901,14 +901,564 @@ mod tests {
     #[test]
     fn runtime_rejects_agent_bootstrap() {
         let rt = super::runtime();
-        let result = rt.bootstrap_agent("official.bmad.session");
-        assert!(result.is_err());
+        let err = rt.bootstrap_agent("official.bmad.session").unwrap_err();
+        assert_eq!(err.code, "not_an_agent_plugin");
     }
 
     #[test]
     fn runtime_rejects_mcp_registration() {
         let rt = super::runtime();
-        let result = rt.register_mcp_server("official.bmad.server");
+        let err = rt.register_mcp_server("official.bmad.server").unwrap_err();
+        assert_eq!(err.code, "not_an_mcp_plugin");
+    }
+
+    #[test]
+    fn runtime_plugin_id_matches() {
+        let rt = super::runtime();
+        assert_eq!(rt.plugin_id(), PLUGIN_ID);
+    }
+
+    // ── resolve_work_item tests ──────────────────────────────────────
+
+    #[test]
+    fn resolve_work_item_parses_dot_notation() {
+        let tmp = std::env::temp_dir().join("re-bmad-resolve-ok");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(
+            tmp.join(".ralph-engine/config.yaml"),
+            "tracker:\n  status_file: tracker.yaml\npaths:\n  stories: stories/\n",
+        )
+        .ok();
+        std::fs::write(
+            tmp.join("tracker.yaml"),
+            "5-3-fix-search: ready-for-dev\n5-4-add-auth: done\n",
+        )
+        .ok();
+        std::fs::create_dir_all(tmp.join("stories")).ok();
+        std::fs::write(tmp.join("stories/5-3-fix-search.md"), "# Fix Search\nAC1").ok();
+
+        let rt = super::runtime();
+        let result = rt.resolve_work_item("5.3", &tmp);
+        assert!(result.is_ok());
+        let resolution = result.unwrap();
+        assert_eq!(resolution.canonical_id, "5.3");
+        assert!(resolution.title.contains("fix") || resolution.title.contains("Fix"));
+        assert!(resolution.source_path.is_some());
+        let meta_status = resolution
+            .metadata
+            .iter()
+            .find(|(k, _)| k == "status")
+            .map(|(_, v)| v.as_str());
+        assert_eq!(meta_status, Some("ready-for-dev"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn resolve_work_item_rejects_invalid_format() {
+        let tmp = std::env::temp_dir().join("re-bmad-resolve-bad");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).ok();
+
+        let rt = super::runtime();
+        assert!(rt.resolve_work_item("abc", &tmp).is_err());
+        assert!(rt.resolve_work_item("5", &tmp).is_err());
+        assert!(rt.resolve_work_item("5.3.1", &tmp).is_err());
+        assert!(rt.resolve_work_item("a.b", &tmp).is_err());
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn resolve_work_item_handles_missing_tracker() {
+        let tmp = std::env::temp_dir().join("re-bmad-resolve-notracker");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(tmp.join(".ralph-engine/config.yaml"), "schema_version: 1\n").ok();
+
+        let rt = super::runtime();
+        let result = rt.resolve_work_item("5.3", &tmp);
+        assert!(result.is_ok());
+        let resolution = result.unwrap();
+        assert_eq!(resolution.canonical_id, "5.3");
+        // Status unknown when tracker missing
+        let meta_status = resolution
+            .metadata
+            .iter()
+            .find(|(k, _)| k == "status")
+            .map(|(_, v)| v.as_str());
+        assert_eq!(meta_status, Some("unknown"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    // ── list_work_items tests ────────────────────────────────────────
+
+    #[test]
+    fn list_work_items_filters_actionable() {
+        let tmp = std::env::temp_dir().join("re-bmad-list-ok");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(
+            tmp.join(".ralph-engine/config.yaml"),
+            "tracker:\n  status_file: tracker.yaml\n",
+        )
+        .ok();
+        std::fs::write(
+            tmp.join("tracker.yaml"),
+            "# Sprint 5\n\
+             5-1-login-page: done\n\
+             5-2-search-fix: ready-for-dev\n\
+             5-3-auth-module: in-progress\n\
+             5-4-review-system: backlog\n\
+             5-5-admin-panel: review\n",
+        )
+        .ok();
+
+        let rt = super::runtime();
+        let result = rt.list_work_items(&tmp);
+        assert!(result.is_ok());
+        let items = result.unwrap();
+        // Should include: ready-for-dev, in-progress, backlog, review (4 items)
+        // Should exclude: done
+        assert_eq!(items.len(), 4);
+        assert!(items.iter().all(|i| i.status != "done"));
+        assert!(items.iter().any(|i| i.id == "5.2"));
+        assert!(items.iter().any(|i| i.id == "5.3"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn list_work_items_errors_on_missing_tracker() {
+        let tmp = std::env::temp_dir().join("re-bmad-list-nofile");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(tmp.join(".ralph-engine/config.yaml"), "schema_version: 1\n").ok();
+
+        let rt = super::runtime();
+        let result = rt.list_work_items(&tmp);
         assert!(result.is_err());
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    // ── build_prompt_context tests ───────────────────────────────────
+
+    #[test]
+    fn build_prompt_context_includes_xml_tags() {
+        let tmp = std::env::temp_dir().join("re-bmad-prompt-xml");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::create_dir_all(tmp.join("stories")).ok();
+        std::fs::write(
+            tmp.join(".ralph-engine/config.yaml"),
+            "tracker:\n  status_file: tracker.yaml\npaths:\n  stories: stories/\n\
+             workflow:\n  instructions: |\n    Use BMAD agents for implementation.\n",
+        )
+        .ok();
+        std::fs::write(
+            tmp.join("stories/5-3-fix-search.md"),
+            "# Fix Search\n\nAC1: search works",
+        )
+        .ok();
+        std::fs::write(tmp.join(".ralph-engine/prompt.md"), "Project context here").ok();
+
+        let resolution = re_plugin::WorkItemResolution {
+            raw_id: "5.3".to_owned(),
+            canonical_id: "5.3".to_owned(),
+            title: "Fix search".to_owned(),
+            source_path: Some(
+                tmp.join("stories/5-3-fix-search.md")
+                    .to_string_lossy()
+                    .to_string(),
+            ),
+            metadata: vec![
+                ("epic".to_owned(), "5".to_owned()),
+                ("story".to_owned(), "3".to_owned()),
+                ("status".to_owned(), "ready-for-dev".to_owned()),
+            ],
+        };
+
+        let rt = super::runtime();
+        let result = rt.build_prompt_context(&resolution, &tmp);
+        assert!(result.is_ok());
+        let ctx = result.unwrap();
+        assert!(ctx.prompt_text.contains("<task>"));
+        assert!(ctx.prompt_text.contains("</task>"));
+        assert!(ctx.prompt_text.contains("<context>"));
+        assert!(ctx.prompt_text.contains("</context>"));
+        assert!(ctx.prompt_text.contains("<constraints>"));
+        assert!(ctx.prompt_text.contains("</constraints>"));
+        assert!(ctx.prompt_text.contains("Fix Search"));
+        assert!(ctx.prompt_text.contains("Project context here"));
+        assert!(ctx.prompt_text.contains("BMAD agents"));
+        assert_eq!(ctx.work_item_id, "5.3");
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn build_prompt_context_handles_missing_story_file() {
+        let tmp = std::env::temp_dir().join("re-bmad-prompt-nostory");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(tmp.join(".ralph-engine/config.yaml"), "schema_version: 1\n").ok();
+
+        let resolution = re_plugin::WorkItemResolution {
+            raw_id: "5.3".to_owned(),
+            canonical_id: "5.3".to_owned(),
+            title: "Fix search".to_owned(),
+            source_path: None,
+            metadata: vec![
+                ("epic".to_owned(), "5".to_owned()),
+                ("story".to_owned(), "3".to_owned()),
+            ],
+        };
+
+        let rt = super::runtime();
+        let result = rt.build_prompt_context(&resolution, &tmp);
+        assert!(result.is_ok());
+        let ctx = result.unwrap();
+        assert!(ctx.prompt_text.contains("No story file found"));
+        assert!(ctx.prompt_text.contains("<task>"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    // ── Helper function tests ────────────────────────────────────────
+
+    #[test]
+    fn extract_yaml_scalar_finds_value() {
+        let content = "tracker:\n  status_file: sprint.yaml\npaths:\n  stories: my-stories/\n";
+        assert_eq!(
+            super::extract_yaml_scalar(content, "status_file"),
+            Some("sprint.yaml")
+        );
+        assert_eq!(
+            super::extract_yaml_scalar(content, "stories"),
+            Some("my-stories/")
+        );
+    }
+
+    #[test]
+    fn extract_yaml_scalar_strips_comments() {
+        let content = "status_file: sprint.yaml # path to tracker\n";
+        assert_eq!(
+            super::extract_yaml_scalar(content, "status_file"),
+            Some("sprint.yaml")
+        );
+    }
+
+    #[test]
+    fn extract_yaml_scalar_returns_none_for_missing() {
+        let content = "status_file: sprint.yaml\n";
+        assert!(super::extract_yaml_scalar(content, "stories").is_none());
+    }
+
+    #[test]
+    fn read_bmad_paths_uses_defaults_when_no_config() {
+        let nonexistent = std::path::Path::new("/tmp/re-bmad-nopath/config.yaml");
+        let (tracker, stories) = super::read_bmad_paths(nonexistent);
+        assert_eq!(tracker, super::DEFAULT_TRACKER_FILE);
+        assert_eq!(stories, super::DEFAULT_STORIES_PATH);
+    }
+
+    #[test]
+    fn extract_workflow_instructions_inline() {
+        let content = "workflow:\n  instructions: Use BMAD agents.\n";
+        let result = super::extract_workflow_instructions(content);
+        assert_eq!(result.as_deref(), Some("Use BMAD agents."));
+    }
+
+    #[test]
+    fn extract_workflow_instructions_multiline() {
+        let content = "workflow:\n  instructions: |\n    Step 1: validate\n    Step 2: implement\nnext_key: val\n";
+        let result = super::extract_workflow_instructions(content);
+        assert!(result.is_some());
+        let text = result.unwrap();
+        assert!(text.contains("Step 1"));
+        assert!(text.contains("Step 2"));
+    }
+
+    #[test]
+    fn extract_workflow_instructions_returns_none_when_missing() {
+        let content = "workflow:\n  other: value\n";
+        let result = super::extract_workflow_instructions(content);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn find_story_file_matches_patterns() {
+        let tmp = std::env::temp_dir().join("re-bmad-findstory");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).ok();
+        std::fs::write(tmp.join("5-3-fix-search.md"), "story").ok();
+
+        let result = super::find_story_file(&tmp, "5", "3", "5.3");
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("5-3-fix-search.md"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn find_story_file_returns_none_when_missing() {
+        let tmp = std::env::temp_dir().join("re-bmad-findstory-none");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).ok();
+
+        let result = super::find_story_file(&tmp, "99", "99", "99.99");
+        assert!(result.is_none());
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    // Note: BMAD run_check wildcard match `_ =>` covers future PluginCheckKind
+    // variants (enum is #[non_exhaustive]). Cannot unit-test it because only
+    // Prepare and Doctor variants exist today. The branch is compile-required.
+
+    #[test]
+    fn resolve_work_item_handles_exact_key_format() {
+        let tmp = std::env::temp_dir().join("re-bmad-resolve-exact");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(
+            tmp.join(".ralph-engine/config.yaml"),
+            "tracker:\n  status_file: t.yaml\n",
+        )
+        .ok();
+        std::fs::write(tmp.join("t.yaml"), "5-s3: in-progress # comment\n").ok();
+
+        let rt = super::runtime();
+        let result = rt.resolve_work_item("5.3", &tmp);
+        assert!(result.is_ok());
+        let resolution = result.unwrap();
+        let meta_status = resolution
+            .metadata
+            .iter()
+            .find(|(k, _)| k == "status")
+            .map(|(_, v)| v.as_str());
+        assert_eq!(meta_status, Some("in-progress"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn list_work_items_skips_metadata_lines() {
+        let tmp = std::env::temp_dir().join("re-bmad-list-meta");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(
+            tmp.join(".ralph-engine/config.yaml"),
+            "tracker:\n  status_file: t.yaml\n",
+        )
+        .ok();
+        std::fs::write(
+            tmp.join("t.yaml"),
+            "# header\ngenerated: 2026-04-01\nlast_updated: today\nproject: test\n\
+             tracking_system: yaml\nstory_location: stories/\ndevelopment_status: active\n\
+             epic-5: backlog\n5-1-login: ready-for-dev\n",
+        )
+        .ok();
+
+        let rt = super::runtime();
+        let result = rt.list_work_items(&tmp);
+        assert!(result.is_ok());
+        let items = result.unwrap();
+        // Only "5-1-login" should appear (metadata lines + epic + done filtered out)
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].id, "5.1");
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn list_work_items_strips_status_comments() {
+        let tmp = std::env::temp_dir().join("re-bmad-list-comments");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(
+            tmp.join(".ralph-engine/config.yaml"),
+            "tracker:\n  status_file: t.yaml\n",
+        )
+        .ok();
+        std::fs::write(tmp.join("t.yaml"), "5-1-fix: review # needs attention\n").ok();
+
+        let rt = super::runtime();
+        let result = rt.list_work_items(&tmp);
+        assert!(result.is_ok());
+        let items = result.unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].status, "review");
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn build_prompt_context_includes_rules_digest() {
+        let tmp = std::env::temp_dir().join("re-bmad-prompt-digest");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(tmp.join(".ralph-engine/config.yaml"), "schema_version: 1\n").ok();
+        std::fs::write(
+            tmp.join(".ralph-engine/rules-digest.md"),
+            "# Golden Rules\n- Rule 1\n",
+        )
+        .ok();
+
+        let resolution = re_plugin::WorkItemResolution {
+            raw_id: "1.1".to_owned(),
+            canonical_id: "1.1".to_owned(),
+            title: "Test".to_owned(),
+            source_path: None,
+            metadata: vec![
+                ("epic".to_owned(), "1".to_owned()),
+                ("story".to_owned(), "1".to_owned()),
+            ],
+        };
+
+        let rt = super::runtime();
+        let result = rt.build_prompt_context(&resolution, &tmp);
+        assert!(result.is_ok());
+        let ctx = result.unwrap();
+        assert!(ctx.prompt_text.contains("<rules>"));
+        assert!(ctx.prompt_text.contains("Golden Rules"));
+        assert!(ctx.prompt_text.contains("</rules>"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn find_story_file_matches_story_prefix_pattern() {
+        let tmp = std::env::temp_dir().join("re-bmad-findstory-prefix");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).ok();
+        std::fs::write(tmp.join("story-5.3-fix-search.md"), "story").ok();
+
+        let result = super::find_story_file(&tmp, "5", "3", "5.3");
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("story-5.3"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn find_story_file_matches_dotnotation_prefix() {
+        let tmp = std::env::temp_dir().join("re-bmad-findstory-dot");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).ok();
+        std::fs::write(tmp.join("5.3-fix-search.md"), "story").ok();
+
+        let result = super::find_story_file(&tmp, "5", "3", "5.3");
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("5.3-fix"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn find_story_file_falls_back_to_parent_dir() {
+        let tmp = std::env::temp_dir().join("re-bmad-findstory-parent");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let subdir = tmp.join("stories");
+        std::fs::create_dir_all(&subdir).ok();
+        // Story file in parent (tmp), not in subdir
+        std::fs::write(tmp.join("5-3-fix-search.md"), "story").ok();
+
+        let result = super::find_story_file(&subdir, "5", "3", "5.3");
+        assert!(result.is_some());
+        assert!(result.unwrap().contains("5-3-fix-search.md"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn resolve_work_item_strips_status_comment() {
+        let tmp = std::env::temp_dir().join("re-bmad-resolve-comment");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(
+            tmp.join(".ralph-engine/config.yaml"),
+            "tracker:\n  status_file: t.yaml\n",
+        )
+        .ok();
+        std::fs::write(
+            tmp.join("t.yaml"),
+            "5-3-search: done # completed yesterday\n",
+        )
+        .ok();
+
+        let rt = super::runtime();
+        let result = rt.resolve_work_item("5.3", &tmp).unwrap();
+        let status = result
+            .metadata
+            .iter()
+            .find(|(k, _)| k == "status")
+            .map(|(_, v)| v.as_str());
+        assert_eq!(status, Some("done"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn list_work_items_handles_key_without_slug() {
+        let tmp = std::env::temp_dir().join("re-bmad-list-noslug");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::write(
+            tmp.join(".ralph-engine/config.yaml"),
+            "tracker:\n  status_file: t.yaml\n",
+        )
+        .ok();
+        // Key "5-1" has no third part (no slug)
+        std::fs::write(tmp.join("t.yaml"), "5-1: ready-for-dev\n").ok();
+
+        let rt = super::runtime();
+        let items = rt.list_work_items(&tmp).unwrap();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].id, "5.1");
+        assert_eq!(items[0].title, ""); // No slug → empty title
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn build_prompt_context_with_relative_source_path() {
+        let tmp = std::env::temp_dir().join("re-bmad-prompt-relpath");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
+        std::fs::create_dir_all(tmp.join("stories")).ok();
+        std::fs::write(tmp.join(".ralph-engine/config.yaml"), "schema_version: 1\n").ok();
+        std::fs::write(tmp.join("stories/5-3-fix.md"), "# Fix\nAC: works").ok();
+
+        let resolution = re_plugin::WorkItemResolution {
+            raw_id: "5.3".to_owned(),
+            canonical_id: "5.3".to_owned(),
+            title: "Fix".to_owned(),
+            source_path: Some("stories/5-3-fix.md".to_owned()), // relative
+            metadata: vec![
+                ("epic".to_owned(), "5".to_owned()),
+                ("story".to_owned(), "3".to_owned()),
+            ],
+        };
+
+        let rt = super::runtime();
+        let ctx = rt.build_prompt_context(&resolution, &tmp).unwrap();
+        assert!(ctx.prompt_text.contains("AC: works"));
+        assert!(ctx.prompt_text.contains("<task>"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn extract_workflow_instructions_multiline_with_empty_lines() {
+        let content = "workflow:\n  instructions: |\n    Step 1\n\n    Step 2\nnext: val\n";
+        let result = super::extract_workflow_instructions(content);
+        assert!(result.is_some());
+        let text = result.unwrap();
+        assert!(text.contains("Step 1"));
+        assert!(text.contains("Step 2"));
     }
 }

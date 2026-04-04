@@ -125,7 +125,10 @@ impl PluginRuntime for SshRuntime {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
+    use re_plugin::PluginRuntime;
+
     use super::{
         PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, providers,
         runtime_hooks,
@@ -148,15 +151,10 @@ mod tests {
     }
 
     #[test]
-    fn plugin_declares_at_least_one_capability() {
-        // Arrange
-        let declared_capabilities = capabilities();
-
-        // Act
-        let has_capabilities = !declared_capabilities.is_empty();
-
-        // Assert
-        assert!(has_capabilities);
+    fn plugin_declares_remote_control_capability() {
+        let caps = capabilities();
+        assert_eq!(caps.len(), 1);
+        assert!(caps.iter().any(|c| c.as_str() == "remote_control"));
     }
 
     #[test]
@@ -177,26 +175,21 @@ mod tests {
 
     #[test]
     fn plugin_declares_lifecycle_stages() {
-        // Arrange
-        let declared_lifecycle = lifecycle();
-
-        // Act
-        let has_lifecycle = !declared_lifecycle.is_empty();
-
-        // Assert
-        assert!(has_lifecycle);
+        let stages = lifecycle();
+        assert_eq!(stages.len(), 2);
+        assert!(stages.iter().any(|s| s.as_str() == "discover"));
+        assert!(stages.iter().any(|s| s.as_str() == "load"));
     }
 
     #[test]
     fn plugin_declares_runtime_hooks() {
-        // Arrange
-        let declared_hooks = runtime_hooks();
-
-        // Act
-        let has_hooks = !declared_hooks.is_empty();
-
-        // Assert
-        assert!(has_hooks);
+        let hooks = runtime_hooks();
+        assert_eq!(hooks.len(), 1);
+        assert!(
+            hooks
+                .iter()
+                .any(|h| h.as_str() == "remote_control_bootstrap")
+        );
     }
 
     #[test]
@@ -225,5 +218,46 @@ mod tests {
         assert!(manifest.contains("- remote_control"));
         assert!(manifest.contains("id: official.ssh.remote"));
         assert!(manifest.contains("trust_level: official"));
+    }
+
+    // ── Runtime tests ────────────────────────────────────────────────
+
+    #[test]
+    fn runtime_plugin_id_matches() {
+        let rt = super::runtime();
+        assert_eq!(rt.plugin_id(), PLUGIN_ID);
+    }
+
+    #[test]
+    fn runtime_rejects_check() {
+        let rt = super::runtime();
+        let err = rt
+            .run_check(
+                "any",
+                re_plugin::PluginCheckKind::Prepare,
+                std::path::Path::new("/tmp"),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, "not_a_check_plugin");
+    }
+
+    #[test]
+    fn runtime_rejects_agent() {
+        let rt = super::runtime();
+        let err = rt.bootstrap_agent("any").unwrap_err();
+        assert_eq!(err.code, "not_an_agent_plugin");
+    }
+
+    #[test]
+    fn runtime_rejects_mcp() {
+        let rt = super::runtime();
+        let err = rt.register_mcp_server("any").unwrap_err();
+        assert_eq!(err.code, "not_an_mcp_plugin");
+    }
+
+    #[test]
+    fn runtime_default_required_tools_is_empty() {
+        let rt = super::runtime();
+        assert!(rt.required_tools().is_empty());
     }
 }

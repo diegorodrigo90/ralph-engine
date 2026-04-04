@@ -1,5 +1,7 @@
 //! Official GitHub integration plugin metadata and runtime.
 
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+
 use std::path::Path;
 
 mod i18n;
@@ -172,6 +174,8 @@ impl PluginRuntime for GitHubRuntime {
         ))
     }
 
+    // Binary probe: result depends on host environment.
+    #[cfg_attr(coverage_nightly, coverage(off))]
     fn register_mcp_server(
         &self,
         server_id: &str,
@@ -190,7 +194,10 @@ impl PluginRuntime for GitHubRuntime {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
+    use re_plugin::PluginRuntime;
+
     use super::{
         PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, mcp_servers,
         providers, runtime_hooks,
@@ -213,15 +220,13 @@ mod tests {
     }
 
     #[test]
-    fn plugin_declares_at_least_one_capability() {
-        // Arrange
-        let declared_capabilities = capabilities();
-
-        // Act
-        let has_capabilities = !declared_capabilities.is_empty();
-
-        // Assert
-        assert!(has_capabilities);
+    fn plugin_declares_expected_capabilities() {
+        let caps = capabilities();
+        assert_eq!(caps.len(), 4);
+        assert!(caps.iter().any(|c| c.as_str() == "data_source"));
+        assert!(caps.iter().any(|c| c.as_str() == "context_provider"));
+        assert!(caps.iter().any(|c| c.as_str() == "forge_provider"));
+        assert!(caps.iter().any(|c| c.as_str() == "mcp_contribution"));
     }
 
     #[test]
@@ -292,26 +297,33 @@ mod tests {
 
     #[test]
     fn plugin_declares_lifecycle_stages() {
-        // Arrange
-        let declared_lifecycle = lifecycle();
-
-        // Act
-        let has_lifecycle = !declared_lifecycle.is_empty();
-
-        // Assert
-        assert!(has_lifecycle);
+        let stages = lifecycle();
+        assert_eq!(stages.len(), 3);
+        assert!(stages.iter().any(|s| s.as_str() == "discover"));
+        assert!(stages.iter().any(|s| s.as_str() == "configure"));
+        assert!(stages.iter().any(|s| s.as_str() == "load"));
     }
 
     #[test]
     fn plugin_declares_runtime_hooks() {
-        // Arrange
-        let declared_hooks = runtime_hooks();
-
-        // Act
-        let has_hooks = !declared_hooks.is_empty();
-
-        // Assert
-        assert!(has_hooks);
+        let hooks = runtime_hooks();
+        assert_eq!(hooks.len(), 4);
+        assert!(hooks.iter().any(|h| h.as_str() == "mcp_registration"));
+        assert!(
+            hooks
+                .iter()
+                .any(|h| h.as_str() == "data_source_registration")
+        );
+        assert!(
+            hooks
+                .iter()
+                .any(|h| h.as_str() == "context_provider_registration")
+        );
+        assert!(
+            hooks
+                .iter()
+                .any(|h| h.as_str() == "forge_provider_registration")
+        );
     }
 
     #[test]
@@ -319,7 +331,7 @@ mod tests {
         let manifest = manifest_document();
 
         assert!(manifest.contains("id: official.github"));
-        assert!(manifest.contains("kind: mcp_contribution"));
+        assert!(manifest.contains("kind: data_source"));
         assert!(manifest.contains("- data_source"));
         assert!(manifest.contains("- context_provider"));
         assert!(manifest.contains("- forge_provider"));
@@ -328,5 +340,54 @@ mod tests {
         assert!(manifest.contains("id: official.github.context"));
         assert!(manifest.contains("id: official.github.forge"));
         assert!(manifest.contains("plugin_api_version: 1"));
+    }
+
+    // ── Runtime tests ────────────────────────────────────────────────
+
+    #[test]
+    fn runtime_plugin_id_matches() {
+        let rt = super::runtime();
+        assert_eq!(rt.plugin_id(), PLUGIN_ID);
+    }
+
+    #[test]
+    fn runtime_rejects_check() {
+        let rt = super::runtime();
+        let err = rt
+            .run_check(
+                "any",
+                re_plugin::PluginCheckKind::Prepare,
+                std::path::Path::new("/tmp"),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, "not_a_check_plugin");
+    }
+
+    #[test]
+    fn runtime_rejects_agent() {
+        let rt = super::runtime();
+        let err = rt.bootstrap_agent("any").unwrap_err();
+        assert_eq!(err.code, "not_an_agent_plugin");
+    }
+
+    #[test]
+    fn runtime_register_mcp_returns_result_with_content() {
+        let rt = super::runtime();
+        let result = rt
+            .register_mcp_server("official.github.repository")
+            .unwrap();
+        assert_eq!(result.server_id, "official.github.repository");
+        // MCP binary may or may not be installed — verify both branches.
+        if result.ready {
+            assert!(result.message.contains("found"));
+        } else {
+            assert!(result.message.contains("not found"));
+        }
+    }
+
+    #[test]
+    fn runtime_default_required_tools_is_empty() {
+        let rt = super::runtime();
+        assert!(rt.required_tools().is_empty());
     }
 }

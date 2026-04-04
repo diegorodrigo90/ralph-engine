@@ -34,6 +34,9 @@ missing_docs = "deny"
 unsafe_code = "forbid"
 unused_lifetimes = "deny"
 unused_attributes = "deny"
+# Allow cfg(coverage) and cfg(coverage_nightly) set by cargo-llvm-cov
+# for #[cfg_attr(coverage_nightly, coverage(off))] on I/O boundaries.
+unexpected_cfgs = { level = "allow", check-cfg = ['cfg(coverage)', 'cfg(coverage_nightly)'] }
 
 [workspace.lints.rustdoc]
 bare_urls = "deny"
