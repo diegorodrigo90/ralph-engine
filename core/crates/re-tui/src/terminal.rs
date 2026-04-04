@@ -117,6 +117,10 @@ pub struct TuiShell {
     sidebar_panels: Vec<SidebarPanel>,
     /// Agent process ID for pause/resume signals.
     agent_pid: AgentPid,
+    /// Feedback text buffer (filled during `WaitingFeedback` state).
+    feedback_buffer: String,
+    /// Completed feedback ready to be consumed by the caller.
+    pending_feedback: Option<String>,
 }
 
 impl TuiShell {
@@ -133,6 +137,8 @@ impl TuiShell {
             quit_pending: false,
             sidebar_panels: Vec::new(),
             agent_pid: None,
+            feedback_buffer: String::new(),
+            pending_feedback: None,
         }
     }
 
@@ -286,7 +292,7 @@ impl TuiShell {
 
     /// Handles a key press event.
     pub fn handle_key(&mut self, code: KeyCode) {
-        // Quit confirmation flow: q → "Quit? (y/n)" → y confirms
+        // Quit confirmation flow
         if self.quit_pending {
             match code {
                 KeyCode::Char('y' | 'Y') => {
@@ -301,6 +307,38 @@ impl TuiShell {
             return;
         }
 
+        // Feedback input mode — captures text until Enter or Esc
+        if self.state == TuiState::WaitingFeedback {
+            match code {
+                KeyCode::Enter => {
+                    if !self.feedback_buffer.trim().is_empty() {
+                        let feedback = self.feedback_buffer.trim().to_owned();
+                        self.push_activity(format!(">> Feedback: {feedback}"));
+                        self.pending_feedback = Some(feedback);
+                        self.feedback_buffer.clear();
+                        self.set_state(TuiState::Paused);
+                        self.push_activity(
+                            ">> Feedback saved. Press 'p' to resume agent with feedback."
+                                .to_owned(),
+                        );
+                    }
+                }
+                KeyCode::Esc => {
+                    self.feedback_buffer.clear();
+                    self.set_state(TuiState::Paused);
+                    self.push_activity(">> Feedback cancelled.".to_owned());
+                }
+                KeyCode::Backspace => {
+                    self.feedback_buffer.pop();
+                }
+                KeyCode::Char(c) => {
+                    self.feedback_buffer.push(c);
+                }
+                _ => {}
+            }
+            return;
+        }
+
         match code {
             KeyCode::Char('q') => {
                 self.quit_pending = true;
@@ -310,32 +348,45 @@ impl TuiShell {
             }
             KeyCode::Char('p') => {
                 if self.state == TuiState::Running {
-                    // Pause: send SIGSTOP to agent if running
-                    if let Some(pid) = self.agent_pid
-                        && let Err(e) = crate::process::pause_process(pid)
-                    {
-                        self.push_activity(format!(">> Pause failed: {e}"));
-                        return;
-                    }
+                    // TUI sets state only — caller handles SIGSTOP via plugin
                     self.set_state(TuiState::Paused);
-                    self.push_activity(">> Agent paused. Press 'p' to resume.".to_owned());
+                    self.push_activity(
+                        ">> Agent paused. Press 'f' for feedback, 'p' to resume.".to_owned(),
+                    );
                 } else if self.state == TuiState::Paused {
-                    // Resume: send SIGCONT to agent
-                    if let Some(pid) = self.agent_pid
-                        && let Err(e) = crate::process::resume_process(pid)
-                    {
-                        self.push_activity(format!(">> Resume failed: {e}"));
-                        return;
-                    }
+                    // TUI sets state only — caller handles SIGCONT via plugin
                     self.set_state(TuiState::Running);
                     self.push_activity(">> Agent resumed.".to_owned());
                 }
             }
+            KeyCode::Char('f') if self.state == TuiState::Paused => {
+                self.set_state(TuiState::WaitingFeedback);
+                self.push_activity(
+                    ">> Type your feedback, then press Enter to save or Esc to cancel.".to_owned(),
+                );
+            }
             KeyCode::Char('?') => {
-                self.push_activity(">> Keys: [q] quit  [p] pause/resume  [?] help".to_owned());
+                let help = if self.state == TuiState::Paused {
+                    ">> Keys: [f] feedback  [p] resume  [q] quit  [?] help"
+                } else {
+                    ">> Keys: [p] pause  [q] quit  [?] help"
+                };
+                self.push_activity(help.to_owned());
             }
             _ => {}
         }
+    }
+
+    /// Takes the pending feedback (if any) — consumed by the caller
+    /// to re-spawn the agent with merged context.
+    pub fn take_feedback(&mut self) -> Option<String> {
+        self.pending_feedback.take()
+    }
+
+    /// Returns the current feedback buffer (for rendering the input field).
+    #[must_use]
+    pub fn feedback_buffer(&self) -> &str {
+        &self.feedback_buffer
     }
 
     /// Renders the TUI frame with responsive zone-based layout.
@@ -484,6 +535,25 @@ impl TuiShell {
             all_lines.push(line);
         }
 
+        // Show feedback input field at bottom when in WaitingFeedback state
+        if self.state == TuiState::WaitingFeedback {
+            let cursor = if self.feedback_buffer.is_empty() {
+                "type your feedback...".to_owned()
+            } else {
+                format!("{}▌", self.feedback_buffer)
+            };
+            // Replace last lines with input field
+            if all_lines.len() >= 2 {
+                all_lines.pop();
+            }
+            all_lines.push(Line::styled(
+                format!("  > {cursor}"),
+                Style::default()
+                    .fg(Color::Cyan)
+                    .add_modifier(Modifier::BOLD),
+            ));
+        }
+
         frame.render_widget(Paragraph::new(all_lines), area);
     }
 
@@ -512,6 +582,21 @@ impl TuiShell {
                 Span::styled(" Quit? ", warn),
                 Span::styled(
                     "[y] yes  [any key] cancel",
+                    Style::default().fg(Color::DarkGray),
+                ),
+            ];
+            frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
+            return;
+        }
+
+        if self.state == TuiState::WaitingFeedback {
+            let input_style = Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD);
+            let spans = vec![
+                Span::styled(" Feedback ", input_style),
+                Span::styled(
+                    "[Enter] send  [Esc] cancel  [Backspace] delete",
                     Style::default().fg(Color::DarkGray),
                 ),
             ];
@@ -1176,5 +1261,88 @@ mod tests {
 
         shell.set_sidebar_panels(vec![]);
         assert!(shell.sidebar_panels.is_empty());
+    }
+
+    // ── Feedback input tests ─────────────────────────────────────
+
+    #[test]
+    fn feedback_flow_pause_f_type_enter() {
+        let mut shell = empty_shell();
+
+        // Pause
+        shell.handle_key(KeyCode::Char('p'));
+        assert_eq!(shell.state(), TuiState::Paused);
+
+        // Enter feedback mode
+        shell.handle_key(KeyCode::Char('f'));
+        assert_eq!(shell.state(), TuiState::WaitingFeedback);
+
+        // Type feedback
+        shell.handle_key(KeyCode::Char('f'));
+        shell.handle_key(KeyCode::Char('i'));
+        shell.handle_key(KeyCode::Char('x'));
+        assert_eq!(shell.feedback_buffer(), "fix");
+
+        // Submit
+        shell.handle_key(KeyCode::Enter);
+        assert_eq!(shell.state(), TuiState::Paused);
+        assert_eq!(shell.take_feedback(), Some("fix".to_owned()));
+        assert!(shell.feedback_buffer().is_empty());
+    }
+
+    #[test]
+    fn feedback_esc_cancels() {
+        let mut shell = empty_shell();
+        shell.handle_key(KeyCode::Char('p'));
+        shell.handle_key(KeyCode::Char('f'));
+        shell.handle_key(KeyCode::Char('a'));
+        shell.handle_key(KeyCode::Char('b'));
+        assert_eq!(shell.feedback_buffer(), "ab");
+
+        shell.handle_key(KeyCode::Esc);
+        assert_eq!(shell.state(), TuiState::Paused);
+        assert!(shell.feedback_buffer().is_empty());
+        assert!(shell.take_feedback().is_none());
+    }
+
+    #[test]
+    fn feedback_backspace_deletes() {
+        let mut shell = empty_shell();
+        shell.handle_key(KeyCode::Char('p'));
+        shell.handle_key(KeyCode::Char('f'));
+        shell.handle_key(KeyCode::Char('a'));
+        shell.handle_key(KeyCode::Char('b'));
+        shell.handle_key(KeyCode::Backspace);
+        assert_eq!(shell.feedback_buffer(), "a");
+    }
+
+    #[test]
+    fn feedback_empty_enter_ignored() {
+        let mut shell = empty_shell();
+        shell.handle_key(KeyCode::Char('p'));
+        shell.handle_key(KeyCode::Char('f'));
+        shell.handle_key(KeyCode::Enter); // empty, ignored
+        assert_eq!(shell.state(), TuiState::WaitingFeedback);
+        assert!(shell.take_feedback().is_none());
+    }
+
+    #[test]
+    fn f_key_only_works_when_paused() {
+        let mut shell = empty_shell();
+        // Running state — f should not enter feedback
+        shell.handle_key(KeyCode::Char('f'));
+        assert_eq!(shell.state(), TuiState::Running);
+    }
+
+    #[test]
+    fn take_feedback_returns_none_after_consumed() {
+        let mut shell = empty_shell();
+        shell.handle_key(KeyCode::Char('p'));
+        shell.handle_key(KeyCode::Char('f'));
+        shell.handle_key(KeyCode::Char('x'));
+        shell.handle_key(KeyCode::Enter);
+
+        assert!(shell.take_feedback().is_some());
+        assert!(shell.take_feedback().is_none()); // second call = None
     }
 }
