@@ -14,18 +14,7 @@ use super::embedded_assets::{MaterializedAsset, materialize_assets};
 /// Executes the init command.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
-        Some("--help" | "-h") => Ok(locale_str!(
-            locale,
-            "Usage: ralph-engine init [directory]\n\n\
-             Interactively initialize a new Ralph Engine project.\n\
-             Creates .ralph-engine/ with config, hooks, and prompt files.\n\n\
-             Templates and plugins are auto-discovered from the catalog.",
-            "Uso: ralph-engine init [diretório]\n\n\
-             Inicializa interativamente um novo projeto Ralph Engine.\n\
-             Cria .ralph-engine/ com config, hooks e arquivos de prompt.\n\n\
-             Templates e plugins são auto-descobertos do catálogo."
-        )
-        .to_owned()),
+        Some("--help" | "-h") => Ok(i18n::init_help(locale).to_owned()),
         _ => run_interactive_init(args.first().map(String::as_str).unwrap_or("."), locale),
     }
 }
@@ -64,51 +53,21 @@ fn run_interactive_init(target_dir: &str, locale: &str) -> Result<String, CliErr
 
     // ── Check existing directory ─────────────────────────────────────
     if re_dir.exists() {
-        eprintln!(
-            "{}",
-            locale_str!(
-                locale,
-                "  .ralph-engine/ already exists.\n  \
-                 WARNING: Overwriting will DELETE all current configuration.",
-                "  .ralph-engine/ já existe.\n  \
-                 AVISO: Sobrescrever vai APAGAR toda configuração atual."
-            )
-        );
-        if !confirm(
-            locale_str!(locale, "  Overwrite?", "  Sobrescrever?"),
-            false,
-        ) {
-            return Ok(locale_str!(locale, "  Cancelled.", "  Cancelado.").to_owned());
+        eprintln!("  {}", i18n::init_exists_warning(locale));
+        if !confirm(&format!("  {}", i18n::init_overwrite_prompt(locale)), false) {
+            return Ok(format!("  {}", i18n::init_cancelled(locale)));
         }
-        std::fs::remove_dir_all(&re_dir).map_err(|err| {
-            CliError::new(
-                locale_str!(
-                    locale,
-                    format!("Failed to remove .ralph-engine/: {err}"),
-                    format!("Falha ao remover .ralph-engine/: {err}")
-                )
-                .to_string(),
-            )
-        })?;
+        std::fs::remove_dir_all(&re_dir)
+            .map_err(|err| CliError::new(i18n::init_remove_failed(locale, &err.to_string())))?;
     }
 
     // ── Auto-discover templates from catalog ─────────────────────────
     let templates = catalog::official_template_contributions();
     if templates.is_empty() {
-        return Err(CliError::new(
-            locale_str!(
-                locale,
-                "No templates found in catalog. Cannot initialize.",
-                "Nenhum template encontrado no catálogo. Não é possível inicializar."
-            )
-            .to_owned(),
-        ));
+        return Err(CliError::new(i18n::init_no_templates(locale).to_owned()));
     }
 
-    eprintln!(
-        "{}",
-        locale_str!(locale, "  Select a template:", "  Selecione um template:")
-    );
+    eprintln!("  {}", i18n::init_select_template(locale));
     for (i, t) in templates.iter().enumerate() {
         let name = t.descriptor.display_name_for_locale(locale);
         let summary = t.descriptor.summary_for_locale(locale);
@@ -150,14 +109,7 @@ fn run_interactive_init(target_dir: &str, locale: &str) -> Result<String, CliErr
         .collect();
 
     if !optional.is_empty() {
-        eprintln!(
-            "\n{}",
-            locale_str!(
-                locale,
-                "  Enable additional plugins? (comma-separated numbers, or Enter to skip)",
-                "  Ativar plugins adicionais? (números separados por vírgula, ou Enter para pular)"
-            )
-        );
+        eprintln!("\n  {}", i18n::init_enable_additional(locale));
         for (i, p) in optional.iter().enumerate() {
             let name = p.descriptor.display_name_for_locale(locale);
             let summary = p.descriptor.summary_for_locale(locale);
@@ -187,9 +139,9 @@ fn run_interactive_init(target_dir: &str, locale: &str) -> Result<String, CliErr
             }
             output.push(format!(
                 "  {} {} {}",
-                locale_str!(locale, "Enabled", "Ativou"),
+                i18n::init_enabled_label(locale),
                 selected_ids.len(),
-                locale_str!(locale, "additional plugins", "plugins adicionais")
+                i18n::init_additional_plugins(locale)
             ));
         }
     }
@@ -202,10 +154,7 @@ fn run_interactive_init(target_dir: &str, locale: &str) -> Result<String, CliErr
         let config_path_for_contrib = target.join(".ralph-engine/config.yaml");
         for contrib in &init_contributions {
             eprintln!("  {} — {}", contrib.label, contrib.description);
-            if confirm(
-                &format!("  {}?", locale_str!(locale, "Enable", "Ativar")),
-                true,
-            ) {
+            if confirm(&format!("  {}?", i18n::init_enable_label(locale)), true) {
                 if let Some(snippet) = &contrib.config_snippet
                     && let Ok(mut config) = std::fs::read_to_string(&config_path_for_contrib)
                 {
@@ -220,7 +169,7 @@ fn run_interactive_init(target_dir: &str, locale: &str) -> Result<String, CliErr
                     let _ = std::fs::write(&full_path, file_contents);
                     output.push(format!(
                         "  {} {file_path}",
-                        locale_str!(locale, "Created", "Criado"),
+                        i18n::init_created_label(locale),
                     ));
                 }
             }
@@ -230,8 +179,8 @@ fn run_interactive_init(target_dir: &str, locale: &str) -> Result<String, CliErr
     // ── Done ─────────────────────────────────────────────────────────
     output.push(format!(
         "\n  {} 'ralph-engine doctor' {}",
-        locale_str!(locale, "Done! Run", "Pronto! Execute"),
-        locale_str!(locale, "to verify your setup.", "para verificar.")
+        i18n::init_done_prefix(locale),
+        i18n::init_done_suffix(locale)
     ));
 
     Ok(output.join("\n"))

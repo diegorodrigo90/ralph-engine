@@ -26,6 +26,20 @@ fn main() {
         "unknown_prompt_asset",
         "unknown_check_asset",
         "unknown_policy_asset",
+        // Install/uninstall parameterized messages
+        "install_already_installed",
+        "install_create_dir_failed",
+        "install_clone_exec_failed",
+        "install_clone_repo_failed",
+        "install_not_installed",
+        "install_remove_dir_failed",
+        "install_uninstalled",
+        // Init parameterized messages
+        "init_remove_failed",
+        // MCP parameterized messages
+        "mcp_install_hint",
+        // Policies parameterized messages
+        "policies_materialize_hint",
     ];
 
     let mut code =

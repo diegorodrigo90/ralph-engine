@@ -178,11 +178,7 @@ fn run_plugin_checks(
 
     match runtime.run_check(check_id, plugin_check_kind, project_root) {
         Ok(result) => {
-            let heading = if locale == "pt-br" {
-                "Verificação do plugin"
-            } else {
-                "Plugin check execution"
-            };
+            let heading = i18n::checks_plugin_execution(locale);
             let status = if result.passed { "PASSED" } else { "FAILED" };
             let mut lines = vec![format!("--- {heading}: {check_id} [{status}] ---")];
             for finding in &result.findings {
@@ -226,34 +222,18 @@ fn run_filesystem_checks(_kind: RuntimeCheckKind, project_root: &Path, locale: &
         return String::new();
     }
 
-    let heading = if locale == "pt-br" {
-        "Validação de arquivos do projeto"
-    } else {
-        "Project file validation"
-    };
-
-    let mut lines = vec![format!("--- {heading} ---")];
+    let mut lines = vec![format!("--- {} ---", i18n::checks_file_validation(locale))];
 
     for path in &found {
         lines.push(format!("  [OK] {path}"));
     }
     for path in &missing {
-        let label = if locale == "pt-br" {
-            "FALTANDO"
-        } else {
-            "MISSING"
-        };
-        lines.push(format!("  [{label}] {path}"));
+        lines.push(format!("  [{}] {path}", i18n::checks_missing_label(locale)));
     }
 
     if !missing.is_empty() {
-        let hint = if locale == "pt-br" {
-            "Dica: execute 'ralph-engine templates scaffold basic' para gerar os arquivos iniciais"
-        } else {
-            "Hint: run 'ralph-engine templates scaffold basic' to generate initial files"
-        };
         lines.push(String::new());
-        lines.push(hint.to_owned());
+        lines.push(i18n::checks_scaffold_hint(locale).to_owned());
     }
 
     lines.join("\n")

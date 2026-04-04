@@ -59,3 +59,51 @@ pub(super) fn unknown_check_asset(value: &str) -> String {
 pub(super) fn unknown_policy_asset(value: &str) -> String {
     format!("unknown policy asset: {value}")
 }
+
+// ── Install/uninstall ────────────────────────────────────────────
+
+pub(super) fn install_already_installed(plugin_id: &str, path: &str) -> String {
+    format!("Plugin '{plugin_id}' is already installed at {path}")
+}
+
+pub(super) fn install_create_dir_failed(error: &str) -> String {
+    format!("Failed to create plugins directory: {error}")
+}
+
+pub(super) fn install_clone_exec_failed(error: &str) -> String {
+    format!("Failed to run git clone: {error}")
+}
+
+pub(super) fn install_clone_repo_failed(url: &str) -> String {
+    format!("Failed to clone {url}. Check that the repository exists and is public.")
+}
+
+pub(super) fn install_not_installed(plugin_id: &str) -> String {
+    format!("Plugin '{plugin_id}' is not installed.")
+}
+
+pub(super) fn install_remove_dir_failed(error: &str) -> String {
+    format!("Failed to remove plugin directory: {error}")
+}
+
+pub(super) fn install_uninstalled(plugin_id: &str) -> String {
+    format!("Plugin '{plugin_id}' uninstalled.")
+}
+
+// ── Init ─────────────────────────────────────────────────────────
+
+pub(super) fn init_remove_failed(error: &str) -> String {
+    format!("Failed to remove .ralph-engine/: {error}")
+}
+
+// ── MCP ──────────────────────────────────────────────────────────
+
+pub(super) fn mcp_install_hint(program: &str) -> String {
+    format!("Hint: install '{program}' or add it to PATH to enable this MCP server")
+}
+
+// ── Policies ─────────────────────────────────────────────────────
+
+pub(super) fn policies_materialize_hint(policy_id: &str) -> String {
+    format!("Hint: run 'ralph-engine policies materialize {policy_id} <dir>' to generate the files")
+}

@@ -17,11 +17,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         Some("--list") => list_work_items(locale, verbose),
         Some("plan") => run_plan(filtered.get(1).copied(), locale, verbose),
         Some(id) if !id.starts_with('-') => run_work_item(id, locale, verbose),
-        None => Err(CliError::new(locale_str!(
-            locale,
-            "Work item ID required. Use `ralph-engine run <id>` or `ralph-engine run --list`.",
-            "ID do work item obrigatório. Use `ralph-engine run <id>` ou `ralph-engine run --list`."
-        ))),
+        None => Err(CliError::new(i18n::run_id_required(locale))),
         Some(other) => Err(CliError::new(i18n::unknown_subcommand(
             locale, "run", other,
         ))),
@@ -56,15 +52,10 @@ fn list_work_items(locale: &str, verbose: bool) -> Result<String, CliError> {
     dbg_log(verbose, &format!("found {} work items", items.len()));
 
     if items.is_empty() {
-        return Ok(locale_str!(
-            locale,
-            "No actionable work items found.",
-            "Nenhum work item encontrado."
-        )
-        .to_owned());
+        return Ok(i18n::run_no_items(locale).to_owned());
     }
 
-    let heading = locale_str!(locale, "Available work items", "Work items disponíveis");
+    let heading = i18n::run_available_items(locale);
     let mut lines = vec![format!("{heading} ({}):", items.len())];
     for item in &items {
         lines.push(format!("  {} | {} | {}", item.id, item.title, item.status));
@@ -78,7 +69,7 @@ fn run_plan(work_item_id: Option<&str>, locale: &str, verbose: bool) -> Result<S
         CliError::new(i18n::missing_id(
             locale,
             "run plan",
-            locale_str!(locale, "work item ID", "ID do work item"),
+            i18n::run_work_item_id_label(locale),
         ))
     })?;
 
@@ -161,11 +152,11 @@ fn run_plan(work_item_id: Option<&str>, locale: &str, verbose: bool) -> Result<S
     dbg_log(verbose, &format!("probing agent '{agent_id}'..."));
     let agent_status = agent_runtime.bootstrap_agent(agent_id);
 
-    let workflow_label = locale_str!(locale, "Workflow", "Workflow");
-    let agent_label = locale_str!(locale, "Agent", "Agente");
-    let story_label = locale_str!(locale, "Work item", "Work item");
-    let prompt_label = locale_str!(locale, "Prompt size", "Tamanho do prompt");
-    let ready_label = locale_str!(locale, "Agent ready", "Agente pronto");
+    let workflow_label = i18n::run_workflow_label(locale);
+    let agent_label = i18n::run_agent_label(locale);
+    let story_label = i18n::run_work_item_label(locale);
+    let prompt_label = i18n::run_prompt_size_label(locale);
+    let ready_label = i18n::run_agent_ready_label(locale);
 
     let ready = agent_status.as_ref().is_ok_and(|r| r.ready);
     let ready_display = if ready { "[OK]" } else { "[NOT READY]" };
@@ -173,7 +164,7 @@ fn run_plan(work_item_id: Option<&str>, locale: &str, verbose: bool) -> Result<S
     let mut lines = vec![
         format!(
             "--- {}: {} ---",
-            locale_str!(locale, "Execution plan", "Plano de execução"),
+            i18n::run_execution_plan(locale),
             resolution.canonical_id
         ),
         format!(
@@ -191,10 +182,7 @@ fn run_plan(work_item_id: Option<&str>, locale: &str, verbose: bool) -> Result<S
     ];
 
     if let Some(ref path) = resolution.source_path {
-        lines.push(format!(
-            "{}: {path}",
-            locale_str!(locale, "Source", "Fonte")
-        ));
+        lines.push(format!("{}: {path}", i18n::run_source_label(locale)));
     }
 
     for (key, val) in &resolution.metadata {
@@ -205,16 +193,12 @@ fn run_plan(work_item_id: Option<&str>, locale: &str, verbose: bool) -> Result<S
         "{prompt_label}: {} bytes ({} {})",
         context.prompt_text.len(),
         context.context_files.len(),
-        locale_str!(locale, "context files", "arquivos de contexto")
+        i18n::run_context_files_label(locale)
     ));
     lines.push(format!("{ready_label}: {ready_display}"));
 
     if !ready && let Err(err) = &agent_status {
-        lines.push(format!(
-            "{}: {}",
-            locale_str!(locale, "Hint", "Dica"),
-            err.message
-        ));
+        lines.push(format!("{}: {}", i18n::run_hint_label(locale), err.message));
     }
 
     if verbose {
@@ -249,13 +233,10 @@ fn run_work_item(work_item_id: &str, locale: &str, verbose: bool) -> Result<Stri
     // Check autonomous mode acceptance
     ensure_autonomous_acceptance(&cwd, locale, verbose)?;
 
-    let agent_id = config.run.agent_id.ok_or_else(|| {
-        CliError::new(locale_str!(
-            locale,
-            "Missing 'run.agent_id' in .ralph-engine/config.yaml.",
-            "Campo 'run.agent_id' ausente em .ralph-engine/config.yaml."
-        ))
-    })?;
+    let agent_id = config
+        .run
+        .agent_id
+        .ok_or_else(|| CliError::new(i18n::run_missing_agent_id(locale)))?;
 
     // 1. Probe agent
     dbg_log(
@@ -277,7 +258,7 @@ fn run_work_item(work_item_id: &str, locale: &str, verbose: bool) -> Result<Stri
     if !bootstrap.ready {
         return Err(CliError::new(format!(
             "{}: {}",
-            locale_str!(locale, "Agent not ready", "Agente não está pronto"),
+            i18n::run_agent_not_ready(locale),
             bootstrap.message
         )));
     }
@@ -292,13 +273,9 @@ fn run_work_item(work_item_id: &str, locale: &str, verbose: bool) -> Result<Stri
         .map_err(|err| {
             CliError::new(format!(
                 "{}: {}\n{}",
-                locale_str!(locale, "Work item not found", "Work item não encontrado"),
+                i18n::run_work_item_not_found(locale),
                 err.message,
-                locale_str!(
-                    locale,
-                    "Use `ralph-engine run --list` to see available items.",
-                    "Use `ralph-engine run --list` para ver itens disponíveis."
-                )
+                i18n::run_use_list_hint(locale)
             ))
         })?;
 
@@ -371,11 +348,11 @@ fn run_work_item(work_item_id: &str, locale: &str, verbose: bool) -> Result<Stri
     dbg_log(verbose, "[step 4/5] printing launch info...");
     let launch_msg = format!(
         "--- {} ---\n{}: {} — {}\n{}: {}\n",
-        locale_str!(locale, "Launching agent", "Lançando agente"),
-        locale_str!(locale, "Work item", "Work item"),
+        i18n::run_launching_agent(locale),
+        i18n::run_work_item_label(locale),
         resolution.canonical_id,
         resolution.title,
-        locale_str!(locale, "Agent", "Agente"),
+        i18n::run_agent_label(locale),
         agent_id,
     );
     println!("{launch_msg}");
@@ -400,7 +377,7 @@ fn run_work_item(work_item_id: &str, locale: &str, verbose: bool) -> Result<Stri
     if result.success {
         Ok(format!(
             "\n--- {} ---\n{}",
-            locale_str!(locale, "Agent completed", "Agente finalizado"),
+            i18n::run_agent_completed(locale),
             result.message
         ))
     } else {
@@ -410,7 +387,7 @@ fn run_work_item(work_item_id: &str, locale: &str, verbose: bool) -> Result<Stri
             .unwrap_or_default();
         Err(CliError::new(format!(
             "{}{code_info}: {}",
-            locale_str!(locale, "Agent failed", "Agente falhou"),
+            i18n::run_agent_failed(locale),
             result.message
         )))
     }
@@ -426,13 +403,8 @@ type PluginRuntimePair = (
 
 /// Resolves the workflow and agent plugin runtimes from project config.
 fn resolve_run_plugins(locale: &str, verbose: bool) -> Result<PluginRuntimePair, CliError> {
-    let config = load_project_config().map_err(|_| {
-        CliError::new(locale_str!(
-            locale,
-            "Project config not found. Run `ralph-engine templates materialize official.bmad.starter .` to create one.",
-            "Configuração do projeto não encontrada. Execute `ralph-engine templates materialize official.bmad.starter .` para criar."
-        ))
-    })?;
+    let config =
+        load_project_config().map_err(|_| CliError::new(i18n::run_config_not_found(locale)))?;
 
     dbg_log(
         verbose,
@@ -447,21 +419,15 @@ fn resolve_run_plugins(locale: &str, verbose: bool) -> Result<PluginRuntimePair,
         ),
     );
 
-    let workflow_plugin_id = config.run.workflow_plugin.ok_or_else(|| {
-        CliError::new(locale_str!(
-            locale,
-            "Missing 'run.workflow_plugin' in .ralph-engine/config.yaml.\nExample:\n  run:\n    workflow_plugin: official.bmad\n    agent_plugin: official.claude\n    agent_id: official.claude.session",
-            "Campo 'run.workflow_plugin' ausente em .ralph-engine/config.yaml.\nExemplo:\n  run:\n    workflow_plugin: official.bmad\n    agent_plugin: official.claude\n    agent_id: official.claude.session"
-        ))
-    })?;
+    let workflow_plugin_id = config
+        .run
+        .workflow_plugin
+        .ok_or_else(|| CliError::new(i18n::run_missing_workflow_plugin(locale)))?;
 
-    let agent_plugin_id = config.run.agent_plugin.ok_or_else(|| {
-        CliError::new(locale_str!(
-            locale,
-            "Missing 'run.agent_plugin' in .ralph-engine/config.yaml.\nExample:\n  run:\n    agent_plugin: official.claude",
-            "Campo 'run.agent_plugin' ausente em .ralph-engine/config.yaml.\nExemplo:\n  run:\n    agent_plugin: official.claude"
-        ))
-    })?;
+    let agent_plugin_id = config
+        .run
+        .agent_plugin
+        .ok_or_else(|| CliError::new(i18n::run_missing_agent_plugin(locale)))?;
 
     dbg_log(
         verbose,
@@ -471,11 +437,7 @@ fn resolve_run_plugins(locale: &str, verbose: bool) -> Result<PluginRuntimePair,
         catalog::official_plugin_runtime(workflow_plugin_id).ok_or_else(|| {
             CliError::new(format!(
                 "{}: {workflow_plugin_id}",
-                locale_str!(
-                    locale,
-                    "Workflow plugin does not provide a runtime",
-                    "Plugin de workflow não fornece runtime"
-                ),
+                i18n::run_workflow_no_runtime(locale),
             ))
         })?;
     dbg_log(
@@ -490,11 +452,7 @@ fn resolve_run_plugins(locale: &str, verbose: bool) -> Result<PluginRuntimePair,
     let agent_runtime = catalog::official_plugin_runtime(agent_plugin_id).ok_or_else(|| {
         CliError::new(format!(
             "{}: {agent_plugin_id}",
-            locale_str!(
-                locale,
-                "Agent plugin does not provide a runtime",
-                "Plugin de agente não fornece runtime"
-            ),
+            i18n::run_agent_no_runtime(locale),
         ))
     })?;
     dbg_log(
@@ -526,29 +484,7 @@ fn ensure_autonomous_acceptance(
 
     dbg_log(verbose, "autonomous mode: first run, asking for acceptance");
 
-    let warning = locale_str!(
-        locale,
-        "⚠️  AUTONOMOUS MODE WARNING\n\n\
-         ralph-engine run launches an AI agent that can:\n\
-         - Read and write files in this project\n\
-         - Execute shell commands\n\
-         - Make git commits\n\n\
-         The agent runs with auto-accept permissions to work autonomously.\n\
-         This is equivalent to --dangerously-skip-permissions in Claude Code.\n\n\
-         Only run this in projects you trust.\n\n\
-         Accept and continue? [y/N] ",
-        "⚠️  AVISO DE MODO AUTÔNOMO\n\n\
-         ralph-engine run lança um agente de IA que pode:\n\
-         - Ler e escrever arquivos neste projeto\n\
-         - Executar comandos no shell\n\
-         - Fazer commits no git\n\n\
-         O agente roda com permissões auto-aceitas para trabalhar de forma autônoma.\n\
-         Equivalente a --dangerously-skip-permissions no Claude Code.\n\n\
-         Execute apenas em projetos que você confia.\n\n\
-         Aceitar e continuar? [y/N] "
-    );
-
-    eprint!("{warning}");
+    eprint!("{}", i18n::run_autonomous_warning(locale));
     use std::io::Write as _;
     let _ = std::io::stderr().flush();
 
@@ -563,11 +499,7 @@ fn ensure_autonomous_acceptance(
     );
 
     if !accepted {
-        return Err(CliError::new(locale_str!(
-            locale,
-            "Autonomous mode not accepted. Aborting.",
-            "Modo autônomo não aceito. Abortando."
-        )));
+        return Err(CliError::new(i18n::run_autonomous_rejected(locale)));
     }
 
     // Save acceptance
@@ -597,16 +529,8 @@ fn chrono_free_now() -> String {
 
 /// Returns the current working directory or a typed error.
 fn current_dir_or_error(locale: &str) -> Result<std::path::PathBuf, CliError> {
-    std::env::current_dir().map_err(|err| {
-        CliError::new(format!(
-            "{}: {err}",
-            locale_str!(
-                locale,
-                "Failed to resolve working directory",
-                "Falha ao resolver diretório de trabalho"
-            )
-        ))
-    })
+    std::env::current_dir()
+        .map_err(|err| CliError::new(format!("{}: {err}", i18n::run_cwd_error(locale))))
 }
 
 #[cfg(test)]

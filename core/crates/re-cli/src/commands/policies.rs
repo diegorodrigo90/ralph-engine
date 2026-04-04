@@ -127,40 +127,27 @@ fn run_policy_filesystem_checks(
         }
     }
 
-    let heading = if locale == "pt-br" {
-        "Validação de arquivos da política"
-    } else {
-        "Policy file validation"
-    };
-
-    let mut lines = vec![format!("--- {heading} ---")];
+    let mut lines = vec![format!(
+        "--- {} ---",
+        i18n::policies_file_validation(locale)
+    )];
 
     for path in &found {
         lines.push(format!("  [OK] .ralph-engine/policies/{path}"));
     }
     for path in &missing {
-        let label = if locale == "pt-br" {
-            "FALTANDO"
-        } else {
-            "MISSING"
-        };
-        lines.push(format!("  [{label}] .ralph-engine/policies/{path}"));
+        lines.push(format!(
+            "  [{}] .ralph-engine/policies/{path}",
+            i18n::policies_missing_label(locale)
+        ));
     }
 
     if !missing.is_empty() {
-        let hint = if locale == "pt-br" {
-            format!(
-                "Dica: execute 'ralph-engine policies materialize {} <dir>' para gerar os arquivos",
-                policy.descriptor.id
-            )
-        } else {
-            format!(
-                "Hint: run 'ralph-engine policies materialize {} <dir>' to generate files",
-                policy.descriptor.id
-            )
-        };
         lines.push(String::new());
-        lines.push(hint);
+        lines.push(i18n::policies_materialize_hint(
+            locale,
+            policy.descriptor.id,
+        ));
     }
 
     lines.join("\n")

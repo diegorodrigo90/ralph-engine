@@ -92,29 +92,23 @@ fn probe_agent_launch(agent_id: Option<&str>, locale: &str) -> Result<String, Cl
 
     let mut lines = Vec::new();
 
-    let heading = locale_str!(
-        locale,
-        "Agent bootstrap probe",
-        "Verificação de bootstrap de agente"
-    );
+    let heading = i18n::agents_bootstrap_probe(locale);
     lines.push(format!("--- {heading}: {} ---", agent.descriptor.id));
     lines.push(format!("plugin: {}", agent.descriptor.plugin_id));
     lines.push(format!("load_boundary: {}", agent.load_boundary));
 
     if agent.bootstrap_hook_registered {
-        let label = locale_str!(
-            locale,
-            "Bootstrap hook registered",
-            "Hook de bootstrap registrado"
-        );
-        lines.push(format!("{} {label}", super::STATUS_OK));
+        lines.push(format!(
+            "{} {}",
+            super::STATUS_OK,
+            i18n::agents_bootstrap_registered(locale)
+        ));
     } else {
-        let label = locale_str!(
-            locale,
-            "Bootstrap hook NOT registered",
-            "Hook de bootstrap NÃO registrado"
-        );
-        lines.push(format!("{} {label}", super::STATUS_MISSING));
+        lines.push(format!(
+            "{} {}",
+            super::STATUS_MISSING,
+            i18n::agents_bootstrap_not_registered(locale)
+        ));
     }
 
     match catalog::official_plugin_runtime(agent.descriptor.plugin_id) {
@@ -132,12 +126,7 @@ fn probe_agent_launch(agent_id: Option<&str>, locale: &str) -> Result<String, Cl
             }
         },
         None => {
-            let msg = locale_str!(
-                locale,
-                "Plugin does not provide a runtime implementation.",
-                "Plugin não fornece implementação de runtime."
-            );
-            lines.push(msg.to_owned());
+            lines.push(i18n::agents_no_runtime(locale).to_owned());
         }
     }
 
