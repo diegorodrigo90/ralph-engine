@@ -1282,7 +1282,7 @@ mod tests {
 
     /// Capabilities that operate via hooks rather than dedicated surfaces.
     /// These are orchestration capabilities that compose existing surfaces.
-    const HOOK_ONLY_CAPABILITIES: &[&str] = &["workflow"];
+    const HOOK_ONLY_CAPABILITIES: &[&str] = &["workflow", "tui_widgets"];
 
     #[test]
     fn all_reviewed_capabilities_have_dedicated_runtime_surfaces_or_hooks() {

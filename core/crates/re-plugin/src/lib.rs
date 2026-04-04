@@ -117,6 +117,8 @@ pub const REMOTE_CONTROL: PluginCapability = PluginCapability::new("remote_contr
 pub const POLICY: PluginCapability = PluginCapability::new("policy");
 /// Workflow orchestration capability (resolve work items, build prompts).
 pub const WORKFLOW: PluginCapability = PluginCapability::new("workflow");
+/// TUI dashboard widget contribution capability.
+pub const TUI_WIDGETS: PluginCapability = PluginCapability::new("tui_widgets");
 
 /// Canonical ordered list of reviewed plugin capabilities.
 pub const ALL_PLUGIN_CAPABILITIES: &[PluginCapability] = &[
@@ -132,6 +134,7 @@ pub const ALL_PLUGIN_CAPABILITIES: &[PluginCapability] = &[
     REMOTE_CONTROL,
     POLICY,
     WORKFLOW,
+    TUI_WIDGETS,
 ];
 
 /// Parses one reviewed plugin capability identifier.
@@ -1321,6 +1324,18 @@ pub trait PluginRuntime: Send + Sync {
     fn cli_contributions(&self) -> Vec<CliContribution> {
         Vec::new()
     }
+
+    /// Returns TUI panel contributions for the dashboard sidebar.
+    ///
+    /// Plugins with the `tui_widgets` capability declare panels that
+    /// appear in the TUI sidebar. Core auto-discovers panels from all
+    /// enabled plugins and renders them in the sidebar zone.
+    ///
+    /// Panel content is a static snapshot — plugins return current state
+    /// as lines of text. Core calls this on each render frame.
+    fn tui_contributions(&self) -> Vec<TuiPanel> {
+        Vec::new()
+    }
 }
 
 /// An issue found during plugin config validation.
@@ -1355,6 +1370,25 @@ pub struct InitContribution {
     pub config_snippet: Option<String>,
     /// Additional files to create (path → contents).
     pub files: Vec<(String, String)>,
+}
+
+/// A TUI panel contributed by a plugin for the dashboard sidebar.
+///
+/// Plugins declare panels via `tui_contributions()`. Core renders
+/// these in the sidebar zone, auto-discovered from all enabled plugins
+/// with the `tui_widgets` capability.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TuiPanel {
+    /// Unique panel identifier (e.g. `"findings"`, `"sprint-status"`).
+    pub id: String,
+    /// Localized panel title shown in the sidebar header.
+    pub title: String,
+    /// Panel content as lines of text. Updated on each call to
+    /// `tui_contributions()`. Core renders these in the sidebar.
+    pub lines: Vec<String>,
+    /// Position hint: `"sidebar"` (default), `"bottom"`, or `"main"`.
+    /// Core decides final placement based on layout tier.
+    pub zone_hint: String,
 }
 
 /// A prompt section contributed by a plugin at runtime.

@@ -401,7 +401,7 @@ fn parse_reviewed_plugin_capability_supports_stable_identifiers() {
 }
 
 /// Capabilities that operate via hooks rather than dedicated surfaces.
-const HOOK_ONLY_CAPABILITIES: &[&str] = &["workflow"];
+const HOOK_ONLY_CAPABILITIES: &[&str] = &["workflow", "tui_widgets"];
 
 #[test]
 fn runtime_surface_mapping_covers_all_reviewed_capabilities() {
