@@ -186,6 +186,28 @@ impl PluginRuntime for FindingsRuntime {
             content: Self::format_prompt_section(&content),
         }]
     }
+
+    /// Contributes a TUI sidebar panel showing findings summary.
+    fn tui_contributions(&self) -> Vec<re_plugin::TuiPanel> {
+        // Read findings from current directory (best effort).
+        let cwd = std::env::current_dir().unwrap_or_default();
+        let Some(content) = Self::read_findings(&cwd) else {
+            return Vec::new();
+        };
+
+        let line_count = content.lines().count();
+        let heading_count = content.lines().filter(|l| l.starts_with('#')).count();
+
+        vec![re_plugin::TuiPanel {
+            id: "findings".to_owned(),
+            title: "Findings".to_owned(),
+            lines: vec![
+                format!("{heading_count} sections"),
+                format!("{line_count} lines"),
+            ],
+            zone_hint: "sidebar".to_owned(),
+        }]
+    }
 }
 
 #[cfg(test)]

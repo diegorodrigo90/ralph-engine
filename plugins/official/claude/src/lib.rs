@@ -284,6 +284,23 @@ impl PluginRuntime for ClaudeRuntime {
             },
         })
     }
+
+    /// Contributes a TUI sidebar panel showing agent connection status.
+    fn tui_contributions(&self) -> Vec<re_plugin::TuiPanel> {
+        let binary_available = re_plugin::probe_binary_on_path("claude").is_some();
+        let status = if binary_available {
+            "Available"
+        } else {
+            "Not found"
+        };
+
+        vec![re_plugin::TuiPanel {
+            id: "claude-status".to_owned(),
+            title: "Claude".to_owned(),
+            lines: vec![format!("Binary: {status}"), "Mode: -p (prompt)".to_owned()],
+            zone_hint: "sidebar".to_owned(),
+        }]
+    }
 }
 
 // Shared agent helpers (tool merging, config extraction, stream-JSON parsing).
