@@ -29,8 +29,7 @@
         "remote_control",
         "mcp_contribution",
         "policy",
-        "workflow",
-        "tui_widgets"
+        "workflow"
       ]
     },
     "display_name": {

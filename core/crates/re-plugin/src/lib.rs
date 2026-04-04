@@ -752,6 +752,8 @@ define_plugin_enum! {
         WorkItemResolution => "work_item_resolution",
         /// The plugin contributes agent launch behavior for the `run` command.
         AgentLaunch => "agent_launch",
+        /// The plugin contributes TUI dashboard panels.
+        TuiContribution => "tui_contribution",
     }
 }
 

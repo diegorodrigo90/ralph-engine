@@ -83,7 +83,7 @@ pub struct TuiConfig {
 /// to start the render loop. The terminal is restored on drop.
 /// A sidebar panel provided by a plugin, ready to render.
 ///
-/// This is a render-ready snapshot of a [`re_plugin::TuiPanel`] — the
+/// This is a render-ready snapshot of a plugin's `TuiPanel` — the
 /// TUI shell receives these from the CLI layer which collects them
 /// via auto-discovery.
 #[derive(Debug, Clone)]
@@ -179,7 +179,7 @@ impl TuiShell {
 
     /// Pushes the startup banner with config details into the activity
     /// stream. The logo image is rendered separately by the caller
-    /// using [`crate::logo::render_logo`].
+    /// The logo is rendered inline in the activity stream via the logo module.
     pub fn push_startup_banner(&mut self) {
         self.push_activity(String::new());
         self.push_activity(format!("  ◎ Ralph Engine v{}", env!("CARGO_PKG_VERSION")));
@@ -206,7 +206,7 @@ impl TuiShell {
     /// Processes a normalized agent event, updating TUI state and activity.
     ///
     /// This is the main integration point between the stream-json parser
-    /// and the TUI display. Call this for each [`AgentEvent`] received
+    /// and the TUI display. Call this for each [`crate::events::AgentEvent`] received
     /// from the agent's stdout.
     pub fn process_event(&mut self, event: &crate::events::AgentEvent) {
         use crate::events::AgentEvent;

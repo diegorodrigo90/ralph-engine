@@ -607,6 +607,7 @@ fn runtime_hook_display_is_stable() {
             "policy_enforcement",
             "work_item_resolution",
             "agent_launch",
+            "tui_contribution",
         ]
     );
 }
