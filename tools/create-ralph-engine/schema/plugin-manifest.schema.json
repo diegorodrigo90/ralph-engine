@@ -100,6 +100,41 @@
     "runtime": {
       "type": "boolean"
     },
+    "lifecycle": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "discover",
+          "configure",
+          "validate",
+          "load"
+        ]
+      }
+    },
+    "runtime_hooks": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "scaffold",
+          "prompt_assembly",
+          "prepare",
+          "doctor",
+          "work_item_resolution",
+          "agent_bootstrap",
+          "mcp_registration",
+          "agent_launch",
+          "data_source_registration",
+          "context_provider_registration",
+          "forge_provider_registration",
+          "remote_control_bootstrap",
+          "policy_enforcement"
+        ]
+      }
+    },
     "capabilities": {
       "type": "array",
       "uniqueItems": true,

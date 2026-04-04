@@ -25,6 +25,15 @@ trust_level: official
 plugin_version: 0.2.0-alpha.1
 plugin_api_version: 1.0.0
 runtime: true
+lifecycle:
+  - discover
+  - configure
+  - load
+runtime_hooks:
+  - mcp_registration
+  - data_source_registration
+  - context_provider_registration
+  - forge_provider_registration
 engine_version: ">=0.2.0-alpha.1"
 capabilities:
   - data_source

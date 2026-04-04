@@ -24,6 +24,11 @@ trust_level: official
 plugin_version: 0.2.0-alpha.1
 plugin_api_version: 1.0.0
 runtime: true
+lifecycle:
+  - discover
+  - load
+runtime_hooks:
+  - remote_control_bootstrap
 engine_version: ">=0.2.0-alpha.1"
 capabilities:
   - remote_control
