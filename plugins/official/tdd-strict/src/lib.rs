@@ -170,6 +170,7 @@ impl PluginRuntime for TddStrictRuntime {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use re_plugin::PluginRuntime;
 
@@ -195,15 +196,11 @@ mod tests {
     }
 
     #[test]
-    fn plugin_declares_at_least_one_capability() {
-        // Arrange
-        let declared_capabilities = capabilities();
-
-        // Act
-        let has_capabilities = !declared_capabilities.is_empty();
-
-        // Assert
-        assert!(has_capabilities);
+    fn plugin_declares_expected_capabilities() {
+        let caps = capabilities();
+        assert_eq!(caps.len(), 2);
+        assert!(caps.iter().any(|c| c.as_str() == "template"));
+        assert!(caps.iter().any(|c| c.as_str() == "policy"));
     }
 
     #[test]
@@ -225,26 +222,20 @@ mod tests {
 
     #[test]
     fn plugin_declares_lifecycle_stages() {
-        // Arrange
-        let declared_lifecycle = lifecycle();
-
-        // Act
-        let has_lifecycle = !declared_lifecycle.is_empty();
-
-        // Assert
-        assert!(has_lifecycle);
+        let stages = lifecycle();
+        assert_eq!(stages.len(), 4);
+        assert!(stages.iter().any(|s| s.as_str() == "discover"));
+        assert!(stages.iter().any(|s| s.as_str() == "configure"));
+        assert!(stages.iter().any(|s| s.as_str() == "validate"));
+        assert!(stages.iter().any(|s| s.as_str() == "load"));
     }
 
     #[test]
     fn plugin_declares_runtime_hooks() {
-        // Arrange
-        let declared_hooks = runtime_hooks();
-
-        // Act
-        let has_hooks = !declared_hooks.is_empty();
-
-        // Assert
-        assert!(has_hooks);
+        let hooks = runtime_hooks();
+        assert_eq!(hooks.len(), 2);
+        assert!(hooks.iter().any(|h| h.as_str() == "scaffold"));
+        assert!(hooks.iter().any(|h| h.as_str() == "policy_enforcement"));
     }
 
     #[test]
@@ -315,11 +306,33 @@ mod tests {
     #[test]
     fn runtime_rejects_check_execution() {
         let rt = super::runtime();
-        let result = rt.run_check(
-            "official.tdd-strict.prepare",
-            re_plugin::PluginCheckKind::Prepare,
-            std::path::Path::new("/tmp"),
-        );
-        assert!(result.is_err());
+        let err = rt
+            .run_check(
+                "official.tdd-strict.prepare",
+                re_plugin::PluginCheckKind::Prepare,
+                std::path::Path::new("/tmp"),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, "not_a_check_plugin");
+    }
+
+    #[test]
+    fn runtime_rejects_agent() {
+        let rt = super::runtime();
+        let err = rt.bootstrap_agent("any").unwrap_err();
+        assert_eq!(err.code, "not_an_agent_plugin");
+    }
+
+    #[test]
+    fn runtime_rejects_mcp() {
+        let rt = super::runtime();
+        let err = rt.register_mcp_server("any").unwrap_err();
+        assert_eq!(err.code, "not_an_mcp_plugin");
+    }
+
+    #[test]
+    fn runtime_default_required_tools_is_empty() {
+        let rt = super::runtime();
+        assert!(rt.required_tools().is_empty());
     }
 }

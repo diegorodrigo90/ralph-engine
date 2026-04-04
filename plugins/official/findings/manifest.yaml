@@ -27,3 +27,11 @@ engine_version: ">=0.2.0-alpha.1"
 runtime: true
 capabilities:
   - prompt_fragments
+prompts:
+  - id: official.findings.findings
+    display_name: Findings prompt
+    display_name_locales:
+      pt-br: Prompt de achados
+    summary: Injects accumulated findings into agent prompts as a <findings> section.
+    summary_locales:
+      pt-br: Injeta achados acumulados nos prompts de agentes como seção <findings>.

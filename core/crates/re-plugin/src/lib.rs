@@ -3,6 +3,7 @@
 use std::fmt;
 use std::path::Path;
 
+pub mod agent_helpers;
 mod i18n;
 
 /// Generates a `#[non_exhaustive]` enum with `as_str()`, `Display`, and a

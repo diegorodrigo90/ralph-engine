@@ -1,5 +1,7 @@
 //! Official Claude runtime plugin metadata and runtime.
 
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+
 use std::path::Path;
 
 mod i18n;
@@ -137,6 +139,10 @@ impl PluginRuntime for ClaudeRuntime {
         ))
     }
 
+    // Binary probe: result depends on whether `claude` is installed on the
+    // host. Both branches (found/not-found) are tested — which one executes
+    // depends on the machine. Tests verify both message formats.
+    #[cfg_attr(coverage_nightly, coverage(off))]
     fn bootstrap_agent(&self, agent_id: &str) -> Result<AgentBootstrapResult, PluginRuntimeError> {
         let found = re_plugin::probe_binary_on_path(AGENT_BINARY).is_some();
         Ok(AgentBootstrapResult {
@@ -150,6 +156,8 @@ impl PluginRuntime for ClaudeRuntime {
         })
     }
 
+    // Binary probe: same machine-dependent branching as bootstrap_agent.
+    #[cfg_attr(coverage_nightly, coverage(off))]
     fn register_mcp_server(
         &self,
         server_id: &str,
@@ -166,6 +174,14 @@ impl PluginRuntime for ClaudeRuntime {
         })
     }
 
+    // I/O boundary: spawns a real subprocess (`claude -p`), reads its
+    // stdout stream, and waits for exit. All pure logic (tool merging,
+    // config parsing, prompt building, command assembly) is tested via
+    // `re_plugin::agent_helpers` at 100% coverage. This function is the
+    // thin wrapper that does the actual OS-level spawn + wait + cleanup —
+    // cannot be unit-tested without running the real agent binary.
+    // Validated end-to-end by `ralph-engine run <id>` integration runs.
+    #[cfg_attr(coverage_nightly, coverage(off))]
     fn launch_agent(
         &self,
         agent_id: &str,
@@ -185,9 +201,6 @@ impl PluginRuntime for ClaudeRuntime {
         }
 
         // Write context to temp file for --append-system-prompt-file.
-        // This injects story + instructions + project rules into the system
-        // prompt WITHOUT replacing Claude Code's built-in capabilities
-        // (CLAUDE.md, hooks, MCP servers, tool definitions are preserved).
         let ts = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.subsec_nanos())
@@ -203,73 +216,28 @@ impl PluginRuntime for ClaudeRuntime {
             )
         })?;
 
-        // User message for -p mode: outcome-based, not prescriptive.
-        // The system prompt has full story + rules + constraints.
-        // Research: user message is high-attention — keep it focused on
-        // WHAT to achieve, not HOW (the system prompt handles HOW).
-        let user_prompt = format!(
-            "Implement work item {id}.\n\n\
-             Your system prompt contains the <task>, <rules>, <context>, and <constraints> sections.\n\
-             Expected outcome: all acceptance criteria implemented with tests, \
-             quality gates passing, and tracking files updated.",
-            id = context.work_item_id,
-        );
-
-        // Build the final allowed tools list by merging three sources:
-        // 1. Base tools (this plugin's own requirements: Bash, Read, etc.)
-        // 2. Discovered tools (from all enabled plugins via required_tools())
-        // 3. Config extras (user overrides from run.allowed_tools in YAML)
+        // Build command config (pure logic — testable).
         let config_path = project_root.join(".ralph-engine/config.yaml");
         let config_content = std::fs::read_to_string(&config_path).unwrap_or_default();
-        let config_extra = extract_run_setting(&config_content, "allowed_tools");
-        let allowed_tools = merge_all_tools(
-            BASE_ALLOWED_TOOLS,
-            &context.discovered_tools,
-            config_extra.as_deref(),
-        );
-        let max_turns = extract_run_setting(&config_content, "max_turns")
-            .unwrap_or(DEFAULT_MAX_TURNS.to_owned());
-
-        // Launch claude in programmatic (-p) mode:
-        //
-        // -p "prompt"                    Full agent loop, no TUI
-        // --append-system-prompt-file    Story + rules as system context
-        // --allowedTools                 Auto-approve listed tools (incl. MCP)
-        // --output-format stream-json    Structured output for monitoring
-        // --verbose                      Include tool calls in stream
-        // --max-turns N                  Safety limit (configurable)
-        //
-        // The agent runs autonomously: reads files, edits code, runs
-        // commands, and commits — all driven by the prompt context.
-        //
-        // Docs: https://code.claude.com/docs/en/cli-usage
-        let mut cmd = std::process::Command::new(AGENT_BINARY);
-        cmd.arg("-p")
-            .arg(&user_prompt)
-            .arg("--append-system-prompt-file")
-            .arg(&context_file)
-            .arg("--allowedTools")
-            .arg(&allowed_tools)
-            .arg("--output-format")
-            .arg("stream-json")
-            .arg("--verbose")
-            .arg("--max-turns")
-            .arg(&max_turns);
-
-        // Permission mode: if user accepted autonomous mode (first-run
-        // warning saved to .accepted-autonomous), use full auto. Otherwise
-        // use the ML classifier that auto-approves safe operations.
         let autonomous = project_root
             .join(".ralph-engine/.accepted-autonomous")
             .exists();
-        if autonomous {
-            cmd.arg("--dangerously-skip-permissions");
-        } else {
-            cmd.arg("--permission-mode").arg("auto");
-        }
 
-        // stdout piped (we parse stream-json events)
-        // stderr inherited (Claude's own logs visible to user)
+        let agent_config = re_plugin::agent_helpers::build_agent_command_config(
+            &re_plugin::agent_helpers::AgentCommandInput {
+                binary: AGENT_BINARY,
+                base_tools: BASE_ALLOWED_TOOLS,
+                default_max_turns: DEFAULT_MAX_TURNS,
+                work_item_id: &context.work_item_id,
+                discovered_tools: &context.discovered_tools,
+                config_content: &config_content,
+                autonomous,
+                context_file: context_file.clone(),
+            },
+        );
+
+        // Spawn the agent process (I/O boundary).
+        let mut cmd = re_plugin::agent_helpers::build_command(&agent_config);
         let mut child = cmd
             .current_dir(project_root)
             .stdin(std::process::Stdio::null())
@@ -284,7 +252,6 @@ impl PluginRuntime for ClaudeRuntime {
                 )
             })?;
 
-        // Read stream-json events from stdout and forward progress to stderr.
         let message = read_stream_json_events(child.stdout.take());
 
         let exit_status = child.wait().map_err(|err| {
@@ -295,7 +262,6 @@ impl PluginRuntime for ClaudeRuntime {
             )
         })?;
 
-        // Clean up temp file
         let _ = std::fs::remove_file(&context_file);
 
         let code = exit_status.code();
@@ -320,180 +286,11 @@ impl PluginRuntime for ClaudeRuntime {
     }
 }
 
-// ── Stream-JSON event parser ───────────────────────────────────────
-
-/// Reads Claude Code stream-json events from stdout, forwards text
-/// to stderr for user visibility, and returns the final message.
-///
-/// Each line is a JSON object. We match key patterns without a JSON
-/// parser to avoid adding dependencies:
-///
-/// - `text_delta` events → extract text, print to stderr
-/// - `tool_use` events → print tool name summary to stderr
-/// - `result` event → extract summary
-fn read_stream_json_events(stdout: Option<std::process::ChildStdout>) -> String {
-    use std::io::BufRead as _;
-
-    let Some(stdout) = stdout else {
-        return String::new();
-    };
-
-    let reader = std::io::BufReader::new(stdout);
-    let mut last_text = String::new();
-
-    for line in reader.lines() {
-        let Ok(line) = line else { break };
-        let trimmed = line.trim();
-        if trimmed.is_empty() {
-            continue;
-        }
-
-        // Forward text_delta content to stderr for user visibility.
-        if trimmed.contains("\"text_delta\"") {
-            if let Some(text) = extract_json_string_value(trimmed, "text") {
-                eprint!("{text}");
-                // Keep last ~500 chars as summary for the result message.
-                last_text.push_str(&text);
-                if last_text.len() > 2000 {
-                    // Truncate to last ~1500 chars, safe for multi-byte UTF-8.
-                    let keep: String = last_text
-                        .chars()
-                        .rev()
-                        .take(1500)
-                        .collect::<Vec<_>>()
-                        .into_iter()
-                        .rev()
-                        .collect();
-                    last_text = keep;
-                }
-            }
-        }
-        // Show tool usage summaries.
-        else if trimmed.contains("\"tool_use\"") && trimmed.contains("\"name\"") {
-            if let Some(tool_name) = extract_json_string_value(trimmed, "name") {
-                eprintln!("\n[tool: {tool_name}]");
-            }
-        }
-        // Capture the final result event.
-        else if trimmed.contains("\"type\":\"result\"") {
-            if trimmed.contains("\"is_error\":true") {
-                eprintln!("\n[agent: error]");
-            } else {
-                eprintln!("\n[agent: completed]");
-            }
-        }
-    }
-
-    eprintln!();
-
-    // Return a trimmed summary of what the agent did.
-    let summary = last_text.trim().to_owned();
-    // Truncate safely for multi-byte UTF-8 (no byte-boundary panics).
-    let truncated: String = summary.chars().take(500).collect();
-    if truncated.len() < summary.len() {
-        format!("{truncated}...")
-    } else {
-        summary
-    }
-}
-
-/// Merges tools from three sources into a deduplicated comma-separated list:
-/// 1. Base tools (agent plugin's own: Bash, Read, Edit, etc.)
-/// 2. Discovered tools (from all enabled plugins via `required_tools()`)
-/// 3. Config extras (user overrides from `run.allowed_tools` in YAML)
-fn merge_all_tools(base: &[&str], discovered: &[String], config_extra: Option<&str>) -> String {
-    let mut tools: Vec<String> = base.iter().map(|s| (*s).to_owned()).collect();
-
-    // Add tools discovered from enabled plugins (auto-discovery).
-    for tool in discovered {
-        if !tools.contains(tool) {
-            tools.push(tool.clone());
-        }
-    }
-
-    // Add user-configured extras (manual overrides).
-    if let Some(extra) = config_extra {
-        for tool in extra.split(',') {
-            let tool = tool.trim().to_owned();
-            if !tool.is_empty() && !tools.contains(&tool) {
-                tools.push(tool);
-            }
-        }
-    }
-
-    tools.join(",")
-}
-
-/// Extracts a simple `key: value` from the `run:` section of config YAML.
-///
-/// Scans only lines within the `run:` block (stops at next top-level key).
-fn extract_run_setting(config_content: &str, key: &str) -> Option<String> {
-    let mut in_run = false;
-    let prefix = format!("{key}:");
-
-    for line in config_content.lines() {
-        let trimmed = line.trim();
-
-        // Enter run: section
-        if trimmed == "run:" {
-            in_run = true;
-            continue;
-        }
-
-        // Exit on next top-level key (no leading whitespace)
-        if in_run && !line.starts_with(' ') && !line.starts_with('\t') && !trimmed.is_empty() {
-            break;
-        }
-
-        if in_run && trimmed.starts_with(&prefix) {
-            let val = trimmed[prefix.len()..].trim();
-            // Strip quotes and trailing comments
-            let val = val.trim_matches('"').trim_matches('\'');
-            let val = val.split('#').next().unwrap_or(val).trim();
-            if !val.is_empty() {
-                return Some(val.to_owned());
-            }
-        }
-    }
-    None
-}
-
-/// Extracts the string value for a given key from a JSON line.
-///
-/// Looks for `"key":"value"` and handles basic escape sequences.
-/// Returns None if the pattern is not found.
-fn extract_json_string_value(json_line: &str, key: &str) -> Option<String> {
-    // Find the last occurrence of "key":" (last because text_delta has
-    // nested objects and we want the innermost "text" value).
-    let pattern = format!("\"{key}\":\"");
-    let start = json_line.rfind(&pattern)? + pattern.len();
-    let rest = &json_line[start..];
-
-    // Read until unescaped closing quote.
-    let mut result = String::new();
-    let mut chars = rest.chars();
-    loop {
-        match chars.next()? {
-            '\\' => match chars.next()? {
-                'n' => result.push('\n'),
-                't' => result.push('\t'),
-                'r' => result.push('\r'),
-                '"' => result.push('"'),
-                '\\' => result.push('\\'),
-                '/' => result.push('/'),
-                other => {
-                    result.push('\\');
-                    result.push(other);
-                }
-            },
-            '"' => break,
-            c => result.push(c),
-        }
-    }
-    Some(result)
-}
+// Shared agent helpers (tool merging, config extraction, stream-JSON parsing).
+use re_plugin::agent_helpers::read_stream_json_events;
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use re_plugin::PluginRuntime;
 
@@ -519,15 +316,11 @@ mod tests {
     }
 
     #[test]
-    fn plugin_declares_at_least_one_capability() {
-        // Arrange
-        let declared_capabilities = capabilities();
-
-        // Act
-        let has_capabilities = !declared_capabilities.is_empty();
-
-        // Assert
-        assert!(has_capabilities);
+    fn plugin_declares_expected_capabilities() {
+        let caps = capabilities();
+        assert_eq!(caps.len(), 2);
+        assert!(caps.iter().any(|c| c.as_str() == "agent_runtime"));
+        assert!(caps.iter().any(|c| c.as_str() == "mcp_contribution"));
     }
 
     #[test]
@@ -566,26 +359,19 @@ mod tests {
 
     #[test]
     fn plugin_declares_lifecycle_stages() {
-        // Arrange
-        let declared_lifecycle = lifecycle();
-
-        // Act
-        let has_lifecycle = !declared_lifecycle.is_empty();
-
-        // Assert
-        assert!(has_lifecycle);
+        let stages = lifecycle();
+        assert_eq!(stages.len(), 2);
+        assert!(stages.iter().any(|s| s.as_str() == "discover"));
+        assert!(stages.iter().any(|s| s.as_str() == "load"));
     }
 
     #[test]
     fn plugin_declares_runtime_hooks() {
-        // Arrange
-        let declared_hooks = runtime_hooks();
-
-        // Act
-        let has_hooks = !declared_hooks.is_empty();
-
-        // Assert
-        assert!(has_hooks);
+        let hooks = runtime_hooks();
+        assert_eq!(hooks.len(), 3);
+        assert!(hooks.iter().any(|h| h.as_str() == "agent_bootstrap"));
+        assert!(hooks.iter().any(|h| h.as_str() == "mcp_registration"));
+        assert!(hooks.iter().any(|h| h.as_str() == "agent_launch"));
     }
 
     #[test]
@@ -624,116 +410,69 @@ mod tests {
     }
 
     #[test]
-    fn runtime_bootstrap_agent_returns_result() {
+    fn runtime_bootstrap_agent_returns_result_with_content() {
         let rt = super::runtime();
-        let result = rt.bootstrap_agent("official.claude.session");
-        assert!(result.is_ok());
+        let result = rt.bootstrap_agent("official.claude.session").unwrap();
+        assert_eq!(result.agent_id, "official.claude.session");
+        // Binary may or may not be installed — test both branches.
+        if result.ready {
+            assert!(result.message.contains("found"));
+        } else {
+            assert!(result.message.contains("not found"));
+        }
     }
 
     #[test]
-    fn runtime_register_mcp_returns_result() {
+    fn runtime_register_mcp_returns_result_with_content() {
         let rt = super::runtime();
-        let result = rt.register_mcp_server("official.claude.session");
-        assert!(result.is_ok());
+        let result = rt.register_mcp_server("official.claude.session").unwrap();
+        assert_eq!(result.server_id, "official.claude.session");
+        if result.ready {
+            assert!(result.message.contains("available"));
+        } else {
+            assert!(result.message.contains("requires"));
+        }
     }
 
     #[test]
     fn runtime_rejects_check() {
         let rt = super::runtime();
-        let result = rt.run_check(
-            "any.check",
-            re_plugin::PluginCheckKind::Prepare,
-            std::path::Path::new("/tmp"),
-        );
-        assert!(result.is_err());
-    }
-
-    // ── Stream-JSON parser tests ───────────────────────────────────
-
-    #[test]
-    fn extract_json_string_value_finds_text_delta() {
-        let line =
-            r#"{"type":"content_block_delta","delta":{"type":"text_delta","text":"Hello world"}}"#;
-        let result = super::extract_json_string_value(line, "text");
-        assert_eq!(result.as_deref(), Some("Hello world"));
+        let err = rt
+            .run_check(
+                "any.check",
+                re_plugin::PluginCheckKind::Prepare,
+                std::path::Path::new("/tmp"),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, "not_a_check_plugin");
     }
 
     #[test]
-    fn extract_json_string_value_handles_escapes() {
-        let line = r#"{"delta":{"type":"text_delta","text":"line1\nline2\t\"quoted\""}}"#;
-        let result = super::extract_json_string_value(line, "text");
-        assert_eq!(result.as_deref(), Some("line1\nline2\t\"quoted\""));
+    fn runtime_launch_agent_fails_without_binary() {
+        // Unless claude is actually installed, launch_agent should fail
+        // with "agent_not_installed". This tests the guard + error path.
+        if re_plugin::probe_binary_on_path("claude").is_some() {
+            return; // Can't test the error path when binary exists
+        }
+        let rt = super::runtime();
+        let context = re_plugin::PromptContext {
+            prompt_text: "test prompt".to_owned(),
+            context_files: vec![],
+            work_item_id: "1.1".to_owned(),
+            discovered_tools: vec![],
+        };
+        let err = rt
+            .launch_agent(
+                "official.claude.session",
+                &context,
+                std::path::Path::new("/tmp"),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, "agent_not_installed");
+        assert!(err.message.contains("not found on PATH"));
+        assert!(err.message.contains("Install"));
     }
 
-    #[test]
-    fn extract_json_string_value_finds_tool_name() {
-        let line = r#"{"content_block":{"type":"tool_use","id":"abc","name":"Read","input":{}}}"#;
-        let result = super::extract_json_string_value(line, "name");
-        assert_eq!(result.as_deref(), Some("Read"));
-    }
-
-    #[test]
-    fn extract_json_string_value_returns_none_for_missing_key() {
-        let line = r#"{"type":"result","is_error":false}"#;
-        let result = super::extract_json_string_value(line, "text");
-        assert!(result.is_none());
-    }
-
-    // ── Config helpers tests ───────────────────────────────────────
-
-    #[test]
-    fn merge_all_tools_base_only() {
-        let result = super::merge_all_tools(&["Bash", "Read"], &[], None);
-        assert_eq!(result, "Bash,Read");
-    }
-
-    #[test]
-    fn merge_all_tools_with_discovered() {
-        let discovered = vec!["Skill".to_owned(), "mcp__archon__search".to_owned()];
-        let result = super::merge_all_tools(&["Bash", "Read"], &discovered, None);
-        assert_eq!(result, "Bash,Read,Skill,mcp__archon__search");
-    }
-
-    #[test]
-    fn merge_all_tools_with_config_extras() {
-        let result =
-            super::merge_all_tools(&["Bash", "Read"], &[], Some("Skill,Agent,mcp__archon__*"));
-        assert_eq!(result, "Bash,Read,Skill,Agent,mcp__archon__*");
-    }
-
-    #[test]
-    fn merge_all_tools_deduplicates_across_sources() {
-        let discovered = vec!["Skill".to_owned(), "Bash".to_owned()];
-        let result = super::merge_all_tools(&["Bash", "Read"], &discovered, Some("Read,Agent"));
-        assert_eq!(result, "Bash,Read,Skill,Agent");
-    }
-
-    #[test]
-    fn extract_run_setting_finds_allowed_tools() {
-        let config = "run:\n  workflow_plugin: official.bmad\n  allowed_tools: \"Skill,Agent\"\n  max_turns: 150\n";
-        let result = super::extract_run_setting(config, "allowed_tools");
-        assert_eq!(result.as_deref(), Some("Skill,Agent"));
-    }
-
-    #[test]
-    fn extract_run_setting_finds_max_turns() {
-        let config = "run:\n  max_turns: 150\n";
-        let result = super::extract_run_setting(config, "max_turns");
-        assert_eq!(result.as_deref(), Some("150"));
-    }
-
-    #[test]
-    fn extract_run_setting_ignores_other_sections() {
-        let config =
-            "mcp:\n  allowed_tools: wrong\nrun:\n  allowed_tools: correct\nbudgets:\n  max: 100\n";
-        let result = super::extract_run_setting(config, "allowed_tools");
-        assert_eq!(result.as_deref(), Some("correct"));
-    }
-
-    #[test]
-    fn extract_run_setting_returns_none_when_missing() {
-        let config = "run:\n  workflow_plugin: official.bmad\n";
-        let result = super::extract_run_setting(config, "allowed_tools");
-        assert!(result.is_none());
-    }
+    // Helper tests (merge_all_tools, extract_run_setting, extract_json_string_value,
+    // read_stream_json_events) live in re_plugin::agent_helpers::tests.
 }

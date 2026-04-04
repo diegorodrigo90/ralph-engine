@@ -1,5 +1,7 @@
 //! Official Codex runtime plugin metadata and runtime.
 
+#![cfg_attr(coverage_nightly, feature(coverage_attribute))]
+
 use std::path::Path;
 
 mod i18n;
@@ -127,6 +129,8 @@ impl PluginRuntime for CodexRuntime {
         ))
     }
 
+    // Binary probe: result depends on host environment.
+    #[cfg_attr(coverage_nightly, coverage(off))]
     fn bootstrap_agent(&self, agent_id: &str) -> Result<AgentBootstrapResult, PluginRuntimeError> {
         let found = re_plugin::probe_binary_on_path(AGENT_BINARY).is_some();
         Ok(AgentBootstrapResult {
@@ -140,6 +144,8 @@ impl PluginRuntime for CodexRuntime {
         })
     }
 
+    // Binary probe: same machine-dependent branching.
+    #[cfg_attr(coverage_nightly, coverage(off))]
     fn register_mcp_server(
         &self,
         server_id: &str,
@@ -156,6 +162,8 @@ impl PluginRuntime for CodexRuntime {
         })
     }
 
+    // I/O boundary: spawns real subprocess. Validated by E2E runs.
+    #[cfg_attr(coverage_nightly, coverage(off))]
     fn launch_agent(
         &self,
         agent_id: &str,
@@ -204,6 +212,7 @@ impl PluginRuntime for CodexRuntime {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
     use re_plugin::PluginRuntime;
 
@@ -229,15 +238,11 @@ mod tests {
     }
 
     #[test]
-    fn plugin_declares_at_least_one_capability() {
-        // Arrange
-        let declared_capabilities = capabilities();
-
-        // Act
-        let has_capabilities = !declared_capabilities.is_empty();
-
-        // Assert
-        assert!(has_capabilities);
+    fn plugin_declares_expected_capabilities() {
+        let caps = capabilities();
+        assert_eq!(caps.len(), 2);
+        assert!(caps.iter().any(|c| c.as_str() == "agent_runtime"));
+        assert!(caps.iter().any(|c| c.as_str() == "mcp_contribution"));
     }
 
     #[test]
@@ -275,26 +280,19 @@ mod tests {
 
     #[test]
     fn plugin_declares_lifecycle_stages() {
-        // Arrange
-        let declared_lifecycle = lifecycle();
-
-        // Act
-        let has_lifecycle = !declared_lifecycle.is_empty();
-
-        // Assert
-        assert!(has_lifecycle);
+        let stages = lifecycle();
+        assert_eq!(stages.len(), 2);
+        assert!(stages.iter().any(|s| s.as_str() == "discover"));
+        assert!(stages.iter().any(|s| s.as_str() == "load"));
     }
 
     #[test]
     fn plugin_declares_runtime_hooks() {
-        // Arrange
-        let declared_hooks = runtime_hooks();
-
-        // Act
-        let has_hooks = !declared_hooks.is_empty();
-
-        // Assert
-        assert!(has_hooks);
+        let hooks = runtime_hooks();
+        assert_eq!(hooks.len(), 3);
+        assert!(hooks.iter().any(|h| h.as_str() == "agent_bootstrap"));
+        assert!(hooks.iter().any(|h| h.as_str() == "mcp_registration"));
+        assert!(hooks.iter().any(|h| h.as_str() == "agent_launch"));
     }
 
     #[test]
@@ -336,5 +334,86 @@ mod tests {
     fn runtime_bootstrap_agent_returns_result() {
         let rt = super::runtime();
         assert!(rt.bootstrap_agent("official.codex.session").is_ok());
+    }
+
+    #[test]
+    fn runtime_rejects_check() {
+        let rt = super::runtime();
+        let err = rt
+            .run_check(
+                "any",
+                re_plugin::PluginCheckKind::Prepare,
+                std::path::Path::new("/tmp"),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, "not_a_check_plugin");
+    }
+
+    #[test]
+    fn runtime_bootstrap_agent_returns_content() {
+        let rt = super::runtime();
+        let result = rt.bootstrap_agent("official.codex.session").unwrap();
+        assert_eq!(result.agent_id, "official.codex.session");
+        if result.ready {
+            assert!(result.message.contains("found"));
+        } else {
+            assert!(result.message.contains("not found"));
+        }
+    }
+
+    #[test]
+    fn runtime_register_mcp_returns_content() {
+        let rt = super::runtime();
+        let result = rt.register_mcp_server("official.codex.session").unwrap();
+        assert_eq!(result.server_id, "official.codex.session");
+        if result.ready {
+            assert!(result.message.contains("available"));
+        } else {
+            assert!(result.message.contains("requires"));
+        }
+    }
+
+    #[test]
+    fn runtime_agents_declared() {
+        let agents = super::AGENTS;
+        assert_eq!(agents.len(), 1);
+        assert_eq!(agents[0].id, "official.codex.session");
+        assert_eq!(agents[0].plugin_id, PLUGIN_ID);
+    }
+
+    #[test]
+    fn runtime_mcp_servers_declared() {
+        let servers = super::mcp_servers();
+        assert_eq!(servers.len(), 1);
+        assert_eq!(servers[0].plugin_id, PLUGIN_ID);
+    }
+
+    #[test]
+    fn runtime_default_required_tools_is_empty() {
+        let rt = super::runtime();
+        assert!(rt.required_tools().is_empty());
+    }
+
+    #[test]
+    fn runtime_launch_agent_fails_without_binary() {
+        if re_plugin::probe_binary_on_path("codex").is_some() {
+            return;
+        }
+        let rt = super::runtime();
+        let context = re_plugin::PromptContext {
+            prompt_text: "test".to_owned(),
+            context_files: vec![],
+            work_item_id: "1.1".to_owned(),
+            discovered_tools: vec![],
+        };
+        let err = rt
+            .launch_agent(
+                "official.codex.session",
+                &context,
+                std::path::Path::new("/tmp"),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, "agent_not_installed");
+        assert!(err.message.contains("not found on PATH"));
     }
 }

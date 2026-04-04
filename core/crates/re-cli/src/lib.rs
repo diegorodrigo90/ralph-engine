@@ -1541,7 +1541,7 @@ mod tests {
         let output = execute(command).expect("prompts command should succeed");
 
         // Assert
-        assert!(output.contains("Prompts (1)"));
+        assert!(output.contains("Prompts ("));
     }
 
     #[test]

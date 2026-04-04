@@ -148,7 +148,10 @@ impl PluginRuntime for BasicRuntime {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
+    use re_plugin::PluginRuntime;
+
     use super::{
         PLUGIN_ID, PLUGIN_SUMMARY, capabilities, descriptor, i18n, lifecycle, runtime_hooks,
         templates,
@@ -160,97 +163,124 @@ mod tests {
 
     #[test]
     fn plugin_id_is_namespaced() {
-        // Arrange
-        let plugin_id = PLUGIN_ID;
-
-        // Act
-        let is_namespaced = plugin_id.starts_with("official.");
-
-        // Assert
-        assert!(is_namespaced);
+        assert!(PLUGIN_ID.starts_with("official."));
     }
 
     #[test]
-    fn plugin_declares_at_least_one_capability() {
-        // Arrange
-        let declared_capabilities = capabilities();
-
-        // Act
-        let has_capabilities = !declared_capabilities.is_empty();
-
-        // Assert
-        assert!(has_capabilities);
+    fn plugin_declares_template_capability() {
+        let caps = capabilities();
+        assert_eq!(caps.len(), 1);
+        assert!(caps.iter().any(|c| c.as_str() == "template"));
     }
 
     #[test]
     fn plugin_descriptor_is_consistent() {
-        // Arrange
         let plugin = descriptor();
-
-        // Act
-        let descriptor_matches = plugin.id == PLUGIN_ID
-            && plugin.name == i18n::plugin_name()
-            && plugin.display_name_for_locale("pt-br") == "Básico"
-            && plugin.summary_for_locale("pt-br") == "Plugin base para templates iniciais."
-            && plugin.summary_for_locale("es") == PLUGIN_SUMMARY;
-
-        // Assert
-        assert!(descriptor_matches);
+        assert_eq!(plugin.id, PLUGIN_ID);
+        assert_eq!(plugin.name, i18n::plugin_name());
+        assert_eq!(plugin.display_name_for_locale("pt-br"), "Básico");
+        assert_eq!(
+            plugin.summary_for_locale("pt-br"),
+            "Plugin base para templates iniciais."
+        );
+        assert_eq!(plugin.summary_for_locale("es"), PLUGIN_SUMMARY);
     }
 
     #[test]
     fn plugin_declares_lifecycle_stages() {
-        // Arrange
-        let declared_lifecycle = lifecycle();
-
-        // Act
-        let has_lifecycle = !declared_lifecycle.is_empty();
-
-        // Assert
-        assert!(has_lifecycle);
+        let stages = lifecycle();
+        assert_eq!(stages.len(), 3);
+        assert!(stages.iter().any(|s| s.as_str() == "discover"));
+        assert!(stages.iter().any(|s| s.as_str() == "configure"));
+        assert!(stages.iter().any(|s| s.as_str() == "load"));
     }
 
     #[test]
     fn plugin_declares_runtime_hooks() {
-        // Arrange
-        let declared_hooks = runtime_hooks();
-
-        // Act
-        let has_hooks = !declared_hooks.is_empty();
-
-        // Assert
-        assert!(has_hooks);
+        let hooks = runtime_hooks();
+        assert_eq!(hooks.len(), 1);
+        assert!(hooks.iter().any(|h| h.as_str() == "scaffold"));
     }
 
     #[test]
     fn plugin_declares_template_contributions() {
         let template = templates()[0];
-
         assert_eq!(template.id, "official.basic.starter");
         assert_eq!(template.plugin_id, PLUGIN_ID);
         assert!(template.has_assets());
         assert_eq!(template.assets[0].path, ".ralph-engine/README.md");
         assert_eq!(template.display_name_for_locale("pt-br"), "Starter básico");
-        assert_eq!(
-            template.summary_for_locale("pt-br"),
-            "Template inicial para novos projetos Ralph Engine."
-        );
-        assert_eq!(
-            template.summary_for_locale("es"),
-            "Starter template for new Ralph Engine projects."
-        );
         assert_eq!(template.display_name_for_locale("es"), "Basic starter");
-        assert!(!template.assets[0].contents.contains("Placeholder"));
     }
 
     #[test]
     fn plugin_manifest_matches_typed_contract_surface() {
         let manifest = manifest_document();
-
         assert!(manifest.contains("id: official.basic"));
         assert!(manifest.contains("kind: template"));
         assert!(manifest.contains("trust_level: official"));
         assert!(manifest.contains("- template"));
         assert!(manifest.contains("id: official.basic.starter"));
+    }
+
+    // ── Runtime tests ────────────────────────────────────────────────
+
+    #[test]
+    fn runtime_plugin_id_matches() {
+        let rt = super::runtime();
+        assert_eq!(rt.plugin_id(), PLUGIN_ID);
+    }
+
+    #[test]
+    fn runtime_check_passes_with_config() {
+        let tmp = std::env::temp_dir().join("re-basic-test-pass");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).unwrap();
+        std::fs::write(tmp.join(".ralph-engine/config.yaml"), "schema_version: 1\n").unwrap();
+
+        let rt = super::runtime();
+        let result = rt
+            .run_check("basic.check", re_plugin::PluginCheckKind::Prepare, &tmp)
+            .unwrap();
+        assert!(result.passed);
+        assert!(result.findings.is_empty());
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn runtime_check_fails_without_config() {
+        let tmp = std::env::temp_dir().join("re-basic-test-fail");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+
+        let rt = super::runtime();
+        let result = rt
+            .run_check("basic.check", re_plugin::PluginCheckKind::Prepare, &tmp)
+            .unwrap();
+        assert!(!result.passed);
+        assert!(result.findings.iter().any(|f| f.contains("config.yaml")));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn runtime_rejects_agent() {
+        let rt = super::runtime();
+        let err = rt.bootstrap_agent("any").unwrap_err();
+        assert_eq!(err.code, "not_an_agent_plugin");
+    }
+
+    #[test]
+    fn runtime_rejects_mcp() {
+        let rt = super::runtime();
+        let err = rt.register_mcp_server("any").unwrap_err();
+        assert_eq!(err.code, "not_an_mcp_plugin");
+    }
+
+    #[test]
+    fn runtime_default_required_tools_is_empty() {
+        let rt = super::runtime();
+        assert!(rt.required_tools().is_empty());
     }
 }

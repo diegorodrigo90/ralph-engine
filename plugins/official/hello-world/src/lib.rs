@@ -143,7 +143,10 @@ impl re_plugin::PluginRuntime for HelloWorldRuntime {
 }
 
 #[cfg(test)]
+#[allow(clippy::unwrap_used)]
 mod tests {
+    use re_plugin::PluginRuntime;
+
     use super::*;
 
     #[test]
@@ -153,7 +156,25 @@ mod tests {
 
     #[test]
     fn plugin_declares_template_capability() {
-        assert!(!capabilities().is_empty());
+        let caps = capabilities();
+        assert!(!caps.is_empty());
+        assert!(caps.iter().any(|c| c.as_str() == "template"));
+    }
+
+    #[test]
+    fn plugin_declares_lifecycle_stages() {
+        let stages = lifecycle();
+        assert_eq!(stages.len(), 3);
+        assert!(stages.iter().any(|s| s.as_str() == "discover"));
+        assert!(stages.iter().any(|s| s.as_str() == "configure"));
+        assert!(stages.iter().any(|s| s.as_str() == "load"));
+    }
+
+    #[test]
+    fn plugin_declares_runtime_hooks() {
+        let hooks = runtime_hooks();
+        assert!(!hooks.is_empty());
+        assert!(hooks.iter().any(|h| h.as_str() == "scaffold"));
     }
 
     #[test]
@@ -162,12 +183,30 @@ mod tests {
         assert_eq!(d.id, PLUGIN_ID);
         assert_eq!(d.kind, PluginKind::Template);
         assert_eq!(d.trust_level, PluginTrustLevel::Official);
+        assert_eq!(d.name, i18n::plugin_name());
+        assert_eq!(d.display_name_for_locale("pt-br"), "Olá Mundo");
+    }
+
+    #[test]
+    fn plugin_descriptor_i18n_fallback() {
+        let d = descriptor();
+        assert_eq!(d.summary_for_locale("es"), PLUGIN_SUMMARY);
     }
 
     #[test]
     fn template_id_matches() {
         assert_eq!(templates()[0].id, "official.hello-world.starter");
         assert_eq!(templates()[0].plugin_id, PLUGIN_ID);
+        assert!(templates()[0].has_assets());
+    }
+
+    #[test]
+    fn template_has_expected_assets() {
+        let assets = templates()[0].assets;
+        let paths: Vec<&str> = assets.iter().map(|a| a.path).collect();
+        assert!(paths.contains(&".ralph-engine/config.yaml"));
+        assert!(paths.contains(&".ralph-engine/hooks.yaml"));
+        assert!(paths.contains(&".ralph-engine/prompt.md"));
     }
 
     #[test]
@@ -177,5 +216,74 @@ mod tests {
         assert!(manifest.contains("kind: template"));
         assert!(manifest.contains("trust_level: official"));
         assert!(manifest.contains("id: official.hello-world.starter"));
+        assert!(manifest.contains("plugin_api_version: 1"));
+    }
+
+    // ── Runtime tests ────────────────────────────────────────────────
+
+    #[test]
+    fn runtime_plugin_id_matches() {
+        let rt = runtime();
+        assert_eq!(rt.plugin_id(), PLUGIN_ID);
+    }
+
+    #[test]
+    fn runtime_check_passes_with_config() {
+        let tmp = std::env::temp_dir().join("re-hw-test-pass");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).unwrap();
+        std::fs::write(tmp.join(".ralph-engine/config.yaml"), "schema_version: 1\n").unwrap();
+
+        let rt = runtime();
+        let result = rt
+            .run_check("hw.check", re_plugin::PluginCheckKind::Prepare, &tmp)
+            .unwrap();
+        assert!(result.passed);
+        assert!(result.findings.is_empty());
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn runtime_check_fails_without_config() {
+        let tmp = std::env::temp_dir().join("re-hw-test-fail");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+
+        let rt = runtime();
+        let result = rt
+            .run_check("hw.check", re_plugin::PluginCheckKind::Prepare, &tmp)
+            .unwrap();
+        assert!(!result.passed);
+        assert!(!result.findings.is_empty());
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn runtime_rejects_agent() {
+        let rt = runtime();
+        let err = rt.bootstrap_agent("any").unwrap_err();
+        assert_eq!(err.code, "not_an_agent_plugin");
+    }
+
+    #[test]
+    fn runtime_rejects_mcp() {
+        let rt = runtime();
+        let err = rt.register_mcp_server("any").unwrap_err();
+        assert_eq!(err.code, "not_an_mcp_plugin");
+    }
+
+    #[test]
+    fn runtime_default_required_tools_is_empty() {
+        let rt = runtime();
+        assert!(rt.required_tools().is_empty());
+    }
+
+    #[test]
+    fn runtime_default_prompt_contributions_is_empty() {
+        let rt = runtime();
+        let contributions = rt.prompt_contributions(std::path::Path::new("/tmp"));
+        assert!(contributions.is_empty());
     }
 }

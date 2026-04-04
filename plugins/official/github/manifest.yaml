@@ -1,5 +1,5 @@
 id: official.github
-kind: mcp_contribution
+kind: data_source
 display_name: GitHub
 display_name_locales:
   pt-br: GitHub

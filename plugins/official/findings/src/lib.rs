@@ -228,12 +228,17 @@ mod tests {
 
     #[test]
     fn plugin_declares_lifecycle_stages() {
-        assert!(!lifecycle().is_empty());
+        let stages = lifecycle();
+        assert_eq!(stages.len(), 2);
+        assert!(stages.iter().any(|s| s.as_str() == "discover"));
+        assert!(stages.iter().any(|s| s.as_str() == "load"));
     }
 
     #[test]
     fn plugin_declares_runtime_hooks() {
-        assert!(!runtime_hooks().is_empty());
+        let hooks = runtime_hooks();
+        assert_eq!(hooks.len(), 1);
+        assert!(hooks.iter().any(|h| h.as_str() == "prompt_assembly"));
     }
 
     #[test]
@@ -263,24 +268,28 @@ mod tests {
     #[test]
     fn runtime_rejects_check() {
         let rt = super::runtime();
-        let result = rt.run_check(
-            "any",
-            re_plugin::PluginCheckKind::Prepare,
-            std::path::Path::new("/tmp"),
-        );
-        assert!(result.is_err());
+        let err = rt
+            .run_check(
+                "any",
+                re_plugin::PluginCheckKind::Prepare,
+                std::path::Path::new("/tmp"),
+            )
+            .unwrap_err();
+        assert_eq!(err.code, "not_a_check_plugin");
     }
 
     #[test]
     fn runtime_rejects_agent() {
         let rt = super::runtime();
-        assert!(rt.bootstrap_agent("any").is_err());
+        let err = rt.bootstrap_agent("any").unwrap_err();
+        assert_eq!(err.code, "not_an_agent_plugin");
     }
 
     #[test]
     fn runtime_rejects_mcp() {
         let rt = super::runtime();
-        assert!(rt.register_mcp_server("any").is_err());
+        let err = rt.register_mcp_server("any").unwrap_err();
+        assert_eq!(err.code, "not_an_mcp_plugin");
     }
 
     #[test]
@@ -336,5 +345,62 @@ mod tests {
         assert!(result.ends_with("</findings>"));
         assert!(result.contains("Past Findings"));
         assert!(result.contains("bulk insert"));
+    }
+
+    // ── prompt_contributions (PluginRuntime trait method) ─────────────
+
+    #[test]
+    fn prompt_contributions_returns_empty_when_no_file() {
+        let tmp = std::env::temp_dir().join("re-findings-contrib-none");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+
+        let rt = super::runtime();
+        let contributions = rt.prompt_contributions(&tmp);
+        assert!(contributions.is_empty());
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn prompt_contributions_returns_findings_when_present() {
+        let tmp = std::env::temp_dir().join("re-findings-contrib-ok");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).unwrap();
+        std::fs::write(
+            tmp.join(".ralph-engine/findings.md"),
+            "- **[PERF]** Use bulk insert for >100 rows.",
+        )
+        .unwrap();
+
+        let rt = super::runtime();
+        let contributions = rt.prompt_contributions(&tmp);
+        assert_eq!(contributions.len(), 1);
+        assert_eq!(contributions[0].label, "findings");
+        assert!(contributions[0].content.contains("<findings>"));
+        assert!(contributions[0].content.contains("[PERF]"));
+        assert!(contributions[0].content.contains("</findings>"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn prompt_contributions_returns_empty_for_whitespace_only() {
+        let tmp = std::env::temp_dir().join("re-findings-contrib-ws");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join(".ralph-engine")).unwrap();
+        std::fs::write(tmp.join(".ralph-engine/findings.md"), "  \n  \n").unwrap();
+
+        let rt = super::runtime();
+        let contributions = rt.prompt_contributions(&tmp);
+        assert!(contributions.is_empty());
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn runtime_default_required_tools_is_empty() {
+        let rt = super::runtime();
+        assert!(rt.required_tools().is_empty());
     }
 }
