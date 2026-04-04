@@ -1,6 +1,6 @@
 //! Modular CLI command routing.
 
-use crate::{CliError, i18n};
+use crate::{CliError, catalog, i18n};
 
 // All locale strings are now in TOML catalogs (locales/*.toml).
 // The locale_str! macro has been removed — use i18n::* accessors instead.
@@ -191,15 +191,31 @@ fn render_help(locale: &str) -> String {
 }
 
 fn dispatch_command(command_name: &str, args: &[String], locale: &str) -> Result<String, CliError> {
-    match COMMANDS.iter().find(|command| command.name == command_name) {
-        Some(command) => {
-            if matches!(args.first().map(String::as_str), Some("--help" | "-h")) {
-                return Ok(render_command_help(command, locale));
-            }
-            (command.handler)(args, locale)
+    // 1. Try static core commands first.
+    if let Some(command) = COMMANDS.iter().find(|command| command.name == command_name) {
+        if matches!(args.first().map(String::as_str), Some("--help" | "-h")) {
+            return Ok(render_command_help(command, locale));
         }
-        None => Err(CliError::new(i18n::unknown_command(locale, command_name))),
+        return (command.handler)(args, locale);
     }
+
+    // 2. Try plugin-contributed subcommands (auto-discovered).
+    let plugin_commands = catalog::collect_cli_contributions_from_plugins();
+    if let Some((plugin_id, _contrib)) =
+        plugin_commands.iter().find(|(_, c)| c.name == command_name)
+    {
+        // Plugin commands are dispatched to the plugin runtime.
+        if let Some(runtime) = catalog::official_plugin_runtime(plugin_id) {
+            // Pass the command name + remaining args to the plugin.
+            let mut full_args = vec![command_name.to_owned()];
+            full_args.extend(args.iter().cloned());
+            return runtime
+                .handle_cli_command(command_name, args)
+                .map_err(|e| CliError::new(e.to_string()));
+        }
+    }
+
+    Err(CliError::new(i18n::unknown_command(locale, command_name)))
 }
 
 fn render_command_help(command: &CommandDescriptor, locale: &str) -> String {

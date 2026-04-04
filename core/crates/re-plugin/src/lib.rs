@@ -1325,6 +1325,26 @@ pub trait PluginRuntime: Send + Sync {
         Vec::new()
     }
 
+    /// Handles a CLI subcommand contributed by this plugin.
+    ///
+    /// Called when the user invokes a plugin-contributed command
+    /// (e.g. `ralph-engine my-command`). The plugin receives the
+    /// command name and arguments to process.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the command fails.
+    fn handle_cli_command(
+        &self,
+        _command: &str,
+        _args: &[String],
+    ) -> Result<String, PluginRuntimeError> {
+        Err(PluginRuntimeError {
+            code: "not_implemented".to_owned(),
+            message: "CLI command handling not implemented".to_owned(),
+        })
+    }
+
     /// Returns TUI panel contributions for the dashboard sidebar.
     ///
     /// Plugins with the `tui_widgets` capability declare panels that
