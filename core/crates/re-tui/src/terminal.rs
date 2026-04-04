@@ -220,7 +220,7 @@ impl TuiShell {
         let result = (|| -> Result<(), TuiError> {
             loop {
                 terminal
-                    .draw(|frame| self.render(frame))
+                    .draw(|frame| self.render_frame(frame))
                     .map_err(|e| TuiError::new(format!("render failed: {e}")))?;
 
                 if event::poll(std::time::Duration::from_millis(100))
@@ -271,10 +271,11 @@ impl TuiShell {
     /// Renders the TUI frame with responsive zone-based layout.
     ///
     /// Layout adapts to terminal size:
+    ///
     /// - Compact (< 120 cols): activity only
     /// - Standard (120-159): activity + sidebar
     /// - Wide (>= 160): control + activity + sidebar
-    fn render(&self, frame: &mut Frame<'_>) {
+    pub fn render_frame(&self, frame: &mut Frame<'_>) {
         let area = frame.area();
 
         // Check minimum size
@@ -316,12 +317,12 @@ impl TuiShell {
 
         let header = Line::from(vec![
             Span::styled(
-                " Ralph Engine ",
+                " ◎ Ralph Engine ",
                 Style::default()
-                    .fg(Color::White)
+                    .fg(Color::Indexed(105)) // #5B6AD0 — brand purple
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::raw("• "),
+            Span::styled("• ", Style::default().fg(Color::DarkGray)),
             Span::raw(format!("Agent: {} ", self.config.agent_id)),
             Span::styled(
                 format!("[{state_label}]"),
@@ -745,7 +746,7 @@ mod tests {
     fn render_to_buffer(shell: &TuiShell, width: u16, height: u16) -> String {
         let backend = TestBackend::new(width, height);
         let mut terminal = Terminal::new(backend).unwrap();
-        terminal.draw(|frame| shell.render(frame)).unwrap();
+        terminal.draw(|frame| shell.render_frame(frame)).unwrap();
         // Extract text content from the buffer
         let buf = terminal.backend().buffer();
         let mut output = String::new();
