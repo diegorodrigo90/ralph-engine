@@ -364,3 +364,29 @@ pub fn find_official_provider_surface(
         registration,
     })
 }
+
+/// Collects required tools from all enabled plugin runtimes.
+///
+/// Iterates over every enabled plugin that provides a runtime, calls
+/// `required_tools()`, and returns a deduplicated list. This enables
+/// auto-discovery: plugins declare what agent tools they need (MCP
+/// tools, Skill, Agent, etc.) and the core passes the merged list
+/// to the agent plugin at launch time.
+#[must_use]
+pub fn collect_required_tools_from_plugins() -> Vec<String> {
+    let snapshot = official_runtime_snapshot();
+    let mut tools: Vec<String> = Vec::new();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
+            for tool in runtime.required_tools() {
+                let tool_str = (*tool).to_owned();
+                if !tools.contains(&tool_str) {
+                    tools.push(tool_str);
+                }
+            }
+        }
+    }
+
+    tools
+}

@@ -1091,6 +1091,10 @@ pub struct PromptContext {
     pub context_files: Vec<ContextFile>,
     /// Work item identifier this context was built for.
     pub work_item_id: String,
+    /// Tools discovered from enabled plugins via `required_tools()`.
+    /// The agent plugin merges these with base tools and config extras.
+    /// Populated by the core `run` command, not by individual plugins.
+    pub discovered_tools: Vec<String>,
 }
 
 /// One context file included in a prompt assembly.
@@ -1237,6 +1241,18 @@ pub trait PluginRuntime: Send + Sync {
             "not_an_agent_plugin",
             format!("Plugin '{}' does not launch agents", self.plugin_id()),
         ))
+    }
+
+    /// Returns tool names/patterns this plugin requires for agent sessions.
+    ///
+    /// The core collects required tools from ALL enabled plugins,
+    /// deduplicates, and passes the merged list to the agent plugin.
+    /// This enables auto-discovery: each plugin declares its needs
+    /// (e.g., MCP tool patterns) without the user listing them manually.
+    ///
+    /// Default: no required tools (most plugins don't need agent tools).
+    fn required_tools(&self) -> &[&str] {
+        &[]
     }
 }
 

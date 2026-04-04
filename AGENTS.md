@@ -25,7 +25,7 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 1. Ralph Engine SHALL stay generic, configurable, and public-safe.
 2. The core runtime and official plugins SHALL be implemented in Rust.
 3. Third-party plugin contracts SHALL stay language-agnostic.
-4. Tests SHALL be written before implementation. TDD is mandatory.
+4. Tests SHALL be written before implementation (TDD). WHEN a new feature or fix is implemented, the test SHALL exist before the production code.
 5. Core and official plugin code SHALL target 100% meaningful coverage.
 6. The SonarCloud quality gate SHALL enforce 100% coverage for the analyzed code, and CI SHALL NOT approve reusable release artifacts or allow publication when that gate fails.
 7. `cargo fmt`, `clippy`, tests, coverage, deny, audit, rustdoc, docs build, CR, and quality gates SHALL be treated as mandatory, not optional.
@@ -91,9 +91,9 @@ When writing or editing docs:
 
 ## Engineering Discipline
 
-48. Every code change SHALL be preceded by research. Before implementing, the assistant SHALL search official documentation (Context7, web search, crate docs) for the libraries and APIs involved. Implementation from memory or stale knowledge SHALL be treated as a defect source.
-49. Every bug fix SHALL produce a regression test that fails without the fix and passes with it. The test and fix SHALL be committed together. A bug fix without a regression test is incomplete.
-50. Bug fixes SHALL identify and address the root cause. Fixes that suppress symptoms (hiding errors, adding defensive checks around broken logic, commenting out failing code) without understanding why the failure happens SHALL be rejected. For frontend bugs, this means inspecting the actual CSS cascade, HTML structure, and component hierarchy to confirm what is causing the visual or behavioral issue before changing code.
+48. WHEN implementing any code change, the assistant SHALL first search official documentation (Context7, web search, crate docs) for the libraries and APIs involved. Implementation from memory or stale knowledge SHALL be treated as a defect source.
+49. WHEN fixing a bug, the fix SHALL include a regression test that fails without the fix and passes with it. The test and fix SHALL be committed together.
+50. Bug fixes SHALL identify and address the root cause. IF a proposed fix suppresses symptoms (hiding errors, adding defensive checks around broken logic, commenting out failing code) without understanding why the failure happens, THEN that fix SHALL be rejected.
 
 ## Structure
 
@@ -169,6 +169,44 @@ CI cache design SHALL follow these rules:
 - Release tags SHALL be created only by the hardened release workflow once `Quality`, `Security`, and `SonarCloud` have passed for the target `main` commit.
 - The release workflow SHALL reuse prior green CI evidence for the target `main` SHA instead of rerunning the full validation contract inside the publish workflow.
 - The release workflow SHALL download and publish the reusable release artifacts already produced by the canonical `CI` workflow for that same `main` SHA.
+
+## Prompt Assembly (Agent-Agnostic)
+
+Rules follow EARS syntax (SHALL keyword). These rules apply to ALL agent runtimes (Claude, Codex, or any future agent).
+
+### Structure
+
+Appended system prompt content goes at the END of the agent's built-in instructions. Research shows LLMs over-attend to beginning and end, under-attend to the middle ("lost in the middle" effect: 30%+ accuracy drop). Prompt sections SHALL be ordered by attention priority:
+
+| Position | Section | Tag | Attention | Content |
+|----------|---------|-----|-----------|---------|
+| First | Task | `<task>` | HIGH (start of block) | Story with ACs |
+| Middle | Rules | `<rules>` | MEDIUM (reference zone) | Condensed project rules |
+| Middle | Context | `<context>` | MEDIUM (reference zone) | Tech stack, domain, test users |
+| Last | Constraints | `<constraints>` | HIGHEST (end of block) | Workflow + tracking requirements |
+
+### Principles
+
+- Prompt instructions SHALL be outcome-based. WHEN multiple valid approaches exist, the prompt SHALL describe the expected outcome, not prescriptive steps. **Why:** outcome-based prompts let agents adapt to reality; prescriptive steps create brittleness when conditions differ from the script.
+- Every prompt instruction SHALL carry its weight. IF the agent would produce the correct behavior without an instruction, THEN that instruction SHALL be removed. **Why:** noise dilutes signal; redundant instructions waste tokens and compete for attention.
+- Prompt content SHALL NOT duplicate information already available in the agent's native config (CLAUDE.md, AGENTS.md, `.cursorrules`). WHEN a project provides `rules-digest.md`, it SHALL be included for agents that lack native config loading. **Why:** duplication wastes tokens and risks inconsistency.
+- Prompt sections SHALL use XML tags (`<task>`, `<rules>`, `<context>`, `<constraints>`). **Why:** XML tags improve LLM parsing accuracy and enable Anthropic prompt caching on static prefixes.
+- Non-negotiable requirements (tracking updates, quality gates) SHALL be placed in the `<constraints>` section at the END of the prompt. **Why:** the end of the system prompt is the highest-attention zone.
+- Prompt content SHALL prefer structured formats (bullets, tables) over prose, references over full document inclusion, and RAG over document pasting. **Why:** token efficiency without sacrificing load-bearing context.
+- Prompt content SHALL be agent-agnostic. Plugin-specific CLI flags (`--allowedTools`, `-p`, `--output-format`) SHALL live in the agent plugin implementation, not in the prompt text.
+
+### Feedback Loop (Learnings)
+
+- WHEN `.ralph-engine/learnings.md` exists, the BMAD plugin SHALL read it and include it in the prompt as a `<learnings>` section between `<rules>` and `<constraints>`.
+- The `<constraints>` section SHALL instruct the agent to review past learnings before implementing, and to update the file after code review.
+- The format, categories, and content of `learnings.md` SHALL be defined by the project, not by Ralph Engine. RE only reads and injects.
+
+### Tool Auto-Discovery
+
+- Plugins SHALL declare required agent tools by implementing `required_tools()` on `PluginRuntime`. The default implementation SHALL return an empty slice.
+- WHEN the `run` command assembles a prompt context, it SHALL collect `required_tools()` from ALL enabled plugin runtimes, deduplicate, and populate `PromptContext.discovered_tools`.
+- The agent plugin SHALL merge three tool sources in order: its own base tools, discovered tools from plugins, and user-configured extras from `run.allowed_tools` in project config. Duplicates SHALL be removed.
+- WHEN a plugin contributes MCP servers, it SHOULD also declare the corresponding MCP tool patterns in `required_tools()` so agents receive them automatically.
 
 ## Documentation Sync
 
