@@ -1965,12 +1965,14 @@ dependencies = [
 name = "re-cli"
 version = "0.2.0-alpha.1"
 dependencies = [
+ "ratatui",
  "re-build-utils",
  "re-config",
  "re-core",
  "re-mcp",
  "re-official",
  "re-plugin",
+ "re-tui",
  "sentry",
 ]
 
