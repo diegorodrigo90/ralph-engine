@@ -413,3 +413,82 @@ pub fn collect_prompt_contributions_from_plugins(
 
     contributions
 }
+
+/// Collects init contributions from all enabled plugin runtimes.
+///
+/// Iterates over every enabled plugin that provides a runtime, calls
+/// `init_contributions()`, and returns the merged list. This enables
+/// plugins (official or third-party) to contribute additional questions,
+/// config sections, or files to `ralph-engine init` via auto-discovery.
+#[must_use]
+pub fn collect_init_contributions_from_plugins() -> Vec<re_plugin::InitContribution> {
+    let snapshot = official_runtime_snapshot();
+    let mut contributions = Vec::new();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
+            contributions.extend(runtime.init_contributions());
+        }
+    }
+
+    contributions
+}
+
+/// Collects required files from all enabled plugin runtimes.
+///
+/// Each plugin declares files it needs in the project directory.
+/// Core combines them and validates existence during doctor/checks.
+#[must_use]
+pub fn collect_required_files_from_plugins() -> Vec<String> {
+    let snapshot = official_runtime_snapshot();
+    let mut files: Vec<String> = Vec::new();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
+            for file in runtime.required_files() {
+                let file_str = (*file).to_owned();
+                if !files.contains(&file_str) {
+                    files.push(file_str);
+                }
+            }
+        }
+    }
+
+    files
+}
+
+/// Collects config validation issues from all enabled plugin runtimes.
+#[must_use]
+pub fn collect_config_issues_from_plugins(
+    config_content: &str,
+) -> Vec<(String, re_plugin::ConfigIssue)> {
+    let snapshot = official_runtime_snapshot();
+    let mut issues = Vec::new();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
+            for issue in runtime.validate_config(config_content) {
+                issues.push((plugin.descriptor.id.to_owned(), issue));
+            }
+        }
+    }
+
+    issues
+}
+
+/// Collects CLI contributions from all enabled plugin runtimes.
+#[must_use]
+pub fn collect_cli_contributions_from_plugins() -> Vec<(String, re_plugin::CliContribution)> {
+    let snapshot = official_runtime_snapshot();
+    let mut contributions = Vec::new();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
+            for contrib in runtime.cli_contributions() {
+                contributions.push((plugin.descriptor.id.to_owned(), contrib));
+            }
+        }
+    }
+
+    contributions
+}

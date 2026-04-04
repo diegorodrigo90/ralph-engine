@@ -419,6 +419,11 @@ impl PluginRuntime for BmadRuntime {
         BMAD_REQUIRED_TOOLS
     }
 
+    /// BMAD requires prompt.md for project context during prompt assembly.
+    fn required_files(&self) -> &[&str] {
+        &[".ralph-engine/prompt.md"]
+    }
+
     fn build_prompt_context(
         &self,
         resolution: &WorkItemResolution,

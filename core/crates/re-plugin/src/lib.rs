@@ -1267,6 +1267,94 @@ pub trait PluginRuntime: Send + Sync {
     fn prompt_contributions(&self, _project_root: &Path) -> Vec<PromptContribution> {
         Vec::new()
     }
+
+    /// Returns init-time contributions (questions, files, config sections)
+    /// that this plugin wants to add to `ralph-engine init`.
+    ///
+    /// Plugins can contribute additional setup questions, config entries,
+    /// or files during interactive project initialization. The default
+    /// implementation returns no contributions.
+    fn init_contributions(&self) -> Vec<InitContribution> {
+        Vec::new()
+    }
+
+    /// Returns files this plugin requires in the project directory.
+    ///
+    /// Used by `doctor` and `checks` to validate project health.
+    /// Core collects required files from ALL enabled plugins and checks
+    /// their existence — plugins own what they need, core just validates.
+    fn required_files(&self) -> &[&str] {
+        &[]
+    }
+
+    /// Validates plugin-specific config from the project config YAML.
+    ///
+    /// Called during `doctor` and config loading. Plugins check that
+    /// their owned config sections are well-formed. The raw config
+    /// content is passed as a string — plugins parse their own sections.
+    /// Core never interprets plugin-owned config keys.
+    fn validate_config(&self, _config_content: &str) -> Vec<ConfigIssue> {
+        Vec::new()
+    }
+
+    /// Migrates plugin-owned config when plugin version changes.
+    ///
+    /// Called during `ralph-engine doctor --fix` or explicit upgrade.
+    /// Returns the updated config content, or None if no migration needed.
+    /// Plugins own their sections — they read, transform, and return
+    /// without touching other plugins' config.
+    fn migrate_config(
+        &self,
+        _config_content: &str,
+        _from_version: &str,
+        _to_version: &str,
+    ) -> Option<String> {
+        None
+    }
+
+    /// Returns CLI subcommands this plugin contributes.
+    ///
+    /// Plugins can extend the CLI with custom subcommands discoverable
+    /// via `ralph-engine --help`. Core routes to the plugin when the
+    /// subcommand is invoked. Third-party plugins use this to add
+    /// domain-specific commands without modifying core.
+    fn cli_contributions(&self) -> Vec<CliContribution> {
+        Vec::new()
+    }
+}
+
+/// An issue found during plugin config validation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ConfigIssue {
+    /// Severity: "error" (blocks), "warning" (informational).
+    pub severity: String,
+    /// Human-readable description of the issue.
+    pub message: String,
+}
+
+/// A CLI subcommand contributed by a plugin.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct CliContribution {
+    /// Subcommand name (e.g. "bmad-status" becomes `ralph-engine bmad-status`).
+    pub name: String,
+    /// Short description for --help output.
+    pub description: String,
+    /// Handler receives args after the subcommand name.
+    /// Returns output text or error message.
+    pub handler_id: String,
+}
+
+/// A contribution to the `ralph-engine init` interactive flow.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct InitContribution {
+    /// Short label for the init step.
+    pub label: String,
+    /// Description shown to the user during init.
+    pub description: String,
+    /// Config YAML snippet to append when this option is selected.
+    pub config_snippet: Option<String>,
+    /// Additional files to create (path → contents).
+    pub files: Vec<(String, String)>,
 }
 
 /// A prompt section contributed by a plugin at runtime.
