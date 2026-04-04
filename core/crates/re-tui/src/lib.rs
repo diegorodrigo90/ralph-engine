@@ -12,9 +12,11 @@
 
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
+pub mod layout;
 mod logging;
 mod terminal;
 
+pub use layout::{LayoutTier, LayoutZones, compute_zones, is_terminal_too_small};
 pub use logging::{LogConfig, init_logging};
 pub use terminal::{TuiConfig, TuiMode, TuiShell, TuiState};
 
