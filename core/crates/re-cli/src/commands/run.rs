@@ -6,10 +6,17 @@ use super::runtime_state::load_project_config;
 
 /// Executes the run command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
-    match args.first().map(String::as_str) {
-        Some("--list") => list_work_items(locale),
-        Some("plan") => run_plan(args.get(1).map(String::as_str), locale),
-        Some(id) if !id.starts_with('-') => run_work_item(id, locale),
+    let verbose = args.iter().any(|a| a == "--verbose" || a == "-v");
+    let filtered: Vec<&str> = args
+        .iter()
+        .map(String::as_str)
+        .filter(|a| *a != "--verbose" && *a != "-v")
+        .collect();
+
+    match filtered.first().copied() {
+        Some("--list") => list_work_items(locale, verbose),
+        Some("plan") => run_plan(filtered.get(1).copied(), locale, verbose),
+        Some(id) if !id.starts_with('-') => run_work_item(id, locale, verbose),
         None => Err(CliError::new(locale_str!(
             locale,
             "Work item ID required. Use `ralph-engine run <id>` or `ralph-engine run --list`.",
@@ -21,14 +28,32 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     }
 }
 
-/// Lists available work items from the workflow plugin.
-fn list_work_items(locale: &str) -> Result<String, CliError> {
-    let (workflow_runtime, _) = resolve_run_plugins(locale)?;
-    let cwd = current_dir_or_error(locale)?;
+/// Prints a debug line when verbose mode is active.
+fn dbg_log(verbose: bool, msg: &str) {
+    if verbose {
+        eprintln!("[debug] {msg}");
+    }
+}
 
+/// Lists available work items from the workflow plugin.
+fn list_work_items(locale: &str, verbose: bool) -> Result<String, CliError> {
+    dbg_log(verbose, "loading config...");
+    let (workflow_runtime, _) = resolve_run_plugins(locale, verbose)?;
+    let cwd = current_dir_or_error(locale)?;
+    dbg_log(verbose, &format!("cwd: {}", cwd.display()));
+
+    dbg_log(
+        verbose,
+        &format!(
+            "calling list_work_items on plugin '{}'",
+            workflow_runtime.plugin_id()
+        ),
+    );
     let items = workflow_runtime
         .list_work_items(&cwd)
         .map_err(|err| CliError::new(err.to_string()))?;
+
+    dbg_log(verbose, &format!("found {} work items", items.len()));
 
     if items.is_empty() {
         return Ok(locale_str!(
@@ -48,7 +73,7 @@ fn list_work_items(locale: &str) -> Result<String, CliError> {
 }
 
 /// Shows the execution plan without launching the agent (dry run).
-fn run_plan(work_item_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+fn run_plan(work_item_id: Option<&str>, locale: &str, verbose: bool) -> Result<String, CliError> {
     let work_item_id = work_item_id.ok_or_else(|| {
         CliError::new(i18n::missing_id(
             locale,
@@ -57,22 +82,53 @@ fn run_plan(work_item_id: Option<&str>, locale: &str) -> Result<String, CliError
         ))
     })?;
 
-    let (workflow_runtime, agent_runtime) = resolve_run_plugins(locale)?;
+    dbg_log(verbose, "loading config...");
+    let (workflow_runtime, agent_runtime) = resolve_run_plugins(locale, verbose)?;
     let cwd = current_dir_or_error(locale)?;
     let config = load_project_config()?;
 
     // Resolve work item
+    dbg_log(verbose, &format!("resolving work item '{work_item_id}'..."));
     let resolution = workflow_runtime
         .resolve_work_item(work_item_id, &cwd)
         .map_err(|err| CliError::new(err.to_string()))?;
 
+    dbg_log(
+        verbose,
+        &format!(
+            "resolved: '{}' → title='{}', source={:?}, metadata={:?}",
+            resolution.canonical_id, resolution.title, resolution.source_path, resolution.metadata
+        ),
+    );
+
     // Build prompt
+    dbg_log(verbose, "building prompt context...");
     let context = workflow_runtime
         .build_prompt_context(&resolution, &cwd)
         .map_err(|err| CliError::new(err.to_string()))?;
 
+    dbg_log(
+        verbose,
+        &format!(
+            "prompt assembled: {} bytes, {} context files",
+            context.prompt_text.len(),
+            context.context_files.len()
+        ),
+    );
+    for file in &context.context_files {
+        dbg_log(
+            verbose,
+            &format!(
+                "  context file: '{}' ({} bytes)",
+                file.label,
+                file.content.len()
+            ),
+        );
+    }
+
     // Probe agent readiness
     let agent_id = config.run.agent_id.unwrap_or("unknown");
+    dbg_log(verbose, &format!("probing agent '{agent_id}'..."));
     let agent_status = agent_runtime.bootstrap_agent(agent_id);
 
     let workflow_label = locale_str!(locale, "Workflow", "Workflow");
@@ -111,6 +167,10 @@ fn run_plan(work_item_id: Option<&str>, locale: &str) -> Result<String, CliError
         ));
     }
 
+    for (key, val) in &resolution.metadata {
+        lines.push(format!("  {key}: {val}"));
+    }
+
     lines.push(format!(
         "{prompt_label}: {} bytes ({} {})",
         context.prompt_text.len(),
@@ -127,14 +187,34 @@ fn run_plan(work_item_id: Option<&str>, locale: &str) -> Result<String, CliError
         ));
     }
 
+    if verbose {
+        lines.push(String::new());
+        lines.push("--- prompt preview (first 500 chars) ---".to_owned());
+        let preview: String = context.prompt_text.chars().take(500).collect();
+        lines.push(preview);
+        lines.push("--- end preview ---".to_owned());
+    }
+
     Ok(lines.join("\n"))
 }
 
 /// Executes one work item: resolve → build prompt → launch agent.
-fn run_work_item(work_item_id: &str, locale: &str) -> Result<String, CliError> {
-    let (workflow_runtime, agent_runtime) = resolve_run_plugins(locale)?;
+fn run_work_item(work_item_id: &str, locale: &str, verbose: bool) -> Result<String, CliError> {
+    dbg_log(verbose, "=== ralph-engine run: starting ===");
+    dbg_log(verbose, "loading config...");
+
+    let (workflow_runtime, agent_runtime) = resolve_run_plugins(locale, verbose)?;
     let cwd = current_dir_or_error(locale)?;
     let config = load_project_config()?;
+
+    dbg_log(verbose, &format!("cwd: {}", cwd.display()));
+    dbg_log(
+        verbose,
+        &format!(
+            "config: workflow={:?}, agent={:?}, agent_id={:?}",
+            config.run.workflow_plugin, config.run.agent_plugin, config.run.agent_id
+        ),
+    );
 
     let agent_id = config.run.agent_id.ok_or_else(|| {
         CliError::new(locale_str!(
@@ -145,9 +225,21 @@ fn run_work_item(work_item_id: &str, locale: &str) -> Result<String, CliError> {
     })?;
 
     // 1. Probe agent
+    dbg_log(
+        verbose,
+        &format!("[step 1/5] probing agent '{agent_id}'..."),
+    );
     let bootstrap = agent_runtime
         .bootstrap_agent(agent_id)
         .map_err(|err| CliError::new(err.to_string()))?;
+
+    dbg_log(
+        verbose,
+        &format!(
+            "[step 1/5] agent ready={}, message='{}'",
+            bootstrap.ready, bootstrap.message
+        ),
+    );
 
     if !bootstrap.ready {
         return Err(CliError::new(format!(
@@ -158,6 +250,10 @@ fn run_work_item(work_item_id: &str, locale: &str) -> Result<String, CliError> {
     }
 
     // 2. Resolve work item
+    dbg_log(
+        verbose,
+        &format!("[step 2/5] resolving work item '{work_item_id}'..."),
+    );
     let resolution = workflow_runtime
         .resolve_work_item(work_item_id, &cwd)
         .map_err(|err| {
@@ -173,12 +269,41 @@ fn run_work_item(work_item_id: &str, locale: &str) -> Result<String, CliError> {
             ))
         })?;
 
+    dbg_log(
+        verbose,
+        &format!(
+            "[step 2/5] resolved: id='{}', title='{}', source={:?}, metadata={:?}",
+            resolution.canonical_id, resolution.title, resolution.source_path, resolution.metadata
+        ),
+    );
+
     // 3. Build prompt
+    dbg_log(verbose, "[step 3/5] building prompt context...");
     let context = workflow_runtime
         .build_prompt_context(&resolution, &cwd)
         .map_err(|err| CliError::new(err.to_string()))?;
 
+    dbg_log(
+        verbose,
+        &format!(
+            "[step 3/5] prompt: {} bytes, {} context files",
+            context.prompt_text.len(),
+            context.context_files.len()
+        ),
+    );
+    for file in &context.context_files {
+        dbg_log(
+            verbose,
+            &format!(
+                "[step 3/5]   file: '{}' ({} bytes)",
+                file.label,
+                file.content.len()
+            ),
+        );
+    }
+
     // 4. Print launch info
+    dbg_log(verbose, "[step 4/5] printing launch info...");
     let launch_msg = format!(
         "--- {} ---\n{}: {} — {}\n{}: {}\n",
         locale_str!(locale, "Launching agent", "Lançando agente"),
@@ -188,17 +313,24 @@ fn run_work_item(work_item_id: &str, locale: &str) -> Result<String, CliError> {
         locale_str!(locale, "Agent", "Agente"),
         agent_id,
     );
-    // Print before blocking spawn — agent takes over stdout
     println!("{launch_msg}");
 
-    // Flush before blocking agent process
     use std::io::Write as _;
     let _ = std::io::stdout().flush();
 
     // 5. Launch agent
+    dbg_log(verbose, "[step 5/5] spawning agent process...");
     let result = agent_runtime
         .launch_agent(agent_id, &context, &cwd)
         .map_err(|err| CliError::new(err.to_string()))?;
+
+    dbg_log(
+        verbose,
+        &format!(
+            "[step 5/5] agent result: success={}, exit_code={:?}, message='{}'",
+            result.success, result.exit_code, result.message
+        ),
+    );
 
     if result.success {
         Ok(format!(
@@ -228,7 +360,7 @@ type PluginRuntimePair = (
 );
 
 /// Resolves the workflow and agent plugin runtimes from project config.
-fn resolve_run_plugins(locale: &str) -> Result<PluginRuntimePair, CliError> {
+fn resolve_run_plugins(locale: &str, verbose: bool) -> Result<PluginRuntimePair, CliError> {
     let config = load_project_config().map_err(|_| {
         CliError::new(locale_str!(
             locale,
@@ -236,6 +368,19 @@ fn resolve_run_plugins(locale: &str) -> Result<PluginRuntimePair, CliError> {
             "Configuração do projeto não encontrada. Execute `ralph-engine templates materialize official.bmad.starter .` para criar."
         ))
     })?;
+
+    dbg_log(
+        verbose,
+        &format!(
+            "config loaded: schema_version={}, locale={}, plugins={}, run.workflow={:?}, run.agent={:?}, run.agent_id={:?}",
+            config.schema_version,
+            config.default_locale,
+            config.plugins.len(),
+            config.run.workflow_plugin,
+            config.run.agent_plugin,
+            config.run.agent_id,
+        ),
+    );
 
     let workflow_plugin_id = config.run.workflow_plugin.ok_or_else(|| {
         CliError::new(locale_str!(
@@ -253,6 +398,10 @@ fn resolve_run_plugins(locale: &str) -> Result<PluginRuntimePair, CliError> {
         ))
     })?;
 
+    dbg_log(
+        verbose,
+        &format!("resolving workflow runtime: '{workflow_plugin_id}'..."),
+    );
     let workflow_runtime =
         catalog::official_plugin_runtime(workflow_plugin_id).ok_or_else(|| {
             CliError::new(format!(
@@ -264,7 +413,15 @@ fn resolve_run_plugins(locale: &str) -> Result<PluginRuntimePair, CliError> {
                 ),
             ))
         })?;
+    dbg_log(
+        verbose,
+        &format!("workflow runtime: OK ({})", workflow_runtime.plugin_id()),
+    );
 
+    dbg_log(
+        verbose,
+        &format!("resolving agent runtime: '{agent_plugin_id}'..."),
+    );
     let agent_runtime = catalog::official_plugin_runtime(agent_plugin_id).ok_or_else(|| {
         CliError::new(format!(
             "{}: {agent_plugin_id}",
@@ -275,6 +432,10 @@ fn resolve_run_plugins(locale: &str) -> Result<PluginRuntimePair, CliError> {
             ),
         ))
     })?;
+    dbg_log(
+        verbose,
+        &format!("agent runtime: OK ({})", agent_runtime.plugin_id()),
+    );
 
     Ok((workflow_runtime, agent_runtime))
 }
@@ -318,5 +479,14 @@ mod tests {
     fn execute_with_unknown_flag_returns_error() {
         let result = execute(&["--unknown".to_owned()], "en");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn verbose_flag_is_stripped_from_args() {
+        // --verbose alone should still require work item ID
+        let result = execute(&["--verbose".to_owned()], "en");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        assert!(err.0.contains("Work item ID required"));
     }
 }
