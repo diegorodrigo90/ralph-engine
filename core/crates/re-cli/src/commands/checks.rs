@@ -194,18 +194,22 @@ fn run_plugin_checks(
     }
 }
 
-/// Project files that must exist for the prepare check to pass.
-const PREPARE_REQUIRED_FILES: &[&str] = &[".ralph-engine/config.yaml"];
+/// Core-required files (always checked, regardless of plugins).
+const CORE_REQUIRED_FILES: &[&str] = &[".ralph-engine/config.yaml"];
 
-/// Project files that must exist for the doctor check to pass.
-const DOCTOR_REQUIRED_FILES: &[&str] = &[".ralph-engine/config.yaml", ".ralph-engine/prompt.md"];
-
-/// Runs filesystem validations for the given check kind against a project root.
-fn run_filesystem_checks(kind: RuntimeCheckKind, project_root: &Path, locale: &str) -> String {
-    let required_files = match kind {
-        RuntimeCheckKind::Prepare => PREPARE_REQUIRED_FILES,
-        RuntimeCheckKind::Doctor => DOCTOR_REQUIRED_FILES,
-    };
+/// Runs filesystem validations combining core requirements with
+/// plugin-declared required files via auto-discovery.
+fn run_filesystem_checks(_kind: RuntimeCheckKind, project_root: &Path, locale: &str) -> String {
+    // Core always requires config.yaml. Plugins declare additional
+    // files via required_files() — auto-discovered at runtime.
+    let plugin_files = catalog::collect_required_files_from_plugins();
+    let mut all_required: Vec<&str> = CORE_REQUIRED_FILES.to_vec();
+    for pf in &plugin_files {
+        if !all_required.contains(&pf.as_str()) {
+            all_required.push(pf.as_str());
+        }
+    }
+    let required_files = &all_required;
 
     let mut missing: Vec<&str> = Vec::new();
     let mut found: Vec<&str> = Vec::new();
@@ -636,6 +640,15 @@ mod tests {
         let _ = std::fs::remove_dir_all(&tmp);
         std::fs::create_dir_all(tmp.join(".ralph-engine")).ok();
         std::fs::write(tmp.join(".ralph-engine/config.yaml"), "# test").ok();
+        // Plugins may declare additional required files via auto-discovery.
+        // Create all plugin-declared files to avoid MISSING results.
+        for file in crate::catalog::collect_required_files_from_plugins() {
+            let path = tmp.join(&file);
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent).ok();
+            }
+            std::fs::write(&path, "# test").ok();
+        }
 
         let output = super::run_filesystem_checks(RuntimeCheckKind::Prepare, &tmp, "en");
         assert!(output.contains("[OK]"));

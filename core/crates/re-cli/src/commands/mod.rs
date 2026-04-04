@@ -25,6 +25,7 @@ mod doctor;
 mod embedded_assets;
 mod grouped_surfaces;
 mod hooks;
+mod init;
 mod locales;
 mod mcp;
 mod plugins;
@@ -79,6 +80,11 @@ const COMMANDS: &[CommandDescriptor] = &[
         name: "hooks",
         subcommands: &["list", "show", "plan"],
         handler: hooks::execute,
+    },
+    CommandDescriptor {
+        name: "init",
+        subcommands: &[],
+        handler: init::execute,
     },
     CommandDescriptor {
         name: "locales",
