@@ -81,6 +81,25 @@ pub struct TuiConfig {
 ///
 /// Create via [`TuiShell::new`], then call [`TuiShell::run_demo`]
 /// to start the render loop. The terminal is restored on drop.
+/// A sidebar panel provided by a plugin, ready to render.
+///
+/// This is a render-ready snapshot of a [`re_plugin::TuiPanel`] — the
+/// TUI shell receives these from the CLI layer which collects them
+/// via auto-discovery.
+#[derive(Debug, Clone)]
+pub struct SidebarPanel {
+    /// Panel title (localized).
+    pub title: String,
+    /// Content lines to render.
+    pub lines: Vec<String>,
+    /// Source plugin ID (for attribution).
+    pub plugin_id: String,
+}
+
+/// The TUI shell — manages terminal lifecycle and render loop.
+///
+/// Create via [`TuiShell::new`], then call [`TuiShell::run_demo`]
+/// to start the render loop. The terminal is restored on drop.
 pub struct TuiShell {
     config: TuiConfig,
     state: TuiState,
@@ -88,6 +107,8 @@ pub struct TuiShell {
     activity_lines: Vec<String>,
     tool_count: usize,
     should_quit: bool,
+    /// Plugin-contributed sidebar panels (from auto-discovery).
+    sidebar_panels: Vec<SidebarPanel>,
 }
 
 impl TuiShell {
@@ -101,6 +122,7 @@ impl TuiShell {
             activity_lines: Vec::new(),
             tool_count: 0,
             should_quit: false,
+            sidebar_panels: Vec::new(),
         }
     }
 
@@ -133,6 +155,11 @@ impl TuiShell {
     /// Increments the tool call counter.
     pub fn increment_tools(&mut self) {
         self.tool_count += 1;
+    }
+
+    /// Sets the sidebar panels from auto-discovered plugin contributions.
+    pub fn set_sidebar_panels(&mut self, panels: Vec<SidebarPanel>) {
+        self.sidebar_panels = panels;
     }
 
     /// Processes a normalized agent event, updating TUI state and activity.
@@ -383,10 +410,7 @@ impl TuiShell {
         frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
     }
 
-    /// Renders the sidebar zone (plugin panels placeholder).
-    ///
-    /// In future stories (RE-2a.5), this will render auto-discovered
-    /// plugin panels via `tui_contributions()`.
+    /// Renders the sidebar zone with auto-discovered plugin panels.
     fn render_sidebar(&self, frame: &mut Frame<'_>, area: Rect) {
         let block = Block::default()
             .borders(Borders::LEFT)
@@ -397,13 +421,46 @@ impl TuiShell {
         let inner = block.inner(area);
         frame.render_widget(block, area);
 
-        // Placeholder content — will be replaced by plugin panels
-        let lines = vec![
-            Line::styled(" (no plugins)", Style::default().fg(Color::DarkGray)),
-            Line::raw(""),
-            Line::styled(" Alt+1..9 to toggle", Style::default().fg(Color::DarkGray)),
-        ];
-        frame.render_widget(Paragraph::new(lines), inner);
+        if self.sidebar_panels.is_empty() {
+            let lines = vec![Line::styled(
+                " (no panels)",
+                Style::default().fg(Color::DarkGray),
+            )];
+            frame.render_widget(Paragraph::new(lines), inner);
+            return;
+        }
+
+        // Distribute vertical space equally among panels.
+        let panel_count = self.sidebar_panels.len();
+        let constraints: Vec<Constraint> = (0..panel_count)
+            .map(|i| {
+                if i < panel_count - 1 {
+                    Constraint::Ratio(1, panel_count as u32)
+                } else {
+                    Constraint::Fill(1)
+                }
+            })
+            .collect();
+
+        let panel_areas = Layout::vertical(constraints).split(inner);
+
+        for (i, panel) in self.sidebar_panels.iter().enumerate() {
+            let panel_block = Block::default()
+                .borders(Borders::TOP)
+                .border_style(Style::default().fg(Color::DarkGray))
+                .title(format!(" {} ", panel.title))
+                .title_style(Style::default().fg(Color::White));
+
+            let panel_inner = panel_block.inner(panel_areas[i]);
+            frame.render_widget(panel_block, panel_areas[i]);
+
+            let lines: Vec<Line<'_>> = panel
+                .lines
+                .iter()
+                .map(|s| Line::raw(format!(" {s}")))
+                .collect();
+            frame.render_widget(Paragraph::new(lines), panel_inner);
+        }
     }
 
     /// Renders the control panel zone (guided mode actions).
@@ -922,5 +979,62 @@ mod tests {
         assert_eq!(shell.activity_lines.len(), 5);
         assert_eq!(shell.tool_count, 1);
         assert_eq!(shell.state(), TuiState::Complete);
+    }
+
+    // ── Sidebar panel rendering tests ────────────────────────────
+
+    #[test]
+    fn render_standard_with_plugin_panels() {
+        let mut shell = test_shell();
+        shell.set_sidebar_panels(vec![
+            SidebarPanel {
+                title: "Findings".to_owned(),
+                lines: vec!["3 issues found".to_owned(), "2 warnings".to_owned()],
+                plugin_id: "official.findings".to_owned(),
+            },
+            SidebarPanel {
+                title: "Sprint".to_owned(),
+                lines: vec!["Story 5.3: in-progress".to_owned()],
+                plugin_id: "official.bmad".to_owned(),
+            },
+        ]);
+        let output = render_to_buffer(&shell, 140, 40);
+        assert!(
+            output.contains("Findings"),
+            "sidebar should show Findings panel, got:\n{output}"
+        );
+        assert!(
+            output.contains("Sprint"),
+            "sidebar should show Sprint panel, got:\n{output}"
+        );
+        assert!(
+            output.contains("3 issues"),
+            "Findings panel should show content, got:\n{output}"
+        );
+    }
+
+    #[test]
+    fn render_standard_empty_panels_shows_placeholder() {
+        let shell = test_shell();
+        // No panels set — default is empty
+        let output = render_to_buffer(&shell, 140, 40);
+        assert!(
+            output.contains("no panels"),
+            "empty sidebar should show placeholder, got:\n{output}"
+        );
+    }
+
+    #[test]
+    fn set_sidebar_panels_replaces() {
+        let mut shell = empty_shell();
+        shell.set_sidebar_panels(vec![SidebarPanel {
+            title: "A".to_owned(),
+            lines: vec![],
+            plugin_id: "test".to_owned(),
+        }]);
+        assert_eq!(shell.sidebar_panels.len(), 1);
+
+        shell.set_sidebar_panels(vec![]);
+        assert!(shell.sidebar_panels.is_empty());
     }
 }

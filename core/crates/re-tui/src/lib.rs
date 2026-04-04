@@ -20,7 +20,7 @@ mod terminal;
 pub use events::{AgentEvent, parse_stream_line, parse_stream_lines};
 pub use layout::{LayoutTier, LayoutZones, compute_zones, is_terminal_too_small};
 pub use logging::{LogConfig, init_logging};
-pub use terminal::{TuiConfig, TuiMode, TuiShell, TuiState};
+pub use terminal::{SidebarPanel, TuiConfig, TuiMode, TuiShell, TuiState};
 
 /// Minimum terminal width supported (columns).
 pub const MIN_TERMINAL_WIDTH: u16 = 80;
