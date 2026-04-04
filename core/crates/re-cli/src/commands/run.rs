@@ -7,11 +7,28 @@ use super::runtime_state::load_project_config;
 /// Executes the run command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     let verbose = args.iter().any(|a| a == "--verbose" || a == "-v");
+    let accept = args
+        .iter()
+        .any(|a| a == "--i-understand-ai-can-make-mistakes");
     let filtered: Vec<&str> = args
         .iter()
         .map(String::as_str)
-        .filter(|a| *a != "--verbose" && *a != "-v")
+        .filter(|a| {
+            !matches!(
+                *a,
+                "--verbose" | "-v" | "--i-understand-ai-can-make-mistakes"
+            )
+        })
         .collect();
+
+    // --i-understand-ai-can-make-mistakes: pre-accept autonomous mode without interactive prompt
+    if accept {
+        let cwd = current_dir_or_error(locale)?;
+        save_autonomous_acceptance(&cwd)?;
+        if filtered.is_empty() {
+            return Ok("Autonomous mode accepted.".to_owned());
+        }
+    }
 
     match filtered.first().copied() {
         Some("--list") => list_work_items(locale, verbose),
@@ -658,6 +675,16 @@ fn ensure_autonomous_acceptance(
 
     dbg_log(verbose, "autonomous mode: first run, asking for acceptance");
 
+    // If stdin is not a TTY (CI, hooks, piped input), reject immediately
+    // instead of blocking forever on read_line(). Rule 55.
+    if !std::io::IsTerminal::is_terminal(&std::io::stdin()) {
+        return Err(CliError::new(
+            "Autonomous mode requires interactive confirmation. \
+             Run `ralph-engine run` in a terminal, or pre-accept with: \
+             ralph-engine run --i-understand-ai-can-make-mistakes",
+        ));
+    }
+
     eprint!("{}", i18n::run_autonomous_warning(locale));
     use std::io::Write as _;
     let _ = std::io::stderr().flush();
@@ -690,6 +717,23 @@ fn ensure_autonomous_acceptance(
             acceptance_path.display()
         ),
     );
+    Ok(())
+}
+
+/// Saves the autonomous acceptance file without interactive prompt.
+fn save_autonomous_acceptance(project_root: &std::path::Path) -> Result<(), CliError> {
+    let re_dir = project_root.join(".ralph-engine");
+    std::fs::create_dir_all(&re_dir)
+        .map_err(|err| CliError::new(format!("Failed to create .ralph-engine/: {err}")))?;
+    let acceptance_path = re_dir.join(".accepted-autonomous");
+    std::fs::write(
+        &acceptance_path,
+        format!(
+            "# Autonomous mode accepted on {}\n# User confirmed: --i-understand-ai-can-make-mistakes\n",
+            chrono_free_now()
+        ),
+    )
+    .map_err(|err| CliError::new(format!("Failed to save acceptance: {err}")))?;
     Ok(())
 }
 
