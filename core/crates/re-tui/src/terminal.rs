@@ -447,6 +447,12 @@ pub struct TuiShell {
     autocomplete: AutocompleteState,
     /// Active toast notifications (auto-dismiss on tick).
     toasts: Vec<Toast>,
+    /// Queued blocks to drip-feed into the activity feed (demo/replay).
+    pending_blocks: Vec<crate::feed::FeedBlock>,
+    /// Ticks between draining pending blocks (cadence control).
+    drip_interval: usize,
+    /// Tick counter for drip timing.
+    drip_counter: usize,
 }
 
 impl TuiShell {
@@ -486,6 +492,9 @@ impl TuiShell {
             pending_text_input: None,
             autocomplete: AutocompleteState::new(Vec::new(), "/".to_owned()),
             toasts: Vec::new(),
+            pending_blocks: Vec::new(),
+            drip_interval: 15, // ~750ms at 50ms poll (15 ticks)
+            drip_counter: 0,
         }
     }
 
@@ -627,6 +636,34 @@ impl TuiShell {
         self.push_activity(String::new());
         self.push_activity("  Initializing...".to_owned());
         self.push_activity(String::new());
+    }
+
+    /// Enqueues blocks to be drip-fed into the feed over time.
+    ///
+    /// Blocks appear one by one with a cadence, giving the impression
+    /// of a real implementation happening. Auto-scrolls to follow.
+    pub fn enqueue_blocks(&mut self, blocks: Vec<crate::feed::FeedBlock>) {
+        self.pending_blocks = blocks;
+        self.drip_counter = 0;
+        self.follow_mode = true;
+    }
+
+    /// Drains one pending block into the feed if the cadence allows.
+    ///
+    /// Called on each render tick. Returns true if a block was added.
+    fn drain_pending_block(&mut self) -> bool {
+        if self.pending_blocks.is_empty() {
+            return false;
+        }
+        self.drip_counter += 1;
+        if self.drip_counter >= self.drip_interval {
+            self.drip_counter = 0;
+            let block = self.pending_blocks.remove(0);
+            self.feed.push_block(block);
+            true
+        } else {
+            false
+        }
     }
 
     /// Handles a bracketed paste event (multi-line text pasted at once).
@@ -1207,6 +1244,8 @@ impl TuiShell {
     /// Internal render implementation for a given area.
     fn render_in(&mut self, frame: &mut Frame<'_>, area: Rect) {
         self.tick = self.tick.wrapping_add(1);
+        // Drip-feed queued blocks (demo/replay cadence)
+        self.drain_pending_block();
         if layout::is_terminal_too_small(area) {
             let msg = format!(
                 "Terminal too small ({}x{}). Minimum: {}x{}.",
@@ -1526,10 +1565,10 @@ impl TuiShell {
 
                 let show_count = if truncated { max_lines } else { total_content };
                 for content_line in block.content.iter().take(show_count) {
-                    let styled = style_content_line(content_line, block.kind, theme);
+                    let content_spans = style_content_line(content_line, block.kind, theme);
                     // Prepend left border
                     let mut spans = vec![Span::styled("│ ", Style::default().fg(block_color))];
-                    spans.extend(styled.spans);
+                    spans.extend(content_spans);
                     let mut bordered = Line::from(spans);
                     if is_focused {
                         bordered = bordered.style(Style::default().bg(theme.surface()));
@@ -1562,9 +1601,17 @@ impl TuiShell {
         let content_height = all_lines.len() as u16;
         let content_width = area.width.saturating_sub(1); // reserve 1 col for scrollbar
 
-        // Follow mode: scroll to bottom when new content arrives
+        // Follow mode: smooth scroll toward bottom when new content arrives
         if self.follow_mode && was_dirty {
-            self.feed_scroll.scroll_to_bottom();
+            let target_y = content_height.saturating_sub(area.height);
+            let current_y = self.feed_scroll.offset().y;
+            if current_y < target_y {
+                // Smooth: advance by up to 3 lines per frame toward target
+                let step = 3.min(target_y - current_y);
+                use ratatui::layout::Position;
+                self.feed_scroll
+                    .set_offset(Position::new(0, current_y + step));
+            }
         }
 
         // Focus mode: scroll to keep focused block visible
@@ -1819,6 +1866,25 @@ impl TuiShell {
                 Span::styled(" cancel ", dim),
             ];
             frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
+            return;
+        }
+
+        // Show active block status (thinking/running indicator)
+        if let Some(active_block) = self.feed.blocks().iter().rev().find(|b| b.active) {
+            const SPINNER: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+            let idx = self.tick / 2 % SPINNER.len();
+            let spinner = SPINNER[idx];
+            let status_spans = vec![
+                Span::styled(format!(" {spinner} "), Style::default().fg(theme.warning())),
+                Span::styled(
+                    format!("{} ", active_block.title),
+                    Style::default()
+                        .fg(theme.text_bright())
+                        .add_modifier(Modifier::ITALIC),
+                ),
+                Span::styled("│", Style::default().fg(theme.border())),
+            ];
+            frame.render_widget(Paragraph::new(Line::from(status_spans)), zones.help);
             return;
         }
 
@@ -2315,38 +2381,59 @@ impl TuiShell {
 ///
 /// Diff lines (starting with `+` or `-`) get special treatment.
 /// Command output stays plain. Thinking text is dim italic.
+/// Styles a content line as a vec of spans (preserving per-character coloring).
+///
+/// Returns spans (not a Line) so the caller can prepend border spans
+/// without losing the style information.
 fn style_content_line<'a>(
     line: &'a str,
     kind: crate::feed::BlockKind,
     theme: &dyn crate::theme::Theme,
-) -> Line<'a> {
+) -> Vec<Span<'a>> {
     use crate::feed::BlockKind;
 
     match kind {
         BlockKind::FileEdit => {
             if line.starts_with('+') {
-                Line::styled(line, Style::default().fg(theme.diff_added()))
+                vec![Span::styled(line, Style::default().fg(theme.diff_added()))]
             } else if line.starts_with('-') {
-                Line::styled(line, Style::default().fg(theme.diff_removed()))
+                vec![Span::styled(
+                    line,
+                    Style::default().fg(theme.diff_removed()),
+                )]
             } else if line.starts_with("@@") {
-                Line::styled(
+                vec![Span::styled(
                     line,
                     Style::default()
                         .fg(theme.info())
                         .add_modifier(Modifier::BOLD),
-                )
+                )]
             } else {
-                Line::styled(line, Style::default().fg(theme.diff_context()))
+                vec![Span::styled(
+                    line,
+                    Style::default().fg(theme.diff_context()),
+                )]
             }
         }
-        BlockKind::Command => Line::styled(line, Style::default().fg(theme.text_dim())),
-        BlockKind::Thinking => Line::styled(
+        BlockKind::Command => {
+            // Color error/fail lines in red, pass/success in green
+            if line.contains("FAIL") || line.contains("error") || line.contains("Error") {
+                vec![Span::styled(line, Style::default().fg(theme.error()))]
+            } else if line.contains("PASS") || line.contains("✓") || line.starts_with("ok") {
+                vec![Span::styled(line, Style::default().fg(theme.success()))]
+            } else {
+                vec![Span::styled(line, Style::default().fg(theme.text_dim()))]
+            }
+        }
+        BlockKind::Thinking => vec![Span::styled(
             line,
             Style::default()
                 .fg(theme.text_dim())
                 .add_modifier(Modifier::ITALIC),
-        ),
-        _ => Line::raw(line),
+        )],
+        BlockKind::GateFail => vec![Span::styled(line, Style::default().fg(theme.error()))],
+        BlockKind::GatePass => vec![Span::styled(line, Style::default().fg(theme.success()))],
+        _ => vec![Span::raw(line)],
     }
 }
 

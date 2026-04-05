@@ -519,6 +519,7 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     use re_tui::feed::{BlockKind, FeedBlock};
 
     shell.set_state(re_tui::TuiState::Running);
+    let mut blocks: Vec<FeedBlock> = Vec::new();
 
     // ── Phase 1: Start ──────────────────────────────────────────────
     let mut sys =
@@ -526,7 +527,7 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     sys.collapsed = false;
     sys.push_content(i18n::demo_workflow_info(locale).to_owned());
     sys.push_content(i18n::demo_prompt_info(locale).to_owned());
-    shell.feed_mut().push_block(sys);
+    blocks.push(sys);
 
     let mut think1 = FeedBlock::completed(
         BlockKind::Thinking,
@@ -537,7 +538,7 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     think1.push_content(i18n::demo_think_planning_2(locale).to_owned());
     think1.push_content(i18n::demo_think_planning_3(locale).to_owned());
     think1.push_content(i18n::demo_think_planning_4(locale).to_owned());
-    shell.feed_mut().push_block(think1);
+    blocks.push(think1);
 
     // ── Phase 2: Read existing code ─────────────────────────────────
     let mut r1 = FeedBlock::completed(
@@ -563,7 +564,7 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     r1.push_content("  }".to_owned());
     r1.push_content("}".to_owned());
     r1.elapsed_ms_override(95);
-    shell.feed_mut().push_block(r1);
+    blocks.push(r1);
 
     let mut r2 = FeedBlock::completed(
         BlockKind::FileRead,
@@ -575,7 +576,7 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     r2.push_content("  async searchEvents(@Args() args: SearchArgs) { ... }".to_owned());
     r2.push_content("}".to_owned());
     r2.elapsed_ms_override(78);
-    shell.feed_mut().push_block(r2);
+    blocks.push(r2);
 
     let mut r3 = FeedBlock::completed(
         BlockKind::FileRead,
@@ -586,7 +587,7 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     r3.push_content("  it('should return total count', async () => { ... });".to_owned());
     r3.push_content("});".to_owned());
     r3.elapsed_ms_override(62);
-    shell.feed_mut().push_block(r3);
+    blocks.push(r3);
 
     // ── Phase 3: Edit service ───────────────────────────────────────
     let mut think2 = FeedBlock::completed(
@@ -596,7 +597,7 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     think2.collapsed = false;
     think2.push_content(i18n::demo_think_cursor_1(locale).to_owned());
     think2.push_content(i18n::demo_think_cursor_2(locale).to_owned());
-    shell.feed_mut().push_block(think2);
+    blocks.push(think2);
 
     let mut e1 = FeedBlock::completed(
         BlockKind::FileEdit,
@@ -639,7 +640,7 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     e1.push_content("+      },".to_owned());
     e1.push_content("+    };".to_owned());
     e1.elapsed_ms_override(140);
-    shell.feed_mut().push_block(e1);
+    blocks.push(e1);
 
     // ── Phase 4: Edit resolver ──────────────────────────────────────
     let mut e2 = FeedBlock::completed(
@@ -659,7 +660,7 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     e2.push_content("+    return this.searchService.searchEvents(query, first, after);".to_owned());
     e2.push_content("+  }".to_owned());
     e2.elapsed_ms_override(95);
-    shell.feed_mut().push_block(e2);
+    blocks.push(e2);
 
     // ── Phase 5: Update tests ───────────────────────────────────────
     let mut e3 = FeedBlock::completed(
@@ -688,7 +689,7 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     );
     e3.push_content("+  });".to_owned());
     e3.elapsed_ms_override(110);
-    shell.feed_mut().push_block(e3);
+    blocks.push(e3);
 
     // ── Phase 6: First test run — fails ─────────────────────────────
     let mut bash1 = FeedBlock::completed(
@@ -708,14 +709,14 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     bash1.active = false;
     bash1.success = Some(false);
     bash1.elapsed_ms_override(4800);
-    shell.feed_mut().push_block(bash1);
+    blocks.push(bash1);
 
     let mut fail = FeedBlock::completed(
         BlockKind::GateFail,
         i18n::demo_gate_tests_fail(locale).to_owned(),
     );
     fail.success = Some(false);
-    shell.feed_mut().push_block(fail);
+    blocks.push(fail);
 
     // ── Phase 7: Fix the bug ────────────────────────────────────────
     let mut think3 = FeedBlock::completed(
@@ -725,7 +726,7 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     think3.collapsed = false;
     think3.push_content(i18n::demo_think_debug_1(locale).to_owned());
     think3.push_content(i18n::demo_think_debug_2(locale).to_owned());
-    shell.feed_mut().push_block(think3);
+    blocks.push(think3);
 
     let mut e4 = FeedBlock::completed(
         BlockKind::FileEdit,
@@ -739,7 +740,7 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     );
     e4.push_content("+        hasPreviousPage: !!cursor,".to_owned());
     e4.elapsed_ms_override(60);
-    shell.feed_mut().push_block(e4);
+    blocks.push(e4);
 
     // ── Phase 8: Second test run — passes ───────────────────────────
     let mut bash2 = FeedBlock::completed(
@@ -753,38 +754,38 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     bash2.push_content("".to_owned());
     bash2.push_content("Tests:  2 passed, 2 total".to_owned());
     bash2.elapsed_ms_override(3100);
-    shell.feed_mut().push_block(bash2);
+    blocks.push(bash2);
 
     let pass1 = FeedBlock::completed(
         BlockKind::GatePass,
         i18n::demo_gate_tests_pass(locale).to_owned(),
     );
-    shell.feed_mut().push_block(pass1);
+    blocks.push(pass1);
 
     // ── Phase 9: Quality gates ──────────────────────────────────────
     let mut bash3 = FeedBlock::completed(BlockKind::Command, "pnpm type-check".to_owned());
     bash3.push_content("No errors found.".to_owned());
     bash3.elapsed_ms_override(8500);
-    shell.feed_mut().push_block(bash3);
+    blocks.push(bash3);
 
     let pass2 = FeedBlock::completed(
         BlockKind::GatePass,
         i18n::demo_gate_typecheck(locale).to_owned(),
     );
-    shell.feed_mut().push_block(pass2);
+    blocks.push(pass2);
 
     let mut bash4 = FeedBlock::completed(BlockKind::Command, "pnpm build".to_owned());
     bash4.push_content("apps/api: build succeeded in 12.3s".to_owned());
     bash4.push_content("apps/web: build succeeded in 18.7s".to_owned());
     bash4.push_content("packages/ui: build succeeded in 4.1s".to_owned());
     bash4.elapsed_ms_override(35200);
-    shell.feed_mut().push_block(bash4);
+    blocks.push(bash4);
 
     let pass3 = FeedBlock::completed(
         BlockKind::GatePass,
         i18n::demo_gate_build(locale).to_owned(),
     );
-    shell.feed_mut().push_block(pass3);
+    blocks.push(pass3);
 
     // ── Phase 10: Commit ────────────────────────────────────────────
     let mut bash5 = FeedBlock::completed(BlockKind::Command, "git add -A && git commit".to_owned());
@@ -793,7 +794,7 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     );
     bash5.push_content(" 3 files changed, 42 insertions(+), 12 deletions(-)".to_owned());
     bash5.elapsed_ms_override(1200);
-    shell.feed_mut().push_block(bash5);
+    blocks.push(bash5);
 
     // ── Phase 11: Summary ───────────────────────────────────────────
     let mut text = FeedBlock::completed(BlockKind::AgentText, String::new());
@@ -801,17 +802,19 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     text.push_content(i18n::demo_summary_1(locale).to_owned());
     text.push_content(i18n::demo_summary_2(locale).to_owned());
     text.push_content(i18n::demo_summary_3(locale).to_owned());
-    shell.feed_mut().push_block(text);
+    blocks.push(text);
 
     let mut done =
         FeedBlock::completed(BlockKind::System, i18n::demo_done_title(locale).to_owned());
     done.collapsed = false;
     done.push_content(i18n::demo_done_info(locale).to_owned());
-    shell.feed_mut().push_block(done);
+    blocks.push(done);
 
     // Active: starting next story
     let active = FeedBlock::new(BlockKind::Thinking, i18n::demo_next(locale).to_owned());
-    shell.feed_mut().push_block(active);
+    blocks.push(active);
 
-    shell.toast_success(i18n::demo_toast(locale).to_owned());
+    // Enqueue all blocks — they'll appear one by one with cadence
+    shell.enqueue_blocks(blocks);
+    shell.toast_info(i18n::demo_toast(locale).to_owned());
 }
