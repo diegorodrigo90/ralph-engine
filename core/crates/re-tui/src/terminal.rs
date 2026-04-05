@@ -247,6 +247,8 @@ pub struct TuiShell {
     feed_scroll: ScrollViewState,
     /// Follow mode: auto-scroll to bottom on new content.
     follow_mode: bool,
+    /// Index of the focused block in the feed (`None` = no focus).
+    focused_block: Option<usize>,
     /// Quality gate pipeline for orchestration runs.
     indicator_panel: crate::indicators::IndicatorPanel,
     tool_count: usize,
@@ -282,6 +284,7 @@ impl TuiShell {
             feed: crate::feed::Feed::new(),
             feed_scroll: ScrollViewState::default(),
             follow_mode: true,
+            focused_block: None,
             indicator_panel: crate::indicators::IndicatorPanel::new(),
             tool_count: 0,
             should_quit: false,
@@ -502,6 +505,54 @@ impl TuiShell {
         self.feed_scroll.scroll_to_bottom();
     }
 
+    /// Returns the index of the focused block, if any.
+    #[must_use]
+    pub fn focused_block(&self) -> Option<usize> {
+        self.focused_block
+    }
+
+    /// Moves focus to the next block (down).
+    pub fn focus_next_block(&mut self) {
+        let count = self.feed.len();
+        if count == 0 {
+            return;
+        }
+        self.follow_mode = false;
+        self.focused_block = Some(match self.focused_block {
+            Some(i) if i + 1 < count => i + 1,
+            Some(_) => count - 1, // already at last — stay
+            None => count - 1,    // no focus — start at bottom
+        });
+    }
+
+    /// Moves focus to the previous block (up).
+    pub fn focus_prev_block(&mut self) {
+        let count = self.feed.len();
+        if count == 0 {
+            return;
+        }
+        self.follow_mode = false;
+        self.focused_block = Some(match self.focused_block {
+            Some(i) if i > 0 => i - 1,
+            Some(_) => 0, // already at first — stay
+            None => 0,    // no focus — start at top
+        });
+    }
+
+    /// Toggles expand/collapse on the focused block.
+    pub fn toggle_focused_block(&mut self) {
+        if let Some(idx) = self.focused_block {
+            self.feed.toggle_block(idx);
+        }
+    }
+
+    /// Clears block focus and re-enables follow mode.
+    pub fn clear_focus(&mut self) {
+        self.focused_block = None;
+        self.follow_mode = true;
+        self.feed_scroll.scroll_to_bottom();
+    }
+
     /// Returns a reference to the gate pipeline.
     #[must_use]
     pub fn indicator_panel(&self) -> &crate::indicators::IndicatorPanel {
@@ -697,12 +748,29 @@ impl TuiShell {
                 self.push_help_to_activity();
                 return PluginKeyAction::Handled;
             }
-            // Feed scroll keys
-            KeyCode::Up | KeyCode::Char('k') => {
+            // Block focus navigation (vim j/k)
+            KeyCode::Char('j') => {
+                self.focus_next_block();
+                return PluginKeyAction::Handled;
+            }
+            KeyCode::Char('k') => {
+                self.focus_prev_block();
+                return PluginKeyAction::Handled;
+            }
+            KeyCode::Enter => {
+                self.toggle_focused_block();
+                return PluginKeyAction::Handled;
+            }
+            KeyCode::Esc => {
+                self.clear_focus();
+                return PluginKeyAction::Handled;
+            }
+            // Feed scroll keys (arrows + page)
+            KeyCode::Up => {
                 self.scroll_feed_up();
                 return PluginKeyAction::Handled;
             }
-            KeyCode::Down | KeyCode::Char('j') => {
+            KeyCode::Down => {
                 self.scroll_feed_down();
                 return PluginKeyAction::Handled;
             }
@@ -982,9 +1050,15 @@ impl TuiShell {
         let was_dirty = self.feed.is_dirty();
         self.feed.clear_dirty();
 
+        let focused = self.focused_block;
         let mut all_lines: Vec<Line<'_>> = Vec::new();
+        let mut focused_line: Option<u16> = None;
 
-        for block in self.feed.blocks() {
+        for (block_idx, block) in self.feed.blocks().iter().enumerate() {
+            let is_focused = focused == Some(block_idx);
+            if is_focused {
+                focused_line = Some(all_lines.len() as u16);
+            }
             // Title line: icon + title + elapsed
             let icon = block.kind.icon();
             let icon_style = match block.kind {
@@ -1011,6 +1085,16 @@ impl TuiShell {
             };
 
             let mut spans = Vec::new();
+
+            // Focus indicator
+            if is_focused {
+                spans.push(Span::styled(
+                    "▸ ",
+                    Style::default()
+                        .fg(theme.accent())
+                        .add_modifier(Modifier::BOLD),
+                ));
+            }
 
             // Icon
             if !icon.is_empty() {
@@ -1048,7 +1132,11 @@ impl TuiShell {
                 spans.push(Span::styled(" [FAIL]", Style::default().fg(theme.error())));
             }
 
-            all_lines.push(Line::from(spans));
+            let mut title_line = Line::from(spans);
+            if is_focused {
+                title_line = title_line.style(Style::default().bg(theme.surface()));
+            }
+            all_lines.push(title_line);
 
             // Content lines (only if expanded)
             if !block.collapsed {
@@ -1065,6 +1153,22 @@ impl TuiShell {
         // Follow mode: scroll to bottom when new content arrives
         if self.follow_mode && was_dirty {
             self.feed_scroll.scroll_to_bottom();
+        }
+
+        // Focus mode: scroll to keep focused block visible
+        if let Some(line_y) = focused_line {
+            use ratatui::layout::Position;
+            let current_y = self.feed_scroll.offset().y;
+            let visible_h = area.height;
+            // If focused block is above viewport, scroll up to it
+            if line_y < current_y {
+                self.feed_scroll.set_offset(Position::new(0, line_y));
+            }
+            // If focused block is below viewport, scroll down
+            else if line_y >= current_y + visible_h {
+                self.feed_scroll
+                    .set_offset(Position::new(0, line_y.saturating_sub(visible_h / 2)));
+            }
         }
 
         // "↑ more" indicator when scrolled up
@@ -2102,15 +2206,42 @@ mod tests {
     }
 
     #[test]
-    fn scroll_keys_handled_in_key_handler() {
+    fn focus_keys_handled_in_key_handler() {
         let mut shell = test_shell();
-        // j/k should be handled as scroll keys
+        // Add some blocks so focus navigation works
+        shell
+            .feed_mut()
+            .push_block(crate::feed::FeedBlock::completed(
+                crate::feed::BlockKind::System,
+                "block-a".into(),
+            ));
+        shell
+            .feed_mut()
+            .push_block(crate::feed::FeedBlock::completed(
+                crate::feed::BlockKind::System,
+                "block-b".into(),
+            ));
+
+        // j should focus next block and disable follow
         let result = shell.handle_key(KeyCode::Char('j'));
         assert_eq!(result, PluginKeyAction::Handled);
         assert!(!shell.is_follow_mode());
+        assert!(shell.focused_block().is_some());
 
+        // G should re-enable follow and clear focus
         let result = shell.handle_key(KeyCode::Char('G'));
         assert_eq!(result, PluginKeyAction::Handled);
+        assert!(shell.is_follow_mode());
+
+        // Enter should toggle focused block
+        shell.handle_key(KeyCode::Char('j'));
+        let result = shell.handle_key(KeyCode::Enter);
+        assert_eq!(result, PluginKeyAction::Handled);
+
+        // Esc should clear focus
+        let result = shell.handle_key(KeyCode::Esc);
+        assert_eq!(result, PluginKeyAction::Handled);
+        assert!(shell.focused_block().is_none());
         assert!(shell.is_follow_mode());
     }
 
