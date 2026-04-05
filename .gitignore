@@ -28,3 +28,4 @@
 
 # Runtime artifacts
 .ralph-engine/.feedback.md
+site/public/plugins/index.json
