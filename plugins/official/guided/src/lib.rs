@@ -180,7 +180,7 @@ mod tests {
     }
 
     #[test]
-    fn plugin_manifest_matches_typed_contract() {
+    fn plugin_manifest_matches_typed_contract_surface() {
         let manifest = manifest_document();
         assert!(manifest.contains("id: official.guided"));
         assert!(manifest.contains("kind: tui_extension"));
