@@ -959,22 +959,34 @@ impl TuiShell {
     /// Pushes help text to the activity stream based on state and plugin bindings.
     fn push_help_to_activity(&mut self) {
         let state_label = format!("{:?}", self.state);
-        let mut parts = vec![">> Keys:".to_owned()];
+
+        self.push_activity("── Keys ──".to_owned());
+        self.push_activity("  j/k  navigate blocks   ↑↓  scroll   PgUp/PgDn  page".to_owned());
+        self.push_activity("  ⏎    expand/collapse   y   copy     ⎋  clear focus".to_owned());
+        self.push_activity("  F2   sidebar           G   follow   Ctrl+A  agents".to_owned());
+        self.push_activity("  q    quit              ?   help".to_owned());
 
         // Plugin keybindings active in current state
+        let mut plugin_keys = Vec::new();
         for binding in &self.plugin_keybindings {
             if binding.active_states.is_empty()
                 || binding.active_states.iter().any(|s| s == &state_label)
             {
-                parts.push(format!("[{}] {}", binding.key, binding.description));
+                plugin_keys.push(format!("  [{}] {}", binding.key, binding.description));
+            }
+        }
+        if !plugin_keys.is_empty() {
+            self.push_activity("── Plugin keys ──".to_owned());
+            for key in plugin_keys {
+                self.push_activity(key);
             }
         }
 
-        // Core keys (always active)
-        parts.push("[q] quit".to_owned());
-        parts.push("[?] help".to_owned());
-
-        self.push_activity(parts.join("  "));
+        // Slash commands hint
+        if self.input_enabled {
+            self.push_activity("── Commands ──".to_owned());
+            self.push_activity("  Type / to see available commands".to_owned());
+        }
     }
 
     /// Renders the TUI frame with responsive zone-based layout.

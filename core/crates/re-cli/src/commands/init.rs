@@ -15,6 +15,7 @@ use super::embedded_assets::{MaterializedAsset, materialize_assets};
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
         Some("--help" | "-h") => Ok(i18n::init_help(locale).to_owned()),
+        Some("--auto") => run_auto_init(".", locale),
         _ => run_interactive_init(args.first().map(String::as_str).unwrap_or("."), locale),
     }
 }
@@ -53,6 +54,91 @@ fn confirm(question: &str, default: bool) -> bool {
         return default;
     }
     matches!(answer.to_lowercase().as_str(), "y" | "yes" | "s" | "sim")
+}
+
+/// Runs a non-interactive init with sensible defaults.
+///
+/// Used by the TUI dashboard (`/init`) where stdin is unavailable.
+/// Uses the first template and enables all official plugins.
+fn run_auto_init(target_dir: &str, locale: &str) -> Result<String, CliError> {
+    let target = Path::new(target_dir);
+    let re_dir = target.join(".ralph-engine");
+    let mut output = Vec::new();
+
+    if re_dir.exists() {
+        return Ok(
+            "Project already initialized. Delete .ralph-engine/ to reinitialize.".to_owned(),
+        );
+    }
+
+    // Use first available template (usually "basic")
+    let templates = catalog::official_template_contributions();
+    if templates.is_empty() {
+        return Err(CliError::new(i18n::init_no_templates(locale).to_owned()));
+    }
+    let selected = &templates[0];
+
+    // Materialize template
+    let assets: Vec<MaterializedAsset<'_>> = selected
+        .descriptor
+        .assets
+        .iter()
+        .map(|a| MaterializedAsset {
+            path: a.path,
+            contents: a.contents,
+        })
+        .collect();
+
+    let materialize_result = materialize_assets(&assets, target, locale)?;
+    output.push(materialize_result);
+
+    // Enable ALL optional plugins automatically
+    let all_plugins = catalog::official_runtime_plugins();
+    let config_path = target.join(".ralph-engine/config.yaml");
+    let config_content = std::fs::read_to_string(&config_path).unwrap_or_default();
+    let optional: Vec<_> = all_plugins
+        .iter()
+        .filter(|p| !config_content.contains(p.descriptor.id))
+        .collect();
+
+    if !optional.is_empty() {
+        if let Ok(mut config) = std::fs::read_to_string(&config_path) {
+            config.push_str("\n# Plugins enabled automatically\n");
+            for p in &optional {
+                config.push_str(&format!(
+                    "  - id: {}\n    activation: enabled\n",
+                    p.descriptor.id
+                ));
+            }
+            let _ = std::fs::write(&config_path, config);
+        }
+        output.push(format!("  Enabled {} additional plugins", optional.len()));
+    }
+
+    // Accept all plugin init contributions
+    let init_contributions = catalog::collect_init_contributions_from_plugins();
+    for contrib in &init_contributions {
+        if let Some(snippet) = &contrib.config_snippet
+            && let Ok(mut config) = std::fs::read_to_string(&config_path)
+        {
+            config.push_str(&format!("\n{snippet}\n"));
+            let _ = std::fs::write(&config_path, config);
+        }
+        for (file_path, file_contents) in &contrib.files {
+            let full_path = target.join(file_path);
+            if let Some(parent) = full_path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let _ = std::fs::write(&full_path, file_contents);
+            output.push(format!(
+                "  {} {file_path}",
+                i18n::init_created_label(locale),
+            ));
+        }
+    }
+
+    output.push("  Project initialized. Type /doctor to check health.".to_owned());
+    Ok(output.join("\n"))
 }
 
 /// Runs the interactive init flow with auto-discovered templates and plugins.
