@@ -1817,7 +1817,10 @@ impl TuiShell {
                 Style::default().fg(theme.text_bright()),
             ),
             Line::raw(""),
-            Line::styled(" [q] Quit", Style::default().fg(theme.text_dim())),
+            Line::styled(
+                format!(" [q] {}", self.labels.quit_label),
+                Style::default().fg(theme.text_dim()),
+            ),
         ];
         frame.render_widget(Paragraph::new(lines), inner);
     }
@@ -2044,17 +2047,28 @@ impl TuiShell {
                 .fg(theme.text_bright())
                 .add_modifier(Modifier::BOLD),
         ));
-        let nav_keys = [
-            ("j/k", "Focus blocks"),
-            ("↑↓", "Scroll lines"),
-            ("PgUp/PgDn", "Scroll pages"),
-            ("G / End", "Follow mode"),
-            ("Home", "Scroll to top"),
-        ];
+        let is_ptbr = self.config.locale == "pt-br";
+        let nav_keys: &[(&str, &str)] = if is_ptbr {
+            &[
+                ("j/k", "Focar blocos"),
+                ("↑↓", "Rolar linhas"),
+                ("PgUp/PgDn", "Rolar páginas"),
+                ("G / End", "Seguir"),
+                ("Home", "Início"),
+            ]
+        } else {
+            &[
+                ("j/k", "Focus blocks"),
+                ("↑↓", "Scroll lines"),
+                ("PgUp/PgDn", "Scroll pages"),
+                ("G / End", "Follow mode"),
+                ("Home", "Scroll to top"),
+            ]
+        };
         for (key, desc) in nav_keys {
             lines.push(Line::from(vec![
                 Span::styled(format!("  {key:<12}"), Style::default().fg(theme.accent())),
-                Span::styled(desc, Style::default().fg(theme.text_dim())),
+                Span::styled(*desc, Style::default().fg(theme.text_dim())),
             ]));
         }
 
@@ -2067,19 +2081,31 @@ impl TuiShell {
                 .fg(theme.text_bright())
                 .add_modifier(Modifier::BOLD),
         ));
-        let action_keys = [
-            ("⏎ Enter", "Expand/collapse"),
-            ("y", "Copy block"),
-            ("⎋ Esc", "Clear focus"),
-            ("F2", "Toggle sidebar"),
-            ("Ctrl+A", "Agent switcher"),
-            ("?", "This help"),
-            ("q", "Quit"),
-        ];
+        let action_keys: &[(&str, &str)] = if is_ptbr {
+            &[
+                ("⏎ Enter", "Expandir/recolher"),
+                ("y", "Copiar bloco"),
+                ("⎋ Esc", "Limpar foco"),
+                ("F2", "Alternar sidebar"),
+                ("Ctrl+A", "Trocar agente"),
+                ("?", "Esta ajuda"),
+                ("q", "Sair"),
+            ]
+        } else {
+            &[
+                ("⏎ Enter", "Expand/collapse"),
+                ("y", "Copy block"),
+                ("⎋ Esc", "Clear focus"),
+                ("F2", "Toggle sidebar"),
+                ("Ctrl+A", "Agent switcher"),
+                ("?", "This help"),
+                ("q", "Quit"),
+            ]
+        };
         for (key, desc) in action_keys {
             lines.push(Line::from(vec![
                 Span::styled(format!("  {key:<12}"), Style::default().fg(theme.accent())),
-                Span::styled(desc, Style::default().fg(theme.text_dim())),
+                Span::styled(*desc, Style::default().fg(theme.text_dim())),
             ]));
         }
 
