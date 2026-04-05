@@ -2,9 +2,10 @@
 
 use std::path::Path;
 
+use super::embedded_assets::{MaterializedAsset, materialize_assets};
+use super::format;
 use crate::{CliError, catalog, i18n};
 
-use super::embedded_assets::{MaterializedAsset, materialize_assets};
 use catalog::OfficialTemplateContribution;
 
 /// Executes the templates command tree.
@@ -123,25 +124,26 @@ fn materialize_template(
 }
 
 fn render_template_listing(registrations: &[OfficialTemplateContribution], locale: &str) -> String {
-    let mut lines = Vec::with_capacity(registrations.len() + 1);
-    lines.push(i18n::list_heading(
-        locale,
-        "Templates",
-        "Templates",
-        registrations.len(),
-    ));
+    let heading = i18n::list_heading(locale, "Templates", "Templates", registrations.len());
 
-    for registration in registrations {
-        lines.push(format!(
-            "- {} | {} | plugin={} | activation={}",
-            registration.descriptor.id,
-            registration.descriptor.display_name_for_locale(locale),
-            registration.descriptor.plugin_id,
-            registration.activation.as_str(),
-        ));
+    let headers = &["ID", "NAME", "PLUGIN", "STATUS"];
+    let rows: Vec<Vec<String>> = registrations
+        .iter()
+        .map(|r| {
+            vec![
+                r.descriptor.id.to_owned(),
+                r.descriptor.display_name_for_locale(locale).to_owned(),
+                r.descriptor.plugin_id.to_owned(),
+                r.activation.as_str().to_owned(),
+            ]
+        })
+        .collect();
+
+    if rows.is_empty() {
+        return heading;
     }
 
-    lines.join("\n")
+    format!("{heading}\n\n{}", format::render_table(headers, &rows))
 }
 
 fn render_template_detail(template: OfficialTemplateContribution, locale: &str) -> String {
@@ -157,27 +159,42 @@ fn render_template_detail(template: OfficialTemplateContribution, locale: &str) 
         "none".to_owned()
     };
 
-    format!(
-        "Template: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {runtime_hook}\n{assets_label}: {assets}",
-        template.descriptor.id,
-        template.descriptor.display_name_for_locale(locale),
-        template.descriptor.summary_for_locale(locale),
-        template.descriptor.plugin_id,
-        name_label = i18n::name_label(locale),
-        summary_label = i18n::summary_label(locale),
-        activation_label = i18n::activation_label(locale),
-        activation = template.activation.as_str(),
-        load_boundary_label = i18n::load_boundary_label(locale),
-        load_boundary = template.load_boundary.as_str(),
-        hook_label = i18n::hook_label(locale),
-        assets_label = i18n::assets_label(locale),
-        runtime_hook = if template.scaffold_hook_registered {
-            "scaffold"
-        } else {
-            "missing"
-        },
-        assets = asset_paths,
-    )
+    let pairs = vec![
+        ("Template:", template.descriptor.id.to_owned()),
+        (
+            i18n::name_label(locale),
+            template
+                .descriptor
+                .display_name_for_locale(locale)
+                .to_owned(),
+        ),
+        (
+            i18n::summary_label(locale),
+            template.descriptor.summary_for_locale(locale).to_owned(),
+        ),
+        ("Plugin:", template.descriptor.plugin_id.to_owned()),
+        ("", String::new()),
+        (
+            i18n::activation_label(locale),
+            template.activation.as_str().to_owned(),
+        ),
+        (
+            i18n::load_boundary_label(locale),
+            template.load_boundary.as_str().to_owned(),
+        ),
+        (
+            i18n::hook_label(locale),
+            if template.scaffold_hook_registered {
+                "scaffold"
+            } else {
+                "missing"
+            }
+            .to_owned(),
+        ),
+        (i18n::assets_label(locale), asset_paths),
+    ];
+
+    format::render_detail(&pairs)
 }
 
 #[cfg(test)]
@@ -222,7 +239,7 @@ mod tests {
 
         let rendered = render_template_listing(&registrations, "en");
 
-        assert_eq!(rendered, "Templates (0)");
+        assert!(rendered.contains("Templates (0)"));
     }
 
     #[test]
@@ -231,7 +248,7 @@ mod tests {
 
         let rendered = render_template_listing(&registrations, "pt-br");
 
-        assert_eq!(rendered, "Templates (0)");
+        assert!(rendered.contains("Templates (0)"));
     }
 
     #[test]
@@ -246,12 +263,12 @@ mod tests {
             "en",
         );
 
-        assert!(rendered.contains("Template: fixture.templates.starter"));
-        assert!(rendered.contains("Name: Basic starter"));
-        assert!(rendered.contains("Plugin: fixture.templates"));
-        assert!(rendered.contains("Activation: enabled"));
-        assert!(rendered.contains("Runtime hook: scaffold"));
-        assert!(rendered.contains("Assets: .ralph-engine/config.yaml"));
+        assert!(rendered.contains("fixture.templates.starter"));
+        assert!(rendered.contains("Basic starter"));
+        assert!(rendered.contains("fixture.templates"));
+        assert!(rendered.contains("enabled"));
+        assert!(rendered.contains("scaffold"));
+        assert!(rendered.contains(".ralph-engine/config.yaml"));
     }
 
     #[test]
@@ -266,11 +283,11 @@ mod tests {
             "pt-br",
         );
 
-        assert!(rendered.contains("Template: fixture.templates.starter"));
-        assert!(rendered.contains("Nome: Starter básico"));
-        assert!(rendered.contains("Resumo: Template inicial para novos projetos Ralph Engine."));
-        assert!(rendered.contains("Plugin: fixture.templates"));
-        assert!(rendered.contains("Assets: .ralph-engine/config.yaml"));
+        assert!(rendered.contains("fixture.templates.starter"));
+        assert!(rendered.contains("Starter básico"));
+        assert!(rendered.contains("Template inicial para novos projetos Ralph Engine."));
+        assert!(rendered.contains("fixture.templates"));
+        assert!(rendered.contains(".ralph-engine/config.yaml"));
     }
 
     #[test]

@@ -2,6 +2,7 @@
 
 use re_core::RuntimeAgentBootstrapPlan;
 
+use super::format;
 use crate::{CliError, catalog, i18n};
 
 use catalog::OfficialAgentContribution;
@@ -137,47 +138,66 @@ fn probe_agent_launch(agent_id: Option<&str>, locale: &str) -> Result<String, Cl
 }
 
 fn render_agent_listing(registrations: &[OfficialAgentContribution], locale: &str) -> String {
-    let mut lines = Vec::with_capacity(registrations.len() + 1);
-    lines.push(i18n::list_heading(
+    let heading = i18n::list_heading(
         locale,
         "Agent runtimes",
         "Runtimes de agente",
         registrations.len(),
-    ));
+    );
 
-    for registration in registrations {
-        lines.push(format!(
-            "- {} | {} | plugin={} | activation={}",
-            registration.descriptor.id,
-            registration.descriptor.display_name_for_locale(locale),
-            registration.descriptor.plugin_id,
-            registration.activation.as_str(),
-        ));
+    let headers = &["ID", "NAME", "PLUGIN", "STATUS"];
+    let rows: Vec<Vec<String>> = registrations
+        .iter()
+        .map(|r| {
+            vec![
+                r.descriptor.id.to_owned(),
+                r.descriptor.display_name_for_locale(locale).to_owned(),
+                r.descriptor.plugin_id.to_owned(),
+                r.activation.as_str().to_owned(),
+            ]
+        })
+        .collect();
+
+    if rows.is_empty() {
+        return heading;
     }
 
-    lines.join("\n")
+    format!("{heading}\n\n{}", format::render_table(headers, &rows))
 }
 
 fn render_agent_detail(agent: OfficialAgentContribution, locale: &str) -> String {
-    format!(
-        "Agent runtime: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {runtime_hook}",
-        agent.descriptor.id,
-        agent.descriptor.display_name_for_locale(locale),
-        agent.descriptor.summary_for_locale(locale),
-        agent.descriptor.plugin_id,
-        name_label = i18n::name_label(locale),
-        summary_label = i18n::summary_label(locale),
-        activation_label = i18n::activation_label(locale),
-        activation = agent.activation.as_str(),
-        load_boundary_label = i18n::load_boundary_label(locale),
-        load_boundary = agent.load_boundary.as_str(),
-        hook_label = i18n::hook_label(locale),
-        runtime_hook = if agent.bootstrap_hook_registered {
-            "agent_bootstrap"
-        } else {
-            "missing"
-        },
-    )
+    let pairs = vec![
+        ("Agent runtime:", agent.descriptor.id.to_owned()),
+        (
+            i18n::name_label(locale),
+            agent.descriptor.display_name_for_locale(locale).to_owned(),
+        ),
+        (
+            i18n::summary_label(locale),
+            agent.descriptor.summary_for_locale(locale).to_owned(),
+        ),
+        ("Plugin:", agent.descriptor.plugin_id.to_owned()),
+        ("", String::new()),
+        (
+            i18n::activation_label(locale),
+            agent.activation.as_str().to_owned(),
+        ),
+        (
+            i18n::load_boundary_label(locale),
+            agent.load_boundary.as_str().to_owned(),
+        ),
+        (
+            i18n::hook_label(locale),
+            if agent.bootstrap_hook_registered {
+                "agent_bootstrap"
+            } else {
+                "missing"
+            }
+            .to_owned(),
+        ),
+    ];
+
+    format::render_detail(&pairs)
 }
 
 fn render_agent_plan(
@@ -185,20 +205,29 @@ fn render_agent_plan(
     plan: RuntimeAgentBootstrapPlan,
     locale: &str,
 ) -> String {
-    format!(
-        "Agent bootstrap plan: {}\n{name_label}: {}\nPlugin: {}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: agent_bootstrap\n{registered_label}: {registered}",
-        agent.descriptor.id,
-        agent.descriptor.display_name_for_locale(locale),
-        agent.descriptor.plugin_id,
-        name_label = i18n::name_label(locale),
-        activation_label = i18n::activation_label(locale),
-        activation = agent.activation.as_str(),
-        load_boundary_label = i18n::load_boundary_label(locale),
-        load_boundary = plan.load_boundary.as_str(),
-        hook_label = i18n::hook_label(locale),
-        registered_label = i18n::registration_hook_label(locale),
-        registered = plan.bootstrap_hook_registered,
-    )
+    let pairs = vec![
+        ("Agent bootstrap plan:", agent.descriptor.id.to_owned()),
+        (
+            i18n::name_label(locale),
+            agent.descriptor.display_name_for_locale(locale).to_owned(),
+        ),
+        ("Plugin:", agent.descriptor.plugin_id.to_owned()),
+        (
+            i18n::activation_label(locale),
+            agent.activation.as_str().to_owned(),
+        ),
+        (
+            i18n::load_boundary_label(locale),
+            plan.load_boundary.as_str().to_owned(),
+        ),
+        (i18n::hook_label(locale), "agent_bootstrap".to_owned()),
+        (
+            i18n::registration_hook_label(locale),
+            plan.bootstrap_hook_registered.to_string(),
+        ),
+    ];
+
+    format::render_detail(&pairs)
 }
 
 #[cfg(test)]
@@ -238,7 +267,7 @@ mod tests {
 
         let rendered = render_agent_listing(&registrations, "en");
 
-        assert_eq!(rendered, "Agent runtimes (0)");
+        assert!(rendered.contains("Agent runtimes (0)"));
     }
 
     #[test]
@@ -247,7 +276,7 @@ mod tests {
 
         let rendered = render_agent_listing(&registrations, "pt-br");
 
-        assert_eq!(rendered, "Runtimes de agente (0)");
+        assert!(rendered.contains("Runtimes de agente (0)"));
     }
 
     #[test]
@@ -262,11 +291,11 @@ mod tests {
             "en",
         );
 
-        assert!(rendered.contains("Agent runtime: fixture.codex.session"));
-        assert!(rendered.contains("Name: Codex session"));
-        assert!(rendered.contains("Plugin: fixture.codex"));
-        assert!(rendered.contains("Activation: enabled"));
-        assert!(rendered.contains("Runtime hook: agent_bootstrap"));
+        assert!(rendered.contains("fixture.codex.session"));
+        assert!(rendered.contains("Codex session"));
+        assert!(rendered.contains("fixture.codex"));
+        assert!(rendered.contains("enabled"));
+        assert!(rendered.contains("agent_bootstrap"));
     }
 
     #[test]
@@ -281,9 +310,9 @@ mod tests {
             "pt-br",
         );
 
-        assert!(rendered.contains("Agent runtime: fixture.codex.session"));
-        assert!(rendered.contains("Nome: Sessão Codex"));
-        assert!(rendered.contains("Resumo: Sessão de runtime do Codex para o Ralph Engine."));
+        assert!(rendered.contains("fixture.codex.session"));
+        assert!(rendered.contains("Sessão Codex"));
+        assert!(rendered.contains("Sessão de runtime do Codex para o Ralph Engine."));
     }
 
     #[test]
@@ -304,9 +333,10 @@ mod tests {
             "en",
         );
 
-        assert!(rendered.contains("Agent bootstrap plan: fixture.codex.session"));
-        assert!(rendered.contains("Plugin: fixture.codex"));
-        assert!(rendered.contains("Registration hook: true"));
+        assert!(rendered.contains("Agent bootstrap plan:"));
+        assert!(rendered.contains("fixture.codex.session"));
+        assert!(rendered.contains("fixture.codex"));
+        assert!(rendered.contains("true"));
     }
 
     #[test]

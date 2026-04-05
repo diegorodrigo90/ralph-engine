@@ -3,11 +3,8 @@
 use re_core::RuntimeCapabilityRegistration;
 use re_plugin::parse_reviewed_plugin_capability;
 
-use crate::{
-    CliError, catalog,
-    commands::grouped_surfaces::{render_grouped_surface_detail, render_grouped_surface_listing},
-    i18n,
-};
+use super::format;
+use crate::{CliError, catalog, i18n};
 
 /// Executes the capabilities command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
@@ -49,12 +46,41 @@ fn render_capability_listing(
     registrations: &[RuntimeCapabilityRegistration],
     locale: &str,
 ) -> String {
-    render_grouped_surface_listing(
-        registrations,
-        locale,
-        i18n::capabilities_label,
-        |registration| registration.capability.as_str(),
-        |registration| registration.is_enabled(),
+    // Group by capability kind (deduplicate)
+    let mut seen = Vec::new();
+    let mut grouped_rows: Vec<Vec<String>> = Vec::new();
+
+    for reg in registrations {
+        let key = reg.capability.as_str();
+        if seen.contains(&key) {
+            continue;
+        }
+        seen.push(key);
+
+        let all = registrations
+            .iter()
+            .filter(|r| r.capability.as_str() == key)
+            .collect::<Vec<_>>();
+        let enabled = all.iter().filter(|r| r.is_enabled()).count();
+
+        grouped_rows.push(vec![
+            key.to_owned(),
+            all.len().to_string(),
+            enabled.to_string(),
+        ]);
+    }
+
+    let label = i18n::capabilities_label(locale);
+    let heading = i18n::list_heading(locale, label, label, grouped_rows.len());
+
+    if grouped_rows.is_empty() {
+        return heading;
+    }
+
+    let headers = &["CAPABILITY", "PROVIDERS", "ENABLED"];
+    format!(
+        "{heading}\n\n{}",
+        format::render_table(headers, &grouped_rows)
     )
 }
 
@@ -63,19 +89,25 @@ fn render_capability_detail(
     providers: &[RuntimeCapabilityRegistration],
     locale: &str,
 ) -> String {
-    render_grouped_surface_detail(
-        capability_id,
-        providers,
-        locale,
-        i18n::capability_label,
-        |provider| {
-            format!(
-                "- {} | activation={} | boundary={}",
-                provider.plugin_id,
-                provider.activation.as_str(),
-                provider.load_boundary.as_str()
-            )
-        },
+    let label = i18n::capability_label(locale);
+    let heading = i18n::detail_heading(locale, label, label, capability_id);
+    let providers_heading = i18n::providers_heading(locale, providers.len());
+
+    let headers = &["PLUGIN", "STATUS", "BOUNDARY"];
+    let rows: Vec<Vec<String>> = providers
+        .iter()
+        .map(|p| {
+            vec![
+                p.plugin_id.to_owned(),
+                p.activation.as_str().to_owned(),
+                p.load_boundary.as_str().to_owned(),
+            ]
+        })
+        .collect();
+
+    format!(
+        "{heading}\n{providers_heading}\n\n{}",
+        format::render_table(headers, &rows)
     )
 }
 
@@ -91,19 +123,15 @@ mod tests {
 
     #[test]
     fn render_capability_listing_handles_empty_sets() {
-        // Arrange
         let registrations = [];
 
-        // Act
         let rendered = render_capability_listing(&registrations, "en");
 
-        // Assert
-        assert_eq!(rendered, "Capabilities (0)");
+        assert!(rendered.contains("Capabilities (0)"));
     }
 
     #[test]
     fn render_capability_detail_is_human_readable() {
-        // Arrange
         let providers = [RuntimeCapabilityRegistration::new(
             PluginCapability::new("template"),
             PLUGIN_ID,
@@ -111,15 +139,13 @@ mod tests {
             PluginLoadBoundary::InProcess,
         )];
 
-        // Act
         let rendered = render_capability_detail("template", &providers, "en");
 
-        // Assert
         assert!(rendered.contains("Capability: template"));
         assert!(rendered.contains("Providers (1)"));
-        assert!(
-            rendered.contains("- fixture.templates | activation=enabled | boundary=in_process")
-        );
+        assert!(rendered.contains("fixture.templates"));
+        assert!(rendered.contains("enabled"));
+        assert!(rendered.contains("in_process"));
     }
 
     #[test]

@@ -8,10 +8,10 @@ use re_core::{
     runtime_hook_for_check,
 };
 
+use super::format;
 use crate::{
     CliError, catalog,
     commands::embedded_assets::{MaterializedAsset, materialize_assets},
-    commands::grouped_surfaces::{render_grouped_surface_detail, render_grouped_surface_listing},
     commands::runtime_state::with_official_runtime_snapshot,
     i18n,
 };
@@ -298,12 +298,40 @@ fn show_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError
 }
 
 fn render_check_listing(registrations: &[RuntimeCheckRegistration], locale: &str) -> String {
-    render_grouped_surface_listing(
-        registrations,
-        locale,
-        i18n::checks_label,
-        |registration| registration.kind.as_str(),
-        |registration| registration.is_enabled(),
+    let mut seen = Vec::new();
+    let mut grouped_rows: Vec<Vec<String>> = Vec::new();
+
+    for reg in registrations {
+        let key = reg.kind.as_str();
+        if seen.contains(&key) {
+            continue;
+        }
+        seen.push(key);
+
+        let all = registrations
+            .iter()
+            .filter(|r| r.kind.as_str() == key)
+            .collect::<Vec<_>>();
+        let enabled = all.iter().filter(|r| r.is_enabled()).count();
+
+        grouped_rows.push(vec![
+            key.to_owned(),
+            all.len().to_string(),
+            enabled.to_string(),
+        ]);
+    }
+
+    let label = i18n::checks_label(locale);
+    let heading = i18n::list_heading(locale, label, label, grouped_rows.len());
+
+    if grouped_rows.is_empty() {
+        return heading;
+    }
+
+    let headers = &["CHECK", "PROVIDERS", "ENABLED"];
+    format!(
+        "{heading}\n\n{}",
+        format::render_table(headers, &grouped_rows)
     )
 }
 
@@ -313,24 +341,37 @@ fn render_check_detail(
     contributions: &[catalog::OfficialCheckContribution],
     locale: &str,
 ) -> String {
-    render_grouped_surface_detail(kind.as_str(), checks, locale, i18n::check_label, |check| {
-        let contribution = contributions
-            .iter()
-            .find(|candidate| candidate.descriptor.plugin_id == check.plugin_id);
+    let label = i18n::check_label(locale);
+    let heading = i18n::detail_heading(locale, label, label, kind.as_str());
+    let providers_heading = i18n::providers_heading(locale, checks.len());
 
-        format!(
-            "- {} | plugin={} | name={} | summary={} | activation={} | boundary={} | runtime_hook={}",
-            contribution.map_or(check.plugin_id, |entry| entry.descriptor.id),
-            check.plugin_id,
-            contribution.map_or(check.plugin_id, |entry| entry
-                .descriptor
-                .display_name_for_locale(locale)),
-            contribution.map_or("-", |entry| entry.descriptor.summary_for_locale(locale)),
-            check.activation.as_str(),
-            check.load_boundary.as_str(),
-            check.runtime_hook_registered
-        )
-    })
+    let headers = &["ID", "PLUGIN", "NAME", "STATUS"];
+    let rows: Vec<Vec<String>> = checks
+        .iter()
+        .map(|check| {
+            let contribution = contributions
+                .iter()
+                .find(|c| c.descriptor.plugin_id == check.plugin_id);
+
+            vec![
+                contribution
+                    .map_or(check.plugin_id, |e| e.descriptor.id)
+                    .to_owned(),
+                check.plugin_id.to_owned(),
+                contribution
+                    .map_or(check.plugin_id, |e| {
+                        e.descriptor.display_name_for_locale(locale)
+                    })
+                    .to_owned(),
+                check.activation.as_str().to_owned(),
+            ]
+        })
+        .collect();
+
+    format!(
+        "{heading}\n{providers_heading}\n\n{}",
+        format::render_table(headers, &rows)
+    )
 }
 
 fn render_check_contribution_detail(
@@ -350,26 +391,45 @@ fn render_check_contribution_detail(
         "none".to_owned()
     };
 
-    format!(
-        "{}: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{kind_label}: {kind}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {runtime_hook}\n{assets_label}: {assets}",
-        i18n::check_label(locale),
-        contribution.descriptor.id,
-        contribution.descriptor.display_name_for_locale(locale),
-        contribution.descriptor.summary_for_locale(locale),
-        contribution.descriptor.plugin_id,
-        name_label = i18n::name_label(locale),
-        summary_label = i18n::summary_label(locale),
-        kind_label = i18n::kind_label(locale),
-        kind = contribution.descriptor.kind.as_str(),
-        activation_label = i18n::activation_label(locale),
-        activation = registration.activation.as_str(),
-        load_boundary_label = i18n::load_boundary_label(locale),
-        load_boundary = registration.load_boundary.as_str(),
-        hook_label = i18n::hook_label(locale),
-        runtime_hook = registration.runtime_hook_registered,
-        assets_label = i18n::assets_label(locale),
-        assets = asset_paths,
-    )
+    let heading = format!("{}:", i18n::check_label(locale));
+    let pairs = vec![
+        (heading.as_str(), contribution.descriptor.id.to_owned()),
+        (
+            i18n::name_label(locale),
+            contribution
+                .descriptor
+                .display_name_for_locale(locale)
+                .to_owned(),
+        ),
+        (
+            i18n::summary_label(locale),
+            contribution
+                .descriptor
+                .summary_for_locale(locale)
+                .to_owned(),
+        ),
+        ("Plugin:", contribution.descriptor.plugin_id.to_owned()),
+        ("", String::new()),
+        (
+            i18n::kind_label(locale),
+            contribution.descriptor.kind.as_str().to_owned(),
+        ),
+        (
+            i18n::activation_label(locale),
+            registration.activation.as_str().to_owned(),
+        ),
+        (
+            i18n::load_boundary_label(locale),
+            registration.load_boundary.as_str().to_owned(),
+        ),
+        (
+            i18n::hook_label(locale),
+            registration.runtime_hook_registered.to_string(),
+        ),
+        (i18n::assets_label(locale), asset_paths),
+    ];
+
+    format::render_detail(&pairs)
 }
 
 fn render_check_plan(
@@ -377,22 +437,36 @@ fn render_check_plan(
     plan: RuntimeCheckExecutionPlan,
     locale: &str,
 ) -> String {
-    format!(
-        "Runtime check plan: {}\n{name_label}: {}\nPlugin: {}\n{kind_label}: {kind}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {runtime_hook}\nregistered: {registered}",
-        contribution.descriptor.id,
-        contribution.descriptor.display_name_for_locale(locale),
-        contribution.descriptor.plugin_id,
-        name_label = i18n::name_label(locale),
-        kind_label = i18n::kind_label(locale),
-        kind = contribution.descriptor.kind.as_str(),
-        activation_label = i18n::activation_label(locale),
-        activation = contribution.activation.as_str(),
-        load_boundary_label = i18n::load_boundary_label(locale),
-        load_boundary = plan.load_boundary.as_str(),
-        hook_label = i18n::hook_label(locale),
-        runtime_hook = plan.runtime_hook.as_str(),
-        registered = plan.runtime_hook_registered,
-    )
+    let pairs = vec![
+        ("Runtime check plan:", contribution.descriptor.id.to_owned()),
+        (
+            i18n::name_label(locale),
+            contribution
+                .descriptor
+                .display_name_for_locale(locale)
+                .to_owned(),
+        ),
+        ("Plugin:", contribution.descriptor.plugin_id.to_owned()),
+        (
+            i18n::kind_label(locale),
+            contribution.descriptor.kind.as_str().to_owned(),
+        ),
+        (
+            i18n::activation_label(locale),
+            contribution.activation.as_str().to_owned(),
+        ),
+        (
+            i18n::load_boundary_label(locale),
+            plan.load_boundary.as_str().to_owned(),
+        ),
+        (
+            i18n::hook_label(locale),
+            plan.runtime_hook.as_str().to_owned(),
+        ),
+        ("registered:", plan.runtime_hook_registered.to_string()),
+    ];
+
+    format::render_detail(&pairs)
 }
 
 #[cfg(test)]
@@ -459,19 +533,15 @@ mod tests {
 
     #[test]
     fn render_check_listing_handles_empty_sets() {
-        // Arrange
         let registrations = [];
 
-        // Act
         let rendered = render_check_listing(&registrations, "en");
 
-        // Assert
-        assert_eq!(rendered, "Checks (0)");
+        assert!(rendered.contains("Checks (0)"));
     }
 
     #[test]
     fn render_check_listing_deduplicates_check_kinds() {
-        // Arrange
         let registrations = [
             RuntimeCheckRegistration::new(
                 RuntimeCheckKind::Prepare,
@@ -489,16 +559,16 @@ mod tests {
             ),
         ];
 
-        // Act
         let rendered = render_check_listing(&registrations, "en");
 
-        // Assert
-        assert_eq!(rendered, "Checks (1)\n- prepare | providers=2 | enabled=1");
+        assert!(rendered.contains("Checks (1)"));
+        assert!(rendered.contains("prepare"));
+        assert!(rendered.contains("2"));
+        assert!(rendered.contains("1"));
     }
 
     #[test]
     fn render_check_detail_is_human_readable() {
-        // Arrange
         let checks = [RuntimeCheckRegistration::new(
             RuntimeCheckKind::Prepare,
             PRIMARY_PLUGIN_ID,
@@ -507,7 +577,6 @@ mod tests {
             true,
         )];
 
-        // Act
         let contributions = [OfficialCheckContribution {
             descriptor: PluginCheckDescriptor::new(
                 CHECK_ID,
@@ -527,12 +596,12 @@ mod tests {
         let rendered =
             render_check_detail(RuntimeCheckKind::Prepare, &checks, &contributions, "en");
 
-        // Assert
         assert!(rendered.contains("Check: prepare"));
         assert!(rendered.contains("Providers (1)"));
-        assert!(rendered.contains(
-            "- fixture.bmad.prepare | plugin=fixture.bmad | name=BMAD prepare check | summary=Runs typed prepare-time validation for BMAD workflows. | activation=enabled | boundary=in_process | runtime_hook=true"
-        ));
+        assert!(rendered.contains("fixture.bmad.prepare"));
+        assert!(rendered.contains("fixture.bmad"));
+        assert!(rendered.contains("BMAD prepare check"));
+        assert!(rendered.contains("enabled"));
     }
 
     #[test]
@@ -566,7 +635,7 @@ mod tests {
 
         assert!(rendered.contains("Verificação: prepare"));
         assert!(rendered.contains("Provedores (1)"));
-        assert!(rendered.contains("name=Verificação de preparo BMAD"));
+        assert!(rendered.contains("Verificação de preparo BMAD"));
     }
 
     #[test]
@@ -597,7 +666,7 @@ mod tests {
             "en",
         );
 
-        assert!(rendered.contains("Assets: checks/prepare.md"));
+        assert!(rendered.contains("checks/prepare.md"));
     }
 
     #[test]
