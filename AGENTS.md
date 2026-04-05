@@ -107,6 +107,7 @@ When writing or editing docs:
 61. Release artifacts SHALL follow build-once promote-later: CI builds artifacts, release workflow promotes the same artifacts. Checksums (SHA256) SHALL be generated and verified for every platform binary. npm packages SHALL use `--provenance` for SLSA attestation. Homebrew formulas SHALL verify SHA256 per platform.
 63. Agent-specific behavior (pause, resume, feedback injection, launch, bootstrap) SHALL be owned by the agent plugin, NEVER by core or TUI. Core defines the trait interface (`pause_agent`, `resume_agent`, `inject_feedback`, `spawn_agent`); plugins implement the agent-specific logic. The TUI only changes state — the caller dispatches to the plugin. This ensures new agents (beyond Claude/Codex) work without modifying core.
 62. Functions that read from stdin SHALL check `std::io::IsTerminal::is_terminal(&std::io::stdin())` before calling `read_line()`. Non-TTY contexts (CI, hooks, pipes) SHALL receive a clear error with remediation instructions instead of blocking forever. This is a specialization of Rule 55 for runtime code.
+64. The core TUI (`re-tui`) SHALL be a generic rendering framework with NO knowledge of guided mode, pause, feedback, or agent-specific keys. Interactive features are contributed by plugins via `tui_keybindings()` and `handle_tui_key()`. Without interactive plugins → read-only dashboard. With `official.guided` → pause/feedback/resume. Core only knows: render, core keys (q, ?), plugin key dispatch, and generic text input.
 
 ## Structure
 

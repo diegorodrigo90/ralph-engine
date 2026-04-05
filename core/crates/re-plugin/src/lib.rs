@@ -207,6 +207,8 @@ define_plugin_enum! {
         Policy => "policy",
         /// Workflow orchestration plugin.
         Workflow => "workflow",
+        /// TUI extension plugin (keybindings, panels, interactive controls).
+        TuiExtension => "tui_extension",
     }
 }
 
@@ -1086,6 +1088,11 @@ pub struct WorkItemSummary {
     pub title: String,
     /// Current status (e.g., `"todo"`, `"in_progress"`, `"done"`).
     pub status: String,
+    /// Whether this item is ready to be worked on.
+    ///
+    /// Set by the workflow plugin — core uses this to pick the next
+    /// item in the autonomous loop without knowing status semantics.
+    pub actionable: bool,
 }
 
 /// Assembled prompt context for an agent session.
@@ -1440,7 +1447,16 @@ pub trait PluginRuntime: Send + Sync {
         feedback: &str,
         project_root: &Path,
     ) -> Result<std::path::PathBuf, PluginRuntimeError> {
-        let feedback_path = project_root.join(".ralph-engine/.feedback.md");
+        let feedback_dir = project_root.join(".ralph-engine");
+        if !feedback_dir.exists() {
+            std::fs::create_dir_all(&feedback_dir).map_err(|e| {
+                PluginRuntimeError::new(
+                    "feedback_dir_failed",
+                    format!("Failed to create .ralph-engine/: {e}"),
+                )
+            })?;
+        }
+        let feedback_path = feedback_dir.join(".feedback.md");
         std::fs::write(&feedback_path, format!("## User Feedback\n\n{feedback}\n")).map_err(
             |e| {
                 PluginRuntimeError::new(
@@ -1463,6 +1479,76 @@ pub trait PluginRuntime: Send + Sync {
     fn tui_contributions(&self) -> Vec<TuiPanel> {
         Vec::new()
     }
+
+    /// Returns keybinding contributions for the TUI.
+    ///
+    /// Plugins declare keybindings that the TUI dispatches when the user
+    /// presses the matching key. Core renders these in the help bar and
+    /// routes key events to `handle_tui_key()`.
+    fn tui_keybindings(&self) -> Vec<TuiKeybinding> {
+        Vec::new()
+    }
+
+    /// Handles a TUI key event dispatched by the core.
+    ///
+    /// Called when the user presses a key that matches a keybinding
+    /// declared by this plugin via `tui_keybindings()`. The `tui_state`
+    /// string represents the current TUI state (e.g. `"Running"`, `"Paused"`).
+    ///
+    /// Returns a `TuiKeyResult` telling the core what to do next.
+    fn handle_tui_key(&self, _key: &str, _tui_state: &str) -> TuiKeyResult {
+        TuiKeyResult::NotHandled
+    }
+
+    /// Handles text input submitted from the TUI.
+    ///
+    /// Called when the user submits text (Enter) in the chat input bar.
+    /// The plugin processes the text (e.g., saves feedback, sends to agent)
+    /// and returns a result.
+    fn handle_tui_text_input(&self, _text: &str, _project_root: &Path) -> TuiKeyResult {
+        TuiKeyResult::NotHandled
+    }
+
+    /// Returns the placeholder text for the TUI chat input bar.
+    ///
+    /// If any enabled plugin returns `Some`, the TUI shows a persistent
+    /// input bar at the bottom. The plugin owns the decision to show it
+    /// and the placeholder text. Core just renders the widget.
+    ///
+    /// Default: `None` (no input bar — read-only dashboard).
+    fn tui_input_placeholder(&self) -> Option<String> {
+        None
+    }
+
+    /// Discovers slash commands available from this agent.
+    ///
+    /// Agent plugins scan their command/skill directories and return
+    /// the list. Core auto-discovers from all enabled agent plugins
+    /// and shows autocomplete in the TUI when the user types the
+    /// command prefix (e.g. `/`).
+    ///
+    /// Default: empty (most plugins don't provide agent commands).
+    fn discover_agent_commands(&self, _project_root: &Path) -> Vec<AgentCommand> {
+        Vec::new()
+    }
+
+    /// Returns the command prefix that triggers autocomplete (e.g. `"/"`).
+    ///
+    /// Default: `"/"` (standard for Claude Code, Codex, Gemini CLI).
+    fn tui_command_prefix(&self) -> &str {
+        "/"
+    }
+}
+
+/// A slash command discovered from an agent CLI.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentCommand {
+    /// Command name without prefix (e.g. `"compact"`, `"skill"`).
+    pub name: String,
+    /// Short description shown in autocomplete.
+    pub description: String,
+    /// Plugin that owns this command.
+    pub plugin_id: String,
 }
 
 /// An issue found during plugin config validation.
@@ -1516,6 +1602,42 @@ pub struct TuiPanel {
     /// Position hint: `"sidebar"` (default), `"bottom"`, or `"main"`.
     /// Core decides final placement based on layout tier.
     pub zone_hint: String,
+}
+
+/// A keybinding contributed by a plugin for the TUI.
+///
+/// Plugins declare keybindings via `tui_keybindings()`. Core renders
+/// these in the help bar and dispatches matching key events to the
+/// owning plugin's `handle_tui_key()`.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct TuiKeybinding {
+    /// Key identifier (e.g. `"p"`, `"f"`). Must be a single character.
+    pub key: String,
+    /// Short description shown in the help bar (e.g. `"Pause/Resume"`).
+    pub description: String,
+    /// Plugin that owns this keybinding.
+    pub plugin_id: String,
+    /// TUI states where this keybinding is active.
+    /// Empty means active in all states.
+    pub active_states: Vec<String>,
+}
+
+/// Result of a plugin handling a TUI key event or text input.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TuiKeyResult {
+    /// The key/text was handled. No further action needed.
+    Handled,
+    /// The key/text was not handled. Core may try other plugins.
+    NotHandled,
+    /// Enter text input mode with the given prompt.
+    EnterTextInput {
+        /// Prompt text shown to the user (e.g. "Type feedback:").
+        prompt: String,
+    },
+    /// Request the core to change the TUI state.
+    SetState(String),
+    /// Request the core to show a message in the activity stream.
+    ShowMessage(String),
 }
 
 /// A prompt section contributed by a plugin at runtime.

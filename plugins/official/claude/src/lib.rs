@@ -360,6 +360,56 @@ impl PluginRuntime for ClaudeRuntime {
         })
     }
 
+    /// Discovers slash commands from Claude Code's filesystem.
+    ///
+    /// Scans `.claude/commands/*.md` and `.claude/skills/*/SKILL.md`
+    /// in the project, plus built-in commands. The plugin doesn't
+    /// hardcode commands — it reads what the agent has.
+    fn discover_agent_commands(&self, project_root: &Path) -> Vec<re_plugin::AgentCommand> {
+        let mut commands = Vec::new();
+
+        // Scan .claude/commands/*.md
+        let commands_dir = project_root.join(".claude/commands");
+        if let Ok(entries) = std::fs::read_dir(&commands_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.extension().is_some_and(|e| e == "md")
+                    && let Some(name) = path.file_stem().and_then(|s| s.to_str())
+                {
+                    let description =
+                        read_first_heading(&path).unwrap_or_else(|| format!("Command: {name}"));
+                    commands.push(re_plugin::AgentCommand {
+                        name: name.to_owned(),
+                        description,
+                        plugin_id: PLUGIN_ID.to_owned(),
+                    });
+                }
+            }
+        }
+
+        // Scan .claude/skills/*/SKILL.md
+        let skills_dir = project_root.join(".claude/skills");
+        if let Ok(entries) = std::fs::read_dir(&skills_dir) {
+            for entry in entries.flatten() {
+                let skill_file = entry.path().join("SKILL.md");
+                if skill_file.exists()
+                    && let Some(name) = entry.file_name().to_str()
+                {
+                    let description =
+                        read_first_heading(&skill_file).unwrap_or_else(|| format!("Skill: {name}"));
+                    commands.push(re_plugin::AgentCommand {
+                        name: name.to_owned(),
+                        description,
+                        plugin_id: PLUGIN_ID.to_owned(),
+                    });
+                }
+            }
+        }
+
+        commands.sort_by(|a, b| a.name.cmp(&b.name));
+        commands
+    }
+
     /// Contributes a TUI sidebar panel showing agent connection status.
     fn tui_contributions(&self) -> Vec<re_plugin::TuiPanel> {
         let binary_available = re_plugin::probe_binary_on_path("claude").is_some();
@@ -376,6 +426,18 @@ impl PluginRuntime for ClaudeRuntime {
             zone_hint: "sidebar".to_owned(),
         }]
     }
+}
+
+/// Reads the first markdown heading from a file as description.
+fn read_first_heading(path: &Path) -> Option<String> {
+    let content = std::fs::read_to_string(path).ok()?;
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if let Some(heading) = trimmed.strip_prefix("# ") {
+            return Some(heading.trim().to_owned());
+        }
+    }
+    None
 }
 
 // Shared agent helpers (tool merging, config extraction, stream-JSON parsing).

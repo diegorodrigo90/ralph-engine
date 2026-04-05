@@ -546,6 +546,7 @@ fn kind_as_str_is_stable() {
             "mcp_contribution",
             "policy",
             "workflow",
+            "tui_extension",
         ]
     );
 }

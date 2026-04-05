@@ -1,0 +1,11 @@
+[plugin]
+name = "Guided Mode"
+summary = "Interactive TUI mode with pause, feedback, and resume controls."
+
+[controls]
+pause = "Pause agent"
+resume = "Resume agent"
+feedback = "Provide feedback"
+feedback_prompt = "Type feedback (Enter to send, Esc to cancel):"
+feedback_sent = "Feedback sent — agent will restart with merged context."
+not_paused = "Agent is not paused. Press [p] to pause first."

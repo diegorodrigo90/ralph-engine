@@ -4,7 +4,10 @@
 //! agent activity and logo. In production, `ralph-engine run` uses
 //! the TUI by default — this command exists for testing.
 
+use ratatui::crossterm::event::{self, Event, KeyEventKind};
+
 use crate::CliError;
+use crate::catalog;
 
 /// Simulated agent events for the demo.
 const DEMO_EVENTS: &[&str] = &[
@@ -21,33 +24,43 @@ const DEMO_EVENTS: &[&str] = &[
 /// Executes the TUI demo.
 #[cfg_attr(coverage_nightly, coverage(off))]
 pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
-    use ratatui::crossterm::event::{self, Event, KeyEventKind};
-
     let config = re_tui::TuiConfig {
-        mode: re_tui::TuiMode::Autonomous,
         title: "Demo task".to_owned(),
-        agent_id: "demo.claude".to_owned(),
+        agent_id: "demo.agent".to_owned(),
         locale: locale.to_owned(),
     };
 
     let mut shell = re_tui::TuiShell::new(config);
+    let cwd = std::env::current_dir().unwrap_or_default();
 
-    shell.set_sidebar_panels(vec![
-        re_tui::SidebarPanel {
-            title: "Sprint".to_owned(),
-            lines: vec![
-                "Done: 26".to_owned(),
-                "Doing: 1".to_owned(),
-                "Todo: 0".to_owned(),
-            ],
-            plugin_id: "official.bmad".to_owned(),
-        },
-        re_tui::SidebarPanel {
-            title: "Findings".to_owned(),
-            lines: vec!["3 sections".to_owned(), "42 lines".to_owned()],
-            plugin_id: "official.findings".to_owned(),
-        },
-    ]);
+    // Auto-discover: does any plugin want an input bar?
+    if catalog::any_plugin_wants_input_bar() {
+        shell.enable_input();
+    }
+
+    // Auto-discover: agent commands for autocomplete
+    let commands: Vec<re_tui::CommandEntry> = catalog::collect_agent_commands_from_plugins(&cwd)
+        .into_iter()
+        .map(|cmd| re_tui::CommandEntry {
+            name: cmd.name,
+            description: cmd.description,
+        })
+        .collect();
+    if !commands.is_empty() {
+        let prefix = catalog::agent_command_prefix("official.claude");
+        shell.set_agent_commands(commands, prefix);
+    }
+
+    // Auto-discover: sidebar panels from all plugins
+    let panels: Vec<re_tui::SidebarPanel> = catalog::collect_tui_panels_from_plugins()
+        .into_iter()
+        .map(|(plugin_id, panel)| re_tui::SidebarPanel {
+            title: panel.title,
+            lines: panel.lines,
+            plugin_id,
+        })
+        .collect();
+    shell.set_sidebar_panels(panels);
 
     shell.push_startup_banner();
 
@@ -76,7 +89,12 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
                 && let Event::Key(key) = event::read().map_err(|e| format!("read: {e}"))?
                 && key.kind == KeyEventKind::Press
             {
-                shell.handle_key(key.code);
+                shell.handle_key_with_modifiers(key.code, key.modifiers);
+
+                // If user submitted text, show it (demo — no real agent to dispatch to)
+                if let Some(text) = shell.take_text_input() {
+                    shell.push_activity(format!(">> [demo] Would send to agent: {text}"));
+                }
             }
 
             if shell.should_quit() {

@@ -405,7 +405,13 @@ impl PluginRuntime for BmadRuntime {
                     let slug = if parts.len() == 3 { parts[2] } else { "" };
                     let title = slug.replace('-', " ");
 
-                    items.push(WorkItemSummary { id, title, status });
+                    let actionable = matches!(status.as_str(), "ready-for-dev" | "todo" | "ready");
+                    items.push(WorkItemSummary {
+                        id,
+                        title,
+                        status,
+                        actionable,
+                    });
                 }
             }
         }

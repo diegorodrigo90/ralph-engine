@@ -552,7 +552,7 @@ mod tests {
         let output = execute(command).expect("hooks list should succeed");
 
         // Assert
-        assert!(output.contains("Runtime hooks (13)"));
+        assert!(output.contains("Runtime hooks (14)"));
         assert!(output.contains("- scaffold |"));
         assert!(output.contains("- mcp_registration | providers=4 | enabled=0"));
     }
@@ -1565,7 +1565,7 @@ mod tests {
         let output = execute(command).expect("hooks command should succeed");
 
         // Assert
-        assert!(output.contains("Runtime hooks (13)"));
+        assert!(output.contains("Runtime hooks (14)"));
     }
 
     #[test]

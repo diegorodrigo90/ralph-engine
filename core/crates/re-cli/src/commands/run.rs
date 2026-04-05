@@ -103,10 +103,7 @@ fn run_loop(locale: &str, verbose: bool) -> Result<String, CliError> {
             .list_work_items(&cwd)
             .map_err(|err| CliError::new(err.to_string()))?;
 
-        let next = items.iter().find(|item| {
-            let s = item.status.to_lowercase();
-            s == "ready-for-dev" || s == "todo" || s == "ready"
-        });
+        let next = items.iter().find(|item| item.actionable);
 
         let Some(item) = next else {
             dbg_log(verbose, "no more actionable work items");
@@ -505,7 +502,6 @@ fn run_with_tui(
 
     // Set up TUI
     let tui_config = re_tui::TuiConfig {
-        mode: re_tui::TuiMode::Autonomous,
         title: format!("{} — {}", resolution.canonical_id, resolution.title),
         agent_id: agent_id.to_owned(),
         locale: locale.to_owned(),

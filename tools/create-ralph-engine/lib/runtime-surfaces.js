@@ -8,6 +8,7 @@ const SUPPORTED_KINDS = new Set([
   "mcp_contribution",
   "policy",
   "workflow",
+  "tui_extension",
 ]);
 
 const SUPPORTED_CAPABILITIES = new Set([
@@ -36,6 +37,7 @@ const DEFAULT_CAPABILITIES_BY_KIND = new Map([
   ["data_source", ["data_source"]],
   ["policy", ["policy"]],
   ["workflow", ["workflow"]],
+  ["tui_extension", ["tui_widgets"]],
 ]);
 
 const CAPABILITY_IMPORT_NAMES = new Map([
@@ -80,6 +82,7 @@ const KIND_VARIANTS = new Map([
   ["mcp_contribution", "PluginKind::McpContribution"],
   ["policy", "PluginKind::Policy"],
   ["workflow", "PluginKind::Workflow"],
+  ["tui_extension", "PluginKind::TuiExtension"],
 ]);
 
 function capabilityImportName(capability) {

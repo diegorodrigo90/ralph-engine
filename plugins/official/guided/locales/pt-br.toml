@@ -1,0 +1,11 @@
+[plugin]
+name = "Modo Guiado"
+summary = "Modo TUI interativo com controles de pausa, feedback e retomada."
+
+[controls]
+pause = "Pausar agente"
+resume = "Retomar agente"
+feedback = "Fornecer feedback"
+feedback_prompt = "Digite o feedback (Enter para enviar, Esc para cancelar):"
+feedback_sent = "Feedback enviado — agente sera reiniciado com contexto mesclado."
+not_paused = "Agente nao esta pausado. Pressione [p] para pausar primeiro."
