@@ -1,30 +1,30 @@
+# Build artifacts
 /target
-/node_modules
-/docs/.vitepress/dist
 /coverage
 /dist
-*.log
-.DS_Store
-*.tmp
-*.swp
+
+# Dependencies
+/node_modules
+
+# IDE
 .vscode/
 .idea/
 
-/docs/node_modules
-/docs/.vitepress/cache
-/docs/index.md
-/docs/getting-started
-/docs/guides
-/docs/reference
-/docs/development
-/docs/pt-br
-/.site-dist
+# OS
+.DS_Store
+*.log
+*.tmp
+*.swp
 
-# Astro site
+# Site (Astro + Starlight)
 /site/dist
 /site/node_modules
 /site/.astro
 /site/src/data/plugins.json
-/docs/.content
+
+# Release/deploy artifacts
+/.site-dist
 /.release
+
+# Runtime artifacts
 .ralph-engine/.feedback.md
