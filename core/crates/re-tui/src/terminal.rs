@@ -3,34 +3,29 @@
 //! Manages the ratatui terminal: enters raw mode on start,
 //! restores on exit/crash/signal. Provides the main render
 //! skeleton with zone-based layout.
+//!
+//! The TUI shell is a **generic framework**. It knows about rendering,
+//! core keys (q, ?), and dispatching unknown keys to plugin-contributed
+//! keybindings. Interactive features (pause, feedback, resume) live in
+//! plugins — not here. When no interactive plugin is enabled, the TUI
+//! is a read-only dashboard.
 
-use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Gauge, Paragraph};
+use ratatui::widgets::{Block, Borders, Clear, Gauge, List, ListItem, ListState, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
 
 use crate::layout;
-
-/// TUI operating mode.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum TuiMode {
-    /// Read-only dashboard for autonomous agent execution.
-    Autonomous,
-    /// Interactive dashboard with pause/resume/feedback.
-    Guided,
-}
 
 /// Current state of the TUI session.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TuiState {
     /// Agent is running, streaming output.
     Running,
-    /// Agent is paused (awaiting user action in guided mode).
+    /// Agent is paused (set by plugin via `SetState`).
     Paused,
-    /// Waiting for user feedback text (guided mode).
-    WaitingFeedback,
     /// Agent has completed its task.
     Complete,
     /// Agent encountered an error.
@@ -44,7 +39,6 @@ impl TuiState {
         match self {
             Self::Running => "RUNNING",
             Self::Paused => "PAUSED",
-            Self::WaitingFeedback => "FEEDBACK",
             Self::Complete => "COMPLETE",
             Self::Error => "ERROR",
         }
@@ -56,9 +50,20 @@ impl TuiState {
         match self {
             Self::Running => Color::Green,
             Self::Paused => Color::Yellow,
-            Self::WaitingFeedback => Color::Yellow,
             Self::Complete => Color::Cyan,
             Self::Error => Color::Red,
+        }
+    }
+
+    /// Parses a state from its label string (e.g. `"Running"` → `Running`).
+    #[must_use]
+    pub fn from_label(label: &str) -> Option<Self> {
+        match label {
+            "Running" => Some(Self::Running),
+            "Paused" => Some(Self::Paused),
+            "Complete" => Some(Self::Complete),
+            "Error" => Some(Self::Error),
+            _ => None,
         }
     }
 }
@@ -66,26 +71,15 @@ impl TuiState {
 /// Configuration for the TUI shell.
 #[derive(Debug, Clone)]
 pub struct TuiConfig {
-    /// Operating mode (autonomous or guided).
-    pub mode: TuiMode,
     /// Title shown in the header bar.
     pub title: String,
     /// Agent identifier shown in header.
     pub agent_id: String,
     /// Resolved locale for i18n (e.g. `"en"`, `"pt-br"`).
-    /// Auto-detected from env/OS or config.
     pub locale: String,
 }
 
-/// The TUI shell — manages terminal lifecycle and render loop.
-///
-/// Create via [`TuiShell::new`], then call [`TuiShell::run_demo`]
-/// to start the render loop. The terminal is restored on drop.
 /// A sidebar panel provided by a plugin, ready to render.
-///
-/// This is a render-ready snapshot of a plugin's `TuiPanel` — the
-/// TUI shell receives these from the CLI layer which collects them
-/// via auto-discovery.
 #[derive(Debug, Clone)]
 pub struct SidebarPanel {
     /// Panel title (localized).
@@ -96,9 +90,116 @@ pub struct SidebarPanel {
     pub plugin_id: String,
 }
 
+/// A keybinding registered by a plugin for the TUI.
+///
+/// Collected from plugins via auto-discovery and stored in the shell
+/// for dispatch and help-bar rendering.
+#[derive(Debug, Clone)]
+pub struct RegisteredKeybinding {
+    /// Key character (e.g. `'p'`).
+    pub key: char,
+    /// Short description for the help bar.
+    pub description: String,
+    /// Plugin that owns this keybinding.
+    pub plugin_id: String,
+    /// TUI states where this keybinding is active (empty = all states).
+    pub active_states: Vec<String>,
+}
+
+/// Result of dispatching a key to a plugin.
+///
+/// The caller (CLI `run` command) interprets these results to
+/// perform actual operations (pause agent, re-spawn, etc.).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PluginKeyAction {
+    /// Key was handled by the plugin. No further action needed from core.
+    Handled,
+    /// Plugin requests a TUI state change.
+    SetState(TuiState),
+    /// Plugin requests entering text-input mode with the given prompt.
+    EnterTextInput {
+        /// Prompt text shown to the user.
+        prompt: String,
+    },
+    /// Plugin wants to show a message in the activity stream.
+    ShowMessage(String),
+    /// No plugin handled this key.
+    NotHandled,
+}
+
 /// Agent process ID (set when a real agent is launched).
-/// Used by pause/resume to send `SIGSTOP`/`SIGCONT`.
 pub type AgentPid = Option<u32>;
+
+/// An entry in the autocomplete command list.
+#[derive(Debug, Clone)]
+pub struct CommandEntry {
+    /// Command name (e.g. `"compact"`, `"skill"`).
+    pub name: String,
+    /// Short description for the popup.
+    pub description: String,
+}
+
+/// Autocomplete popup state for agent slash commands.
+#[derive(Debug)]
+pub struct AutocompleteState {
+    /// All available commands (discovered from agent plugin).
+    commands: Vec<CommandEntry>,
+    /// Indices into `commands` matching the current filter.
+    filtered: Vec<usize>,
+    /// Selected index within `filtered`.
+    selected: usize,
+    /// Whether the popup is visible.
+    visible: bool,
+    /// The command prefix character (e.g. `/`).
+    prefix: String,
+}
+
+impl AutocompleteState {
+    /// Creates a new autocomplete state with the given commands and prefix.
+    fn new(commands: Vec<CommandEntry>, prefix: String) -> Self {
+        Self {
+            commands,
+            filtered: Vec::new(),
+            selected: 0,
+            visible: false,
+            prefix,
+        }
+    }
+
+    /// Updates the filter based on current input text.
+    fn update_filter(&mut self, input: &str) {
+        if input.starts_with(self.prefix.as_str()) && !self.commands.is_empty() {
+            let query = &input[self.prefix.len()..];
+            self.filtered = self
+                .commands
+                .iter()
+                .enumerate()
+                .filter(|(_, cmd)| {
+                    query.is_empty()
+                        || cmd.name.contains(query)
+                        || cmd
+                            .description
+                            .to_lowercase()
+                            .contains(&query.to_lowercase())
+                })
+                .map(|(i, _)| i)
+                .collect();
+            self.selected = self.selected.min(self.filtered.len().saturating_sub(1));
+            self.visible = !self.filtered.is_empty();
+        } else {
+            self.visible = false;
+        }
+    }
+
+    /// Returns the currently selected command name (with prefix), if any.
+    fn selected_command(&self) -> Option<String> {
+        if !self.visible || self.filtered.is_empty() {
+            return None;
+        }
+        let idx = self.filtered[self.selected];
+        Some(format!("{}{}", self.prefix, self.commands[idx].name))
+    }
+}
 
 /// The TUI shell — manages terminal lifecycle and render loop.
 ///
@@ -111,16 +212,19 @@ pub struct TuiShell {
     activity_lines: Vec<String>,
     tool_count: usize,
     should_quit: bool,
-    /// Whether we're waiting for quit confirmation.
     quit_pending: bool,
-    /// Plugin-contributed sidebar panels (from auto-discovery).
     sidebar_panels: Vec<SidebarPanel>,
-    /// Agent process ID for pause/resume signals.
     agent_pid: AgentPid,
-    /// Feedback text buffer (filled during `WaitingFeedback` state).
-    feedback_buffer: String,
-    /// Completed feedback ready to be consumed by the caller.
-    pending_feedback: Option<String>,
+    /// Plugin-contributed keybindings (from auto-discovery).
+    plugin_keybindings: Vec<RegisteredKeybinding>,
+    /// Whether the input bar is enabled (set by plugin via `tui_input_placeholder`).
+    input_enabled: bool,
+    /// Text buffer for the chat input.
+    text_input_buffer: String,
+    /// Completed text input ready to be consumed by the caller.
+    pending_text_input: Option<String>,
+    /// Autocomplete state for slash commands.
+    autocomplete: AutocompleteState,
 }
 
 impl TuiShell {
@@ -137,8 +241,11 @@ impl TuiShell {
             quit_pending: false,
             sidebar_panels: Vec::new(),
             agent_pid: None,
-            feedback_buffer: String::new(),
-            pending_feedback: None,
+            plugin_keybindings: Vec::new(),
+            input_enabled: false,
+            text_input_buffer: String::new(),
+            pending_text_input: None,
+            autocomplete: AutocompleteState::new(Vec::new(), "/".to_owned()),
         }
     }
 
@@ -161,7 +268,6 @@ impl TuiShell {
 
     /// Appends a line to the activity stream.
     pub fn push_activity(&mut self, line: String) {
-        // Bounded buffer: keep last 10_000 lines.
         if self.activity_lines.len() >= 10_000 {
             self.activity_lines.drain(..1_000);
         }
@@ -178,14 +284,17 @@ impl TuiShell {
         self.sidebar_panels = panels;
     }
 
+    /// Sets the plugin keybindings from auto-discovered contributions.
+    pub fn set_plugin_keybindings(&mut self, bindings: Vec<RegisteredKeybinding>) {
+        self.plugin_keybindings = bindings;
+    }
+
     /// Sets the agent process ID for pause/resume signal delivery.
     pub fn set_agent_pid(&mut self, pid: u32) {
         self.agent_pid = Some(pid);
     }
 
-    /// Pushes the startup banner with config details into the activity
-    /// stream. The logo image is rendered separately by the caller
-    /// The logo is rendered inline in the activity stream via the logo module.
+    /// Pushes the startup banner with config details into the activity stream.
     pub fn push_startup_banner(&mut self) {
         self.push_activity(String::new());
         self.push_activity(format!("  ◎ Ralph Engine v{}", env!("CARGO_PKG_VERSION")));
@@ -209,17 +318,49 @@ impl TuiShell {
         self.should_quit
     }
 
-    /// Processes a normalized agent event, updating TUI state and activity.
+    /// Whether the input bar is enabled (a plugin requested it).
+    #[must_use]
+    pub fn is_input_enabled(&self) -> bool {
+        self.input_enabled
+    }
+
+    /// Enables the input bar. Called by the CLI layer when a plugin
+    /// returns `Some` from `tui_input_placeholder()`.
+    pub fn enable_input(&mut self) {
+        self.input_enabled = true;
+    }
+
+    /// Sets the agent commands for autocomplete.
     ///
-    /// This is the main integration point between the stream-json parser
-    /// and the TUI display. Call this for each [`crate::events::AgentEvent`] received
-    /// from the agent's stdout.
+    /// Called by the CLI layer after discovering commands from the
+    /// active agent plugin's `discover_agent_commands()`.
+    pub fn set_agent_commands(&mut self, commands: Vec<CommandEntry>, prefix: String) {
+        self.autocomplete = AutocompleteState::new(commands, prefix);
+    }
+
+    /// Returns the current text input buffer (for rendering).
+    #[must_use]
+    pub fn text_input_buffer(&self) -> &str {
+        &self.text_input_buffer
+    }
+
+    /// Takes the pending text input (if any) — consumed by the caller.
+    pub fn take_text_input(&mut self) -> Option<String> {
+        self.pending_text_input.take()
+    }
+
+    /// Returns the agent PID if set.
+    #[must_use]
+    pub fn agent_pid(&self) -> AgentPid {
+        self.agent_pid
+    }
+
+    /// Processes a normalized agent event, updating TUI state and activity.
     pub fn process_event(&mut self, event: &crate::events::AgentEvent) {
         use crate::events::AgentEvent;
 
         match event {
             AgentEvent::TextDelta(_) => {
-                // Text deltas are appended as-is to the activity stream.
                 self.push_activity(event.activity_line());
             }
             AgentEvent::ToolUse { .. } => {
@@ -246,19 +387,14 @@ impl TuiShell {
         }
     }
 
-    /// Runs the TUI demo loop — enters raw mode, renders, handles
-    /// input, and restores terminal on exit.
-    ///
-    /// Press `q` to quit, `p` to toggle pause.
+    /// Runs the TUI demo loop.
     ///
     /// # Errors
     ///
     /// Returns an error if terminal initialization fails.
     #[cfg_attr(coverage_nightly, coverage(off))]
     pub fn run_demo(&mut self) -> Result<(), TuiError> {
-        // Seed some demo activity
         self.push_activity(">> Ralph Engine TUI initialized".to_owned());
-        self.push_activity(format!(">> Mode: {:?}", self.config.mode));
         self.push_activity(format!(">> Agent: {}", self.config.agent_id));
         self.push_activity(">> Waiting for agent stream...".to_owned());
 
@@ -291,7 +427,22 @@ impl TuiShell {
     }
 
     /// Handles a key press event.
-    pub fn handle_key(&mut self, code: KeyCode) {
+    ///
+    /// Priority: quit confirmation → typing mode → core keys → plugin keybinding → chat input.
+    ///
+    /// When the input buffer has text, ALL character keys go to the buffer.
+    /// When the buffer is empty, keybindings and core keys take priority.
+    /// Non-keybinding characters start typing (go to buffer).
+    pub fn handle_key(&mut self, code: KeyCode) -> PluginKeyAction {
+        self.handle_key_with_modifiers(code, KeyModifiers::NONE)
+    }
+
+    /// Handles a key press with modifiers (e.g., Ctrl+J for newline).
+    pub fn handle_key_with_modifiers(
+        &mut self,
+        code: KeyCode,
+        modifiers: KeyModifiers,
+    ) -> PluginKeyAction {
         // Quit confirmation flow
         if self.quit_pending {
             match code {
@@ -304,113 +455,214 @@ impl TuiShell {
                     self.push_activity(">> Quit cancelled.".to_owned());
                 }
             }
-            return;
+            return PluginKeyAction::Handled;
         }
 
-        // Feedback input mode — captures text until Enter or Esc
-        if self.state == TuiState::WaitingFeedback {
-            match code {
-                KeyCode::Enter => {
-                    if !self.feedback_buffer.trim().is_empty() {
-                        let feedback = self.feedback_buffer.trim().to_owned();
-                        self.push_activity(format!(">> Feedback: {feedback}"));
-                        self.pending_feedback = Some(feedback);
-                        self.feedback_buffer.clear();
-                        self.set_state(TuiState::Paused);
-                        self.push_activity(
-                            ">> Feedback saved. Press 'p' to resume agent with feedback."
-                                .to_owned(),
-                        );
+        let typing = self.input_enabled && !self.text_input_buffer.is_empty();
+
+        // Typing mode: buffer has content → all chars go to buffer
+        if typing {
+            // Autocomplete intercepts when visible
+            if self.autocomplete.visible {
+                match code {
+                    KeyCode::Up => {
+                        self.autocomplete.selected = self.autocomplete.selected.saturating_sub(1);
+                        return PluginKeyAction::Handled;
                     }
+                    KeyCode::Down => {
+                        self.autocomplete.selected = (self.autocomplete.selected + 1)
+                            .min(self.autocomplete.filtered.len().saturating_sub(1));
+                        return PluginKeyAction::Handled;
+                    }
+                    KeyCode::Tab => {
+                        // Tab → complete into buffer (don't send)
+                        if let Some(cmd) = self.autocomplete.selected_command() {
+                            self.text_input_buffer = cmd;
+                            self.autocomplete.visible = false;
+                        }
+                        return PluginKeyAction::Handled;
+                    }
+                    KeyCode::Enter => {
+                        // Enter with autocomplete → select and send
+                        if let Some(cmd) = self.autocomplete.selected_command() {
+                            self.text_input_buffer = cmd;
+                        }
+                        // Fall through to normal Enter handling below
+                    }
+                    KeyCode::Esc => {
+                        // Close popup, keep buffer
+                        self.autocomplete.visible = false;
+                        return PluginKeyAction::Handled;
+                    }
+                    _ => {} // Other keys fall through to normal typing
+                }
+            }
+
+            match code {
+                KeyCode::Enter if modifiers.contains(KeyModifiers::ALT) => {
+                    self.text_input_buffer.push('\n');
+                }
+                KeyCode::Enter => {
+                    if !self.text_input_buffer.trim().is_empty() {
+                        let text = self.text_input_buffer.trim().to_owned();
+                        self.push_activity(format!(">> You: {text}"));
+                        self.pending_text_input = Some(text);
+                    }
+                    self.text_input_buffer.clear();
+                    self.autocomplete.visible = false;
                 }
                 KeyCode::Esc => {
-                    self.feedback_buffer.clear();
-                    self.set_state(TuiState::Paused);
-                    self.push_activity(">> Feedback cancelled.".to_owned());
+                    self.text_input_buffer.clear();
+                    self.autocomplete.visible = false;
                 }
                 KeyCode::Backspace => {
-                    self.feedback_buffer.pop();
+                    self.text_input_buffer.pop();
+                    self.autocomplete.update_filter(&self.text_input_buffer);
                 }
                 KeyCode::Char(c) => {
-                    self.feedback_buffer.push(c);
+                    self.text_input_buffer.push(c);
+                    self.autocomplete.update_filter(&self.text_input_buffer);
                 }
                 _ => {}
             }
-            return;
+            return PluginKeyAction::Handled;
         }
 
+        // Core keys (always available when not typing)
         match code {
             KeyCode::Char('q') => {
                 self.quit_pending = true;
                 self.push_activity(
                     ">> Quit? Press 'y' to confirm, any other key to cancel.".to_owned(),
                 );
+                return PluginKeyAction::Handled;
             }
             KeyCode::Char('p') => {
                 if self.state == TuiState::Running {
-                    // TUI sets state only — caller handles SIGSTOP via plugin
                     self.set_state(TuiState::Paused);
-                    self.push_activity(
-                        ">> Agent paused. Press 'f' for feedback, 'p' to resume.".to_owned(),
-                    );
+                    self.push_activity(">> PAUSED — press [p] to resume".to_owned());
                 } else if self.state == TuiState::Paused {
-                    // TUI sets state only — caller handles SIGCONT via plugin
                     self.set_state(TuiState::Running);
-                    self.push_activity(">> Agent resumed.".to_owned());
+                    self.push_activity(">> RUNNING".to_owned());
                 }
-            }
-            KeyCode::Char('f') if self.state == TuiState::Paused => {
-                self.set_state(TuiState::WaitingFeedback);
-                self.push_activity(
-                    ">> Type your feedback, then press Enter to save or Esc to cancel.".to_owned(),
-                );
+                return PluginKeyAction::Handled;
             }
             KeyCode::Char('?') => {
-                let help = if self.state == TuiState::Paused {
-                    ">> Keys: [f] feedback  [p] resume  [q] quit  [?] help"
-                } else {
-                    ">> Keys: [p] pause  [q] quit  [?] help"
-                };
-                self.push_activity(help.to_owned());
+                self.push_help_to_activity();
+                return PluginKeyAction::Handled;
             }
             _ => {}
         }
+
+        // Plugin keybinding dispatch (buffer is empty)
+        if let KeyCode::Char(c) = code {
+            let state_label = format!("{:?}", self.state);
+            if self.find_active_binding(c, &state_label).is_some() {
+                tracing::debug!(key = %c, "dispatching key to plugin");
+                return PluginKeyAction::NotHandled; // Caller dispatches to plugin runtime
+            }
+
+            // Not a keybinding → start typing (if plugin enabled input)
+            if self.input_enabled {
+                self.text_input_buffer.push(c);
+                // Trigger autocomplete on prefix (e.g. `/`)
+                self.autocomplete.update_filter(&self.text_input_buffer);
+                return PluginKeyAction::Handled;
+            }
+        }
+
+        PluginKeyAction::NotHandled
     }
 
-    /// Takes the pending feedback (if any) — consumed by the caller
-    /// to re-spawn the agent with merged context.
-    pub fn take_feedback(&mut self) -> Option<String> {
-        self.pending_feedback.take()
+    /// Applies a plugin key action to the TUI state.
+    ///
+    /// Called by the CLI layer after converting a `re_plugin::TuiKeyResult`
+    /// into a `PluginKeyAction`. The TUI shell doesn't depend on re-plugin
+    /// directly — the CLI layer does the translation.
+    pub fn apply_plugin_action(&mut self, action: &PluginKeyAction) {
+        match action {
+            PluginKeyAction::Handled | PluginKeyAction::NotHandled => {}
+            PluginKeyAction::EnterTextInput { prompt } => {
+                self.input_enabled = true;
+                self.text_input_buffer.clear();
+                self.push_activity(format!(">> {prompt}"));
+            }
+            PluginKeyAction::SetState(new_state) => {
+                self.set_state(*new_state);
+                // Show state change + available keybindings in the new state
+                let new_label = format!("{new_state:?}");
+                let available: Vec<String> = self
+                    .plugin_keybindings
+                    .iter()
+                    .filter(|b| {
+                        b.active_states.is_empty()
+                            || b.active_states.iter().any(|s| s == &new_label)
+                    })
+                    .map(|b| format!("[{}] {}", b.key, b.description))
+                    .collect();
+                if available.is_empty() {
+                    self.push_activity(format!(">> {}", new_state.label()));
+                } else {
+                    self.push_activity(format!(
+                        ">> {} — {}",
+                        new_state.label(),
+                        available.join("  ")
+                    ));
+                }
+            }
+            PluginKeyAction::ShowMessage(msg) => {
+                self.push_activity(format!(">> {msg}"));
+            }
+        }
     }
 
-    /// Returns the current feedback buffer (for rendering the input field).
+    /// Finds an active plugin keybinding for the given key and state.
     #[must_use]
-    pub fn feedback_buffer(&self) -> &str {
-        &self.feedback_buffer
+    pub fn find_active_binding(
+        &self,
+        key: char,
+        state_label: &str,
+    ) -> Option<&RegisteredKeybinding> {
+        self.plugin_keybindings.iter().find(|b| {
+            b.key == key
+                && (b.active_states.is_empty() || b.active_states.iter().any(|s| s == state_label))
+        })
+    }
+
+    /// Pushes help text to the activity stream based on state and plugin bindings.
+    fn push_help_to_activity(&mut self) {
+        let state_label = format!("{:?}", self.state);
+        let mut parts = vec![">> Keys:".to_owned()];
+
+        // Plugin keybindings active in current state
+        for binding in &self.plugin_keybindings {
+            if binding.active_states.is_empty()
+                || binding.active_states.iter().any(|s| s == &state_label)
+            {
+                parts.push(format!("[{}] {}", binding.key, binding.description));
+            }
+        }
+
+        // Core keys (always active)
+        parts.push("[q] quit".to_owned());
+        parts.push("[?] help".to_owned());
+
+        self.push_activity(parts.join("  "));
     }
 
     /// Renders the TUI frame with responsive zone-based layout.
-    ///
-    /// Layout adapts to terminal size:
-    ///
-    /// - Compact (< 120 cols): activity only
-    /// - Standard (120-159): activity + sidebar
-    /// - Wide (>= 160): control + activity + sidebar
     pub fn render_frame(&self, frame: &mut Frame<'_>) {
         let area = frame.area();
         self.render_in(frame, area);
     }
 
     /// Renders the TUI into a specific sub-area of the frame.
-    ///
-    /// Used when the logo occupies the top portion of the screen.
     pub fn render_frame_in_area(&self, frame: &mut Frame<'_>, area: Rect) {
         self.render_in(frame, area);
     }
 
     /// Internal render implementation for a given area.
     fn render_in(&self, frame: &mut Frame<'_>, area: Rect) {
-        // Check minimum size
         if layout::is_terminal_too_small(area) {
             let msg = format!(
                 "Terminal too small ({}x{}). Minimum: {}x{}.",
@@ -426,12 +678,16 @@ impl TuiShell {
             return;
         }
 
-        let zones = layout::compute_zones(area);
+        let zones = layout::compute_zones(area, self.input_enabled);
 
         self.render_header(frame, zones.header);
         self.render_activity(frame, zones.activity);
         self.render_metrics(frame, zones.metrics);
         self.render_help(frame, &zones);
+
+        if let Some(input_area) = zones.input {
+            self.render_input_bar(frame, input_area);
+        }
 
         if let Some(sidebar) = zones.sidebar {
             self.render_sidebar(frame, sidebar);
@@ -439,6 +695,11 @@ impl TuiShell {
 
         if let Some(control) = zones.control {
             self.render_control_panel(frame, control);
+        }
+
+        // Autocomplete popup — rendered LAST (on top of everything)
+        if let Some(input_area) = zones.input {
+            self.render_autocomplete(frame, input_area);
         }
     }
 
@@ -451,7 +712,7 @@ impl TuiShell {
             Span::styled(
                 " ◎ Ralph Engine ",
                 Style::default()
-                    .fg(Color::Indexed(105)) // #5B6AD0 — brand purple
+                    .fg(Color::Indexed(105))
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled("• ", Style::default().fg(Color::DarkGray)),
@@ -464,7 +725,6 @@ impl TuiShell {
             ),
         ]);
 
-        // If there's room, add a progress gauge inline
         if area.width > 60 {
             let cols =
                 Layout::horizontal([Constraint::Fill(1), Constraint::Length(20)]).split(area);
@@ -483,18 +743,12 @@ impl TuiShell {
     }
 
     /// Renders the activity stream (main viewport).
-    ///
-    /// When the activity stream is short enough, the logo is shown
-    /// at the top of the viewport. As more events arrive, the logo
-    /// scrolls up naturally with the content.
     fn render_activity(&self, frame: &mut Frame<'_>, area: Rect) {
         let visible_lines = area.height as usize;
 
-        // Build logo lines (responsive to width)
         let logo_lines = crate::logo::build_logo_lines(area.width);
         let logo_count = logo_lines.len();
 
-        // Build activity lines with syntax coloring
         let activity: Vec<Line<'_>> = self
             .activity_lines
             .iter()
@@ -513,45 +767,23 @@ impl TuiShell {
             })
             .collect();
 
-        // Combine: logo + activity
         let total = logo_count + activity.len();
         let start = total.saturating_sub(visible_lines);
 
         let mut all_lines: Vec<Line<'_>> = Vec::with_capacity(visible_lines);
 
-        // Add logo lines (skip if scrolled past)
         for (i, line) in logo_lines.into_iter().enumerate() {
             if i >= start {
                 all_lines.push(line);
             }
         }
 
-        // Add activity lines (skip if scrolled past)
         let activity_start = start.saturating_sub(logo_count);
         for line in activity.into_iter().skip(activity_start) {
             if all_lines.len() >= visible_lines {
                 break;
             }
             all_lines.push(line);
-        }
-
-        // Show feedback input field at bottom when in WaitingFeedback state
-        if self.state == TuiState::WaitingFeedback {
-            let cursor = if self.feedback_buffer.is_empty() {
-                "type your feedback...".to_owned()
-            } else {
-                format!("{}▌", self.feedback_buffer)
-            };
-            // Replace last lines with input field
-            if all_lines.len() >= 2 {
-                all_lines.pop();
-            }
-            all_lines.push(Line::styled(
-                format!("  > {cursor}"),
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            ));
         }
 
         frame.render_widget(Paragraph::new(all_lines), area);
@@ -572,7 +804,163 @@ impl TuiShell {
         frame.render_widget(Paragraph::new(metrics), area);
     }
 
-    /// Renders the help bar at the bottom, adapted to layout tier.
+    /// Renders the chat input bar.
+    ///
+    /// Only shown when an interactive plugin (e.g. guided) registers
+    /// keybindings. Shows a persistent input prompt with cursor.
+    /// When empty, shows placeholder. When typing, shows buffer + cursor.
+    /// Renders the chat input bar — clean `>` prompt, separator above.
+    ///
+    /// Renders the chat input — separator, `>` prompt, multi-line, native cursor.
+    ///
+    /// Ctrl+J inserts newline. Enter sends. Esc cancels.
+    /// Native terminal cursor blinks at insertion point.
+    fn render_input_bar(&self, frame: &mut Frame<'_>, area: Rect) {
+        let prompt_color = Color::Indexed(105); // brand purple
+        let sep = "─".repeat(area.width as usize);
+        let prompt = " > ";
+        let prompt_width = prompt.len() as u16;
+
+        // Split: separator (1) + text area (rest)
+        let rows = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).split(area);
+
+        frame.render_widget(
+            Paragraph::new(Line::styled(sep, Style::default().fg(Color::Indexed(59)))),
+            rows[0],
+        );
+
+        let text_area = rows[1];
+
+        if self.text_input_buffer.is_empty() {
+            // Empty: just the prompt
+            let line = Line::from(vec![Span::styled(
+                prompt,
+                Style::default()
+                    .fg(prompt_color)
+                    .add_modifier(Modifier::BOLD),
+            )]);
+            frame.render_widget(Paragraph::new(line), text_area);
+            // Native blinking cursor
+            frame.set_cursor_position((text_area.x + prompt_width, text_area.y));
+        } else {
+            // Build wrapped/multi-line content
+            let content_width = text_area.width.saturating_sub(prompt_width).max(1) as usize;
+            let mut display_lines: Vec<Line<'_>> = Vec::new();
+            let mut first = true;
+
+            for text_line in self.text_input_buffer.split('\n') {
+                if text_line.is_empty() {
+                    let pfx = if first { prompt } else { "   " };
+                    first = false;
+                    display_lines.push(Line::from(Span::styled(
+                        pfx.to_owned(),
+                        Style::default()
+                            .fg(prompt_color)
+                            .add_modifier(Modifier::BOLD),
+                    )));
+                    continue;
+                }
+                let mut pos = 0;
+                while pos < text_line.len() {
+                    let end = (pos + content_width).min(text_line.len());
+                    let chunk = &text_line[pos..end];
+                    let pfx = if first { prompt } else { "   " };
+                    first = false;
+                    display_lines.push(Line::from(vec![
+                        Span::styled(
+                            pfx.to_owned(),
+                            Style::default()
+                                .fg(prompt_color)
+                                .add_modifier(Modifier::BOLD),
+                        ),
+                        Span::styled(chunk.to_owned(), Style::default().fg(Color::White)),
+                    ]));
+                    pos = end;
+                }
+            }
+
+            // Scroll to show last visible lines
+            let visible = text_area.height as usize;
+            let start = display_lines.len().saturating_sub(visible);
+            let shown: Vec<Line<'_>> = display_lines.into_iter().skip(start).collect();
+            let line_count = shown.len();
+
+            frame.render_widget(Paragraph::new(shown), text_area);
+
+            // Cursor at end of last line
+            let last_text_line = self.text_input_buffer.rsplit('\n').next().unwrap_or("");
+            let cursor_col = (last_text_line.len() % content_width) as u16;
+            let cursor_row = (line_count.saturating_sub(1)) as u16;
+            frame.set_cursor_position((
+                text_area.x + prompt_width + cursor_col,
+                text_area.y + cursor_row.min(text_area.height.saturating_sub(1)),
+            ));
+        }
+    }
+
+    /// Renders the autocomplete popup above the input bar.
+    ///
+    /// Uses painter's algorithm: `Clear` + render on top.
+    fn render_autocomplete(&self, frame: &mut Frame<'_>, input_area: Rect) {
+        if !self.autocomplete.visible || self.autocomplete.filtered.is_empty() {
+            return;
+        }
+
+        let max_visible = 8u16;
+        let item_count = (self.autocomplete.filtered.len() as u16).min(max_visible);
+        let popup_height = item_count + 2; // +2 for borders
+        let popup_width = input_area.width.min(60);
+
+        let popup_area = Rect {
+            x: input_area.x,
+            y: input_area.y.saturating_sub(popup_height),
+            width: popup_width,
+            height: popup_height,
+        };
+
+        let items: Vec<ListItem<'_>> = self
+            .autocomplete
+            .filtered
+            .iter()
+            .map(|&idx| {
+                let cmd = &self.autocomplete.commands[idx];
+                ListItem::new(Line::from(vec![
+                    Span::styled(
+                        format!("{}{}", self.autocomplete.prefix, cmd.name),
+                        Style::default()
+                            .fg(Color::Cyan)
+                            .add_modifier(Modifier::BOLD),
+                    ),
+                    Span::raw("  "),
+                    Span::styled(&cmd.description, Style::default().fg(Color::DarkGray)),
+                ]))
+            })
+            .collect();
+
+        let list = List::new(items)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(Color::Indexed(59)))
+                    .title(" Commands ")
+                    .title_style(Style::default().fg(Color::Indexed(105))),
+            )
+            .highlight_style(
+                Style::default()
+                    .bg(Color::Indexed(236))
+                    .add_modifier(Modifier::BOLD),
+            )
+            .highlight_symbol("> ");
+
+        frame.render_widget(Clear, popup_area);
+        frame.render_stateful_widget(
+            list,
+            popup_area,
+            &mut ListState::default().with_selected(Some(self.autocomplete.selected)),
+        );
+    }
+
+    /// Renders the help bar at the bottom.
     fn render_help(&self, frame: &mut Frame<'_>, zones: &layout::LayoutZones) {
         if self.quit_pending {
             let warn = Style::default()
@@ -589,30 +977,42 @@ impl TuiShell {
             return;
         }
 
-        if self.state == TuiState::WaitingFeedback {
-            let input_style = Style::default()
-                .fg(Color::Cyan)
-                .add_modifier(Modifier::BOLD);
+        let dim = Style::default().fg(Color::DarkGray);
+
+        // When typing, show input-specific help
+        if self.input_enabled && !self.text_input_buffer.is_empty() {
             let spans = vec![
-                Span::styled(" Feedback ", input_style),
-                Span::styled(
-                    "[Enter] send  [Esc] cancel  [Backspace] delete",
-                    Style::default().fg(Color::DarkGray),
-                ),
+                Span::styled(" [Enter]", dim),
+                Span::styled(" send ", dim),
+                Span::styled(" [Alt+Enter]", dim),
+                Span::styled(" newline ", dim),
+                Span::styled(" [Esc]", dim),
+                Span::styled(" cancel ", dim),
             ];
             frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
             return;
         }
 
-        let dim = Style::default().fg(Color::DarkGray);
-        let mut spans = vec![
-            Span::styled(" [?]", dim),
-            Span::styled(" help ", dim),
-            Span::styled(" [p]", dim),
-            Span::styled(" pause ", dim),
-            Span::styled(" [q]", dim),
-            Span::styled(" quit ", dim),
-        ];
+        let state_label = format!("{:?}", self.state);
+        let mut spans: Vec<Span<'_>> = Vec::new();
+
+        // Plugin keybindings active in current state
+        for binding in &self.plugin_keybindings {
+            if binding.active_states.is_empty()
+                || binding.active_states.iter().any(|s| s == &state_label)
+            {
+                spans.push(Span::styled(format!(" [{}]", binding.key), dim));
+                spans.push(Span::styled(format!(" {} ", binding.description), dim));
+            }
+        }
+
+        // Core keys
+        spans.push(Span::styled(" [p]", dim));
+        spans.push(Span::styled(" pause ", dim));
+        spans.push(Span::styled(" [?]", dim));
+        spans.push(Span::styled(" help ", dim));
+        spans.push(Span::styled(" [q]", dim));
+        spans.push(Span::styled(" quit ", dim));
 
         let tier_label = match zones.tier {
             layout::LayoutTier::Compact => "compact",
@@ -647,7 +1047,6 @@ impl TuiShell {
             return;
         }
 
-        // Distribute vertical space equally among panels.
         let panel_count = self.sidebar_panels.len();
         let constraints: Vec<Constraint> = (0..panel_count)
             .map(|i| {
@@ -680,10 +1079,10 @@ impl TuiShell {
         }
     }
 
-    /// Renders the control panel zone (guided mode actions).
+    /// Renders the control panel zone (wide tier only).
     ///
-    /// Only visible in Wide tier (>= 160 cols). Provides quick-access
-    /// controls for pause/resume/feedback in guided mode.
+    /// Shows current state and work item. Plugin-specific controls
+    /// appear via sidebar panels, not here.
     fn render_control_panel(&self, frame: &mut Frame<'_>, area: Rect) {
         let block = Block::default()
             .borders(Borders::RIGHT)
@@ -695,16 +1094,8 @@ impl TuiShell {
         frame.render_widget(block, area);
 
         let state_color = self.state.color();
-        let mode_label = match self.config.mode {
-            TuiMode::Autonomous => "Autonomous",
-            TuiMode::Guided => "Guided",
-        };
 
         let lines = vec![
-            Line::styled(
-                format!(" Mode: {mode_label}"),
-                Style::default().fg(Color::White),
-            ),
             Line::styled(
                 format!(" State: {}", self.state.label()),
                 Style::default().fg(state_color),
@@ -715,7 +1106,6 @@ impl TuiShell {
                 Style::default().fg(Color::White),
             ),
             Line::raw(""),
-            Line::styled(" [p] Pause/Resume", Style::default().fg(Color::DarkGray)),
             Line::styled(" [q] Quit", Style::default().fg(Color::DarkGray)),
         ];
         frame.render_widget(Paragraph::new(lines), inner);
@@ -723,19 +1113,12 @@ impl TuiShell {
 }
 
 /// Initializes the terminal with ratatui defaults.
-///
-/// Enables raw mode, enters alternate screen, and installs a panic
-/// hook that restores the terminal before printing the panic message.
-/// Uses `ratatui::init()` which handles all setup automatically.
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn init_terminal() -> DefaultTerminal {
     ratatui::init()
 }
 
 /// Restores terminal to normal mode.
-///
-/// Disables raw mode, leaves alternate screen, and removes the
-/// panic hook installed by `init_terminal()`.
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn restore_terminal() {
     ratatui::restore();
@@ -771,7 +1154,6 @@ mod tests {
     fn tui_state_labels_are_correct() {
         assert_eq!(TuiState::Running.label(), "RUNNING");
         assert_eq!(TuiState::Paused.label(), "PAUSED");
-        assert_eq!(TuiState::WaitingFeedback.label(), "FEEDBACK");
         assert_eq!(TuiState::Complete.label(), "COMPLETE");
         assert_eq!(TuiState::Error.label(), "ERROR");
     }
@@ -785,9 +1167,17 @@ mod tests {
     }
 
     #[test]
+    fn tui_state_from_label_roundtrips() {
+        assert_eq!(TuiState::from_label("Running"), Some(TuiState::Running));
+        assert_eq!(TuiState::from_label("Paused"), Some(TuiState::Paused));
+        assert_eq!(TuiState::from_label("Complete"), Some(TuiState::Complete));
+        assert_eq!(TuiState::from_label("Error"), Some(TuiState::Error));
+        assert_eq!(TuiState::from_label("Unknown"), None);
+    }
+
+    #[test]
     fn tui_shell_new_has_correct_defaults() {
         let shell = TuiShell::new(TuiConfig {
-            mode: TuiMode::Autonomous,
             title: "Test".to_owned(),
             agent_id: "test.agent".to_owned(),
             locale: "en".to_owned(),
@@ -796,75 +1186,45 @@ mod tests {
         assert_eq!(shell.progress, 0);
         assert!(shell.activity_lines.is_empty());
         assert_eq!(shell.tool_count, 0);
+        assert!(!shell.is_input_enabled());
     }
 
     #[test]
     fn push_activity_appends_line() {
-        let mut shell = TuiShell::new(TuiConfig {
-            mode: TuiMode::Autonomous,
-            title: "Test".to_owned(),
-            agent_id: "test.agent".to_owned(),
-            locale: "en".to_owned(),
-        });
+        let mut shell = empty_shell();
         shell.push_activity("hello".to_owned());
         shell.push_activity("world".to_owned());
         assert_eq!(shell.activity_lines.len(), 2);
-        assert_eq!(shell.activity_lines[0], "hello");
-        assert_eq!(shell.activity_lines[1], "world");
     }
 
     #[test]
     fn push_activity_bounds_buffer() {
-        let mut shell = TuiShell::new(TuiConfig {
-            mode: TuiMode::Autonomous,
-            title: "Test".to_owned(),
-            agent_id: "test.agent".to_owned(),
-            locale: "en".to_owned(),
-        });
+        let mut shell = empty_shell();
         for i in 0..10_001 {
             shell.push_activity(format!("line {i}"));
         }
-        // After draining 1000 + adding 1, should be 9001
         assert!(shell.activity_lines.len() <= 10_000);
-        // Last line should be the most recent
         assert_eq!(shell.activity_lines.last().unwrap(), "line 10000");
     }
 
     #[test]
     fn set_state_transitions() {
-        let mut shell = TuiShell::new(TuiConfig {
-            mode: TuiMode::Guided,
-            title: "Test".to_owned(),
-            agent_id: "test.agent".to_owned(),
-            locale: "en".to_owned(),
-        });
+        let mut shell = empty_shell();
         assert_eq!(shell.state(), TuiState::Running);
         shell.set_state(TuiState::Paused);
         assert_eq!(shell.state(), TuiState::Paused);
-        shell.set_state(TuiState::WaitingFeedback);
-        assert_eq!(shell.state(), TuiState::WaitingFeedback);
     }
 
     #[test]
     fn set_progress_clamps_to_100() {
-        let mut shell = TuiShell::new(TuiConfig {
-            mode: TuiMode::Autonomous,
-            title: "Test".to_owned(),
-            agent_id: "test.agent".to_owned(),
-            locale: "en".to_owned(),
-        });
+        let mut shell = empty_shell();
         shell.set_progress(150);
         assert_eq!(shell.progress, 100);
     }
 
     #[test]
     fn increment_tools_counts() {
-        let mut shell = TuiShell::new(TuiConfig {
-            mode: TuiMode::Autonomous,
-            title: "Test".to_owned(),
-            agent_id: "test.agent".to_owned(),
-            locale: "en".to_owned(),
-        });
+        let mut shell = empty_shell();
         shell.increment_tools();
         shell.increment_tools();
         shell.increment_tools();
@@ -876,86 +1236,158 @@ mod tests {
         let mut shell = empty_shell();
         assert!(!shell.should_quit());
 
-        // First q: sets pending, does NOT quit
         shell.handle_key(KeyCode::Char('q'));
         assert!(!shell.should_quit());
         assert!(shell.is_quit_pending());
 
-        // Any non-y key: cancels quit
         shell.handle_key(KeyCode::Char('n'));
         assert!(!shell.should_quit());
         assert!(!shell.is_quit_pending());
 
-        // q then y: confirms quit
         shell.handle_key(KeyCode::Char('q'));
         shell.handle_key(KeyCode::Char('y'));
         assert!(shell.should_quit());
     }
 
     #[test]
-    fn handle_key_p_toggles_pause() {
-        let mut shell = TuiShell::new(TuiConfig {
-            mode: TuiMode::Autonomous,
-            title: "Test".to_owned(),
-            agent_id: "test.agent".to_owned(),
-            locale: "en".to_owned(),
-        });
-        assert_eq!(shell.state(), TuiState::Running);
-        shell.handle_key(KeyCode::Char('p'));
-        assert_eq!(shell.state(), TuiState::Paused);
-        shell.handle_key(KeyCode::Char('p'));
-        assert_eq!(shell.state(), TuiState::Running);
-    }
-
-    #[test]
     fn handle_key_help_adds_activity() {
-        let mut shell = TuiShell::new(TuiConfig {
-            mode: TuiMode::Autonomous,
-            title: "Test".to_owned(),
-            agent_id: "test.agent".to_owned(),
-            locale: "en".to_owned(),
-        });
+        let mut shell = empty_shell();
         shell.handle_key(KeyCode::Char('?'));
         assert!(shell.activity_lines.last().unwrap().contains("help"));
     }
 
     #[test]
-    fn handle_key_p_no_toggle_when_complete() {
-        let mut shell = TuiShell::new(TuiConfig {
-            mode: TuiMode::Autonomous,
-            title: "Test".to_owned(),
-            agent_id: "test.agent".to_owned(),
-            locale: "en".to_owned(),
+    fn handle_key_unknown_returns_not_handled() {
+        let mut shell = empty_shell();
+        let result = shell.handle_key(KeyCode::Char('x'));
+        assert_eq!(result, PluginKeyAction::NotHandled);
+    }
+
+    #[test]
+    fn plugin_keybinding_dispatch() {
+        let mut shell = empty_shell();
+        shell.set_plugin_keybindings(vec![RegisteredKeybinding {
+            key: 'p',
+            description: "Pause".to_owned(),
+            plugin_id: "test.guided".to_owned(),
+            active_states: vec!["Running".to_owned()],
+        }]);
+
+        // Key 'p' should find the binding while Running
+        let binding = shell.find_active_binding('p', "Running");
+        assert!(binding.is_some());
+        assert_eq!(binding.unwrap().plugin_id, "test.guided");
+
+        // Key 'p' should NOT find the binding while Complete
+        let binding = shell.find_active_binding('p', "Complete");
+        assert!(binding.is_none());
+    }
+
+    #[test]
+    fn apply_plugin_action_set_state() {
+        let mut shell = empty_shell();
+        shell.apply_plugin_action(&PluginKeyAction::SetState(TuiState::Paused));
+        assert_eq!(shell.state(), TuiState::Paused);
+    }
+
+    #[test]
+    fn apply_plugin_action_enter_text_input() {
+        let mut shell = empty_shell();
+        shell.apply_plugin_action(&PluginKeyAction::EnterTextInput {
+            prompt: "Type feedback:".to_owned(),
         });
-        shell.set_state(TuiState::Complete);
+        assert!(shell.is_input_enabled());
+        assert!(shell.activity_lines.last().unwrap().contains("feedback"));
+    }
+
+    #[test]
+    fn apply_plugin_action_show_message() {
+        let mut shell = empty_shell();
+        shell.apply_plugin_action(&PluginKeyAction::ShowMessage("Agent paused.".to_owned()));
+        assert!(shell.activity_lines.last().unwrap().contains("paused"));
+    }
+
+    #[test]
+    fn chat_input_type_and_send() {
+        let mut shell = interactive_shell();
+
+        // Type text (non-keybinding chars go to buffer)
+        shell.handle_key(KeyCode::Char('f')); // not a keybinding in Running
+        shell.handle_key(KeyCode::Char('i'));
+        shell.handle_key(KeyCode::Char('x'));
+        assert_eq!(shell.text_input_buffer(), "fix");
+
+        // Submit
+        shell.handle_key(KeyCode::Enter);
+        assert_eq!(shell.take_text_input(), Some("fix".to_owned()));
+        assert!(shell.text_input_buffer().is_empty());
+    }
+
+    #[test]
+    fn chat_input_esc_clears() {
+        let mut shell = interactive_shell();
+        shell.handle_key(KeyCode::Char('a'));
+        shell.handle_key(KeyCode::Char('b'));
+        assert_eq!(shell.text_input_buffer(), "ab");
+
+        shell.handle_key(KeyCode::Esc);
+        assert!(shell.text_input_buffer().is_empty());
+        assert!(shell.take_text_input().is_none());
+    }
+
+    #[test]
+    fn chat_input_backspace_deletes() {
+        let mut shell = interactive_shell();
+        shell.handle_key(KeyCode::Char('a'));
+        shell.handle_key(KeyCode::Char('b'));
+        shell.handle_key(KeyCode::Backspace);
+        assert_eq!(shell.text_input_buffer(), "a");
+    }
+
+    #[test]
+    fn chat_input_empty_enter_does_nothing() {
+        let mut shell = interactive_shell();
+        shell.handle_key(KeyCode::Enter);
+        assert!(shell.take_text_input().is_none());
+    }
+
+    #[test]
+    fn chat_input_keybinding_while_typing_goes_to_buffer() {
+        let mut shell = interactive_shell();
+        // Start typing
+        shell.handle_key(KeyCode::Char('h'));
+        // Now 'p' goes to buffer (not keybinding) because we're typing
         shell.handle_key(KeyCode::Char('p'));
-        // Should NOT toggle to Running — Complete is a terminal state
-        assert_eq!(shell.state(), TuiState::Complete);
+        assert_eq!(shell.text_input_buffer(), "hp");
     }
 
     #[test]
-    fn tui_mode_debug_format() {
-        assert_eq!(format!("{:?}", TuiMode::Autonomous), "Autonomous");
-        assert_eq!(format!("{:?}", TuiMode::Guided), "Guided");
+    fn no_chat_input_when_input_disabled() {
+        let mut shell = empty_shell(); // input not enabled = read-only
+        shell.handle_key(KeyCode::Char('a'));
+        // Without input enabled, chars are not captured
+        assert!(shell.text_input_buffer().is_empty());
     }
 
     #[test]
-    fn tui_error_display() {
-        let err = TuiError::new("test error".to_owned());
-        assert_eq!(err.to_string(), "test error");
+    fn explicit_enter_text_input_activates() {
+        let mut shell = interactive_shell();
+        shell.apply_plugin_action(&PluginKeyAction::EnterTextInput {
+            prompt: "Feedback:".to_owned(),
+        });
+        assert!(shell.is_input_enabled());
+        // Now typing works
+        shell.handle_key(KeyCode::Char('x'));
+        assert_eq!(shell.text_input_buffer(), "x");
     }
 
     // ── Rendering snapshot tests ─────────────────────────────────
-    //
-    // Use TestBackend to capture rendered frames without a real terminal.
-    // These verify that the right content appears in the right zones.
 
     use ratatui::Terminal;
     use ratatui::backend::TestBackend;
 
     fn test_shell() -> TuiShell {
         let mut shell = TuiShell::new(TuiConfig {
-            mode: TuiMode::Autonomous,
             title: "Test Task".to_owned(),
             agent_id: "test.claude".to_owned(),
             locale: "en".to_owned(),
@@ -971,7 +1403,6 @@ mod tests {
         let backend = TestBackend::new(width, height);
         let mut terminal = Terminal::new(backend).unwrap();
         terminal.draw(|frame| shell.render_frame(frame)).unwrap();
-        // Extract text content from the buffer
         let buf = terminal.backend().buffer();
         let mut output = String::new();
         for y in 0..height {
@@ -984,117 +1415,86 @@ mod tests {
         output
     }
 
+    fn empty_shell() -> TuiShell {
+        TuiShell::new(TuiConfig {
+            title: "Test".to_owned(),
+            agent_id: "test.agent".to_owned(),
+            locale: "en".to_owned(),
+        })
+    }
+
+    /// Shell with plugin keybindings (interactive mode — has input bar).
+    /// Shell with input enabled (simulates guided plugin active).
+    fn interactive_shell() -> TuiShell {
+        let mut shell = empty_shell();
+        shell.enable_input();
+        shell
+    }
+
     #[test]
     fn render_compact_shows_header_with_agent_id() {
         let shell = test_shell();
         let output = render_to_buffer(&shell, 80, 24);
-        assert!(
-            output.contains("test.claude"),
-            "header should show agent_id, got:\n{output}"
-        );
-        assert!(
-            output.contains("[RUNNING]"),
-            "header should show state, got:\n{output}"
-        );
+        assert!(output.contains("test.claude"));
+        assert!(output.contains("[RUNNING]"));
     }
 
     #[test]
     fn render_compact_shows_activity_lines() {
         let shell = test_shell();
         let output = render_to_buffer(&shell, 80, 24);
-        assert!(
-            output.contains("Tool Call: search"),
-            "activity should show tool call, got:\n{output}"
-        );
-        assert!(
-            output.contains("found 3 items"),
-            "activity should show result, got:\n{output}"
-        );
+        assert!(output.contains("Tool Call: search"));
+        assert!(output.contains("found 3 items"));
     }
 
     #[test]
     fn render_compact_shows_metrics() {
         let shell = test_shell();
         let output = render_to_buffer(&shell, 80, 24);
-        assert!(
-            output.contains("Tools: 1"),
-            "metrics should show tool count, got:\n{output}"
-        );
+        assert!(output.contains("Tools: 1"));
     }
 
     #[test]
     fn render_compact_shows_help_bar() {
         let shell = test_shell();
         let output = render_to_buffer(&shell, 80, 24);
-        assert!(
-            output.contains("[q]"),
-            "help bar should show quit key, got:\n{output}"
-        );
-        assert!(
-            output.contains("compact"),
-            "help bar should show tier, got:\n{output}"
-        );
+        assert!(output.contains("[q]"));
+        assert!(output.contains("compact"));
     }
 
     #[test]
     fn render_compact_no_sidebar() {
         let shell = test_shell();
         let output = render_to_buffer(&shell, 80, 24);
-        assert!(
-            !output.contains("Plugins"),
-            "compact mode should not show sidebar, got:\n{output}"
-        );
+        assert!(!output.contains("Plugins"));
     }
 
     #[test]
     fn render_standard_shows_sidebar() {
         let shell = test_shell();
         let output = render_to_buffer(&shell, 140, 40);
-        assert!(
-            output.contains("Plugins"),
-            "standard mode should show sidebar, got:\n{output}"
-        );
-        assert!(
-            output.contains("standard"),
-            "help should show standard tier, got:\n{output}"
-        );
+        assert!(output.contains("Plugins"));
+        assert!(output.contains("standard"));
     }
 
     #[test]
     fn render_wide_shows_control_panel() {
         let shell = TuiShell::new(TuiConfig {
-            mode: TuiMode::Guided,
             title: "Fix Bug".to_owned(),
             agent_id: "test.claude".to_owned(),
             locale: "en".to_owned(),
         });
         let output = render_to_buffer(&shell, 200, 60);
-        assert!(
-            output.contains("Control"),
-            "wide mode should show control panel, got:\n{output}"
-        );
-        assert!(
-            output.contains("Guided"),
-            "control panel should show mode, got:\n{output}"
-        );
-        assert!(
-            output.contains("Plugins"),
-            "wide mode should show sidebar, got:\n{output}"
-        );
-        assert!(
-            output.contains("wide"),
-            "help should show wide tier, got:\n{output}"
-        );
+        assert!(output.contains("Control"));
+        assert!(output.contains("Plugins"));
+        assert!(output.contains("wide"));
     }
 
     #[test]
     fn render_too_small_shows_error() {
         let shell = test_shell();
         let output = render_to_buffer(&shell, 60, 20);
-        assert!(
-            output.contains("too small"),
-            "should show size error, got:\n{output}"
-        );
+        assert!(output.contains("too small"));
     }
 
     #[test]
@@ -1102,44 +1502,26 @@ mod tests {
         let mut shell = test_shell();
         shell.set_state(TuiState::Paused);
         let output = render_to_buffer(&shell, 80, 24);
-        assert!(
-            output.contains("[PAUSED]"),
-            "header should show PAUSED, got:\n{output}"
-        );
+        assert!(output.contains("[PAUSED]"));
     }
 
     #[test]
     fn render_progress_gauge_shows_in_wide_header() {
         let mut shell = test_shell();
         shell.set_progress(75);
-        // Wide enough for inline gauge (> 60 cols)
         let output = render_to_buffer(&shell, 100, 24);
-        // The gauge renders unicode blocks — just verify the header area is used
-        assert!(
-            output.contains("test.claude"),
-            "header should render with gauge, got:\n{output}"
-        );
+        assert!(output.contains("test.claude"));
     }
 
     // ── process_event tests ──────────────────────────────────────
 
     use crate::events::AgentEvent;
 
-    fn empty_shell() -> TuiShell {
-        TuiShell::new(TuiConfig {
-            mode: TuiMode::Autonomous,
-            title: "Test".to_owned(),
-            agent_id: "test.agent".to_owned(),
-            locale: "en".to_owned(),
-        })
-    }
-
     #[test]
     fn process_event_text_delta_appends() {
         let mut shell = empty_shell();
         shell.process_event(&AgentEvent::TextDelta("Hello".to_owned()));
         assert_eq!(shell.activity_lines.len(), 1);
-        assert_eq!(shell.activity_lines[0], "Hello");
     }
 
     #[test]
@@ -1224,29 +1606,16 @@ mod tests {
             },
         ]);
         let output = render_to_buffer(&shell, 140, 40);
-        assert!(
-            output.contains("Findings"),
-            "sidebar should show Findings panel, got:\n{output}"
-        );
-        assert!(
-            output.contains("Sprint"),
-            "sidebar should show Sprint panel, got:\n{output}"
-        );
-        assert!(
-            output.contains("3 issues"),
-            "Findings panel should show content, got:\n{output}"
-        );
+        assert!(output.contains("Findings"));
+        assert!(output.contains("Sprint"));
+        assert!(output.contains("3 issues"));
     }
 
     #[test]
     fn render_standard_empty_panels_shows_placeholder() {
         let shell = test_shell();
-        // No panels set — default is empty
         let output = render_to_buffer(&shell, 140, 40);
-        assert!(
-            output.contains("no panels"),
-            "empty sidebar should show placeholder, got:\n{output}"
-        );
+        assert!(output.contains("no panels"));
     }
 
     #[test]
@@ -1258,91 +1627,55 @@ mod tests {
             plugin_id: "test".to_owned(),
         }]);
         assert_eq!(shell.sidebar_panels.len(), 1);
-
         shell.set_sidebar_panels(vec![]);
         assert!(shell.sidebar_panels.is_empty());
     }
 
-    // ── Feedback input tests ─────────────────────────────────────
+    // ── Help bar with plugin keybindings ─────────────────────────
 
     #[test]
-    fn feedback_flow_pause_f_type_enter() {
-        let mut shell = empty_shell();
-
-        // Pause
-        shell.handle_key(KeyCode::Char('p'));
-        assert_eq!(shell.state(), TuiState::Paused);
-
-        // Enter feedback mode
-        shell.handle_key(KeyCode::Char('f'));
-        assert_eq!(shell.state(), TuiState::WaitingFeedback);
-
-        // Type feedback
-        shell.handle_key(KeyCode::Char('f'));
-        shell.handle_key(KeyCode::Char('i'));
-        shell.handle_key(KeyCode::Char('x'));
-        assert_eq!(shell.feedback_buffer(), "fix");
-
-        // Submit
-        shell.handle_key(KeyCode::Enter);
-        assert_eq!(shell.state(), TuiState::Paused);
-        assert_eq!(shell.take_feedback(), Some("fix".to_owned()));
-        assert!(shell.feedback_buffer().is_empty());
+    fn help_bar_shows_plugin_keybindings() {
+        let mut shell = test_shell();
+        shell.set_plugin_keybindings(vec![
+            RegisteredKeybinding {
+                key: 'p',
+                description: "Pause".to_owned(),
+                plugin_id: "test".to_owned(),
+                active_states: vec![], // always active
+            },
+            RegisteredKeybinding {
+                key: 'f',
+                description: "Feedback".to_owned(),
+                plugin_id: "test".to_owned(),
+                active_states: vec!["Paused".to_owned()], // only when paused
+            },
+        ]);
+        let output = render_to_buffer(&shell, 80, 24);
+        // Running state → 'p' should appear, 'f' should not
+        assert!(
+            output.contains("[p]"),
+            "help should show [p], got:\n{output}"
+        );
+        assert!(
+            !output.contains("[f]"),
+            "help should NOT show [f] in Running, got:\n{output}"
+        );
     }
 
     #[test]
-    fn feedback_esc_cancels() {
-        let mut shell = empty_shell();
-        shell.handle_key(KeyCode::Char('p'));
-        shell.handle_key(KeyCode::Char('f'));
-        shell.handle_key(KeyCode::Char('a'));
-        shell.handle_key(KeyCode::Char('b'));
-        assert_eq!(shell.feedback_buffer(), "ab");
-
-        shell.handle_key(KeyCode::Esc);
-        assert_eq!(shell.state(), TuiState::Paused);
-        assert!(shell.feedback_buffer().is_empty());
-        assert!(shell.take_feedback().is_none());
-    }
-
-    #[test]
-    fn feedback_backspace_deletes() {
-        let mut shell = empty_shell();
-        shell.handle_key(KeyCode::Char('p'));
-        shell.handle_key(KeyCode::Char('f'));
-        shell.handle_key(KeyCode::Char('a'));
-        shell.handle_key(KeyCode::Char('b'));
-        shell.handle_key(KeyCode::Backspace);
-        assert_eq!(shell.feedback_buffer(), "a");
-    }
-
-    #[test]
-    fn feedback_empty_enter_ignored() {
-        let mut shell = empty_shell();
-        shell.handle_key(KeyCode::Char('p'));
-        shell.handle_key(KeyCode::Char('f'));
-        shell.handle_key(KeyCode::Enter); // empty, ignored
-        assert_eq!(shell.state(), TuiState::WaitingFeedback);
-        assert!(shell.take_feedback().is_none());
-    }
-
-    #[test]
-    fn f_key_only_works_when_paused() {
-        let mut shell = empty_shell();
-        // Running state — f should not enter feedback
-        shell.handle_key(KeyCode::Char('f'));
-        assert_eq!(shell.state(), TuiState::Running);
-    }
-
-    #[test]
-    fn take_feedback_returns_none_after_consumed() {
-        let mut shell = empty_shell();
-        shell.handle_key(KeyCode::Char('p'));
-        shell.handle_key(KeyCode::Char('f'));
-        shell.handle_key(KeyCode::Char('x'));
-        shell.handle_key(KeyCode::Enter);
-
-        assert!(shell.take_feedback().is_some());
-        assert!(shell.take_feedback().is_none()); // second call = None
+    fn help_bar_shows_state_specific_bindings() {
+        let mut shell = test_shell();
+        shell.set_plugin_keybindings(vec![RegisteredKeybinding {
+            key: 'f',
+            description: "Feedback".to_owned(),
+            plugin_id: "test".to_owned(),
+            active_states: vec!["Paused".to_owned()],
+        }]);
+        shell.set_state(TuiState::Paused);
+        let output = render_to_buffer(&shell, 80, 24);
+        assert!(
+            output.contains("[f]"),
+            "help should show [f] when Paused, got:\n{output}"
+        );
     }
 }

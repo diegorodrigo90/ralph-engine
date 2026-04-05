@@ -62,6 +62,8 @@ pub struct LayoutZones {
     pub activity: Rect,
     /// Metrics bar (always visible, 1 line).
     pub metrics: Rect,
+    /// Chat input bar (visible when interactive plugin is enabled, 1 line).
+    pub input: Option<Rect>,
     /// Help/keybinding bar (always visible, 1 line).
     pub help: Rect,
     /// Sidebar for plugin panels (Standard + Wide tiers).
@@ -74,24 +76,35 @@ pub struct LayoutZones {
 
 /// Computes layout zones for the given terminal area.
 ///
+/// The `has_input_bar` flag is set when an interactive plugin (e.g.
+/// `official.guided`) registers keybindings — it enables the chat
+/// input row. Without it, the TUI is a read-only dashboard.
+///
 /// Pure function — no side effects, easy to test.
 #[must_use]
-pub fn compute_zones(area: Rect) -> LayoutZones {
+pub fn compute_zones(area: Rect, has_input_bar: bool) -> LayoutZones {
     let tier = LayoutTier::from_size(area.width, area.height);
 
-    // Vertical split: header (1) + body (fill) + metrics (1) + help (1)
-    let rows = Layout::vertical([
-        Constraint::Length(1), // header
-        Constraint::Fill(1),   // body (activity + optional columns)
-        Constraint::Length(1), // metrics
-        Constraint::Length(1), // help
-    ])
-    .split(area);
-
-    let header = rows[0];
-    let body = rows[1];
-    let metrics = rows[2];
-    let help = rows[3];
+    let (header, body, metrics, input, help) = if has_input_bar {
+        let rows = Layout::vertical([
+            Constraint::Length(1), // header
+            Constraint::Fill(1),   // body
+            Constraint::Length(1), // metrics
+            Constraint::Length(4), // input (separator + 3 lines)
+            Constraint::Length(1), // help
+        ])
+        .split(area);
+        (rows[0], rows[1], rows[2], Some(rows[3]), rows[4])
+    } else {
+        let rows = Layout::vertical([
+            Constraint::Length(1), // header
+            Constraint::Fill(1),   // body
+            Constraint::Length(1), // metrics
+            Constraint::Length(1), // help
+        ])
+        .split(area);
+        (rows[0], rows[1], rows[2], None, rows[3])
+    };
 
     // Horizontal split of the body depends on tier
     let (control, activity, sidebar) = split_body(body, tier);
@@ -100,6 +113,7 @@ pub fn compute_zones(area: Rect) -> LayoutZones {
         header,
         activity,
         metrics,
+        input,
         help,
         sidebar,
         control,
@@ -177,10 +191,11 @@ mod tests {
 
     #[test]
     fn compact_zones_no_sidebar_no_control() {
-        let zones = compute_zones(rect(80, 24));
+        let zones = compute_zones(rect(80, 24), false);
         assert_eq!(zones.tier, LayoutTier::Compact);
         assert!(zones.sidebar.is_none());
         assert!(zones.control.is_none());
+        assert!(zones.input.is_none());
         // Header + metrics + help = 3 lines, activity gets the rest
         assert_eq!(zones.header.height, 1);
         assert_eq!(zones.metrics.height, 1);
@@ -189,8 +204,16 @@ mod tests {
     }
 
     #[test]
+    fn compact_zones_with_input_bar() {
+        let zones = compute_zones(rect(80, 24), true);
+        assert!(zones.input.is_some());
+        assert_eq!(zones.input.unwrap().height, 4); // separator + 3 input lines
+        assert_eq!(zones.activity.height, 17); // 24 - 7
+    }
+
+    #[test]
     fn standard_zones_has_sidebar() {
-        let zones = compute_zones(rect(140, 40));
+        let zones = compute_zones(rect(140, 40), false);
         assert_eq!(zones.tier, LayoutTier::Standard);
         assert!(zones.sidebar.is_some());
         assert!(zones.control.is_none());
@@ -202,7 +225,7 @@ mod tests {
 
     #[test]
     fn wide_zones_has_control_and_sidebar() {
-        let zones = compute_zones(rect(200, 60));
+        let zones = compute_zones(rect(200, 60), false);
         assert_eq!(zones.tier, LayoutTier::Wide);
         assert!(zones.sidebar.is_some());
         assert!(zones.control.is_some());
@@ -214,9 +237,9 @@ mod tests {
     }
 
     #[test]
-    fn zones_header_metrics_help_always_one_line() {
+    fn zones_fixed_rows_always_one_line() {
         for (w, h) in [(80, 24), (140, 40), (200, 60)] {
-            let zones = compute_zones(rect(w, h));
+            let zones = compute_zones(rect(w, h), false);
             assert_eq!(zones.header.height, 1, "header height for {w}x{h}");
             assert_eq!(zones.metrics.height, 1, "metrics height for {w}x{h}");
             assert_eq!(zones.help.height, 1, "help height for {w}x{h}");
@@ -225,7 +248,7 @@ mod tests {
 
     #[test]
     fn activity_fills_remaining_vertical_space() {
-        let zones = compute_zones(rect(80, 30));
+        let zones = compute_zones(rect(80, 30), false);
         // 30 - header(1) - metrics(1) - help(1) = 27
         assert_eq!(zones.activity.height, 27);
     }

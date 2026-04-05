@@ -3,12 +3,13 @@
 //! Provides a ratatui-based TUI shell with zone-based layout,
 //! structured logging, and terminal lifecycle management.
 //!
-//! Two rendering modes:
-//! - **Autonomous**: read-only dashboard (progress, tools, metrics).
-//! - **Guided**: interactive panels (pause/resume, feedback, plugins).
+//! The TUI is a generic framework. Without interactive plugins, it is
+//! a read-only dashboard. When plugins contribute keybindings (e.g.
+//! `official.guided`), the TUI becomes interactive with pause,
+//! feedback, and resume controls.
 //!
 //! Plugins contribute panels and keybindings via auto-discovery
-//! (`tui_contributions()` trait method on `PluginRuntime`).
+//! (`tui_contributions()` and `tui_keybindings()` on `PluginRuntime`).
 
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
@@ -25,7 +26,10 @@ pub use keybindings::{KeybindingRegistry, format_key, is_core_key};
 pub use layout::{LayoutTier, LayoutZones, compute_zones, is_terminal_too_small};
 pub use logging::{LogConfig, init_logging};
 pub use process::{SessionState, StateEvent, StateListener};
-pub use terminal::{SidebarPanel, TuiConfig, TuiMode, TuiShell, TuiState};
+pub use terminal::{
+    CommandEntry, PluginKeyAction, RegisteredKeybinding, SidebarPanel, TuiConfig, TuiShell,
+    TuiState,
+};
 
 /// Minimum terminal width supported (columns).
 pub const MIN_TERMINAL_WIDTH: u16 = 80;

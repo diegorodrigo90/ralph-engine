@@ -18,6 +18,7 @@ const KIND_CAPABILITY_REQUIREMENTS = new Map([
   ["mcp_contribution", "mcp_contribution"],
   ["policy", "policy"],
   ["workflow", "workflow"],
+  ["tui_extension", "tui_widgets"],
 ]);
 const CONTRIBUTION_CAPABILITY_REQUIREMENTS = new Map([
   ["templates", ["template"]],

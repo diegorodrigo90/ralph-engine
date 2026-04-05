@@ -2014,6 +2014,7 @@ dependencies = [
  "re-plugin-codex",
  "re-plugin-findings",
  "re-plugin-github",
+ "re-plugin-guided",
  "re-plugin-hello-world",
  "re-plugin-ssh",
  "re-plugin-tdd-strict",
@@ -2085,6 +2086,14 @@ version = "0.2.0-alpha.1"
 dependencies = [
  "re-build-utils",
  "re-mcp",
+ "re-plugin",
+]
+
+[[package]]
+name = "re-plugin-guided"
+version = "0.2.0-alpha.1"
+dependencies = [
+ "re-build-utils",
  "re-plugin",
 ]
 

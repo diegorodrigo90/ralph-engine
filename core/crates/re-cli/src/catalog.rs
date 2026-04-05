@@ -514,6 +514,50 @@ pub fn collect_tui_panels_from_plugins() -> Vec<(String, re_plugin::TuiPanel)> {
     panels
 }
 
+/// Collects agent commands from all enabled plugins that provide them.
+///
+/// Auto-discovers slash commands from agent plugins (e.g., Claude scans
+/// `.claude/commands/`, Codex scans `.agents/skills/`). Returns commands
+/// with their owning plugin ID.
+pub fn collect_agent_commands_from_plugins(
+    project_root: &std::path::Path,
+) -> Vec<re_plugin::AgentCommand> {
+    let snapshot = official_runtime_snapshot();
+    let mut commands = Vec::new();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
+            commands.extend(runtime.discover_agent_commands(project_root));
+        }
+    }
+
+    commands
+}
+
+/// Checks if any enabled plugin wants a TUI input bar.
+///
+/// Returns the first non-None placeholder from plugins with `tui_input_placeholder()`.
+pub fn any_plugin_wants_input_bar() -> bool {
+    let snapshot = official_runtime_snapshot();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id)
+            && runtime.tui_input_placeholder().is_some()
+        {
+            return true;
+        }
+    }
+
+    false
+}
+
+/// Returns the command prefix from the configured agent plugin, or "/" as default.
+pub fn agent_command_prefix(agent_plugin_id: &str) -> String {
+    re_official::official_plugin_runtime(agent_plugin_id)
+        .map(|rt| rt.tui_command_prefix().to_owned())
+        .unwrap_or_else(|| "/".to_owned())
+}
+
 // ── Community plugin discovery ────────────────────────────────────
 
 /// Descriptor for a community plugin discovered from the filesystem.

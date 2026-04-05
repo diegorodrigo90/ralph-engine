@@ -17,7 +17,8 @@ members = [
   "plugins/official/github",
   "plugins/official/ssh",
   "plugins/official/hello-world",
-  "plugins/official/findings"
+  "plugins/official/findings",
+  "plugins/official/guided"
 ]
 resolver = "2"
 
