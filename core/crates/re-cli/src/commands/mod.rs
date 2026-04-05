@@ -279,7 +279,11 @@ fn render_help(locale: &str) -> String {
     lines.join("\n")
 }
 
-fn dispatch_command(command_name: &str, args: &[String], locale: &str) -> Result<String, CliError> {
+pub(crate) fn dispatch_command(
+    command_name: &str,
+    args: &[String],
+    locale: &str,
+) -> Result<String, CliError> {
     // 1. Try static core commands first.
     if let Some(command) = COMMANDS.iter().find(|command| command.name == command_name) {
         if matches!(args.first().map(String::as_str), Some("--help" | "-h")) {
