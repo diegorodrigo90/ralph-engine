@@ -2012,6 +2012,7 @@ dependencies = [
  "re-plugin-claude",
  "re-plugin-claudebox",
  "re-plugin-codex",
+ "re-plugin-context",
  "re-plugin-findings",
  "re-plugin-github",
  "re-plugin-guided",
@@ -2069,6 +2070,14 @@ version = "0.2.0-alpha.1"
 dependencies = [
  "re-build-utils",
  "re-mcp",
+ "re-plugin",
+]
+
+[[package]]
+name = "re-plugin-context"
+version = "0.2.0-alpha.1"
+dependencies = [
+ "re-build-utils",
  "re-plugin",
 ]
 

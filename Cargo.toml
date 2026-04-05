@@ -18,7 +18,8 @@ members = [
   "plugins/official/ssh",
   "plugins/official/hello-world",
   "plugins/official/findings",
-  "plugins/official/guided"
+  "plugins/official/guided",
+  "plugins/official/context"
 ]
 resolver = "2"
 

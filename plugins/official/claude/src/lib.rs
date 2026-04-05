@@ -410,6 +410,76 @@ impl PluginRuntime for ClaudeRuntime {
         commands
     }
 
+    /// Claude Code supports up to 1M tokens context (Opus 4.6).
+    fn context_window_size(&self) -> usize {
+        1_000_000
+    }
+
+    /// Exports the current Claude Code session as portable context.
+    ///
+    /// Reads the most recent `.jsonl` session file from
+    /// `~/.claude/projects/<hash>/` and converts to `PortableContext`.
+    fn export_session_context(
+        &self,
+        project_root: &Path,
+    ) -> Result<re_plugin::PortableContext, re_plugin::PluginRuntimeError> {
+        export_claude_session(project_root)
+    }
+
+    /// Imports a portable context into Claude by writing it as a
+    /// system prompt file that gets passed via `--append-system-prompt-file`.
+    fn import_session_context(
+        &self,
+        context: &re_plugin::PortableContext,
+        project_root: &Path,
+    ) -> Result<(), re_plugin::PluginRuntimeError> {
+        let import_path = project_root.join(".ralph-engine/.imported-context.md");
+        let mut content = String::new();
+
+        if let Some(ref summary) = context.summary {
+            content.push_str("## Previous Session Summary\n\n");
+            content.push_str(summary);
+            content.push_str("\n\n");
+        }
+
+        if let Some(ref system) = context.system_prompt {
+            content.push_str("## Previous System Prompt\n\n");
+            content.push_str(system);
+            content.push_str("\n\n");
+        }
+
+        // Include recent messages as context
+        content.push_str("## Previous Conversation\n\n");
+        for msg in &context.messages {
+            let role = msg.role.as_str();
+            for block in &msg.content {
+                if let re_plugin::ContentBlock::Text { text } = block {
+                    content.push_str(&format!("**{role}**: {text}\n\n"));
+                }
+            }
+        }
+
+        if let Some(dir) = import_path.parent()
+            && !dir.exists()
+        {
+            std::fs::create_dir_all(dir).map_err(|e| {
+                re_plugin::PluginRuntimeError::new(
+                    "import_dir_failed",
+                    format!("Failed to create dir: {e}"),
+                )
+            })?;
+        }
+
+        std::fs::write(&import_path, content).map_err(|e| {
+            re_plugin::PluginRuntimeError::new(
+                "import_write_failed",
+                format!("Failed to write imported context: {e}"),
+            )
+        })?;
+
+        Ok(())
+    }
+
     /// Contributes a TUI sidebar panel showing agent connection status.
     fn tui_contributions(&self) -> Vec<re_plugin::TuiPanel> {
         let binary_available = re_plugin::probe_binary_on_path("claude").is_some();
@@ -426,6 +496,176 @@ impl PluginRuntime for ClaudeRuntime {
             zone_hint: "sidebar".to_owned(),
         }]
     }
+}
+
+/// Exports the most recent Claude Code session as `PortableContext`.
+///
+/// Claude stores sessions as JSONL in `~/.claude/projects/<hash>/<uuid>.jsonl`.
+/// Each line is a JSON event. We parse user/assistant messages and tool calls.
+fn export_claude_session(
+    project_root: &Path,
+) -> Result<re_plugin::PortableContext, re_plugin::PluginRuntimeError> {
+    // Find the Claude project directory
+    let project_dir = find_claude_project_dir(project_root)?;
+
+    // Find the most recent .jsonl file
+    let mut sessions: Vec<_> = std::fs::read_dir(&project_dir)
+        .map_err(|e| {
+            re_plugin::PluginRuntimeError::new(
+                "session_dir_read_failed",
+                format!("Cannot read Claude sessions: {e}"),
+            )
+        })?
+        .flatten()
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "jsonl"))
+        .collect();
+
+    sessions.sort_by_key(|e| {
+        e.metadata()
+            .and_then(|m| m.modified())
+            .unwrap_or(std::time::SystemTime::UNIX_EPOCH)
+    });
+
+    let latest = sessions.last().ok_or_else(|| {
+        re_plugin::PluginRuntimeError::new(
+            "no_session_found",
+            "No Claude Code session files found".to_owned(),
+        )
+    })?;
+
+    // Parse JSONL
+    let content = std::fs::read_to_string(latest.path()).map_err(|e| {
+        re_plugin::PluginRuntimeError::new(
+            "session_read_failed",
+            format!("Cannot read session file: {e}"),
+        )
+    })?;
+
+    let mut messages = Vec::new();
+
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        // Simple JSONL parsing — extract role and content
+        if let Some(msg) = parse_jsonl_message(line) {
+            messages.push(msg);
+        }
+    }
+
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+
+    Ok(re_plugin::PortableContext {
+        system_prompt: None,
+        messages,
+        active_files: Vec::new(),
+        summary: None,
+        token_count: 0, // Would need tiktoken for accurate count
+        max_tokens: 1_000_000,
+        metadata: re_plugin::ContextMetadata {
+            source_agent: PLUGIN_ID.to_owned(),
+            source_model: "claude".to_owned(),
+            session_id: latest
+                .path()
+                .file_stem()
+                .and_then(|s| s.to_str())
+                .map(String::from),
+            created_at: now,
+        },
+    })
+}
+
+/// Finds the Claude project directory for the given project root.
+fn find_claude_project_dir(
+    project_root: &Path,
+) -> Result<std::path::PathBuf, re_plugin::PluginRuntimeError> {
+    let home = std::env::var("HOME").unwrap_or_default();
+    let claude_dir = std::path::PathBuf::from(&home).join(".claude/projects");
+
+    if !claude_dir.exists() {
+        return Err(re_plugin::PluginRuntimeError::new(
+            "no_claude_dir",
+            "~/.claude/projects/ not found".to_owned(),
+        ));
+    }
+
+    // Claude hashes the project path — scan for directories
+    // and find one that has recent session files
+    let mut best_dir = None;
+    let mut best_time = std::time::SystemTime::UNIX_EPOCH;
+
+    if let Ok(entries) = std::fs::read_dir(&claude_dir) {
+        for entry in entries.flatten() {
+            if !entry.file_type().is_ok_and(|t| t.is_dir()) {
+                continue;
+            }
+            // Check if this dir has .jsonl files
+            if let Ok(files) = std::fs::read_dir(entry.path()) {
+                for file in files.flatten() {
+                    if file.path().extension().is_some_and(|e| e == "jsonl")
+                        && let Ok(meta) = file.metadata()
+                        && let Ok(modified) = meta.modified()
+                        && modified > best_time
+                    {
+                        best_time = modified;
+                        best_dir = Some(entry.path());
+                    }
+                }
+            }
+        }
+    }
+
+    // Also check if the project root path hash matches
+    let canonical = project_root.to_string_lossy().to_string();
+    let hash_prefix = format!("-{}-", canonical.replace('/', "-"));
+    if let Ok(entries) = std::fs::read_dir(&claude_dir) {
+        for entry in entries.flatten() {
+            if let Some(name) = entry.file_name().to_str()
+                && name.contains(&hash_prefix)
+            {
+                return Ok(entry.path());
+            }
+        }
+    }
+
+    best_dir.ok_or_else(|| {
+        re_plugin::PluginRuntimeError::new(
+            "no_claude_project",
+            "No Claude Code project directory found with session files".to_owned(),
+        )
+    })
+}
+
+/// Parses one JSONL line from a Claude session into a `PortableMessage`.
+fn parse_jsonl_message(line: &str) -> Option<re_plugin::PortableMessage> {
+    // Extract "role" and "content" from JSON
+    let role_str = re_plugin::agent_helpers::extract_json_string_value(line, "role")?;
+    let role = match role_str.as_str() {
+        "user" => re_plugin::MessageRole::User,
+        "assistant" => re_plugin::MessageRole::Assistant,
+        "system" => re_plugin::MessageRole::System,
+        _ => return None,
+    };
+
+    // Try to extract text content
+    let mut blocks = Vec::new();
+    if let Some(content) = re_plugin::agent_helpers::extract_json_string_value(line, "content") {
+        blocks.push(re_plugin::ContentBlock::Text { text: content });
+    }
+
+    if blocks.is_empty() {
+        return None;
+    }
+
+    Some(re_plugin::PortableMessage {
+        role,
+        content: blocks,
+        timestamp: None,
+    })
 }
 
 /// Reads the first markdown heading from a file as description.

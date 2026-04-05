@@ -264,6 +264,37 @@ impl PluginRuntime for CodexRuntime {
             },
         })
     }
+
+    /// Codex supports 128K tokens context.
+    fn context_window_size(&self) -> usize {
+        128_000
+    }
+
+    /// Discovers Codex skills from `.agents/skills/*/SKILL.md`.
+    fn discover_agent_commands(&self, project_root: &Path) -> Vec<re_plugin::AgentCommand> {
+        let mut commands = Vec::new();
+        let skills_dir = project_root.join(".agents/skills");
+        if let Ok(entries) = std::fs::read_dir(&skills_dir) {
+            for entry in entries.flatten() {
+                let skill_file = entry.path().join("SKILL.md");
+                if skill_file.exists()
+                    && let Some(name) = entry.file_name().to_str()
+                {
+                    commands.push(re_plugin::AgentCommand {
+                        name: name.to_owned(),
+                        description: format!("Skill: {name}"),
+                        plugin_id: PLUGIN_ID.to_owned(),
+                    });
+                }
+            }
+        }
+        commands
+    }
+
+    /// Codex uses `$` prefix for skills.
+    fn tui_command_prefix(&self) -> &str {
+        "$"
+    }
 }
 
 #[cfg(test)]

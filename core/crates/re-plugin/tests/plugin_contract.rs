@@ -401,7 +401,13 @@ fn parse_reviewed_plugin_capability_supports_stable_identifiers() {
 }
 
 /// Capabilities that operate via hooks rather than dedicated surfaces.
-const HOOK_ONLY_CAPABILITIES: &[&str] = &["workflow", "tui_widgets"];
+const HOOK_ONLY_CAPABILITIES: &[&str] = &[
+    "workflow",
+    "tui_widgets",
+    "context_management",
+    "session_persistence",
+    "agent_routing",
+];
 
 #[test]
 fn runtime_surface_mapping_covers_all_reviewed_capabilities() {
@@ -547,6 +553,8 @@ fn kind_as_str_is_stable() {
             "policy",
             "workflow",
             "tui_extension",
+            "context_manager",
+            "agent_router",
         ]
     );
 }
@@ -609,6 +617,9 @@ fn runtime_hook_display_is_stable() {
             "work_item_resolution",
             "agent_launch",
             "tui_contribution",
+            "context_management",
+            "session_persistence",
+            "agent_routing",
         ]
     );
 }

@@ -282,6 +282,28 @@ pub struct RunConfig {
     pub agent_id: Option<&'static str>,
 }
 
+/// Context management configuration.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ContextConfig {
+    /// Whether to persist sessions to disk automatically.
+    pub persistence: bool,
+    /// Whether to auto-compact context before agent transfer.
+    pub auto_compact: bool,
+    /// Compact when context exceeds this fraction of the window (0.0-1.0).
+    /// Stored as percentage (0-100) to avoid floats.
+    pub compact_threshold_pct: u8,
+}
+
+impl Default for ContextConfig {
+    fn default() -> Self {
+        Self {
+            persistence: true,
+            auto_compact: true,
+            compact_threshold_pct: 80,
+        }
+    }
+}
+
 /// Owned project configuration document with patchable entries.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct OwnedProjectConfig {
@@ -297,6 +319,8 @@ pub struct OwnedProjectConfig {
     pub budgets: RuntimeBudgetConfig,
     /// Run command configuration (optional).
     pub run: RunConfig,
+    /// Context management configuration.
+    pub context: ContextConfig,
 }
 
 const DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
@@ -523,6 +547,7 @@ pub fn materialize_project_config(config: &ProjectConfig) -> OwnedProjectConfig 
         },
         budgets: config.budgets,
         run: RunConfig::default(),
+        context: ContextConfig::default(),
     }
 }
 
@@ -790,6 +815,7 @@ pub fn parse_owned_project_config_yaml(
         mcp,
         budgets,
         run,
+        context: ContextConfig::default(),
     })
 }
 
@@ -1064,6 +1090,7 @@ mod parse_tests {
                 context_tokens: 16384,
             },
             run: RunConfig::default(),
+            context: ContextConfig::default(),
         };
 
         let yaml = render_owned_project_config_yaml(&config);
