@@ -236,7 +236,10 @@ pub struct TuiShell {
     config: TuiConfig,
     state: TuiState,
     progress: u16,
+    /// Legacy flat activity lines (kept for `push_activity` compatibility).
     activity_lines: Vec<String>,
+    /// Block-based activity feed (new orchestration renderer).
+    feed: crate::feed::Feed,
     tool_count: usize,
     should_quit: bool,
     quit_pending: bool,
@@ -263,6 +266,7 @@ impl TuiShell {
             state: TuiState::Running,
             progress: 0,
             activity_lines: Vec::new(),
+            feed: crate::feed::Feed::new(),
             tool_count: 0,
             should_quit: false,
             quit_pending: false,
@@ -386,6 +390,10 @@ impl TuiShell {
     pub fn process_event(&mut self, event: &crate::events::AgentEvent) {
         use crate::events::AgentEvent;
 
+        // Update block-based feed
+        crate::feed::process_agent_event(&mut self.feed, event);
+
+        // Update legacy activity lines (kept for compatibility)
         match event {
             AgentEvent::TextDelta(_) => {
                 self.push_activity(event.activity_line());
@@ -412,6 +420,17 @@ impl TuiShell {
                 }
             }
         }
+    }
+
+    /// Returns a reference to the block-based feed.
+    #[must_use]
+    pub fn feed(&self) -> &crate::feed::Feed {
+        &self.feed
+    }
+
+    /// Returns a mutable reference to the block-based feed.
+    pub fn feed_mut(&mut self) -> &mut crate::feed::Feed {
+        &mut self.feed
     }
 
     /// Runs the TUI demo loop.
@@ -771,6 +790,12 @@ impl TuiShell {
 
     /// Renders the activity stream (main viewport).
     fn render_activity(&self, frame: &mut Frame<'_>, area: Rect) {
+        // Use block-based feed when it has content, fall back to legacy lines
+        if !self.feed.is_empty() {
+            self.render_feed_blocks(frame, area);
+            return;
+        }
+
         let visible_lines = area.height as usize;
 
         let logo_lines = crate::logo::build_logo_lines(area.width);
@@ -814,6 +839,107 @@ impl TuiShell {
         }
 
         frame.render_widget(Paragraph::new(all_lines), area);
+    }
+
+    /// Renders the block-based feed (orchestration view).
+    ///
+    /// Each block gets an icon prefix, styled title, and optionally
+    /// expanded content lines. Collapsed blocks show just the title
+    /// with a content count hint.
+    fn render_feed_blocks(&self, frame: &mut Frame<'_>, area: Rect) {
+        use crate::feed::BlockKind;
+
+        let visible_height = area.height as usize;
+        let mut all_lines: Vec<Line<'_>> = Vec::new();
+
+        for block in self.feed.blocks() {
+            // Title line: icon + title + elapsed
+            let icon = block.kind.icon();
+            let icon_style = match block.kind {
+                BlockKind::FileRead => Style::default().fg(Color::DarkGray),
+                BlockKind::FileEdit => Style::default().fg(Color::Blue),
+                BlockKind::Command => Style::default().fg(Color::White),
+                BlockKind::Thinking => Style::default()
+                    .fg(Color::DarkGray)
+                    .add_modifier(Modifier::ITALIC),
+                BlockKind::AgentText => Style::default(),
+                BlockKind::GatePass => Style::default().fg(Color::Green),
+                BlockKind::GateFail => Style::default().fg(Color::Red),
+                BlockKind::System => Style::default().fg(Color::DarkGray),
+            };
+
+            let title_style = match block.kind {
+                BlockKind::FileRead | BlockKind::FileEdit => {
+                    Style::default().add_modifier(Modifier::BOLD)
+                }
+                BlockKind::Command => Style::default().add_modifier(Modifier::BOLD),
+                BlockKind::GateFail => Style::default().fg(Color::Red),
+                BlockKind::System => Style::default().fg(Color::DarkGray),
+                _ => Style::default(),
+            };
+
+            let mut spans = Vec::new();
+
+            // Icon
+            if !icon.is_empty() {
+                spans.push(Span::styled(format!("{icon} "), icon_style));
+            }
+
+            // Title
+            if !block.title.is_empty() {
+                spans.push(Span::styled(block.title.as_str(), title_style));
+            }
+
+            // Collapsed hint
+            if block.collapsed && !block.content.is_empty() {
+                spans.push(Span::styled(
+                    format!(" ({} lines)", block.content.len()),
+                    Style::default().fg(Color::DarkGray),
+                ));
+            }
+
+            // Elapsed time (right-aligned feel via padding)
+            if let Some(elapsed) = block.elapsed_label() {
+                spans.push(Span::styled(
+                    format!("  [{elapsed}]"),
+                    Style::default().fg(Color::DarkGray),
+                ));
+            }
+
+            // Active indicator (spinner)
+            if block.active {
+                spans.push(Span::styled(" ...", Style::default().fg(Color::Yellow)));
+            }
+
+            // Success/failure indicator on finalized blocks
+            if let Some(false) = block.success {
+                spans.push(Span::styled(" [FAIL]", Style::default().fg(Color::Red)));
+            }
+
+            all_lines.push(Line::from(spans));
+
+            // Content lines (only if expanded)
+            if !block.collapsed {
+                for content_line in &block.content {
+                    let styled = style_content_line(content_line, block.kind);
+                    all_lines.push(styled);
+                }
+            }
+        }
+
+        // Scroll to bottom: show last N lines
+        let total = all_lines.len();
+        let scroll = self.feed.scroll_offset();
+        let start = total.saturating_sub(visible_height + scroll);
+        let end = total.saturating_sub(scroll);
+
+        let visible: Vec<Line<'_>> = all_lines
+            .into_iter()
+            .skip(start)
+            .take(end.saturating_sub(start))
+            .collect();
+
+        frame.render_widget(Paragraph::new(visible), area);
     }
 
     /// Renders the metrics bar.
@@ -1138,6 +1264,41 @@ impl TuiShell {
             Line::styled(" [q] Quit", Style::default().fg(Color::DarkGray)),
         ];
         frame.render_widget(Paragraph::new(lines), inner);
+    }
+}
+
+/// Styles a content line based on the parent block kind.
+///
+/// Diff lines (starting with `+` or `-`) get special treatment.
+/// Command output stays plain. Thinking text is dim italic.
+fn style_content_line<'a>(line: &'a str, kind: crate::feed::BlockKind) -> Line<'a> {
+    use crate::feed::BlockKind;
+
+    match kind {
+        BlockKind::FileEdit => {
+            if line.starts_with('+') {
+                Line::styled(format!("  {line}"), Style::default().fg(Color::Blue))
+            } else if line.starts_with('-') {
+                Line::styled(
+                    format!("  {line}"),
+                    Style::default()
+                        .fg(Color::Red)
+                        .add_modifier(Modifier::CROSSED_OUT),
+                )
+            } else {
+                Line::styled(format!("  {line}"), Style::default().fg(Color::DarkGray))
+            }
+        }
+        BlockKind::Command => {
+            Line::styled(format!("  {line}"), Style::default().fg(Color::DarkGray))
+        }
+        BlockKind::Thinking => Line::styled(
+            format!("  {line}"),
+            Style::default()
+                .fg(Color::DarkGray)
+                .add_modifier(Modifier::ITALIC),
+        ),
+        _ => Line::raw(format!("  {line}")),
     }
 }
 

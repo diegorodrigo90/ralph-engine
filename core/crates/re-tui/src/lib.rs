@@ -14,6 +14,7 @@
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
 pub mod events;
+pub mod feed;
 pub mod keybindings;
 pub mod layout;
 mod logging;
@@ -22,6 +23,7 @@ pub mod process;
 mod terminal;
 
 pub use events::{AgentEvent, parse_stream_line, parse_stream_lines};
+pub use feed::{BlockKind, Feed, FeedBlock, process_agent_event};
 pub use keybindings::{KeybindingRegistry, format_key, is_core_key};
 pub use layout::{LayoutTier, LayoutZones, compute_zones, is_terminal_too_small};
 pub use logging::{LogConfig, init_logging};
