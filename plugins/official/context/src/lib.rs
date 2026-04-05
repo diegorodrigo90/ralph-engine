@@ -255,10 +255,17 @@ impl PluginRuntime for ContextRuntime {
         vec![re_plugin::TuiPanel {
             id: "context-status".to_owned(),
             title: "Context".to_owned(),
-            lines: vec![
-                "Status: Ready".to_owned(),
-                "Compaction: enabled".to_owned(),
-                "Sessions: .ralph-engine/sessions/".to_owned(),
+            lines: Vec::new(),
+            blocks: vec![
+                re_plugin::TuiBlock::Status {
+                    label: "Status".to_owned(),
+                    value: "Ready".to_owned(),
+                    status: re_plugin::TuiStatus::Ok,
+                },
+                re_plugin::TuiBlock::KeyValue(vec![
+                    ("Compaction".to_owned(), "enabled".to_owned()),
+                    ("Sessions".to_owned(), ".ralph-engine/sessions/".to_owned()),
+                ]),
             ],
             zone_hint: "sidebar".to_owned(),
         }]

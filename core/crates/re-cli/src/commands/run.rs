@@ -562,6 +562,11 @@ fn run_with_tui(
         .map(|(plugin_id, panel)| re_tui::SidebarPanel {
             title: panel.title,
             lines: panel.lines,
+            items: panel
+                .blocks
+                .into_iter()
+                .map(super::tui::convert_tui_block)
+                .collect(),
             plugin_id,
         })
         .collect();

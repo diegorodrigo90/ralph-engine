@@ -594,16 +594,36 @@ impl PluginRuntime for BmadRuntime {
         }
 
         let total = done + doing + todo;
-        let pct = if total > 0 { done * 100 / total } else { 0 };
+        let pct = if total > 0 {
+            (done * 100 / total) as u8
+        } else {
+            0
+        };
 
         vec![re_plugin::TuiPanel {
             id: "sprint-status".to_owned(),
             title: "Sprint".to_owned(),
-            lines: vec![
-                format!("✓ Done: {done}"),
-                format!("● Doing: {doing}"),
-                format!("○ Todo: {todo}"),
-                format!("Progress: {pct}%"),
+            lines: Vec::new(),
+            blocks: vec![
+                re_plugin::TuiBlock::Metric {
+                    label: "Done".to_owned(),
+                    value: done,
+                    total: Some(total),
+                },
+                re_plugin::TuiBlock::Metric {
+                    label: "Doing".to_owned(),
+                    value: doing,
+                    total: None,
+                },
+                re_plugin::TuiBlock::Metric {
+                    label: "Todo".to_owned(),
+                    value: todo,
+                    total: None,
+                },
+                re_plugin::TuiBlock::Progress {
+                    label: "Progress".to_owned(),
+                    percent: pct,
+                },
             ],
             zone_hint: "sidebar".to_owned(),
         }]

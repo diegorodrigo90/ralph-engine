@@ -118,11 +118,18 @@ impl PluginRuntime for GuidedRuntime {
         vec![TuiPanel {
             id: "guided-controls".to_owned(),
             title: "Guided Mode".to_owned(),
-            lines: vec![
-                "Status: Active".to_owned(),
-                "Input: enabled".to_owned(),
-                "Feedback: type to send".to_owned(),
+            blocks: vec![
+                re_plugin::TuiBlock::Status {
+                    label: "Status".to_owned(),
+                    value: "Active".to_owned(),
+                    status: re_plugin::TuiStatus::Ok,
+                },
+                re_plugin::TuiBlock::KeyValue(vec![
+                    ("Input".to_owned(), "enabled".to_owned()),
+                    ("Feedback".to_owned(), "type to send".to_owned()),
+                ]),
             ],
+            lines: Vec::new(),
             zone_hint: "sidebar".to_owned(),
         }]
     }
@@ -201,7 +208,7 @@ mod tests {
         let panels = rt.tui_contributions();
         assert_eq!(panels.len(), 1);
         assert_eq!(panels[0].id, "guided-controls");
-        assert!(!panels[0].lines.is_empty());
+        assert!(!panels[0].blocks.is_empty());
     }
 
     #[test]

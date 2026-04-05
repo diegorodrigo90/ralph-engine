@@ -117,6 +117,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         .map(|(plugin_id, panel)| re_tui::SidebarPanel {
             title: panel.title,
             lines: panel.lines,
+            items: panel.blocks.into_iter().map(convert_tui_block).collect(),
             plugin_id,
         })
         .collect();
@@ -836,4 +837,38 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     shell.set_cost_label("$0.00".to_owned());
     shell.enqueue_blocks(blocks);
     shell.toast_info(i18n::demo_toast(locale).to_owned());
+}
+
+/// Converts a plugin `TuiBlock` to the TUI's `PanelItem`.
+///
+/// The CLI layer bridges the gap: plugins use `re_plugin::TuiBlock`
+/// to describe content, core uses `re_tui::PanelItem` to render it.
+pub(crate) fn convert_tui_block(block: re_plugin::TuiBlock) -> re_tui::PanelItem {
+    match block {
+        re_plugin::TuiBlock::Status {
+            label,
+            value,
+            status,
+        } => re_tui::PanelItem::Status {
+            label,
+            value,
+            ok: matches!(status, re_plugin::TuiStatus::Ok),
+        },
+        re_plugin::TuiBlock::Metric {
+            label,
+            value,
+            total,
+        } => re_tui::PanelItem::Metric {
+            label,
+            value,
+            total,
+        },
+        re_plugin::TuiBlock::Progress { label, percent } => {
+            re_tui::PanelItem::Progress { label, percent }
+        }
+        re_plugin::TuiBlock::KeyValue(pairs) => re_tui::PanelItem::KeyValue(pairs),
+        re_plugin::TuiBlock::List(items) => re_tui::PanelItem::List(items),
+        re_plugin::TuiBlock::Text(text) => re_tui::PanelItem::Text(text),
+        re_plugin::TuiBlock::Separator => re_tui::PanelItem::Separator,
+    }
 }

@@ -220,10 +220,54 @@ impl Default for TuiLabels {
 pub struct SidebarPanel {
     /// Panel title (localized).
     pub title: String,
-    /// Content lines to render.
+    /// Legacy plain text lines (fallback).
     pub lines: Vec<String>,
+    /// Typed content items (preferred — richer rendering).
+    pub items: Vec<PanelItem>,
     /// Source plugin ID (for attribution).
     pub plugin_id: String,
+}
+
+/// A typed content item for sidebar panels.
+///
+/// The design system: plugins describe **what** to show, core renders
+/// **how** it looks using the active theme. This ensures visual
+/// consistency across all plugins.
+#[derive(Debug, Clone)]
+pub enum PanelItem {
+    /// Status indicator with severity color.
+    Status {
+        /// Label text.
+        label: String,
+        /// Value text.
+        value: String,
+        /// Whether this is a positive status (green vs red).
+        ok: bool,
+    },
+    /// Numeric metric with optional total.
+    Metric {
+        /// Metric label.
+        label: String,
+        /// Current value.
+        value: usize,
+        /// Optional total for ratio display.
+        total: Option<usize>,
+    },
+    /// Progress bar.
+    Progress {
+        /// Bar label.
+        label: String,
+        /// Completion percentage (0–100).
+        percent: u8,
+    },
+    /// Key-value pairs.
+    KeyValue(Vec<(String, String)>),
+    /// Bullet list.
+    List(Vec<String>),
+    /// Plain text.
+    Text(String),
+    /// Visual separator.
+    Separator,
 }
 
 /// A keybinding registered by a plugin for the TUI.
@@ -2184,8 +2228,17 @@ impl TuiShell {
             ]);
 
             let mut lines: Vec<Line<'_>> = vec![separator];
-            for s in &panel.lines {
-                lines.push(style_sidebar_line(s, color, theme));
+
+            if !panel.items.is_empty() {
+                // Typed blocks — consistent design system rendering
+                for item in &panel.items {
+                    render_panel_item(item, color, theme, &mut lines);
+                }
+            } else {
+                // Legacy string lines — smart styling heuristics
+                for s in &panel.lines {
+                    lines.push(style_sidebar_line(s, color, theme));
+                }
             }
             frame.render_widget(Paragraph::new(lines), panel_areas[i]);
         }
@@ -2608,6 +2661,102 @@ impl TuiShell {
 ///
 /// Returns spans (not a Line) so the caller can prepend border spans
 /// without losing the style information.
+/// Renders a typed panel item into lines with theme-driven styling.
+///
+/// This is the core of the design system: each `PanelItem` variant
+/// has a consistent, beautiful rendering regardless of which plugin
+/// created it.
+fn render_panel_item<'a>(
+    item: &'a PanelItem,
+    accent: Color,
+    theme: &dyn crate::theme::Theme,
+    lines: &mut Vec<Line<'a>>,
+) {
+    match item {
+        PanelItem::Status { label, value, ok } => {
+            let (icon, color) = if *ok {
+                ("✓", theme.success())
+            } else {
+                ("✗", theme.error())
+            };
+            lines.push(Line::from(vec![
+                Span::styled(format!("  {icon} "), Style::default().fg(color)),
+                Span::styled(format!("{label}: "), Style::default().fg(theme.text_dim())),
+                Span::styled(
+                    value.as_str(),
+                    Style::default().fg(color).add_modifier(Modifier::BOLD),
+                ),
+            ]));
+        }
+        PanelItem::Metric {
+            label,
+            value,
+            total,
+        } => {
+            let mut spans = vec![
+                Span::styled(
+                    format!("  {label}: "),
+                    Style::default().fg(theme.text_dim()),
+                ),
+                Span::styled(
+                    format!("{value}"),
+                    Style::default().fg(accent).add_modifier(Modifier::BOLD),
+                ),
+            ];
+            if let Some(t) = total {
+                spans.push(Span::styled(
+                    format!(" / {t}"),
+                    Style::default().fg(theme.text_dim()),
+                ));
+            }
+            lines.push(Line::from(spans));
+        }
+        PanelItem::Progress { label, percent } => {
+            let pct = (*percent).min(100) as usize;
+            let bar_width = 10;
+            let filled = bar_width * pct / 100;
+            let empty = bar_width - filled;
+            let bar = format!("{}{}", "█".repeat(filled), "░".repeat(empty));
+            lines.push(Line::from(vec![
+                Span::styled(format!("  {label} "), Style::default().fg(theme.text_dim())),
+                Span::styled(bar, Style::default().fg(accent)),
+                Span::styled(
+                    format!(" {pct}%"),
+                    Style::default().fg(accent).add_modifier(Modifier::BOLD),
+                ),
+            ]));
+        }
+        PanelItem::KeyValue(pairs) => {
+            for (key, val) in pairs {
+                lines.push(Line::from(vec![
+                    Span::styled(format!("  {key}: "), Style::default().fg(theme.text_dim())),
+                    Span::styled(val.as_str(), Style::default().fg(theme.text_bright())),
+                ]));
+            }
+        }
+        PanelItem::List(items) => {
+            for item_text in items {
+                lines.push(Line::from(vec![
+                    Span::styled("  ● ", Style::default().fg(accent)),
+                    Span::styled(item_text.as_str(), Style::default().fg(theme.text())),
+                ]));
+            }
+        }
+        PanelItem::Text(text) => {
+            lines.push(Line::styled(
+                format!("  {text}"),
+                Style::default().fg(theme.text_dim()),
+            ));
+        }
+        PanelItem::Separator => {
+            lines.push(Line::styled(
+                "  ─────────",
+                Style::default().fg(theme.border()),
+            ));
+        }
+    }
+}
+
 /// Styles a sidebar panel line with visual emphasis based on content patterns.
 ///
 /// Detects common patterns in plugin output and applies colors:
@@ -3122,6 +3271,7 @@ mod tests {
         shell.set_sidebar_panels(vec![SidebarPanel {
             title: "TestPanel".to_owned(),
             lines: vec!["line1".to_owned()],
+            items: Vec::new(),
             plugin_id: "test.plugin".to_owned(),
         }]);
         let output = render_to_buffer(&mut shell, 140, 40);
@@ -3250,11 +3400,13 @@ mod tests {
             SidebarPanel {
                 title: "Findings".to_owned(),
                 lines: vec!["3 issues found".to_owned(), "2 warnings".to_owned()],
+                items: Vec::new(),
                 plugin_id: "test.plugin-a".to_owned(),
             },
             SidebarPanel {
                 title: "Sprint".to_owned(),
                 lines: vec!["Story 5.3: in-progress".to_owned()],
+                items: Vec::new(),
                 plugin_id: "test.plugin-b".to_owned(),
             },
         ]);
@@ -3277,6 +3429,7 @@ mod tests {
         shell.set_sidebar_panels(vec![SidebarPanel {
             title: "A".to_owned(),
             lines: vec![],
+            items: Vec::new(),
             plugin_id: "test".to_owned(),
         }]);
         assert_eq!(shell.sidebar_panels.len(), 1);

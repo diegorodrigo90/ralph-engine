@@ -1951,12 +1951,74 @@ pub struct TuiPanel {
     pub id: String,
     /// Localized panel title shown in the sidebar header.
     pub title: String,
-    /// Panel content as lines of text. Updated on each call to
-    /// `tui_contributions()`. Core renders these in the sidebar.
+    /// Panel content as lines of text (legacy — use `blocks` for richer UI).
     pub lines: Vec<String>,
+    /// Typed content blocks (preferred over `lines`).
+    ///
+    /// Core renders these with consistent theme-driven styling. If both
+    /// `lines` and `blocks` are set, `blocks` takes priority.
+    pub blocks: Vec<TuiBlock>,
     /// Position hint: `"sidebar"` (default), `"bottom"`, or `"main"`.
     /// Core decides final placement based on layout tier.
     pub zone_hint: String,
+}
+
+/// A typed UI block for plugin TUI panels.
+///
+/// Plugins compose these blocks to describe content. Core renders them
+/// with the active theme — consistent colors, spacing, and indicators.
+/// This is the design system: plugins define **what** to show, core
+/// decides **how** it looks.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TuiBlock {
+    /// Status indicator: label + value + severity.
+    Status {
+        /// Label text (e.g. `"Binary"`).
+        label: String,
+        /// Value text (e.g. `"Available"`).
+        value: String,
+        /// Severity controlling the indicator icon and color.
+        status: TuiStatus,
+    },
+    /// Numeric metric with optional total for context.
+    Metric {
+        /// Metric label (e.g. `"Done"`).
+        label: String,
+        /// Current value.
+        value: usize,
+        /// Optional total for ratio display (e.g. `115 / 850`).
+        total: Option<usize>,
+    },
+    /// Progress bar with label and percentage.
+    Progress {
+        /// Bar label (e.g. `"Progress"`).
+        label: String,
+        /// Completion percentage (0–100).
+        percent: u8,
+    },
+    /// Key-value pairs displayed as a list.
+    /// Renders each pair with dim label and bright value.
+    KeyValue(Vec<(String, String)>),
+    /// Bullet list of items.
+    /// Renders: `  ● item` for each.
+    List(Vec<String>),
+    /// Plain text line (fallback for simple content).
+    Text(String),
+    /// Visual separator line.
+    Separator,
+}
+
+/// Severity level for `TuiBlock::Status`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TuiStatus {
+    /// Green indicator (✓).
+    Ok,
+    /// Yellow indicator (●).
+    Warning,
+    /// Red indicator (✗).
+    Error,
+    /// Dim/neutral indicator (○).
+    Inactive,
 }
 
 /// A keybinding contributed by a plugin for the TUI.

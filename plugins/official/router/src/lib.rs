@@ -147,11 +147,23 @@ impl PluginRuntime for RouterRuntime {
         vec![re_plugin::TuiPanel {
             id: "router-status".to_owned(),
             title: "Routing".to_owned(),
-            lines: vec![
-                "Mode: config-driven".to_owned(),
-                format!("Rules: {}", rules.len()),
-                format!("Fallbacks: {}", fallbacks.len()),
+            blocks: vec![
+                re_plugin::TuiBlock::KeyValue(vec![(
+                    "Mode".to_owned(),
+                    "config-driven".to_owned(),
+                )]),
+                re_plugin::TuiBlock::Metric {
+                    label: "Rules".to_owned(),
+                    value: rules.len(),
+                    total: None,
+                },
+                re_plugin::TuiBlock::Metric {
+                    label: "Fallbacks".to_owned(),
+                    value: fallbacks.len(),
+                    total: None,
+                },
             ],
+            lines: Vec::new(),
             zone_hint: "sidebar".to_owned(),
         }]
     }
