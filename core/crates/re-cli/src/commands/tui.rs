@@ -285,20 +285,21 @@ fn handle_dashboard_command(shell: &mut re_tui::TuiShell, input: &str, locale: &
     }
 }
 
-/// Pushes project status lines to the activity feed on startup.
+/// Shows a clean project status summary on startup (not full doctor output).
 fn push_project_status(shell: &mut re_tui::TuiShell, has_config: bool, locale: &str) {
     if has_config {
-        // Run doctor silently to get status
-        match super::dispatch_command("doctor", &[], locale) {
-            Ok(output) => {
-                for line in output.lines() {
-                    shell.push_activity(format!("  {line}"));
-                }
-            }
-            Err(_) => {
-                shell.push_activity(format!("  {}", i18n::tui_project_run_hint(locale)));
-            }
-        }
+        // Count enabled plugins and check agent readiness — no wall of text
+        let snapshot = crate::catalog::official_runtime_snapshot();
+        let enabled = snapshot
+            .plugins
+            .iter()
+            .filter(|p| p.activation == re_config::PluginActivation::Enabled)
+            .count();
+        let total = snapshot.plugins.len();
+
+        shell.push_activity(format!("  ✓ {}", i18n::tui_project_configured(locale)));
+        shell.push_activity(format!("  Plugins: {enabled}/{total} active"));
+        shell.push_activity(format!("  {}", i18n::tui_project_run_hint(locale)));
     } else {
         shell.push_activity(format!("  {}", i18n::tui_no_config_found(locale)));
         shell.push_activity(format!("  {}", i18n::tui_type_init_tui(locale)));

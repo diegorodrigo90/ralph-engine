@@ -1480,8 +1480,6 @@ impl TuiShell {
 
         let theme = self.theme.as_ref();
 
-        // Capture and clear dirty flag before borrowing feed immutably
-        let was_dirty = self.feed.is_dirty();
         self.feed.clear_dirty();
 
         let focused = self.focused_block;
@@ -1640,13 +1638,13 @@ impl TuiShell {
         let content_height = all_lines.len() as u16;
         let content_width = area.width.saturating_sub(1); // reserve 1 col for scrollbar
 
-        // Follow mode: smooth scroll toward bottom when new content arrives
-        if self.follow_mode && was_dirty {
+        // Follow mode: smooth scroll toward bottom (always, not just on dirty)
+        if self.follow_mode {
             let target_y = content_height.saturating_sub(area.height);
             let current_y = self.feed_scroll.offset().y;
             if current_y < target_y {
-                // Smooth: advance by up to 3 lines per frame toward target
-                let step = 3.min(target_y - current_y);
+                // Smooth: advance by up to 4 lines per frame toward target
+                let step = 4.min(target_y - current_y);
                 use ratatui::layout::Position;
                 self.feed_scroll
                     .set_offset(Position::new(0, current_y + step));
