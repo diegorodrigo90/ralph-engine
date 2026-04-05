@@ -47,8 +47,24 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
     shell.set_state(re_tui::TuiState::Complete);
     let cwd = std::env::current_dir().unwrap_or_default();
 
-    // Enable input bar — the dashboard is interactive
-    shell.enable_input();
+    // Auto-discover: enable input bar if any plugin requests it
+    if catalog::any_plugin_wants_input_bar() {
+        shell.enable_input();
+    } else {
+        // Dashboard always has input for slash commands
+        shell.enable_input();
+    }
+
+    // Auto-discover: command prefix from configured agent plugin (Model B)
+    let prefix = if let Ok(config) = super::runtime_state::load_project_config() {
+        config
+            .run
+            .agent_plugin
+            .map(catalog::agent_command_prefix)
+            .unwrap_or_else(|| "/".to_owned())
+    } else {
+        "/".to_owned()
+    };
 
     // Register built-in dashboard commands for autocomplete
     let mut commands: Vec<re_tui::CommandEntry> = DASHBOARD_COMMANDS
@@ -61,7 +77,7 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
         })
         .collect();
 
-    // Add plugin-discovered agent commands
+    // Add plugin-discovered agent commands (auto-discovery)
     let agent_commands: Vec<re_tui::CommandEntry> =
         catalog::collect_agent_commands_from_plugins(&cwd)
             .into_iter()
@@ -74,8 +90,20 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
             .collect();
     commands.extend(agent_commands);
 
+    // Add plugin-contributed CLI commands (auto-discovery)
+    let cli_commands: Vec<re_tui::CommandEntry> = catalog::collect_cli_contributions_from_plugins()
+        .into_iter()
+        .map(|(plugin_id, contrib)| re_tui::CommandEntry {
+            name: contrib.name.clone(),
+            description: contrib.description,
+            source: re_tui::CommandSource::Plugin,
+            source_name: plugin_id,
+        })
+        .collect();
+    commands.extend(cli_commands);
+
     if !commands.is_empty() {
-        shell.set_agent_commands(commands, "/".to_owned());
+        shell.set_agent_commands(commands, prefix);
     }
 
     // Auto-discover sidebar panels from plugins
