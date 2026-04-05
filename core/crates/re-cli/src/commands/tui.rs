@@ -28,7 +28,12 @@ const DASHBOARD_COMMANDS: &[(&str, &str)] = &[
 
 /// Executes the TUI dashboard.
 #[cfg_attr(coverage_nightly, coverage(off))]
-pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
+pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
+    #[cfg(debug_assertions)]
+    let auto_demo = args.iter().any(|a| a == "--demo");
+    #[cfg(not(debug_assertions))]
+    let auto_demo = false;
+    let _ = args;
     let has_config = std::path::Path::new(".ralph-engine/config.yaml").exists();
 
     let config = re_tui::TuiConfig {
@@ -126,6 +131,12 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
 
     // Try loading previous session (non-blocking)
     load_previous_session(&mut shell);
+
+    // Auto-start demo if --demo flag (debug only)
+    #[cfg(debug_assertions)]
+    if auto_demo {
+        populate_demo_feed(&mut shell, locale);
+    }
 
     let mut terminal = ratatui::init();
 
