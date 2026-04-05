@@ -196,15 +196,12 @@ mod tests {
             KeyCode::Char('d'),
             "detail",
             "Show finding detail",
-            "official.findings",
+            "test.plugin",
         );
         assert!(ok);
         let binding = reg.find_binding(KeyCode::Char('d'));
         assert!(binding.is_some());
-        assert_eq!(
-            binding.map(|b| b.source.as_str()),
-            Some("official.findings")
-        );
+        assert_eq!(binding.map(|b| b.source.as_str()), Some("test.plugin"));
     }
 
     #[test]

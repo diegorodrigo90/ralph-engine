@@ -1185,9 +1185,9 @@ impl TuiShell {
             // Block padding + separator between blocks
             if block_idx > 0 {
                 let sep_color = match block.kind {
-                    BlockKind::FileEdit => theme.diff_added(),
-                    BlockKind::GateFail => theme.error(),
-                    BlockKind::Command => theme.info(),
+                    BlockKind::FileEdit => theme.block_file_edit(),
+                    BlockKind::GateFail => theme.block_fail(),
+                    BlockKind::Command => theme.block_command(),
                     _ => theme.border(),
                 };
                 all_lines.push(Line::styled("─".repeat(40), Style::default().fg(sep_color)));
@@ -1395,17 +1395,9 @@ impl TuiShell {
         }
     }
 
-    /// Renders the chat input bar.
+    /// Renders the chat input bar — separator, `>` prompt, multi-line, native cursor.
     ///
-    /// Only shown when an interactive plugin (e.g. guided) registers
-    /// keybindings. Shows a persistent input prompt with cursor.
-    /// When empty, shows placeholder. When typing, shows buffer + cursor.
-    /// Renders the chat input bar — clean `>` prompt, separator above.
-    ///
-    /// Renders the chat input — separator, `>` prompt, multi-line, native cursor.
-    ///
-    /// Ctrl+J inserts newline. Enter sends. Esc cancels.
-    /// Native terminal cursor blinks at insertion point.
+    /// `Ctrl+J` inserts newline. `Enter` sends. `Esc` cancels.
     fn render_input_bar(&self, frame: &mut Frame<'_>, area: Rect) {
         let theme = self.theme();
         let prompt_color = theme.accent();
@@ -1481,7 +1473,7 @@ impl TuiShell {
 
             // Cursor at end of last line
             let last_text_line = self.text_input_buffer.rsplit('\n').next().unwrap_or("");
-            let cursor_col = (last_text_line.len() % content_width) as u16;
+            let cursor_col = (last_text_line.chars().count() % content_width) as u16;
             let cursor_row = (line_count.saturating_sub(1)) as u16;
             frame.set_cursor_position((
                 text_area.x + prompt_width + cursor_col,
@@ -2145,7 +2137,7 @@ mod tests {
     fn test_shell() -> TuiShell {
         let mut shell = TuiShell::new(TuiConfig {
             title: "Test Task".to_owned(),
-            agent_id: "test.claude".to_owned(),
+            agent_id: "test.agent".to_owned(),
             locale: "en".to_owned(),
         });
         shell.push_activity(">> Tool Call: search".to_owned());
@@ -2191,7 +2183,7 @@ mod tests {
     fn render_compact_shows_header_with_agent_id() {
         let mut shell = test_shell();
         let output = render_to_buffer(&mut shell, 80, 24);
-        assert!(output.contains("test.claude"));
+        assert!(output.contains("test.agent"));
         assert!(output.contains("[RUNNING]"));
     }
 
@@ -2237,7 +2229,7 @@ mod tests {
     fn render_wide_shows_control_panel() {
         let mut shell = TuiShell::new(TuiConfig {
             title: "Fix Bug".to_owned(),
-            agent_id: "test.claude".to_owned(),
+            agent_id: "test.agent".to_owned(),
             locale: "en".to_owned(),
         });
         let output = render_to_buffer(&mut shell, 200, 60);
@@ -2266,7 +2258,7 @@ mod tests {
         let mut shell = test_shell();
         shell.set_progress(75);
         let output = render_to_buffer(&mut shell, 100, 24);
-        assert!(output.contains("test.claude"));
+        assert!(output.contains("test.agent"));
     }
 
     // ── process_event tests ──────────────────────────────────────
@@ -2353,12 +2345,12 @@ mod tests {
             SidebarPanel {
                 title: "Findings".to_owned(),
                 lines: vec!["3 issues found".to_owned(), "2 warnings".to_owned()],
-                plugin_id: "official.findings".to_owned(),
+                plugin_id: "test.plugin-a".to_owned(),
             },
             SidebarPanel {
                 title: "Sprint".to_owned(),
                 lines: vec!["Story 5.3: in-progress".to_owned()],
-                plugin_id: "official.bmad".to_owned(),
+                plugin_id: "test.plugin-b".to_owned(),
             },
         ]);
         let output = render_to_buffer(&mut shell, 140, 40);
