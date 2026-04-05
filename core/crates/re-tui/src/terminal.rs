@@ -2691,7 +2691,7 @@ fn render_panel_item<'a>(
     theme: &dyn crate::theme::Theme,
     lines: &mut Vec<Line<'a>>,
 ) {
-    // Resolve severity to theme color
+    // Severity → theme color slot
     let sev_color = match item.severity {
         PanelSeverity::Success => theme.success(),
         PanelSeverity::Warning => theme.warning(),
@@ -2702,16 +2702,19 @@ fn render_panel_item<'a>(
     match item.hint {
         PanelHint::Indicator => {
             let icon = match item.severity {
-                PanelSeverity::Success => "✓",
-                PanelSeverity::Warning => "●",
-                PanelSeverity::Error => "✗",
+                PanelSeverity::Success => "●",
+                PanelSeverity::Warning => "◆",
+                PanelSeverity::Error => "⬤",
                 PanelSeverity::Neutral => "○",
             };
             let label = item.label.as_deref().unwrap_or("");
             let value = item.value.as_deref().unwrap_or("");
             lines.push(Line::from(vec![
-                Span::styled(format!("  {icon} "), Style::default().fg(sev_color)),
-                Span::styled(format!("{label}: "), Style::default().fg(theme.text_dim())),
+                Span::styled(
+                    format!("  {icon} "),
+                    Style::default().fg(sev_color).add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(format!("{label} "), Style::default().fg(theme.text_dim())),
                 Span::styled(
                     value,
                     Style::default().fg(sev_color).add_modifier(Modifier::BOLD),
@@ -2720,23 +2723,30 @@ fn render_panel_item<'a>(
         }
         PanelHint::Inline => {
             let label = item.label.as_deref().unwrap_or("");
-            // If numeric, show as metric
             if let Some(num) = item.numeric {
+                // Premium: k-format large numbers + mini inline bar when total exists
+                let num_str = if num >= 1000 {
+                    format!("{}.{}k", num / 1000, (num % 1000) / 100)
+                } else {
+                    format!("{num}")
+                };
                 let mut spans = vec![
+                    Span::styled(format!("  {label} "), Style::default().fg(theme.text_dim())),
                     Span::styled(
-                        format!("  {label}: "),
-                        Style::default().fg(theme.text_dim()),
-                    ),
-                    Span::styled(
-                        format!("{num}"),
+                        num_str,
                         Style::default().fg(accent).add_modifier(Modifier::BOLD),
                     ),
                 ];
                 if let Some(t) = item.total {
+                    let pct = if t > 0 { num * 100 / t } else { 0 };
                     spans.push(Span::styled(
-                        format!(" / {t}"),
+                        format!("/{t}"),
                         Style::default().fg(theme.text_dim()),
                     ));
+                    let mini_fill = (pct as usize * 3 / 100).min(3);
+                    let mini_bar =
+                        format!(" {}{}", "▰".repeat(mini_fill), "▱".repeat(3 - mini_fill));
+                    spans.push(Span::styled(mini_bar, Style::default().fg(accent)));
                 }
                 lines.push(Line::from(spans));
             } else {
@@ -2751,49 +2761,70 @@ fn render_panel_item<'a>(
             }
         }
         PanelHint::Bar => {
+            // Premium: gradient bar ▰▱ with color shift by progress
             let pct = item.numeric.unwrap_or(0).min(100) as usize;
-            let bar_width = 10;
+            let bar_width = 12;
             let filled = bar_width * pct / 100;
             let empty = bar_width - filled;
-            let bar = format!("{}{}", "█".repeat(filled), "░".repeat(empty));
+            let bar = format!("{}{}", "▰".repeat(filled), "▱".repeat(empty));
             let label = item.label.as_deref().unwrap_or("");
+            let bar_color = if pct >= 80 {
+                theme.success()
+            } else if pct >= 40 {
+                accent
+            } else {
+                theme.warning()
+            };
             lines.push(Line::from(vec![
                 Span::styled(format!("  {label} "), Style::default().fg(theme.text_dim())),
-                Span::styled(bar, Style::default().fg(accent)),
+                Span::styled(bar, Style::default().fg(bar_color)),
                 Span::styled(
                     format!(" {pct}%"),
-                    Style::default().fg(accent).add_modifier(Modifier::BOLD),
+                    Style::default().fg(bar_color).add_modifier(Modifier::BOLD),
                 ),
             ]));
         }
         PanelHint::Pairs => {
+            // Premium: arrow separator instead of colon
             for (key, val) in &item.pairs {
                 lines.push(Line::from(vec![
-                    Span::styled(format!("  {key}: "), Style::default().fg(theme.text_dim())),
+                    Span::styled(format!("  {key}"), Style::default().fg(theme.text_dim())),
+                    Span::styled(" → ", Style::default().fg(theme.border())),
                     Span::styled(val.as_str(), Style::default().fg(theme.text_bright())),
                 ]));
             }
         }
         PanelHint::List => {
-            for item_text in &item.items {
+            // Premium: numbered for long lists, arrows for short
+            for (i, item_text) in item.items.iter().enumerate() {
+                let bullet = if item.items.len() > 5 {
+                    format!("  {:>2}. ", i + 1)
+                } else {
+                    "  ▸ ".to_owned()
+                };
                 lines.push(Line::from(vec![
-                    Span::styled("  ● ", Style::default().fg(accent)),
+                    Span::styled(bullet, Style::default().fg(accent)),
                     Span::styled(item_text.as_str(), Style::default().fg(theme.text())),
                 ]));
             }
         }
         PanelHint::Text => {
             let text = item.label.as_deref().unwrap_or("");
-            lines.push(Line::styled(
-                format!("  {text}"),
-                Style::default().fg(theme.text_dim()),
-            ));
+            lines.push(Line::from(vec![
+                Span::styled("  ", Style::default()),
+                Span::styled(
+                    text,
+                    Style::default()
+                        .fg(theme.text_dim())
+                        .add_modifier(Modifier::ITALIC),
+                ),
+            ]));
         }
         PanelHint::Separator => {
-            lines.push(Line::styled(
-                "  ─────────",
-                Style::default().fg(theme.border()),
-            ));
+            lines.push(Line::from(vec![
+                Span::styled("  ", Style::default()),
+                Span::styled("· · · · · · · ·", Style::default().fg(theme.border())),
+            ]));
         }
     }
 }
