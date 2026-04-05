@@ -1,0 +1,32 @@
+id: official.router
+kind: agent_router
+display_name: Agent Router
+display_name_locales:
+  pt-br: Roteador de Agentes
+summary: Task-based agent selection with config-driven rules and fallback chains.
+summary_locales:
+  pt-br: Selecao de agente baseada em tarefas com regras configuradas e cadeias de fallback.
+description: >
+  Routes tasks to the best agent based on configurable rules. Supports
+  pattern matching on task descriptions, model overrides, priority ordering,
+  and fallback chains when the primary agent is unavailable.
+description_locales:
+  pt-br: >
+    Roteia tarefas para o melhor agente baseado em regras configuraveis.
+    Suporta pattern matching em descricoes de tarefas, overrides de modelo,
+    ordenacao por prioridade e cadeias de fallback quando o agente primario
+    nao esta disponivel.
+publisher: official
+trust_level: official
+plugin_version: 0.2.0-alpha.1
+plugin_api_version: 1.0.0
+engine_version: ">=0.2.0-alpha.1"
+runtime: true
+lifecycle:
+  - discover
+  - configure
+  - load
+runtime_hooks:
+  - agent_routing
+capabilities:
+  - agent_routing

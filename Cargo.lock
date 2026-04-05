@@ -2017,6 +2017,7 @@ dependencies = [
  "re-plugin-github",
  "re-plugin-guided",
  "re-plugin-hello-world",
+ "re-plugin-router",
  "re-plugin-ssh",
  "re-plugin-tdd-strict",
  "toml",
@@ -2108,6 +2109,14 @@ dependencies = [
 
 [[package]]
 name = "re-plugin-hello-world"
+version = "0.2.0-alpha.1"
+dependencies = [
+ "re-build-utils",
+ "re-plugin",
+]
+
+[[package]]
+name = "re-plugin-router"
 version = "0.2.0-alpha.1"
 dependencies = [
  "re-build-utils",

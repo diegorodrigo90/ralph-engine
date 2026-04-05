@@ -1654,6 +1654,29 @@ pub trait PluginRuntime: Send + Sync {
             ),
         ))
     }
+
+    /// Returns routing rules for task-based agent selection.
+    ///
+    /// Routing plugins read rules from config and return them.
+    /// Core uses these to pick the right agent for each task.
+    fn routing_rules(&self) -> Vec<RoutingRule> {
+        Vec::new()
+    }
+
+    /// Classifies a task and recommends an agent.
+    ///
+    /// Routing plugins analyze the task description and return
+    /// a recommendation. Core uses this for automatic agent selection.
+    fn classify_task(&self, _task_description: &str) -> Option<AgentRecommendation> {
+        None
+    }
+
+    /// Returns fallback agents to try when the primary agent fails.
+    ///
+    /// Routing plugins define fallback chains per primary agent.
+    fn fallback_chain(&self, _primary_agent: &str) -> Vec<FallbackEntry> {
+        Vec::new()
+    }
 }
 
 /// A slash command discovered from an agent CLI.
@@ -1665,6 +1688,46 @@ pub struct AgentCommand {
     pub description: String,
     /// Plugin that owns this command.
     pub plugin_id: String,
+}
+
+// ---------------------------------------------------------------------------
+// Agent routing types
+// ---------------------------------------------------------------------------
+
+/// A routing rule that maps task patterns to agents.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct RoutingRule {
+    /// Glob pattern to match against task description or work item ID.
+    /// Empty string means "default" (matches everything).
+    pub task_pattern: String,
+    /// Agent plugin ID to use for matching tasks.
+    pub agent_plugin: String,
+    /// Optional model override (e.g. `"haiku"` for fast tasks).
+    pub model: Option<String>,
+    /// Priority (lower = higher priority). Default rules have highest number.
+    pub priority: u32,
+}
+
+/// Recommendation from the routing plugin for which agent to use.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AgentRecommendation {
+    /// Recommended agent plugin ID.
+    pub agent_plugin: String,
+    /// Optional model override.
+    pub model: Option<String>,
+    /// Confidence (0-100). 0 = fallback/default, 100 = exact match.
+    pub confidence: u8,
+    /// Human-readable reason for the recommendation.
+    pub reason: String,
+}
+
+/// Fallback chain entry — tried in order when primary agent fails.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FallbackEntry {
+    /// Agent plugin ID to try.
+    pub agent_plugin: String,
+    /// Optional model override.
+    pub model: Option<String>,
 }
 
 // ---------------------------------------------------------------------------

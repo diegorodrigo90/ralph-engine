@@ -685,6 +685,7 @@ fn run_config_roundtrip_renders_and_parses_correctly() {
         workflow_plugin: Some("official.bmad"),
         agent_plugin: Some("official.claude"),
         agent_id: Some("official.claude.session"),
+        mode: "loop",
     };
 
     // Act

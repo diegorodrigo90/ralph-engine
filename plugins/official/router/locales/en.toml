@@ -1,0 +1,3 @@
+[plugin]
+name = "Agent Router"
+summary = "Task-based agent selection with config-driven rules and fallback chains."
