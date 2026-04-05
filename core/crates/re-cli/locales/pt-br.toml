@@ -59,6 +59,7 @@ usage_label = "Uso"
 
 # ── Command descriptions ─────────────────────────────────────────
 cmd_run = "Executar work items com dashboard TUI"
+cmd_exec = "Executar work items sem TUI (para CI/scripts)"
 cmd_tui = "Iniciar demo TUI com eventos simulados"
 cmd_init = "Inicializar novo projeto (.ralph-engine/)"
 cmd_doctor = "Verificar saude do projeto e corrigir problemas"
