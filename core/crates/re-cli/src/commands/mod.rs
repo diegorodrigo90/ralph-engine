@@ -220,9 +220,13 @@ fn resolve_command_description(key: &'static str, locale: &str) -> &'static str 
 /// Future: smart dispatch based on .ralph-engine/ presence
 /// (chat TUI if configured, suggest init if not).
 fn dispatch_default(locale: &str) -> Result<String, CliError> {
-    // Show help — future: smart dispatch (chat TUI if configured, suggest init if not)
-    let _ = i18n::root_bootstrapped(locale); // Keep i18n key alive for future use
-    Ok(render_help(locale))
+    // Launch TUI dashboard when no command given (the product experience).
+    // Falls back to help text if --no-tui flag or non-interactive terminal.
+    if std::io::IsTerminal::is_terminal(&std::io::stdout()) {
+        tui::execute(&[], locale)
+    } else {
+        Ok(render_help(locale))
+    }
 }
 
 fn render_help(locale: &str) -> String {

@@ -1761,7 +1761,7 @@ impl TuiShell {
         let mut lines: Vec<Line<'_>> = Vec::new();
 
         // Center vertically
-        let content_height = logo_lines.len() + 8;
+        let content_height = logo_lines.len() + 14;
         let pad_top = area.height.saturating_sub(content_height as u16) / 2;
         for _ in 0..pad_top {
             lines.push(Line::raw(""));
@@ -1774,17 +1774,64 @@ impl TuiShell {
             Style::default().fg(theme.text_dim()),
         ));
         lines.push(Line::raw(""));
-        lines.push(Line::styled(
-            "  Waiting for agent session...",
-            Style::default()
-                .fg(theme.accent_dim())
-                .add_modifier(Modifier::ITALIC),
-        ));
+
+        // Project status — detect if .ralph-engine/ exists
+        let has_config = std::path::Path::new(".ralph-engine/config.yaml").exists();
+        if has_config {
+            lines.push(Line::from(vec![
+                Span::styled("  ✓ ", Style::default().fg(theme.success())),
+                Span::styled("Project configured", Style::default().fg(theme.text())),
+            ]));
+            lines.push(Line::styled(
+                "  Type /run to start orchestration",
+                Style::default()
+                    .fg(theme.accent())
+                    .add_modifier(Modifier::ITALIC),
+            ));
+        } else {
+            lines.push(Line::from(vec![
+                Span::styled("  ○ ", Style::default().fg(theme.warning())),
+                Span::styled("No project found", Style::default().fg(theme.text())),
+            ]));
+            lines.push(Line::styled(
+                "  Run 'ralph-engine init' to set up",
+                Style::default()
+                    .fg(theme.accent_dim())
+                    .add_modifier(Modifier::ITALIC),
+            ));
+        }
+
         lines.push(Line::raw(""));
-        lines.push(Line::styled(
-            "  [q] quit  [?] help  [F2] sidebar",
-            Style::default().fg(theme.text_dim()),
-        ));
+        lines.push(Line::from(vec![
+            Span::styled(
+                "  q",
+                Style::default()
+                    .fg(theme.accent())
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(" quit  ", Style::default().fg(theme.text_dim())),
+            Span::styled(
+                "?",
+                Style::default()
+                    .fg(theme.accent())
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(" help  ", Style::default().fg(theme.text_dim())),
+            Span::styled(
+                "F2",
+                Style::default()
+                    .fg(theme.accent())
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(" sidebar  ", Style::default().fg(theme.text_dim())),
+            Span::styled(
+                "j/k",
+                Style::default()
+                    .fg(theme.accent())
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(" navigate", Style::default().fg(theme.text_dim())),
+        ]));
 
         frame.render_widget(Paragraph::new(lines), area);
     }

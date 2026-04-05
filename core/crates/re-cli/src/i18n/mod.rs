@@ -354,6 +354,7 @@ macro_rules! catalog_fn2 {
 // ── Simple catalog accessors ─────────────────────────────────────
 
 #[must_use]
+#[allow(dead_code)] // i18n key kept for future use
 pub fn root_bootstrapped(locale: &str) -> &'static str {
     locale_catalog(locale).root_bootstrapped
 }
