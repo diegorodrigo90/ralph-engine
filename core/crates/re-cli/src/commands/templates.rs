@@ -285,11 +285,7 @@ mod tests {
         );
 
         assert!(output.is_ok());
-        assert!(
-            output
-                .unwrap_or_default()
-                .contains("# ralph-engine basic template")
-        );
+        assert!(output.unwrap_or_default().contains("schema_version: 1"));
     }
 
     #[test]

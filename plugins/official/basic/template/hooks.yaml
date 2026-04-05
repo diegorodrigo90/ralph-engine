@@ -1,4 +1,9 @@
-# ralph-engine hooks — basic template
+# ralph-engine hooks
+#
+# NOTE: Hook execution is not yet implemented in the runtime.
+# This file defines the intended hook points for future use.
+# Configure your quality gates here — they will be executed
+# when the hooks system is wired up.
 
 session_start:
   steps: []
