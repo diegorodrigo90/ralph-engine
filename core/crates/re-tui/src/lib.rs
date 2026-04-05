@@ -13,6 +13,7 @@
 
 #![cfg_attr(coverage_nightly, feature(coverage_attribute))]
 
+mod clipboard;
 pub mod events;
 pub mod feed;
 pub mod indicators;

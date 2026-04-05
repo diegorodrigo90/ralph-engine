@@ -249,6 +249,8 @@ pub struct TuiShell {
     follow_mode: bool,
     /// Index of the focused block in the feed (`None` = no focus).
     focused_block: Option<usize>,
+    /// Brief copy confirmation message (cleared after one render).
+    copy_feedback: Option<String>,
     /// Quality gate pipeline for orchestration runs.
     indicator_panel: crate::indicators::IndicatorPanel,
     tool_count: usize,
@@ -285,6 +287,7 @@ impl TuiShell {
             feed_scroll: ScrollViewState::default(),
             follow_mode: true,
             focused_block: None,
+            copy_feedback: None,
             indicator_panel: crate::indicators::IndicatorPanel::new(),
             tool_count: 0,
             should_quit: false,
@@ -553,6 +556,32 @@ impl TuiShell {
         self.feed_scroll.scroll_to_bottom();
     }
 
+    /// Copies the focused block's content to the clipboard.
+    ///
+    /// Returns `true` if a block was focused and the copy succeeded.
+    /// Shows a brief feedback message in the metrics bar.
+    pub fn copy_focused_block(&mut self) -> bool {
+        let Some(idx) = self.focused_block else {
+            return false;
+        };
+        let Some(block) = self.feed.blocks().get(idx) else {
+            return false;
+        };
+
+        let text = crate::clipboard::block_to_copyable_text(&block.title, &block.content);
+        if text.is_empty() {
+            return false;
+        }
+
+        if crate::clipboard::copy_to_clipboard(&text) {
+            self.copy_feedback = Some(format!("Copied {} chars", text.len()));
+            true
+        } else {
+            self.copy_feedback = Some("Copy failed (no clipboard)".to_owned());
+            false
+        }
+    }
+
     /// Returns a reference to the gate pipeline.
     #[must_use]
     pub fn indicator_panel(&self) -> &crate::indicators::IndicatorPanel {
@@ -759,6 +788,10 @@ impl TuiShell {
             }
             KeyCode::Enter => {
                 self.toggle_focused_block();
+                return PluginKeyAction::Handled;
+            }
+            KeyCode::Char('y') => {
+                self.copy_focused_block();
                 return PluginKeyAction::Handled;
             }
             KeyCode::Esc => {
@@ -1202,8 +1235,21 @@ impl TuiShell {
     }
 
     /// Renders the metrics bar.
-    fn render_metrics(&self, frame: &mut Frame<'_>, area: Rect) {
-        let theme = self.theme();
+    fn render_metrics(&mut self, frame: &mut Frame<'_>, area: Rect) {
+        let theme = self.theme.as_ref();
+
+        // Copy feedback takes priority (shown briefly)
+        if let Some(msg) = self.copy_feedback.take() {
+            let feedback = Line::from(vec![Span::styled(
+                format!(" ✓ {msg} "),
+                Style::default()
+                    .fg(theme.success())
+                    .add_modifier(Modifier::BOLD),
+            )]);
+            frame.render_widget(Paragraph::new(feedback), area);
+            return;
+        }
+
         // When indicators are active, show the indicator bar. Otherwise show tool metrics.
         if !self.indicator_panel.is_empty() {
             let indicator_bar = self.indicator_panel.render_bar(theme);
