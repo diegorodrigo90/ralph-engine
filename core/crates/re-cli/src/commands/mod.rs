@@ -49,6 +49,12 @@ const COMMANDS: &[CommandDescriptor] = &[
         handler: run::execute,
     },
     CommandDescriptor {
+        name: "exec",
+        description_key: "cmd_exec",
+        subcommands: &["plan"],
+        handler: run::execute_headless,
+    },
+    CommandDescriptor {
         name: "tui",
         description_key: "cmd_tui",
         subcommands: &[],
@@ -190,6 +196,7 @@ pub fn execute(args: &[String]) -> Result<String, CliError> {
 fn resolve_command_description(key: &'static str, locale: &str) -> &'static str {
     match key {
         "cmd_run" => i18n::cmd_run(locale),
+        "cmd_exec" => i18n::cmd_exec(locale),
         "cmd_tui" => i18n::cmd_tui(locale),
         "cmd_init" => i18n::cmd_init(locale),
         "cmd_doctor" => i18n::cmd_doctor(locale),

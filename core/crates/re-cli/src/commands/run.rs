@@ -4,19 +4,34 @@ use crate::{CliError, catalog, i18n};
 
 use super::runtime_state::load_project_config;
 
+/// Executes the `exec` command — headless run (no TUI).
+///
+/// Alias for `run --headless <args>`. Used when TUI and headless
+/// are separate subcommands (Codex pattern).
+pub fn execute_headless(args: &[String], locale: &str) -> Result<String, CliError> {
+    let mut full_args = vec!["--headless".to_owned()];
+    full_args.extend(args.iter().cloned());
+    execute(&full_args, locale)
+}
+
 /// Executes the run command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     let verbose = args.iter().any(|a| a == "--verbose" || a == "-v");
     let accept = args
         .iter()
-        .any(|a| a == "--i-understand-ai-can-make-mistakes");
+        .any(|a| a == "--i-understand-ai-can-make-mistakes" || a == "--accept-risk");
     let filtered: Vec<&str> = args
         .iter()
         .map(String::as_str)
         .filter(|a| {
             !matches!(
                 *a,
-                "--verbose" | "-v" | "--i-understand-ai-can-make-mistakes"
+                "--verbose"
+                    | "-v"
+                    | "--i-understand-ai-can-make-mistakes"
+                    | "--accept-risk"
+                    | "--headless"
+                    | "--no-tui"
             )
         })
         .collect();

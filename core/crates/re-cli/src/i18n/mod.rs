@@ -68,6 +68,7 @@ pub(super) struct CliLocaleCatalog {
 
     // ── Command descriptions ────────────────────────────────────
     pub cmd_run: &'static str,
+    pub cmd_exec: &'static str,
     pub cmd_tui: &'static str,
     pub cmd_init: &'static str,
     pub cmd_doctor: &'static str,
@@ -531,6 +532,7 @@ catalog_str!(usage_label, usage_label);
 // ── Command description accessors ───────────────────────────────
 
 catalog_str!(cmd_run, cmd_run);
+catalog_str!(cmd_exec, cmd_exec);
 catalog_str!(cmd_tui, cmd_tui);
 catalog_str!(cmd_init, cmd_init);
 catalog_str!(cmd_doctor, cmd_doctor);
