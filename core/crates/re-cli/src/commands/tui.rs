@@ -38,16 +38,19 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
         shell.enable_input();
     }
 
-    // Auto-discover: agent commands for autocomplete
+    // Auto-discover: unified commands for autocomplete from all agent plugins
     let commands: Vec<re_tui::CommandEntry> = catalog::collect_agent_commands_from_plugins(&cwd)
         .into_iter()
         .map(|cmd| re_tui::CommandEntry {
-            name: cmd.name,
+            name: cmd.name.clone(),
             description: cmd.description,
+            source: re_tui::CommandSource::Agent,
+            source_name: cmd.plugin_id,
         })
         .collect();
+
     if !commands.is_empty() {
-        let prefix = catalog::agent_command_prefix("official.claude");
+        let prefix = "/".to_owned();
         shell.set_agent_commands(commands, prefix);
     }
 

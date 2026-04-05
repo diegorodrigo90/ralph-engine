@@ -125,6 +125,8 @@ pub const CONTEXT_MANAGEMENT: PluginCapability = PluginCapability::new("context_
 pub const SESSION_PERSISTENCE: PluginCapability = PluginCapability::new("session_persistence");
 /// Agent routing capability (task classification, agent/model selection).
 pub const AGENT_ROUTING: PluginCapability = PluginCapability::new("agent_routing");
+/// Preset capability (generate config + hooks from an opinionated template).
+pub const PRESET: PluginCapability = PluginCapability::new("preset");
 
 /// Canonical ordered list of reviewed plugin capabilities.
 pub const ALL_PLUGIN_CAPABILITIES: &[PluginCapability] = &[
@@ -144,6 +146,7 @@ pub const ALL_PLUGIN_CAPABILITIES: &[PluginCapability] = &[
     CONTEXT_MANAGEMENT,
     SESSION_PERSISTENCE,
     AGENT_ROUTING,
+    PRESET,
 ];
 
 /// Parses one reviewed plugin capability identifier.
@@ -222,6 +225,8 @@ define_plugin_enum! {
         ContextManager => "context_manager",
         /// Agent routing plugin (task classification, agent selection).
         AgentRouter => "agent_router",
+        /// Preset plugin (generates config + hooks from a template).
+        Preset => "preset",
     }
 }
 
@@ -775,6 +780,8 @@ define_plugin_enum! {
         SessionPersistence => "session_persistence",
         /// The plugin provides agent routing (task classification).
         AgentRouting => "agent_routing",
+        /// The plugin provides a preset (config + hooks template).
+        PresetApplication => "preset_application",
     }
 }
 
@@ -1676,6 +1683,23 @@ pub trait PluginRuntime: Send + Sync {
     /// Routing plugins define fallback chains per primary agent.
     fn fallback_chain(&self, _primary_agent: &str) -> Vec<FallbackEntry> {
         Vec::new()
+    }
+
+    /// Applies a preset — generates config, hooks, and files for a project.
+    ///
+    /// Preset plugins produce a complete `.ralph-engine/` setup from an
+    /// opinionated template. The CLI calls this when the user runs
+    /// `ralph-engine preset apply <preset-id>`.
+    ///
+    /// Returns a list of files created (path → contents).
+    fn apply_preset(
+        &self,
+        _project_root: &Path,
+    ) -> Result<Vec<(String, String)>, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "not_a_preset_plugin",
+            format!("Plugin '{}' does not provide presets", self.plugin_id()),
+        ))
     }
 }
 

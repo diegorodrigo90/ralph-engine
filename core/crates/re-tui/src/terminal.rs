@@ -130,13 +130,40 @@ pub enum PluginKeyAction {
 /// Agent process ID (set when a real agent is launched).
 pub type AgentPid = Option<u32>;
 
-/// An entry in the autocomplete command list.
+/// Source of a command in the unified autocomplete.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CommandSource {
+    /// Command from the active agent CLI (e.g. Claude `/compact`).
+    Agent,
+    /// Command from a Ralph Engine plugin (e.g. BMAD `sprint-status`).
+    Plugin,
+    /// Tool from an MCP server (e.g. `github.repository`).
+    Mcp,
+}
+
+impl CommandSource {
+    /// Returns a short label for display.
+    #[must_use]
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Agent => "agent",
+            Self::Plugin => "plugin",
+            Self::Mcp => "mcp",
+        }
+    }
+}
+
+/// An entry in the unified autocomplete command list.
 #[derive(Debug, Clone)]
 pub struct CommandEntry {
-    /// Command name (e.g. `"compact"`, `"skill"`).
+    /// Command name (e.g. `"compact"`, `"sprint-status"`).
     pub name: String,
     /// Short description for the popup.
     pub description: String,
+    /// Source of this command.
+    pub source: CommandSource,
+    /// Source name for display (e.g. `"Claude"`, `"BMAD"`, `"GitHub MCP"`).
+    pub source_name: String,
 }
 
 /// Autocomplete popup state for agent slash commands.
@@ -933,6 +960,8 @@ impl TuiShell {
                     ),
                     Span::raw("  "),
                     Span::styled(&cmd.description, Style::default().fg(Color::DarkGray)),
+                    Span::raw("  "),
+                    Span::styled(cmd.source.label(), Style::default().fg(Color::Indexed(59))),
                 ]))
             })
             .collect();

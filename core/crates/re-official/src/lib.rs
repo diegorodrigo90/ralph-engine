@@ -1288,6 +1288,7 @@ mod tests {
         "context_management",
         "session_persistence",
         "agent_routing",
+        "preset",
     ];
 
     #[test]
