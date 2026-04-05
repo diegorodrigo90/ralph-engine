@@ -407,6 +407,7 @@ const HOOK_ONLY_CAPABILITIES: &[&str] = &[
     "context_management",
     "session_persistence",
     "agent_routing",
+    "preset",
 ];
 
 #[test]
@@ -555,6 +556,7 @@ fn kind_as_str_is_stable() {
             "tui_extension",
             "context_manager",
             "agent_router",
+            "preset",
         ]
     );
 }
@@ -620,6 +622,7 @@ fn runtime_hook_display_is_stable() {
             "context_management",
             "session_persistence",
             "agent_routing",
+            "preset_application",
         ]
     );
 }

@@ -32,7 +32,8 @@
         "workflow",
         "tui_extension",
         "context_manager",
-        "agent_router"
+        "agent_router",
+        "preset"
       ]
     },
     "display_name": {
@@ -159,7 +160,8 @@
           "tui_widgets",
           "context_management",
           "session_persistence",
-          "agent_routing"
+          "agent_routing",
+          "preset"
         ]
       }
     },

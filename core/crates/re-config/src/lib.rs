@@ -307,6 +307,15 @@ pub struct ContextConfig {
     pub compact_threshold_pct: u8,
 }
 
+/// A project entry for multi-project mode.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProjectEntry {
+    /// Filesystem path to the project root.
+    pub path: String,
+    /// Optional display label for the TUI tab.
+    pub label: Option<String>,
+}
+
 impl Default for ContextConfig {
     fn default() -> Self {
         Self {
@@ -334,6 +343,8 @@ pub struct OwnedProjectConfig {
     pub run: RunConfig,
     /// Context management configuration.
     pub context: ContextConfig,
+    /// Multi-project entries (empty = single project mode).
+    pub projects: Vec<ProjectEntry>,
 }
 
 const DEFAULT_PLUGINS: &[PluginConfig] = &[PluginConfig::new(
@@ -561,6 +572,7 @@ pub fn materialize_project_config(config: &ProjectConfig) -> OwnedProjectConfig 
         budgets: config.budgets,
         run: RunConfig::default(),
         context: ContextConfig::default(),
+        projects: Vec::new(),
     }
 }
 
@@ -829,6 +841,7 @@ pub fn parse_owned_project_config_yaml(
         budgets,
         run,
         context: ContextConfig::default(),
+        projects: Vec::new(),
     })
 }
 
@@ -1107,6 +1120,7 @@ mod parse_tests {
             },
             run: RunConfig::default(),
             context: ContextConfig::default(),
+            projects: Vec::new(),
         };
 
         let yaml = render_owned_project_config_yaml(&config);

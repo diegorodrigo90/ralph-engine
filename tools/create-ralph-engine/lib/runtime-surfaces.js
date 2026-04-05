@@ -11,6 +11,7 @@ const SUPPORTED_KINDS = new Set([
   "tui_extension",
   "context_manager",
   "agent_router",
+  "preset",
 ]);
 
 const SUPPORTED_CAPABILITIES = new Set([
@@ -30,6 +31,7 @@ const SUPPORTED_CAPABILITIES = new Set([
   "context_management",
   "session_persistence",
   "agent_routing",
+  "preset",
 ]);
 
 const DEFAULT_CAPABILITIES_BY_KIND = new Map([
@@ -45,6 +47,7 @@ const DEFAULT_CAPABILITIES_BY_KIND = new Map([
   ["tui_extension", ["tui_widgets"]],
   ["context_manager", ["context_management", "session_persistence"]],
   ["agent_router", ["agent_routing"]],
+  ["preset", ["preset"]],
 ]);
 
 const CAPABILITY_IMPORT_NAMES = new Map([
@@ -64,6 +67,7 @@ const CAPABILITY_IMPORT_NAMES = new Map([
   ["context_management", "CONTEXT_MANAGEMENT"],
   ["session_persistence", "SESSION_PERSISTENCE"],
   ["agent_routing", "AGENT_ROUTING"],
+  ["preset", "PRESET"],
 ]);
 
 const CAPABILITY_RUNTIME_HOOKS = new Map([
@@ -83,6 +87,7 @@ const CAPABILITY_RUNTIME_HOOKS = new Map([
   ["context_management", "PluginRuntimeHook::ContextManagement"],
   ["session_persistence", "PluginRuntimeHook::SessionPersistence"],
   ["agent_routing", "PluginRuntimeHook::AgentRouting"],
+  ["preset", "PluginRuntimeHook::PresetApplication"],
 ]);
 
 const KIND_VARIANTS = new Map([
@@ -98,6 +103,7 @@ const KIND_VARIANTS = new Map([
   ["tui_extension", "PluginKind::TuiExtension"],
   ["context_manager", "PluginKind::ContextManager"],
   ["agent_router", "PluginKind::AgentRouter"],
+  ["preset", "PluginKind::Preset"],
 ]);
 
 function capabilityImportName(capability) {

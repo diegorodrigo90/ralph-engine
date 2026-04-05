@@ -27,8 +27,8 @@ pub use layout::{LayoutTier, LayoutZones, compute_zones, is_terminal_too_small};
 pub use logging::{LogConfig, init_logging};
 pub use process::{SessionState, StateEvent, StateListener};
 pub use terminal::{
-    CommandEntry, PluginKeyAction, RegisteredKeybinding, SidebarPanel, TuiConfig, TuiShell,
-    TuiState,
+    CommandEntry, CommandSource, PluginKeyAction, RegisteredKeybinding, SidebarPanel, TuiConfig,
+    TuiShell, TuiState,
 };
 
 /// Minimum terminal width supported (columns).
