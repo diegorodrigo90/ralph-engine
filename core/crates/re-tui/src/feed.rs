@@ -3,7 +3,7 @@
 //! Each agent action (read file, edit file, run command, think) is a
 //! [`FeedBlock`] — an atomic, collapsible unit in the scrollable feed.
 //!
-//! Blocks are created when an [`AgentEvent`] arrives and finalized when
+//! Blocks are created when an [`crate::events::AgentEvent`] arrives and finalized when
 //! the corresponding result comes back. Text between tool calls
 //! accumulates into a [`BlockKind::AgentText`] block.
 
@@ -62,8 +62,8 @@ impl BlockKind {
 
 /// A single block in the activity feed.
 ///
-/// Created on [`AgentEvent::ToolUse`], finalized on
-/// [`AgentEvent::ToolResult`]. Text deltas between tool calls
+/// Created on [`crate::events::AgentEvent::ToolUse`], finalized on
+/// [`crate::events::AgentEvent::ToolResult`]. Text deltas between tool calls
 /// accumulate into an [`BlockKind::AgentText`] block.
 #[derive(Debug, Clone)]
 pub struct FeedBlock {
@@ -340,7 +340,7 @@ impl Default for Feed {
     }
 }
 
-/// Converts an [`AgentEvent`] into feed operations.
+/// Converts an [`crate::events::AgentEvent`] into feed operations.
 ///
 /// This is the bridge between the agent-agnostic event stream and
 /// the block-based feed. Call this for each incoming event.

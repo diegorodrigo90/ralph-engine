@@ -7,8 +7,10 @@
 //! which indicators exist and update their state. Core never knows
 //! what any indicator represents — it just renders the icon and label.
 
-use ratatui::style::{Color, Style};
+use ratatui::style::Style;
 use ratatui::text::{Line, Span};
+
+use crate::theme::Theme;
 
 /// The current state of a status indicator.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -38,15 +40,15 @@ impl IndicatorState {
         }
     }
 
-    /// The color for this indicator state.
+    /// Returns the color for this state from the active theme.
     #[must_use]
-    pub fn color(self) -> Color {
+    pub fn color(self, theme: &dyn Theme) -> ratatui::style::Color {
         match self {
-            Self::Pending => Color::DarkGray,
-            Self::Running => Color::Yellow,
-            Self::Passed => Color::Green,
-            Self::Failed => Color::Red,
-            Self::Skipped => Color::DarkGray,
+            Self::Pending => theme.indicator_pending(),
+            Self::Running => theme.indicator_running(),
+            Self::Passed => theme.indicator_passed(),
+            Self::Failed => theme.indicator_failed(),
+            Self::Skipped => theme.indicator_skipped(),
         }
     }
 }
@@ -234,7 +236,7 @@ impl IndicatorPanel {
 
     /// Renders the indicator bar as a styled ratatui `Line`.
     #[must_use]
-    pub fn render_bar(&self) -> Line<'static> {
+    pub fn render_bar(&self, theme: &dyn Theme) -> Line<'static> {
         if self.indicators.is_empty() {
             return Line::raw("");
         }
@@ -245,7 +247,7 @@ impl IndicatorPanel {
             if i > 0 {
                 spans.push(Span::raw("  "));
             }
-            let style = Style::default().fg(ind.state.color());
+            let style = Style::default().fg(ind.state.color(theme));
             spans.push(Span::styled(
                 format!("{}{}", ind.state.icon(), ind.label),
                 style,
@@ -266,6 +268,7 @@ impl Default for IndicatorPanel {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::theme::CatppuccinMocha;
 
     // ── IndicatorState ──
 
@@ -279,12 +282,13 @@ mod tests {
     }
 
     #[test]
-    fn indicator_state_colors() {
-        assert_eq!(IndicatorState::Pending.color(), Color::DarkGray);
-        assert_eq!(IndicatorState::Running.color(), Color::Yellow);
-        assert_eq!(IndicatorState::Passed.color(), Color::Green);
-        assert_eq!(IndicatorState::Failed.color(), Color::Red);
-        assert_eq!(IndicatorState::Skipped.color(), Color::DarkGray);
+    fn indicator_state_colors_from_theme() {
+        let t = CatppuccinMocha;
+        assert_eq!(IndicatorState::Pending.color(&t), t.indicator_pending());
+        assert_eq!(IndicatorState::Running.color(&t), t.indicator_running());
+        assert_eq!(IndicatorState::Passed.color(&t), t.indicator_passed());
+        assert_eq!(IndicatorState::Failed.color(&t), t.indicator_failed());
+        assert_eq!(IndicatorState::Skipped.color(&t), t.indicator_skipped());
     }
 
     // ── StatusIndicator ──
@@ -441,17 +445,19 @@ mod tests {
 
     #[test]
     fn render_bar_empty() {
+        let t = CatppuccinMocha;
         let panel = IndicatorPanel::new();
-        let line = panel.render_bar();
+        let line = panel.render_bar(&t);
         assert!(line.spans.is_empty());
     }
 
     #[test]
     fn render_bar_with_indicators() {
+        let t = CatppuccinMocha;
         let mut panel = test_panel();
         panel.pass("ind-a");
         panel.start("ind-b");
-        let line = panel.render_bar();
+        let line = panel.render_bar(&t);
         let text: String = line.spans.iter().map(|s| s.content.to_string()).collect();
         assert!(text.contains("✓Indicator A"));
         assert!(text.contains("⏳Indicator B"));

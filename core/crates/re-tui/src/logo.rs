@@ -1,39 +1,36 @@
 //! Logo rendering for the TUI startup banner.
 //!
 //! Hand-crafted Unicode representation of the Ralph Engine orbit logo.
-//! Uses ratatui Spans with brand colors for consistent rendering
+//! Uses ratatui Spans with theme colors for consistent rendering
 //! across all terminals — no image protocol dependencies.
 
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 
-/// Brand purple color (`#5B6AD0` → ANSI 256 index 105).
-const BRAND: Color = Color::Indexed(105);
-
-/// Light text color for dark terminals.
-const TEXT_LIGHT: Color = Color::Indexed(252);
-
-/// Dim text color.
-const TEXT_DIM: Color = Color::Indexed(245);
+use crate::theme::Theme;
 
 /// Builds the startup logo as styled ratatui Lines.
 ///
 /// Responsive: returns a compact version if `width` < 60.
 #[must_use]
-pub fn build_logo_lines(width: u16) -> Vec<Line<'static>> {
+pub fn build_logo_lines(width: u16, theme: &dyn Theme) -> Vec<Line<'static>> {
     if width < 60 {
-        build_compact_logo()
+        build_compact_logo(theme)
     } else {
-        build_full_logo()
+        build_full_logo(theme)
     }
 }
 
 /// Full logo with orbit icon + text (for terminals >= 60 cols).
-fn build_full_logo() -> Vec<Line<'static>> {
-    let b = Style::default().fg(BRAND);
-    let bb = Style::default().fg(BRAND).add_modifier(Modifier::BOLD);
-    let w = Style::default().fg(TEXT_LIGHT).add_modifier(Modifier::BOLD);
-    let d = Style::default().fg(TEXT_DIM);
+fn build_full_logo(theme: &dyn Theme) -> Vec<Line<'static>> {
+    let b = Style::default().fg(theme.accent());
+    let bb = Style::default()
+        .fg(theme.accent())
+        .add_modifier(Modifier::BOLD);
+    let w = Style::default()
+        .fg(theme.text_bright())
+        .add_modifier(Modifier::BOLD);
+    let d = Style::default().fg(theme.text_dim());
 
     vec![
         Line::from(""),
@@ -60,9 +57,13 @@ fn build_full_logo() -> Vec<Line<'static>> {
 }
 
 /// Compact logo for narrow terminals (< 60 cols).
-fn build_compact_logo() -> Vec<Line<'static>> {
-    let bb = Style::default().fg(BRAND).add_modifier(Modifier::BOLD);
-    let w = Style::default().fg(TEXT_LIGHT).add_modifier(Modifier::BOLD);
+fn build_compact_logo(theme: &dyn Theme) -> Vec<Line<'static>> {
+    let bb = Style::default()
+        .fg(theme.accent())
+        .add_modifier(Modifier::BOLD);
+    let w = Style::default()
+        .fg(theme.text_bright())
+        .add_modifier(Modifier::BOLD);
 
     vec![
         Line::from(""),
@@ -78,22 +79,23 @@ fn build_compact_logo() -> Vec<Line<'static>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::theme::CatppuccinMocha;
 
     #[test]
     fn full_logo_has_lines() {
-        let lines = build_logo_lines(80);
+        let lines = build_logo_lines(80, &CatppuccinMocha);
         assert!(lines.len() >= 5, "full logo should have 5+ lines");
     }
 
     #[test]
     fn compact_logo_has_lines() {
-        let lines = build_logo_lines(50);
+        let lines = build_logo_lines(50, &CatppuccinMocha);
         assert!(lines.len() >= 2, "compact logo should have 2+ lines");
     }
 
     #[test]
     fn full_logo_contains_brand_name() {
-        let lines = build_logo_lines(80);
+        let lines = build_logo_lines(80, &CatppuccinMocha);
         let text: String = lines
             .iter()
             .flat_map(|l| l.spans.iter().map(|s| s.content.to_string()))
@@ -104,7 +106,7 @@ mod tests {
 
     #[test]
     fn compact_logo_contains_brand_name() {
-        let lines = build_logo_lines(50);
+        let lines = build_logo_lines(50, &CatppuccinMocha);
         let text: String = lines
             .iter()
             .flat_map(|l| l.spans.iter().map(|s| s.content.to_string()))
@@ -114,8 +116,9 @@ mod tests {
 
     #[test]
     fn logo_responsive_threshold() {
-        let full = build_logo_lines(60);
-        let compact = build_logo_lines(59);
+        let t = CatppuccinMocha;
+        let full = build_logo_lines(60, &t);
+        let compact = build_logo_lines(59, &t);
         assert!(full.len() > compact.len());
     }
 }

@@ -44,14 +44,14 @@ impl TuiState {
         }
     }
 
-    /// Returns the status color for this state.
+    /// Returns the status color for this state from the active theme.
     #[must_use]
-    pub fn color(self) -> Color {
+    pub fn color(self, theme: &dyn crate::theme::Theme) -> Color {
         match self {
-            Self::Running => Color::Green,
-            Self::Paused => Color::Yellow,
-            Self::Complete => Color::Cyan,
-            Self::Error => Color::Red,
+            Self::Running => theme.success(),
+            Self::Paused => theme.warning(),
+            Self::Complete => theme.info(),
+            Self::Error => theme.error(),
         }
     }
 
@@ -234,6 +234,8 @@ impl AutocompleteState {
 /// to start the render loop. The terminal is restored on drop.
 pub struct TuiShell {
     config: TuiConfig,
+    /// Active color theme for all rendering.
+    theme: Box<dyn crate::theme::Theme>,
     state: TuiState,
     progress: u16,
     /// Legacy flat activity lines (kept for `push_activity` compatibility).
@@ -261,10 +263,14 @@ pub struct TuiShell {
 
 impl TuiShell {
     /// Creates a new TUI shell with the given configuration.
+    ///
+    /// Uses Catppuccin Mocha as the default theme. Call
+    /// [`TuiShell::set_theme`] to switch themes.
     #[must_use]
     pub fn new(config: TuiConfig) -> Self {
         Self {
             config,
+            theme: Box::new(crate::theme::CatppuccinMocha),
             state: TuiState::Running,
             progress: 0,
             activity_lines: Vec::new(),
@@ -293,6 +299,17 @@ impl TuiShell {
     pub fn set_state(&mut self, state: TuiState) {
         tracing::debug!(old = ?self.state, new = ?state, "TUI state transition");
         self.state = state;
+    }
+
+    /// Returns a reference to the active theme.
+    #[must_use]
+    pub fn theme(&self) -> &dyn crate::theme::Theme {
+        self.theme.as_ref()
+    }
+
+    /// Switches the active theme by config ID (e.g. `"dracula"`).
+    pub fn set_theme(&mut self, id: &str) {
+        self.theme = crate::theme::resolve_theme(id);
     }
 
     /// Sets the progress percentage (0-100).
@@ -732,7 +749,7 @@ impl TuiShell {
                 crate::MIN_TERMINAL_HEIGHT,
             );
             frame.render_widget(
-                Paragraph::new(msg).style(Style::default().fg(Color::Red)),
+                Paragraph::new(msg).style(Style::default().fg(self.theme().error())),
                 area,
             );
             return;
@@ -766,16 +783,17 @@ impl TuiShell {
     /// Renders the header bar with title, agent, state, and progress.
     fn render_header(&self, frame: &mut Frame<'_>, area: Rect) {
         let state_label = self.state.label();
-        let state_color = self.state.color();
+        let state_color = self.state.color(self.theme());
 
+        let theme = self.theme();
         let header = Line::from(vec![
             Span::styled(
                 " ◎ Ralph Engine ",
                 Style::default()
-                    .fg(Color::Indexed(105))
+                    .fg(theme.accent())
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::styled("• ", Style::default().fg(Color::DarkGray)),
+            Span::styled("• ", Style::default().fg(theme.text_dim())),
             Span::raw(format!("Agent: {} ", self.config.agent_id)),
             Span::styled(
                 format!("[{state_label}]"),
@@ -812,7 +830,8 @@ impl TuiShell {
 
         let visible_lines = area.height as usize;
 
-        let logo_lines = crate::logo::build_logo_lines(area.width);
+        let theme = self.theme();
+        let logo_lines = crate::logo::build_logo_lines(area.width, theme);
         let logo_count = logo_lines.len();
 
         let activity: Vec<Line<'_>> = self
@@ -820,13 +839,13 @@ impl TuiShell {
             .iter()
             .map(|s| {
                 if s.starts_with(">> Tool") {
-                    Line::styled(s.as_str(), Style::default().fg(Color::Blue))
+                    Line::styled(s.as_str(), Style::default().fg(theme.info()))
                 } else if s.starts_with(">> State:") || s.starts_with(">> Agent") {
-                    Line::styled(s.as_str(), Style::default().fg(Color::Yellow))
+                    Line::styled(s.as_str(), Style::default().fg(theme.warning()))
                 } else if s.starts_with(">> Quit") {
-                    Line::styled(s.as_str(), Style::default().fg(Color::Red))
+                    Line::styled(s.as_str(), Style::default().fg(theme.error()))
                 } else if s.starts_with(">> Keys:") {
-                    Line::styled(s.as_str(), Style::default().fg(Color::DarkGray))
+                    Line::styled(s.as_str(), Style::default().fg(theme.text_dim()))
                 } else {
                     Line::raw(s.as_str())
                 }
@@ -863,6 +882,7 @@ impl TuiShell {
     fn render_feed_blocks(&self, frame: &mut Frame<'_>, area: Rect) {
         use crate::feed::BlockKind;
 
+        let theme = self.theme();
         let visible_height = area.height as usize;
         let mut all_lines: Vec<Line<'_>> = Vec::new();
 
@@ -870,16 +890,16 @@ impl TuiShell {
             // Title line: icon + title + elapsed
             let icon = block.kind.icon();
             let icon_style = match block.kind {
-                BlockKind::FileRead => Style::default().fg(Color::DarkGray),
-                BlockKind::FileEdit => Style::default().fg(Color::Blue),
-                BlockKind::Command => Style::default().fg(Color::White),
+                BlockKind::FileRead => Style::default().fg(theme.block_file_read()),
+                BlockKind::FileEdit => Style::default().fg(theme.block_file_edit()),
+                BlockKind::Command => Style::default().fg(theme.block_command()),
                 BlockKind::Thinking => Style::default()
-                    .fg(Color::DarkGray)
+                    .fg(theme.block_thinking())
                     .add_modifier(Modifier::ITALIC),
-                BlockKind::AgentText => Style::default(),
-                BlockKind::GatePass => Style::default().fg(Color::Green),
-                BlockKind::GateFail => Style::default().fg(Color::Red),
-                BlockKind::System => Style::default().fg(Color::DarkGray),
+                BlockKind::AgentText => Style::default().fg(theme.text()),
+                BlockKind::GatePass => Style::default().fg(theme.block_pass()),
+                BlockKind::GateFail => Style::default().fg(theme.block_fail()),
+                BlockKind::System => Style::default().fg(theme.block_system()),
             };
 
             let title_style = match block.kind {
@@ -887,8 +907,8 @@ impl TuiShell {
                     Style::default().add_modifier(Modifier::BOLD)
                 }
                 BlockKind::Command => Style::default().add_modifier(Modifier::BOLD),
-                BlockKind::GateFail => Style::default().fg(Color::Red),
-                BlockKind::System => Style::default().fg(Color::DarkGray),
+                BlockKind::GateFail => Style::default().fg(theme.error()),
+                BlockKind::System => Style::default().fg(theme.text_dim()),
                 _ => Style::default(),
             };
 
@@ -908,7 +928,7 @@ impl TuiShell {
             if block.collapsed && !block.content.is_empty() {
                 spans.push(Span::styled(
                     format!(" ({} lines)", block.content.len()),
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(theme.text_dim()),
                 ));
             }
 
@@ -916,18 +936,18 @@ impl TuiShell {
             if let Some(elapsed) = block.elapsed_label() {
                 spans.push(Span::styled(
                     format!("  [{elapsed}]"),
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(theme.text_dim()),
                 ));
             }
 
             // Active indicator (spinner)
             if block.active {
-                spans.push(Span::styled(" ...", Style::default().fg(Color::Yellow)));
+                spans.push(Span::styled(" ...", Style::default().fg(theme.warning())));
             }
 
             // Success/failure indicator on finalized blocks
             if let Some(false) = block.success {
-                spans.push(Span::styled(" [FAIL]", Style::default().fg(Color::Red)));
+                spans.push(Span::styled(" [FAIL]", Style::default().fg(theme.error())));
             }
 
             all_lines.push(Line::from(spans));
@@ -935,7 +955,7 @@ impl TuiShell {
             // Content lines (only if expanded)
             if !block.collapsed {
                 for content_line in &block.content {
-                    let styled = style_content_line(content_line, block.kind);
+                    let styled = style_content_line(content_line, block.kind, theme);
                     all_lines.push(styled);
                 }
             }
@@ -958,15 +978,16 @@ impl TuiShell {
 
     /// Renders the metrics bar.
     fn render_metrics(&self, frame: &mut Frame<'_>, area: Rect) {
-        // When gates are active, show the gate bar. Otherwise show tool metrics.
+        let theme = self.theme();
+        // When indicators are active, show the indicator bar. Otherwise show tool metrics.
         if !self.indicator_panel.is_empty() {
-            let indicator_bar = self.indicator_panel.render_bar();
+            let indicator_bar = self.indicator_panel.render_bar(theme);
             frame.render_widget(Paragraph::new(indicator_bar), area);
         } else {
             let metrics = Line::from(vec![
                 Span::styled(
                     format!(" Tools: {} ", self.tool_count),
-                    Style::default().fg(Color::Cyan),
+                    Style::default().fg(theme.info()),
                 ),
                 Span::raw("│ "),
                 Span::raw(format!("Lines: {} ", self.activity_lines.len())),
@@ -989,7 +1010,8 @@ impl TuiShell {
     /// Ctrl+J inserts newline. Enter sends. Esc cancels.
     /// Native terminal cursor blinks at insertion point.
     fn render_input_bar(&self, frame: &mut Frame<'_>, area: Rect) {
-        let prompt_color = Color::Indexed(105); // brand purple
+        let theme = self.theme();
+        let prompt_color = theme.accent();
         let sep = "─".repeat(area.width as usize);
         let prompt = " > ";
         let prompt_width = prompt.len() as u16;
@@ -998,7 +1020,7 @@ impl TuiShell {
         let rows = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).split(area);
 
         frame.render_widget(
-            Paragraph::new(Line::styled(sep, Style::default().fg(Color::Indexed(59)))),
+            Paragraph::new(Line::styled(sep, Style::default().fg(theme.border()))),
             rows[0],
         );
 
@@ -1046,7 +1068,7 @@ impl TuiShell {
                                 .fg(prompt_color)
                                 .add_modifier(Modifier::BOLD),
                         ),
-                        Span::styled(chunk.to_owned(), Style::default().fg(Color::White)),
+                        Span::styled(chunk.to_owned(), Style::default().fg(theme.text())),
                     ]));
                     pos = end;
                 }
@@ -1091,6 +1113,7 @@ impl TuiShell {
             height: popup_height,
         };
 
+        let theme = self.theme();
         let items: Vec<ListItem<'_>> = self
             .autocomplete
             .filtered
@@ -1101,13 +1124,13 @@ impl TuiShell {
                     Span::styled(
                         format!("{}{}", self.autocomplete.prefix, cmd.name),
                         Style::default()
-                            .fg(Color::Cyan)
+                            .fg(theme.info())
                             .add_modifier(Modifier::BOLD),
                     ),
                     Span::raw("  "),
-                    Span::styled(&cmd.description, Style::default().fg(Color::DarkGray)),
+                    Span::styled(&cmd.description, Style::default().fg(theme.text_dim())),
                     Span::raw("  "),
-                    Span::styled(cmd.source.label(), Style::default().fg(Color::Indexed(59))),
+                    Span::styled(cmd.source.label(), Style::default().fg(theme.accent_dim())),
                 ]))
             })
             .collect();
@@ -1116,13 +1139,13 @@ impl TuiShell {
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(Color::Indexed(59)))
+                    .border_style(Style::default().fg(theme.border()))
                     .title(" Commands ")
-                    .title_style(Style::default().fg(Color::Indexed(105))),
+                    .title_style(Style::default().fg(theme.accent())),
             )
             .highlight_style(
                 Style::default()
-                    .bg(Color::Indexed(236))
+                    .bg(theme.surface())
                     .add_modifier(Modifier::BOLD),
             )
             .highlight_symbol("> ");
@@ -1137,22 +1160,23 @@ impl TuiShell {
 
     /// Renders the help bar at the bottom.
     fn render_help(&self, frame: &mut Frame<'_>, zones: &layout::LayoutZones) {
+        let theme = self.theme();
         if self.quit_pending {
             let warn = Style::default()
-                .fg(Color::Yellow)
+                .fg(theme.warning())
                 .add_modifier(Modifier::BOLD);
             let spans = vec![
                 Span::styled(" Quit? ", warn),
                 Span::styled(
                     "[y] yes  [any key] cancel",
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(theme.text_dim()),
                 ),
             ];
             frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
             return;
         }
 
-        let dim = Style::default().fg(Color::DarkGray);
+        let dim = Style::default().fg(theme.text_dim());
 
         // When typing, show input-specific help
         if self.input_enabled && !self.text_input_buffer.is_empty() {
@@ -1196,7 +1220,7 @@ impl TuiShell {
         };
         spans.push(Span::styled(
             format!(" │ {tier_label}"),
-            Style::default().fg(Color::Indexed(59)),
+            Style::default().fg(theme.accent_dim()),
         ));
 
         frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
@@ -1204,11 +1228,12 @@ impl TuiShell {
 
     /// Renders the sidebar zone with auto-discovered plugin panels.
     fn render_sidebar(&self, frame: &mut Frame<'_>, area: Rect) {
+        let theme = self.theme();
         let block = Block::default()
             .borders(Borders::LEFT)
-            .border_style(Style::default().fg(Color::DarkGray))
+            .border_style(Style::default().fg(theme.border()))
             .title(" Plugins ")
-            .title_style(Style::default().fg(Color::Cyan));
+            .title_style(Style::default().fg(theme.info()));
 
         let inner = block.inner(area);
         frame.render_widget(block, area);
@@ -1216,7 +1241,7 @@ impl TuiShell {
         if self.sidebar_panels.is_empty() {
             let lines = vec![Line::styled(
                 " (no panels)",
-                Style::default().fg(Color::DarkGray),
+                Style::default().fg(theme.text_dim()),
             )];
             frame.render_widget(Paragraph::new(lines), inner);
             return;
@@ -1238,9 +1263,9 @@ impl TuiShell {
         for (i, panel) in self.sidebar_panels.iter().enumerate() {
             let panel_block = Block::default()
                 .borders(Borders::TOP)
-                .border_style(Style::default().fg(Color::DarkGray))
+                .border_style(Style::default().fg(theme.border()))
                 .title(format!(" {} ", panel.title))
-                .title_style(Style::default().fg(Color::White));
+                .title_style(Style::default().fg(theme.text_bright()));
 
             let panel_inner = panel_block.inner(panel_areas[i]);
             frame.render_widget(panel_block, panel_areas[i]);
@@ -1259,16 +1284,17 @@ impl TuiShell {
     /// Shows current state and work item. Plugin-specific controls
     /// appear via sidebar panels, not here.
     fn render_control_panel(&self, frame: &mut Frame<'_>, area: Rect) {
+        let theme = self.theme();
         let block = Block::default()
             .borders(Borders::RIGHT)
-            .border_style(Style::default().fg(Color::DarkGray))
+            .border_style(Style::default().fg(theme.border()))
             .title(" Control ")
-            .title_style(Style::default().fg(Color::Cyan));
+            .title_style(Style::default().fg(theme.info()));
 
         let inner = block.inner(area);
         frame.render_widget(block, area);
 
-        let state_color = self.state.color();
+        let state_color = self.state.color(theme);
 
         let lines = vec![
             Line::styled(
@@ -1278,10 +1304,10 @@ impl TuiShell {
             Line::raw(""),
             Line::styled(
                 format!(" Work: {}", self.config.title),
-                Style::default().fg(Color::White),
+                Style::default().fg(theme.text_bright()),
             ),
             Line::raw(""),
-            Line::styled(" [q] Quit", Style::default().fg(Color::DarkGray)),
+            Line::styled(" [q] Quit", Style::default().fg(theme.text_dim())),
         ];
         frame.render_widget(Paragraph::new(lines), inner);
     }
@@ -1291,31 +1317,38 @@ impl TuiShell {
 ///
 /// Diff lines (starting with `+` or `-`) get special treatment.
 /// Command output stays plain. Thinking text is dim italic.
-fn style_content_line<'a>(line: &'a str, kind: crate::feed::BlockKind) -> Line<'a> {
+fn style_content_line<'a>(
+    line: &'a str,
+    kind: crate::feed::BlockKind,
+    theme: &dyn crate::theme::Theme,
+) -> Line<'a> {
     use crate::feed::BlockKind;
 
     match kind {
         BlockKind::FileEdit => {
             if line.starts_with('+') {
-                Line::styled(format!("  {line}"), Style::default().fg(Color::Blue))
+                Line::styled(format!("  {line}"), Style::default().fg(theme.diff_added()))
             } else if line.starts_with('-') {
                 Line::styled(
                     format!("  {line}"),
                     Style::default()
-                        .fg(Color::Red)
+                        .fg(theme.diff_removed())
                         .add_modifier(Modifier::CROSSED_OUT),
                 )
             } else {
-                Line::styled(format!("  {line}"), Style::default().fg(Color::DarkGray))
+                Line::styled(
+                    format!("  {line}"),
+                    Style::default().fg(theme.diff_context()),
+                )
             }
         }
         BlockKind::Command => {
-            Line::styled(format!("  {line}"), Style::default().fg(Color::DarkGray))
+            Line::styled(format!("  {line}"), Style::default().fg(theme.text_dim()))
         }
         BlockKind::Thinking => Line::styled(
             format!("  {line}"),
             Style::default()
-                .fg(Color::DarkGray)
+                .fg(theme.text_dim())
                 .add_modifier(Modifier::ITALIC),
         ),
         _ => Line::raw(format!("  {line}")),
@@ -1369,11 +1402,13 @@ mod tests {
     }
 
     #[test]
-    fn tui_state_colors_are_distinct() {
-        assert_eq!(TuiState::Running.color(), Color::Green);
-        assert_eq!(TuiState::Paused.color(), Color::Yellow);
-        assert_eq!(TuiState::Error.color(), Color::Red);
-        assert_eq!(TuiState::Complete.color(), Color::Cyan);
+    fn tui_state_colors_from_theme() {
+        use crate::theme::Theme;
+        let t = crate::theme::CatppuccinMocha;
+        assert_eq!(TuiState::Running.color(&t), t.success());
+        assert_eq!(TuiState::Paused.color(&t), t.warning());
+        assert_eq!(TuiState::Error.color(&t), t.error());
+        assert_eq!(TuiState::Complete.color(&t), t.info());
     }
 
     #[test]
@@ -1397,6 +1432,24 @@ mod tests {
         assert!(shell.activity_lines.is_empty());
         assert_eq!(shell.tool_count, 0);
         assert!(!shell.is_input_enabled());
+        assert_eq!(shell.theme().id(), "catppuccin");
+    }
+
+    #[test]
+    fn set_theme_switches_active_theme() {
+        let mut shell = empty_shell();
+        assert_eq!(shell.theme().id(), "catppuccin");
+        shell.set_theme("dracula");
+        assert_eq!(shell.theme().id(), "dracula");
+        shell.set_theme("nord");
+        assert_eq!(shell.theme().id(), "nord");
+    }
+
+    #[test]
+    fn set_theme_unknown_falls_back_to_default() {
+        let mut shell = empty_shell();
+        shell.set_theme("nonexistent");
+        assert_eq!(shell.theme().id(), "catppuccin");
     }
 
     #[test]
