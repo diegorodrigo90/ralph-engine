@@ -44,9 +44,13 @@ fn copy_via_osc52(text: &str) -> bool {
     let encoded = base64::engine::general_purpose::STANDARD.encode(text.as_bytes());
     let sequence = format!("\x1b]52;c;{encoded}\x07");
 
-    // Write directly to stdout (terminal receives the escape sequence)
-    use std::io::Write;
-    std::io::stdout().write_all(sequence.as_bytes()).is_ok() && std::io::stdout().flush().is_ok()
+    // Use crossterm's Print command to write through ratatui's stdout handle,
+    // avoiding interleaving with the buffered alternate-screen output.
+    ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::style::Print(sequence)
+    )
+    .is_ok()
 }
 
 /// Extracts clean copyable text from a feed block.

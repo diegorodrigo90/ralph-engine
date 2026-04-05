@@ -157,6 +157,8 @@ pub struct TuiLabels {
     pub you_label: String,
     /// Message when no agent is connected.
     pub no_agent_message: String,
+    /// Header: extra usage warning label (e.g. "extra", "uso extra").
+    pub extra_usage_label: String,
 }
 
 impl Default for TuiLabels {
@@ -208,6 +210,7 @@ impl Default for TuiLabels {
             ],
             you_label: "You".to_owned(),
             no_agent_message: "No agent connected. Use /run to start orchestration.".to_owned(),
+            extra_usage_label: "extra usage".to_owned(),
         }
     }
 }
@@ -454,7 +457,7 @@ pub struct TuiShell {
     /// Active toast notifications (auto-dismiss on tick).
     toasts: Vec<Toast>,
     /// Queued blocks to drip-feed into the activity feed (demo/replay).
-    pending_blocks: Vec<crate::feed::FeedBlock>,
+    pending_blocks: std::collections::VecDeque<crate::feed::FeedBlock>,
     /// Total blocks enqueued (for progress calculation).
     pending_total: usize,
     /// Tick counter for drip timing.
@@ -500,7 +503,7 @@ impl TuiShell {
             pending_text_input: None,
             autocomplete: AutocompleteState::new(Vec::new(), "/".to_owned()),
             toasts: Vec::new(),
-            pending_blocks: Vec::new(),
+            pending_blocks: std::collections::VecDeque::new(),
             pending_total: 0,
             drip_counter: 0,
         }
@@ -668,7 +671,7 @@ impl TuiShell {
     /// of a real implementation happening. Auto-scrolls to follow.
     pub fn enqueue_blocks(&mut self, blocks: Vec<crate::feed::FeedBlock>) {
         self.pending_total = blocks.len();
-        self.pending_blocks = blocks;
+        self.pending_blocks = blocks.into();
         self.drip_counter = 0;
         self.follow_mode = true;
     }
@@ -721,8 +724,10 @@ impl TuiShell {
                 last.finalize(last.success.unwrap_or(true));
             }
 
-            // Pop next block from queue
-            let mut block = self.pending_blocks.remove(0);
+            // Pop next block from queue (O(1) with VecDeque)
+            let Some(mut block) = self.pending_blocks.pop_front() else {
+                return false;
+            };
 
             // Mark as active if more blocks coming (shows spinner)
             if !self.pending_blocks.is_empty() {
@@ -754,15 +759,9 @@ impl TuiShell {
             };
             self.token_count += tokens_delta;
 
-            // Simulate cost tracking (agent plugin responsibility in real use)
-            // Pricing: ~$3/M input + ~$15/M output ≈ ~$0.009 per 1k tokens avg
-            let cost_cents = (self.token_count as f64 * 0.9) / 1000.0;
-            self.cost_label = Some(format!("${:.2}", cost_cents / 100.0));
-
-            // Simulate extra usage trigger at ~8k tokens
-            if self.token_count > 8000 && !self.extra_usage {
-                self.extra_usage = true;
-            }
+            // Note: in real use, cost_label and extra_usage are set by the
+            // agent plugin via set_cost_label() / set_extra_usage().
+            // Core never calculates pricing (Model B).
 
             // Update progress
             let completed = self.pending_total - self.pending_blocks.len();
@@ -1479,10 +1478,10 @@ impl TuiShell {
             ));
         }
 
-        // Extra usage warning
+        // Extra usage warning (label from i18n)
         if self.extra_usage {
             spans.push(Span::styled(
-                " ⚠ extra",
+                format!(" ⚠ {}", self.labels.extra_usage_label),
                 Style::default()
                     .fg(theme.warning())
                     .add_modifier(Modifier::BOLD),
@@ -1734,6 +1733,10 @@ impl TuiShell {
                 Style::default().fg(block_color),
             ));
         }
+
+        // Add padding at bottom so last block isn't cut by input bar
+        all_lines.push(Line::raw(""));
+        all_lines.push(Line::raw(""));
 
         let content_height = all_lines.len() as u16;
         let content_width = area.width.saturating_sub(1); // reserve 1 col for scrollbar

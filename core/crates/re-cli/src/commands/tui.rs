@@ -443,6 +443,11 @@ fn build_labels(locale: &str) -> re_tui::TuiLabels {
         } else {
             "No agent connected. Use /run to start orchestration.".to_owned()
         },
+        extra_usage_label: if locale == "pt-br" {
+            "uso extra".to_owned()
+        } else {
+            "extra usage".to_owned()
+        },
     }
 }
 
@@ -816,6 +821,8 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     blocks.push(active);
 
     // Enqueue all blocks — they'll appear one by one with cadence
+    // Demo cost/usage simulation (in real use, agent plugin sets these)
+    shell.set_cost_label("$0.00".to_owned());
     shell.enqueue_blocks(blocks);
     shell.toast_info(i18n::demo_toast(locale).to_owned());
 }
