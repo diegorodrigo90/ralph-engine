@@ -33,8 +33,9 @@ pub use layout::{LayoutTier, LayoutZones, compute_zones, is_terminal_too_small};
 pub use logging::{LogConfig, init_logging};
 pub use process::{SessionState, StateEvent, StateListener};
 pub use terminal::{
-    CommandEntry, CommandSource, PanelItem, PluginKeyAction, RegisteredKeybinding, SidebarPanel,
-    Toast, ToastLevel, TuiConfig, TuiLabels, TuiShell, TuiState,
+    CommandEntry, CommandSource, PanelHint, PanelItem, PanelSeverity, PluginKeyAction,
+    RegisteredKeybinding, SidebarPanel, Toast, ToastLevel, TuiConfig, TuiLabels, TuiShell,
+    TuiState,
 };
 pub use theme::{
     BLOCK_PADDING, INDENT_WIDTH, MAX_COLLAPSED_LINES, Theme, available_theme_ids, builtin_themes,

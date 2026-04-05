@@ -842,33 +842,29 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
 /// Converts a plugin `TuiBlock` to the TUI's `PanelItem`.
 ///
 /// The CLI layer bridges the gap: plugins use `re_plugin::TuiBlock`
-/// to describe content, core uses `re_tui::PanelItem` to render it.
+/// Converts plugin `TuiBlock` to TUI `PanelItem` (struct-to-struct).
 pub(crate) fn convert_tui_block(block: re_plugin::TuiBlock) -> re_tui::PanelItem {
-    match block {
-        re_plugin::TuiBlock::Status {
-            label,
-            value,
-            status,
-        } => re_tui::PanelItem::Status {
-            label,
-            value,
-            ok: matches!(status, re_plugin::TuiStatus::Ok),
+    re_tui::PanelItem {
+        label: block.label,
+        value: block.value,
+        hint: match block.hint {
+            re_plugin::RenderHint::Inline => re_tui::PanelHint::Inline,
+            re_plugin::RenderHint::Bar => re_tui::PanelHint::Bar,
+            re_plugin::RenderHint::Indicator => re_tui::PanelHint::Indicator,
+            re_plugin::RenderHint::Pairs => re_tui::PanelHint::Pairs,
+            re_plugin::RenderHint::List => re_tui::PanelHint::List,
+            re_plugin::RenderHint::Text => re_tui::PanelHint::Text,
+            re_plugin::RenderHint::Separator => re_tui::PanelHint::Separator,
         },
-        re_plugin::TuiBlock::Metric {
-            label,
-            value,
-            total,
-        } => re_tui::PanelItem::Metric {
-            label,
-            value,
-            total,
+        severity: match block.severity {
+            re_plugin::Severity::Success => re_tui::PanelSeverity::Success,
+            re_plugin::Severity::Warning => re_tui::PanelSeverity::Warning,
+            re_plugin::Severity::Error => re_tui::PanelSeverity::Error,
+            re_plugin::Severity::Neutral => re_tui::PanelSeverity::Neutral,
         },
-        re_plugin::TuiBlock::Progress { label, percent } => {
-            re_tui::PanelItem::Progress { label, percent }
-        }
-        re_plugin::TuiBlock::KeyValue(pairs) => re_tui::PanelItem::KeyValue(pairs),
-        re_plugin::TuiBlock::List(items) => re_tui::PanelItem::List(items),
-        re_plugin::TuiBlock::Text(text) => re_tui::PanelItem::Text(text),
-        re_plugin::TuiBlock::Separator => re_tui::PanelItem::Separator,
+        numeric: block.numeric,
+        total: block.total,
+        pairs: block.pairs,
+        items: block.items,
     }
 }

@@ -605,25 +605,10 @@ impl PluginRuntime for BmadRuntime {
             title: "Sprint".to_owned(),
             lines: Vec::new(),
             blocks: vec![
-                re_plugin::TuiBlock::Metric {
-                    label: "Done".to_owned(),
-                    value: done,
-                    total: Some(total),
-                },
-                re_plugin::TuiBlock::Metric {
-                    label: "Doing".to_owned(),
-                    value: doing,
-                    total: None,
-                },
-                re_plugin::TuiBlock::Metric {
-                    label: "Todo".to_owned(),
-                    value: todo,
-                    total: None,
-                },
-                re_plugin::TuiBlock::Progress {
-                    label: "Progress".to_owned(),
-                    percent: pct,
-                },
+                re_plugin::TuiBlock::metric("Done", done as u32, Some(total as u32)),
+                re_plugin::TuiBlock::metric("Doing", doing as u32, None),
+                re_plugin::TuiBlock::metric("Todo", todo as u32, None),
+                re_plugin::TuiBlock::bar("Progress", pct as u32),
             ],
             zone_hint: "sidebar".to_owned(),
         }]

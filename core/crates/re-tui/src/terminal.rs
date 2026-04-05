@@ -230,44 +230,63 @@ pub struct SidebarPanel {
 
 /// A typed content item for sidebar panels.
 ///
-/// The design system: plugins describe **what** to show, core renders
-/// **how** it looks using the active theme. This ensures visual
-/// consistency across all plugins.
-#[derive(Debug, Clone)]
-pub enum PanelItem {
-    /// Status indicator with severity color.
-    Status {
-        /// Label text.
-        label: String,
-        /// Value text.
-        value: String,
-        /// Whether this is a positive status (green vs red).
-        ok: bool,
-    },
-    /// Numeric metric with optional total.
-    Metric {
-        /// Metric label.
-        label: String,
-        /// Current value.
-        value: usize,
-        /// Optional total for ratio display.
-        total: Option<usize>,
-    },
-    /// Progress bar.
-    Progress {
-        /// Bar label.
-        label: String,
-        /// Completion percentage (0–100).
-        percent: u8,
-    },
-    /// Key-value pairs.
-    KeyValue(Vec<(String, String)>),
-    /// Bullet list.
-    List(Vec<String>),
+/// A renderable UI block — the core's view of a `TuiBlock`.
+///
+/// Mirrors the structural contract from `re_plugin::TuiBlock` but is
+/// owned by re-tui. The CLI layer converts plugin blocks to this type.
+/// The renderer uses `hint` + `severity` to decide visual treatment.
+#[derive(Debug, Clone, Default)]
+pub struct PanelItem {
+    /// Primary text.
+    pub label: Option<String>,
+    /// Secondary text / value.
+    pub value: Option<String>,
+    /// Layout hint.
+    pub hint: PanelHint,
+    /// Semantic severity (maps to theme color slot).
+    pub severity: PanelSeverity,
+    /// Numeric value (for bars, metrics).
+    pub numeric: Option<u32>,
+    /// Denominator (for ratio display).
+    pub total: Option<u32>,
+    /// Key-value pairs (for `Pairs` hint).
+    pub pairs: Vec<(String, String)>,
+    /// Child items (for `List` hint).
+    pub items: Vec<String>,
+}
+
+/// Layout hint for panel item rendering.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum PanelHint {
+    /// `label: value` inline.
+    #[default]
+    Inline,
+    /// Progress bar using `numeric`.
+    Bar,
+    /// Icon + label + value (icon from severity).
+    Indicator,
+    /// Key-value table.
+    Pairs,
+    /// Bulleted list.
+    List,
     /// Plain text.
-    Text(String),
-    /// Visual separator.
+    Text,
+    /// Separator line.
     Separator,
+}
+
+/// Severity level for panel items.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum PanelSeverity {
+    /// Theme success color.
+    Success,
+    /// Theme warning color.
+    Warning,
+    /// Theme error color.
+    Error,
+    /// Theme default text color.
+    #[default]
+    Neutral,
 }
 
 /// A keybinding registered by a plugin for the TUI.
@@ -2672,51 +2691,72 @@ fn render_panel_item<'a>(
     theme: &dyn crate::theme::Theme,
     lines: &mut Vec<Line<'a>>,
 ) {
-    match item {
-        PanelItem::Status { label, value, ok } => {
-            let (icon, color) = if *ok {
-                ("✓", theme.success())
-            } else {
-                ("✗", theme.error())
+    // Resolve severity to theme color
+    let sev_color = match item.severity {
+        PanelSeverity::Success => theme.success(),
+        PanelSeverity::Warning => theme.warning(),
+        PanelSeverity::Error => theme.error(),
+        PanelSeverity::Neutral => accent,
+    };
+
+    match item.hint {
+        PanelHint::Indicator => {
+            let icon = match item.severity {
+                PanelSeverity::Success => "✓",
+                PanelSeverity::Warning => "●",
+                PanelSeverity::Error => "✗",
+                PanelSeverity::Neutral => "○",
             };
+            let label = item.label.as_deref().unwrap_or("");
+            let value = item.value.as_deref().unwrap_or("");
             lines.push(Line::from(vec![
-                Span::styled(format!("  {icon} "), Style::default().fg(color)),
+                Span::styled(format!("  {icon} "), Style::default().fg(sev_color)),
                 Span::styled(format!("{label}: "), Style::default().fg(theme.text_dim())),
                 Span::styled(
-                    value.as_str(),
-                    Style::default().fg(color).add_modifier(Modifier::BOLD),
+                    value,
+                    Style::default().fg(sev_color).add_modifier(Modifier::BOLD),
                 ),
             ]));
         }
-        PanelItem::Metric {
-            label,
-            value,
-            total,
-        } => {
-            let mut spans = vec![
-                Span::styled(
-                    format!("  {label}: "),
-                    Style::default().fg(theme.text_dim()),
-                ),
-                Span::styled(
-                    format!("{value}"),
-                    Style::default().fg(accent).add_modifier(Modifier::BOLD),
-                ),
-            ];
-            if let Some(t) = total {
-                spans.push(Span::styled(
-                    format!(" / {t}"),
-                    Style::default().fg(theme.text_dim()),
-                ));
+        PanelHint::Inline => {
+            let label = item.label.as_deref().unwrap_or("");
+            // If numeric, show as metric
+            if let Some(num) = item.numeric {
+                let mut spans = vec![
+                    Span::styled(
+                        format!("  {label}: "),
+                        Style::default().fg(theme.text_dim()),
+                    ),
+                    Span::styled(
+                        format!("{num}"),
+                        Style::default().fg(accent).add_modifier(Modifier::BOLD),
+                    ),
+                ];
+                if let Some(t) = item.total {
+                    spans.push(Span::styled(
+                        format!(" / {t}"),
+                        Style::default().fg(theme.text_dim()),
+                    ));
+                }
+                lines.push(Line::from(spans));
+            } else {
+                let value = item.value.as_deref().unwrap_or("");
+                lines.push(Line::from(vec![
+                    Span::styled(
+                        format!("  {label}: "),
+                        Style::default().fg(theme.text_dim()),
+                    ),
+                    Span::styled(value, Style::default().fg(theme.text_bright())),
+                ]));
             }
-            lines.push(Line::from(spans));
         }
-        PanelItem::Progress { label, percent } => {
-            let pct = (*percent).min(100) as usize;
+        PanelHint::Bar => {
+            let pct = item.numeric.unwrap_or(0).min(100) as usize;
             let bar_width = 10;
             let filled = bar_width * pct / 100;
             let empty = bar_width - filled;
             let bar = format!("{}{}", "█".repeat(filled), "░".repeat(empty));
+            let label = item.label.as_deref().unwrap_or("");
             lines.push(Line::from(vec![
                 Span::styled(format!("  {label} "), Style::default().fg(theme.text_dim())),
                 Span::styled(bar, Style::default().fg(accent)),
@@ -2726,29 +2766,30 @@ fn render_panel_item<'a>(
                 ),
             ]));
         }
-        PanelItem::KeyValue(pairs) => {
-            for (key, val) in pairs {
+        PanelHint::Pairs => {
+            for (key, val) in &item.pairs {
                 lines.push(Line::from(vec![
                     Span::styled(format!("  {key}: "), Style::default().fg(theme.text_dim())),
                     Span::styled(val.as_str(), Style::default().fg(theme.text_bright())),
                 ]));
             }
         }
-        PanelItem::List(items) => {
-            for item_text in items {
+        PanelHint::List => {
+            for item_text in &item.items {
                 lines.push(Line::from(vec![
                     Span::styled("  ● ", Style::default().fg(accent)),
                     Span::styled(item_text.as_str(), Style::default().fg(theme.text())),
                 ]));
             }
         }
-        PanelItem::Text(text) => {
+        PanelHint::Text => {
+            let text = item.label.as_deref().unwrap_or("");
             lines.push(Line::styled(
                 format!("  {text}"),
                 Style::default().fg(theme.text_dim()),
             ));
         }
-        PanelItem::Separator => {
+        PanelHint::Separator => {
             lines.push(Line::styled(
                 "  ─────────",
                 Style::default().fg(theme.border()),

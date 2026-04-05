@@ -119,12 +119,8 @@ impl PluginRuntime for GuidedRuntime {
             id: "guided-controls".to_owned(),
             title: "Guided Mode".to_owned(),
             blocks: vec![
-                re_plugin::TuiBlock::Status {
-                    label: "Status".to_owned(),
-                    value: "Active".to_owned(),
-                    status: re_plugin::TuiStatus::Ok,
-                },
-                re_plugin::TuiBlock::KeyValue(vec![
+                re_plugin::TuiBlock::indicator("Status", "Active", re_plugin::Severity::Success),
+                re_plugin::TuiBlock::pairs(vec![
                     ("Input".to_owned(), "enabled".to_owned()),
                     ("Feedback".to_owned(), "type to send".to_owned()),
                 ]),

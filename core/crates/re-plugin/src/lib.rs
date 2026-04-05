@@ -1963,62 +1963,165 @@ pub struct TuiPanel {
     pub zone_hint: String,
 }
 
-/// A typed UI block for plugin TUI panels.
+/// A UI block for plugin TUI panels.
 ///
-/// Plugins compose these blocks to describe content. Core renders them
-/// with the active theme — consistent colors, spacing, and indicators.
-/// This is the design system: plugins define **what** to show, core
-/// decides **how** it looks.
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum TuiBlock {
-    /// Status indicator: label + value + severity.
-    Status {
-        /// Label text (e.g. `"Binary"`).
-        label: String,
-        /// Value text (e.g. `"Available"`).
-        value: String,
-        /// Severity controlling the indicator icon and color.
-        status: TuiStatus,
-    },
-    /// Numeric metric with optional total for context.
-    Metric {
-        /// Metric label (e.g. `"Done"`).
-        label: String,
-        /// Current value.
-        value: usize,
-        /// Optional total for ratio display (e.g. `115 / 850`).
-        total: Option<usize>,
-    },
-    /// Progress bar with label and percentage.
-    Progress {
-        /// Bar label (e.g. `"Progress"`).
-        label: String,
-        /// Completion percentage (0–100).
-        percent: u8,
-    },
-    /// Key-value pairs displayed as a list.
-    /// Renders each pair with dim label and bright value.
-    KeyValue(Vec<(String, String)>),
-    /// Bullet list of items.
-    /// Renders: `  ● item` for each.
-    List(Vec<String>),
-    /// Plain text line (fallback for simple content).
-    Text(String),
-    /// Visual separator line.
+/// Structural contract: plugins describe **what** a block contains and
+/// **how** it should be laid out (`hint`). Core renders it using the
+/// active theme. Plugins never specify colors — only data and structure.
+///
+/// Designed to be extractable as a standalone `ratatui-design-system`
+/// crate in the future.
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct TuiBlock {
+    /// Primary text (e.g. "Binary", "Done", "Sprint").
+    pub label: Option<String>,
+    /// Secondary text / value (e.g. "Available", "115").
+    pub value: Option<String>,
+    /// Layout hint — tells core HOW to render (not what it means).
+    pub hint: RenderHint,
+    /// Semantic severity — controls which theme color slot is used.
+    pub severity: Severity,
+    /// Numeric value for bar/gauge rendering (0–100 for `Bar` hint).
+    pub numeric: Option<u32>,
+    /// Numeric denominator (e.g. total for "115 / 850").
+    pub total: Option<u32>,
+    /// Key-value pairs (for `Pairs` hint).
+    pub pairs: Vec<(String, String)>,
+    /// Child items (for `List` hint).
+    pub items: Vec<String>,
+}
+
+/// Layout hint — structural guidance for the renderer.
+///
+/// Tells core HOW to lay out the block. Does NOT carry semantic meaning.
+/// The theme decides the actual visual treatment (icons, colors, borders).
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum RenderHint {
+    /// `label: value` on the same line.
+    #[default]
+    Inline,
+    /// Visual bar (progress). Uses `numeric` field (0–100).
+    Bar,
+    /// Icon + label + value. Icon comes from `severity`.
+    Indicator,
+    /// Key-value table. Uses `pairs` field.
+    Pairs,
+    /// Bulleted list. Uses `items` field.
+    List,
+    /// Plain text paragraph. Uses `label` as text.
+    Text,
+    /// Horizontal separator line.
     Separator,
 }
 
-/// Severity level for `TuiBlock::Status`.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum TuiStatus {
-    /// Green indicator (✓).
-    Ok,
-    /// Yellow indicator (●).
+/// Semantic severity — maps to a theme color slot.
+///
+/// Does NOT define the color. The active theme decides which RGB
+/// value `Success` maps to (green in Catppuccin, different in Nord).
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub enum Severity {
+    /// Theme's success color (typically green).
+    Success,
+    /// Theme's warning color (typically yellow).
     Warning,
-    /// Red indicator (✗).
+    /// Theme's error color (typically red).
     Error,
-    /// Dim/neutral indicator (○).
-    Inactive,
+    /// Theme's default text color.
+    #[default]
+    Neutral,
+}
+
+// ── TuiBlock builder helpers ────────────────────────────────────
+
+impl TuiBlock {
+    /// Creates an inline `label: value` block.
+    #[must_use]
+    pub fn inline(label: impl Into<String>, value: impl Into<String>) -> Self {
+        Self {
+            label: Some(label.into()),
+            value: Some(value.into()),
+            hint: RenderHint::Inline,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a status indicator block.
+    #[must_use]
+    pub fn indicator(
+        label: impl Into<String>,
+        value: impl Into<String>,
+        severity: Severity,
+    ) -> Self {
+        Self {
+            label: Some(label.into()),
+            value: Some(value.into()),
+            hint: RenderHint::Indicator,
+            severity,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a progress bar block.
+    #[must_use]
+    pub fn bar(label: impl Into<String>, percent: u32) -> Self {
+        Self {
+            label: Some(label.into()),
+            hint: RenderHint::Bar,
+            numeric: Some(percent.min(100)),
+            ..Default::default()
+        }
+    }
+
+    /// Creates a metric block with value and optional total.
+    #[must_use]
+    pub fn metric(label: impl Into<String>, value: u32, total: Option<u32>) -> Self {
+        Self {
+            label: Some(label.into()),
+            hint: RenderHint::Inline,
+            numeric: Some(value),
+            total,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a key-value pairs block.
+    #[must_use]
+    pub fn pairs(pairs: Vec<(String, String)>) -> Self {
+        Self {
+            hint: RenderHint::Pairs,
+            pairs,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a bulleted list block.
+    #[must_use]
+    pub fn list(items: Vec<String>) -> Self {
+        Self {
+            hint: RenderHint::List,
+            items,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a plain text block.
+    #[must_use]
+    pub fn text(text: impl Into<String>) -> Self {
+        Self {
+            label: Some(text.into()),
+            hint: RenderHint::Text,
+            ..Default::default()
+        }
+    }
+
+    /// Creates a separator block.
+    #[must_use]
+    pub fn separator() -> Self {
+        Self {
+            hint: RenderHint::Separator,
+            ..Default::default()
+        }
+    }
 }
 
 /// A keybinding contributed by a plugin for the TUI.

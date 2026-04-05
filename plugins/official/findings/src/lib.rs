@@ -202,16 +202,8 @@ impl PluginRuntime for FindingsRuntime {
             id: "findings".to_owned(),
             title: "Findings".to_owned(),
             blocks: vec![
-                re_plugin::TuiBlock::Metric {
-                    label: "Sections".to_owned(),
-                    value: heading_count,
-                    total: None,
-                },
-                re_plugin::TuiBlock::Metric {
-                    label: "Lines".to_owned(),
-                    value: line_count,
-                    total: None,
-                },
+                re_plugin::TuiBlock::metric("Sections", heading_count as u32, None),
+                re_plugin::TuiBlock::metric("Lines", line_count as u32, None),
             ],
             lines: vec![],
             zone_hint: "sidebar".to_owned(),

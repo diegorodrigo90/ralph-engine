@@ -489,10 +489,10 @@ impl PluginRuntime for ClaudeRuntime {
             "Not found"
         };
 
-        let bin_status = if binary_available {
-            re_plugin::TuiStatus::Ok
+        let sev = if binary_available {
+            re_plugin::Severity::Success
         } else {
-            re_plugin::TuiStatus::Error
+            re_plugin::Severity::Error
         };
 
         vec![re_plugin::TuiPanel {
@@ -500,12 +500,8 @@ impl PluginRuntime for ClaudeRuntime {
             title: "Claude".to_owned(),
             lines: Vec::new(),
             blocks: vec![
-                re_plugin::TuiBlock::Status {
-                    label: "Binary".to_owned(),
-                    value: status.to_owned(),
-                    status: bin_status,
-                },
-                re_plugin::TuiBlock::KeyValue(vec![
+                re_plugin::TuiBlock::indicator("Binary", status, sev),
+                re_plugin::TuiBlock::pairs(vec![
                     ("Mode".to_owned(), "-p (prompt)".to_owned()),
                     ("Model".to_owned(), "claude-opus-4-6".to_owned()),
                     ("Stream".to_owned(), "JSON".to_owned()),
