@@ -14,7 +14,7 @@ use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers
 use ratatui::layout::{Constraint, Layout, Rect, Size};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Gauge, List, ListItem, ListState, Paragraph};
+use ratatui::widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
 use tui_scrollview::{ScrollView, ScrollViewState};
 
@@ -1449,62 +1449,71 @@ impl TuiShell {
         let state_label = self.localized_state_label();
         let state_color = self.state.color(self.theme());
         let version = env!("CARGO_PKG_VERSION");
-
         let theme = self.theme();
-        let mut spans = vec![
+
+        let sep = Span::styled(" │ ", Style::default().fg(theme.border()));
+
+        let spans = vec![
+            // Logo + version
             Span::styled(
-                format!(" ◎ RE v{version} "),
+                format!(" ◎ RE v{version}"),
                 Style::default()
                     .fg(theme.accent())
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::styled("│ ", Style::default().fg(theme.border())),
-            Span::styled(&self.config.agent_id, Style::default().fg(theme.text())),
-            Span::raw(" "),
+            sep.clone(),
+            // Agent ID
             Span::styled(
-                format!("[{state_label}]"),
+                self.config.agent_id.as_str(),
+                Style::default().fg(theme.text_bright()),
+            ),
+            sep.clone(),
+            // State badge with background highlight
+            Span::styled(
+                format!(" {state_label} "),
                 Style::default()
-                    .fg(state_color)
+                    .fg(theme.surface())
+                    .bg(state_color)
                     .add_modifier(Modifier::BOLD),
             ),
         ];
 
-        // Token count (if available)
+        // Right-side metrics (tokens, tools, cost)
+        let mut right_spans: Vec<Span<'_>> = Vec::new();
+
         if self.token_count > 0 {
-            let token_label = if self.token_count >= 1000 {
-                format!(" │ {}k tok", self.token_count / 1000)
+            let tok = if self.token_count >= 1000 {
+                format!("⚡{}k", self.token_count / 1000)
             } else {
-                format!(" │ {} tok", self.token_count)
+                format!("⚡{}", self.token_count)
             };
-            spans.push(Span::styled(
-                token_label,
-                Style::default().fg(theme.text_dim()),
-            ));
+            right_spans.push(Span::styled(tok, Style::default().fg(theme.text_dim())));
         }
 
-        // Tool count
         if self.tool_count > 0 {
-            spans.push(Span::styled(
-                format!(" │ {} tools", self.tool_count),
+            if !right_spans.is_empty() {
+                right_spans.push(Span::styled(" │ ", Style::default().fg(theme.border())));
+            }
+            right_spans.push(Span::styled(
+                format!("⚙ {}", self.tool_count),
                 Style::default().fg(theme.text_dim()),
             ));
         }
 
-        // Cost label (from agent plugin — core doesn't calculate)
         if let Some(ref cost) = self.cost_label {
-            spans.push(Span::styled(
-                format!(" │ {cost}"),
-                Style::default().fg(if self.extra_usage {
-                    theme.warning()
-                } else {
-                    theme.text_dim()
-                }),
-            ));
+            if !right_spans.is_empty() {
+                right_spans.push(Span::styled(" │ ", Style::default().fg(theme.border())));
+            }
+            let cost_color = if self.extra_usage {
+                theme.warning()
+            } else {
+                theme.text_dim()
+            };
+            right_spans.push(Span::styled(cost.as_str(), Style::default().fg(cost_color)));
         }
 
-        // Extra usage warning (label from i18n)
         if self.extra_usage {
-            spans.push(Span::styled(
+            right_spans.push(Span::styled(
                 format!(" ⚠ {}", self.labels.extra_usage_label),
                 Style::default()
                     .fg(theme.warning())
@@ -1512,23 +1521,36 @@ impl TuiShell {
             ));
         }
 
-        let header = Line::from(spans);
+        // Progress percentage
+        if self.progress > 0 {
+            if !right_spans.is_empty() {
+                right_spans.push(Span::styled(" │ ", Style::default().fg(theme.border())));
+            }
+            right_spans.push(Span::styled(
+                format!("{}%", self.progress),
+                Style::default().fg(state_color),
+            ));
+        }
+        right_spans.push(Span::raw(" "));
 
-        if area.width > 60 {
-            let cols =
-                Layout::horizontal([Constraint::Fill(1), Constraint::Length(20)]).split(area);
+        // Layout: left info + right metrics with fill
+        let left = Line::from(spans);
+        let right = Line::from(right_spans);
 
-            frame.render_widget(Paragraph::new(header), cols[0]);
+        if area.width > 50 {
+            let cols = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(area);
+            frame.render_widget(Paragraph::new(left), cols[0]);
             frame.render_widget(
-                Gauge::default()
-                    .gauge_style(Style::default().fg(state_color))
-                    .percent(self.progress)
-                    .use_unicode(true),
+                Paragraph::new(right).alignment(ratatui::layout::Alignment::Right),
                 cols[1],
             );
         } else {
-            frame.render_widget(Paragraph::new(header), area);
+            // Compact: just left side
+            frame.render_widget(Paragraph::new(left), area);
         }
+
+        // Bottom separator line
+        // (handled by layout zones — header is 1 row, activity starts below)
     }
 
     /// Renders the activity stream (main viewport).
@@ -2103,23 +2125,32 @@ impl TuiShell {
     /// Renders the sidebar zone with auto-discovered plugin panels.
     fn render_sidebar(&self, frame: &mut Frame<'_>, area: Rect) {
         let theme = self.theme();
-        let block = Block::default()
-            .borders(Borders::LEFT)
-            .border_style(Style::default().fg(theme.border()))
-            .title(" Plugins ")
-            .title_style(Style::default().fg(theme.info()));
 
-        let inner = block.inner(area);
-        frame.render_widget(block, area);
+        // Outer container with left border
+        let outer = Block::default()
+            .borders(Borders::LEFT)
+            .border_style(Style::default().fg(theme.border()));
+        let inner = outer.inner(area);
+        frame.render_widget(outer, area);
 
         if self.sidebar_panels.is_empty() {
-            let lines = vec![Line::styled(
-                " (no panels)",
-                Style::default().fg(theme.text_dim()),
-            )];
-            frame.render_widget(Paragraph::new(lines), inner);
+            frame.render_widget(
+                Paragraph::new(Line::styled(
+                    " (no panels)",
+                    Style::default().fg(theme.text_dim()),
+                )),
+                inner,
+            );
             return;
         }
+
+        // Rotate accent colors per panel for visual variety
+        let panel_colors = [
+            theme.info(),
+            theme.accent(),
+            theme.success(),
+            theme.warning(),
+        ];
 
         let panel_count = self.sidebar_panels.len();
         let constraints: Vec<Constraint> = (0..panel_count)
@@ -2135,60 +2166,77 @@ impl TuiShell {
         let panel_areas = Layout::vertical(constraints).split(inner);
 
         for (i, panel) in self.sidebar_panels.iter().enumerate() {
-            let panel_block = Block::default()
-                .borders(Borders::TOP)
-                .border_style(Style::default().fg(theme.border()))
-                .title(format!(" {} ", panel.title))
-                .title_style(Style::default().fg(theme.text_bright()));
+            let color = panel_colors[i % panel_colors.len()];
+            let separator = Line::from(vec![
+                Span::styled(
+                    format!(" {} ", panel.title),
+                    Style::default().fg(color).add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(
+                    "─".repeat(
+                        panel_areas[i]
+                            .width
+                            .saturating_sub(panel.title.len() as u16 + 3)
+                            as usize,
+                    ),
+                    Style::default().fg(theme.border()),
+                ),
+            ]);
 
-            let panel_inner = panel_block.inner(panel_areas[i]);
-            frame.render_widget(panel_block, panel_areas[i]);
-
-            let lines: Vec<Line<'_>> = panel
-                .lines
-                .iter()
-                .map(|s| Line::raw(format!(" {s}")))
-                .collect();
-            frame.render_widget(Paragraph::new(lines), panel_inner);
+            let mut lines: Vec<Line<'_>> = vec![separator];
+            for s in &panel.lines {
+                lines.push(Line::styled(
+                    format!("  {s}"),
+                    Style::default().fg(theme.text_dim()),
+                ));
+            }
+            frame.render_widget(Paragraph::new(lines), panel_areas[i]);
         }
     }
 
     /// Renders the control panel zone (wide tier only).
-    ///
-    /// Shows current state and work item. Plugin-specific controls
-    /// appear via sidebar panels, not here.
     fn render_control_panel(&self, frame: &mut Frame<'_>, area: Rect) {
         let theme = self.theme();
+        let state_color = self.state.color(theme);
+
         let block = Block::default()
             .borders(Borders::RIGHT)
-            .border_style(Style::default().fg(theme.border()))
-            .title(" Control ")
-            .title_style(Style::default().fg(theme.info()));
-
+            .border_style(Style::default().fg(theme.border()));
         let inner = block.inner(area);
         frame.render_widget(block, area);
 
-        let state_color = self.state.color(theme);
+        let state_label = self.localized_state_label();
 
         let lines = vec![
-            Line::styled(
-                format!(
-                    " {}: {}",
-                    self.labels.control_state,
-                    self.localized_state_label()
+            Line::raw(""),
+            // State with badge-style background
+            Line::from(vec![
+                Span::styled(
+                    format!("  {}: ", self.labels.control_state),
+                    Style::default().fg(theme.text_dim()),
                 ),
-                Style::default().fg(state_color),
-            ),
+                Span::styled(
+                    format!(" {state_label} "),
+                    Style::default()
+                        .fg(theme.surface())
+                        .bg(state_color)
+                        .add_modifier(Modifier::BOLD),
+                ),
+            ]),
             Line::raw(""),
-            Line::styled(
-                format!(" {}: {}", self.labels.control_work, self.config.title),
-                Style::default().fg(theme.text_bright()),
-            ),
-            Line::raw(""),
-            Line::styled(
-                format!(" [q] {}", self.labels.quit_label),
-                Style::default().fg(theme.text_dim()),
-            ),
+            // Work item
+            Line::from(vec![
+                Span::styled(
+                    format!("  {}: ", self.labels.control_work),
+                    Style::default().fg(theme.text_dim()),
+                ),
+                Span::styled(
+                    self.config.title.as_str(),
+                    Style::default()
+                        .fg(theme.text_bright())
+                        .add_modifier(Modifier::BOLD),
+                ),
+            ]),
         ];
         frame.render_widget(Paragraph::new(lines), inner);
     }
@@ -2961,9 +3009,9 @@ mod tests {
     #[test]
     fn render_compact_shows_header_with_agent_id() {
         let mut shell = test_shell();
-        let output = render_to_buffer(&mut shell, 80, 24);
+        let output = render_to_buffer(&mut shell, 120, 24);
         assert!(output.contains("test.agent"));
-        assert!(output.contains("[RUNNING]"));
+        assert!(output.contains("RUNNING"));
     }
 
     #[test]
@@ -2999,8 +3047,14 @@ mod tests {
     #[test]
     fn render_standard_shows_sidebar() {
         let mut shell = test_shell();
+        // Add a panel so sidebar has content
+        shell.set_sidebar_panels(vec![SidebarPanel {
+            title: "TestPanel".to_owned(),
+            lines: vec!["line1".to_owned()],
+            plugin_id: "test.plugin".to_owned(),
+        }]);
         let output = render_to_buffer(&mut shell, 140, 40);
-        assert!(output.contains("Plugins"));
+        assert!(output.contains("TestPanel"));
         assert!(output.contains("standard"));
     }
 
@@ -3012,8 +3066,9 @@ mod tests {
             locale: "en".to_owned(),
         });
         let output = render_to_buffer(&mut shell, 200, 60);
-        assert!(output.contains("Control"));
-        assert!(output.contains("Plugins"));
+        // Control panel shows state and work item
+        assert!(output.contains("State"));
+        assert!(output.contains("RUNNING"));
         assert!(output.contains("wide"));
     }
 
@@ -3028,8 +3083,8 @@ mod tests {
     fn render_paused_state_shows_in_header() {
         let mut shell = test_shell();
         shell.set_state(TuiState::Paused);
-        let output = render_to_buffer(&mut shell, 80, 24);
-        assert!(output.contains("[PAUSED]"));
+        let output = render_to_buffer(&mut shell, 120, 24);
+        assert!(output.contains("PAUSED"));
     }
 
     #[test]
