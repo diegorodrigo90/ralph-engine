@@ -176,6 +176,12 @@ pub fn execute(args: &[String]) -> Result<String, CliError> {
     let invocation = i18n::resolve_cli_invocation(args)?;
     let locale = invocation.locale;
 
+    // --demo flag: launch TUI with demo mode (debug builds only)
+    #[cfg(debug_assertions)]
+    if args.iter().any(|a| a == "--demo") {
+        return tui::execute(&["--demo".to_owned()], locale);
+    }
+
     match args.get(invocation.command_index).map(String::as_str) {
         None => dispatch_default(locale),
         Some("--version" | "-V") => Ok(env!("CARGO_PKG_VERSION").to_owned()),
