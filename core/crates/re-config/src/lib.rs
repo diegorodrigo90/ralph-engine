@@ -633,6 +633,7 @@ pub fn render_owned_project_config_yaml(config: &OwnedProjectConfig) -> String {
     if config.run.workflow_plugin.is_some()
         || config.run.agent_plugin.is_some()
         || config.run.agent_id.is_some()
+        || config.run.mode != "loop"
     {
         lines.push("run:".to_owned());
         if let Some(wp) = config.run.workflow_plugin {
@@ -643,6 +644,9 @@ pub fn render_owned_project_config_yaml(config: &OwnedProjectConfig) -> String {
         }
         if let Some(ai) = config.run.agent_id {
             lines.push(format!("  agent_id: {ai}"));
+        }
+        if config.run.mode != "loop" {
+            lines.push(format!("  mode: {}", config.run.mode));
         }
     }
 

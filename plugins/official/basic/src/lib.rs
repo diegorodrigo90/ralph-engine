@@ -283,4 +283,27 @@ mod tests {
         let rt = super::runtime();
         assert!(rt.required_tools().is_empty());
     }
+
+    #[test]
+    fn template_config_has_required_keys() {
+        let config_yaml = include_str!("../template/config.yaml");
+        // The config must contain all required keys for the core parser
+        assert!(
+            config_yaml.contains("schema_version:"),
+            "template must have schema_version"
+        );
+        assert!(
+            config_yaml.contains("default_locale:"),
+            "template must have default_locale"
+        );
+        assert!(
+            config_yaml.contains("plugins:"),
+            "template must have plugins"
+        );
+        assert!(config_yaml.contains("mcp:"), "template must have mcp");
+        assert!(
+            config_yaml.contains("budgets:"),
+            "template must have budgets"
+        );
+    }
 }

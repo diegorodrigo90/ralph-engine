@@ -11,6 +11,23 @@ plugins:
     activation: enabled
   - id: official.claude
     activation: enabled
+  - id: official.guided
+    activation: enabled
+  - id: official.context
+    activation: enabled
+  - id: official.findings
+    activation: enabled
+
+mcp:
+  enabled: true
+  discovery: official_only
+  servers:
+    - id: official.claude.session
+      enabled: true
+
+budgets:
+  prompt_tokens: 8192
+  context_tokens: 32768
 
 # Agent execution settings.
 # Core reads workflow_plugin + agent_plugin. Agent plugin reads the rest.
