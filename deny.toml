@@ -13,6 +13,7 @@ allow = [
   "CDLA-Permissive-2.0",  # webpki-root-certs (CA certificate data, Linux Foundation)
   "MPL-2.0",              # option-ext (via directories → dirs-sys), weak copyleft, compatible with MIT
   "Zlib",                 # foldhash (via ratatui), permissive, compatible with MIT
+  "BSL-1.0",              # clipboard-win + error-code (via arboard), OSI approved, Boost license
 ]
 confidence-threshold = 0.8
 
