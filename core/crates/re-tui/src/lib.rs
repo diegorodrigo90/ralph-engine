@@ -22,6 +22,7 @@ mod logging;
 pub mod logo;
 pub mod process;
 mod terminal;
+pub mod theme;
 
 pub use events::{AgentEvent, parse_stream_line, parse_stream_lines};
 pub use feed::{BlockKind, Feed, FeedBlock, ToolKindMapping, process_agent_event};
@@ -33,6 +34,10 @@ pub use process::{SessionState, StateEvent, StateListener};
 pub use terminal::{
     CommandEntry, CommandSource, PluginKeyAction, RegisteredKeybinding, SidebarPanel, TuiConfig,
     TuiShell, TuiState,
+};
+pub use theme::{
+    BLOCK_PADDING, INDENT_WIDTH, MAX_COLLAPSED_LINES, Theme, available_theme_ids, builtin_themes,
+    resolve_theme,
 };
 
 /// Minimum terminal width supported (columns).
