@@ -510,7 +510,26 @@ fn run_with_tui(
     let mut shell = re_tui::TuiShell::new(tui_config);
     shell.set_agent_pid(spawned.pid);
 
-    // Collect plugin panels
+    // Auto-discover: input bar from plugins
+    if catalog::any_plugin_wants_input_bar() {
+        shell.enable_input();
+    }
+
+    // Auto-discover: agent commands for autocomplete
+    let commands: Vec<re_tui::CommandEntry> = catalog::collect_agent_commands_from_plugins(cwd)
+        .into_iter()
+        .map(|cmd| re_tui::CommandEntry {
+            name: cmd.name,
+            description: cmd.description,
+            source: re_tui::CommandSource::Agent,
+            source_name: cmd.plugin_id,
+        })
+        .collect();
+    if !commands.is_empty() {
+        shell.set_agent_commands(commands, "/".to_owned());
+    }
+
+    // Auto-discover: sidebar panels
     let panels: Vec<re_tui::SidebarPanel> = catalog::collect_tui_panels_from_plugins()
         .into_iter()
         .map(|(plugin_id, panel)| re_tui::SidebarPanel {
@@ -538,6 +557,7 @@ fn run_with_tui(
 
     // TUI render loop
     let mut terminal = ratatui::init();
+    let mut prev_state = re_tui::TuiState::Running;
     let result: Result<(), String> = (|| {
         loop {
             // Read agent events (non-blocking)
@@ -558,7 +578,34 @@ fn run_with_tui(
                 && let Event::Key(key) = event::read().map_err(|e| format!("read: {e}"))?
                 && key.kind == KeyEventKind::Press
             {
-                shell.handle_key(key.code);
+                shell.handle_key_with_modifiers(key.code, key.modifiers);
+
+                // Dispatch text input to agent plugin (feedback injection)
+                if let Some(text) = shell.take_text_input() {
+                    match agent_runtime.inject_feedback(&text, cwd) {
+                        Ok(_) => {
+                            shell.push_activity(">> Feedback saved.".to_owned());
+                        }
+                        Err(e) => {
+                            shell.push_activity(format!(">> Feedback error: {}", e.message));
+                        }
+                    }
+                }
+
+                // Handle pause/resume state transitions via agent plugin
+                let curr_state = shell.state();
+                if curr_state != prev_state {
+                    if let Some(pid) = shell.agent_pid() {
+                        if curr_state == re_tui::TuiState::Paused {
+                            let _ = agent_runtime.pause_agent(pid);
+                        } else if prev_state == re_tui::TuiState::Paused
+                            && curr_state == re_tui::TuiState::Running
+                        {
+                            let _ = agent_runtime.resume_agent(pid);
+                        }
+                    }
+                    prev_state = curr_state;
+                }
             }
 
             if shell.should_quit() {
