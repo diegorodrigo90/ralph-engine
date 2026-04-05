@@ -147,6 +147,16 @@ pub struct TuiLabels {
     // ── Logo ────────────────────────────────────────────────────
     /// Logo tagline.
     pub logo_tagline: String,
+    // ── Help modal key descriptions ─────────────────────────────
+    /// Navigation keys (key, description) pairs.
+    pub nav_keys: Vec<(String, String)>,
+    /// Action keys (key, description) pairs.
+    pub action_keys: Vec<(String, String)>,
+    // ── Messages ────────────────────────────────────────────────
+    /// Message prefix for user-sent text (e.g., "You:" or "Você:").
+    pub you_label: String,
+    /// Message when no agent is connected.
+    pub no_agent_message: String,
 }
 
 impl Default for TuiLabels {
@@ -180,6 +190,24 @@ impl Default for TuiLabels {
             lines_label: "Lines".to_owned(),
             progress_label: "Progress".to_owned(),
             logo_tagline: "Autonomous AI Dev Loop".to_owned(),
+            nav_keys: vec![
+                ("j/k".to_owned(), "Focus blocks".to_owned()),
+                ("↑↓".to_owned(), "Scroll lines".to_owned()),
+                ("PgUp/PgDn".to_owned(), "Scroll pages".to_owned()),
+                ("G / End".to_owned(), "Follow mode".to_owned()),
+                ("Home".to_owned(), "Scroll to top".to_owned()),
+            ],
+            action_keys: vec![
+                ("⏎ Enter".to_owned(), "Expand/collapse".to_owned()),
+                ("y".to_owned(), "Copy block".to_owned()),
+                ("⎋ Esc".to_owned(), "Clear focus".to_owned()),
+                ("F2".to_owned(), "Toggle sidebar".to_owned()),
+                ("Ctrl+A".to_owned(), "Agent switcher".to_owned()),
+                ("?".to_owned(), "This help".to_owned()),
+                ("q".to_owned(), "Quit".to_owned()),
+            ],
+            you_label: "You".to_owned(),
+            no_agent_message: "No agent connected. Use /run to start orchestration.".to_owned(),
         }
     }
 }
@@ -451,6 +479,13 @@ impl TuiShell {
     /// Switches the active theme by config ID (e.g. `"dracula"`).
     pub fn set_theme(&mut self, id: &str) {
         self.theme = crate::theme::resolve_theme(id);
+    }
+
+    /// Sets the localized labels for all TUI strings.
+    /// Returns a reference to the localized labels.
+    #[must_use]
+    pub fn labels(&self) -> &TuiLabels {
+        &self.labels
     }
 
     /// Sets the localized labels for all TUI strings.
@@ -2047,28 +2082,10 @@ impl TuiShell {
                 .fg(theme.text_bright())
                 .add_modifier(Modifier::BOLD),
         ));
-        let is_ptbr = self.config.locale == "pt-br";
-        let nav_keys: &[(&str, &str)] = if is_ptbr {
-            &[
-                ("j/k", "Focar blocos"),
-                ("↑↓", "Rolar linhas"),
-                ("PgUp/PgDn", "Rolar páginas"),
-                ("G / End", "Seguir"),
-                ("Home", "Início"),
-            ]
-        } else {
-            &[
-                ("j/k", "Focus blocks"),
-                ("↑↓", "Scroll lines"),
-                ("PgUp/PgDn", "Scroll pages"),
-                ("G / End", "Follow mode"),
-                ("Home", "Scroll to top"),
-            ]
-        };
-        for (key, desc) in nav_keys {
+        for (key, desc) in &self.labels.nav_keys {
             lines.push(Line::from(vec![
                 Span::styled(format!("  {key:<12}"), Style::default().fg(theme.accent())),
-                Span::styled(*desc, Style::default().fg(theme.text_dim())),
+                Span::styled(desc.as_str(), Style::default().fg(theme.text_dim())),
             ]));
         }
 
@@ -2081,31 +2098,10 @@ impl TuiShell {
                 .fg(theme.text_bright())
                 .add_modifier(Modifier::BOLD),
         ));
-        let action_keys: &[(&str, &str)] = if is_ptbr {
-            &[
-                ("⏎ Enter", "Expandir/recolher"),
-                ("y", "Copiar bloco"),
-                ("⎋ Esc", "Limpar foco"),
-                ("F2", "Alternar sidebar"),
-                ("Ctrl+A", "Trocar agente"),
-                ("?", "Esta ajuda"),
-                ("q", "Sair"),
-            ]
-        } else {
-            &[
-                ("⏎ Enter", "Expand/collapse"),
-                ("y", "Copy block"),
-                ("⎋ Esc", "Clear focus"),
-                ("F2", "Toggle sidebar"),
-                ("Ctrl+A", "Agent switcher"),
-                ("?", "This help"),
-                ("q", "Quit"),
-            ]
-        };
-        for (key, desc) in action_keys {
+        for (key, desc) in &self.labels.action_keys {
             lines.push(Line::from(vec![
                 Span::styled(format!("  {key:<12}"), Style::default().fg(theme.accent())),
-                Span::styled(*desc, Style::default().fg(theme.text_dim())),
+                Span::styled(desc.as_str(), Style::default().fg(theme.text_dim())),
             ]));
         }
 

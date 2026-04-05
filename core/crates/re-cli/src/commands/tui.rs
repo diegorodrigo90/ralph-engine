@@ -141,17 +141,10 @@ fn handle_dashboard_command(shell: &mut re_tui::TuiShell, input: &str, locale: &
     // Parse slash command
     let Some(command_text) = trimmed.strip_prefix('/') else {
         // Not a slash command — no agent running in dashboard mode
-        if locale == "pt-br" {
-            shell.push_activity(format!("  ╭─ Você: {trimmed}"));
-            shell.push_activity(
-                "  ╰─ Nenhum agente conectado. Use /run para iniciar orquestração.".to_owned(),
-            );
-        } else {
-            shell.push_activity(format!("  ╭─ You: {trimmed}"));
-            shell.push_activity(
-                "  ╰─ No agent connected. Use /run to start orchestration.".to_owned(),
-            );
-        }
+        let you = shell.labels().you_label.clone();
+        let msg = shell.labels().no_agent_message.clone();
+        shell.push_activity(format!("  ╭─ {you}: {trimmed}"));
+        shell.push_activity(format!("  ╰─ {msg}"));
         return;
     };
 
@@ -320,6 +313,54 @@ fn build_labels(locale: &str) -> re_tui::TuiLabels {
             "Loop Autônomo de Desenvolvimento IA".to_owned()
         } else {
             "Autonomous AI Dev Loop".to_owned()
+        },
+        nav_keys: if locale == "pt-br" {
+            vec![
+                ("j/k".into(), "Focar blocos".into()),
+                ("↑↓".into(), "Rolar linhas".into()),
+                ("PgUp/PgDn".into(), "Rolar páginas".into()),
+                ("G / End".into(), "Seguir".into()),
+                ("Home".into(), "Início".into()),
+            ]
+        } else {
+            vec![
+                ("j/k".into(), "Focus blocks".into()),
+                ("↑↓".into(), "Scroll lines".into()),
+                ("PgUp/PgDn".into(), "Scroll pages".into()),
+                ("G / End".into(), "Follow mode".into()),
+                ("Home".into(), "Scroll to top".into()),
+            ]
+        },
+        action_keys: if locale == "pt-br" {
+            vec![
+                ("⏎ Enter".into(), "Expandir/recolher".into()),
+                ("y".into(), "Copiar bloco".into()),
+                ("⎋ Esc".into(), "Limpar foco".into()),
+                ("F2".into(), "Alternar sidebar".into()),
+                ("Ctrl+A".into(), "Trocar agente".into()),
+                ("?".into(), "Esta ajuda".into()),
+                ("q".into(), "Sair".into()),
+            ]
+        } else {
+            vec![
+                ("⏎ Enter".into(), "Expand/collapse".into()),
+                ("y".into(), "Copy block".into()),
+                ("⎋ Esc".into(), "Clear focus".into()),
+                ("F2".into(), "Toggle sidebar".into()),
+                ("Ctrl+A".into(), "Agent switcher".into()),
+                ("?".into(), "This help".into()),
+                ("q".into(), "Quit".into()),
+            ]
+        },
+        you_label: if locale == "pt-br" {
+            "Você".to_owned()
+        } else {
+            "You".to_owned()
+        },
+        no_agent_message: if locale == "pt-br" {
+            "Nenhum agente conectado. Use /run para iniciar orquestração.".to_owned()
+        } else {
+            "No agent connected. Use /run to start orchestration.".to_owned()
         },
     }
 }
