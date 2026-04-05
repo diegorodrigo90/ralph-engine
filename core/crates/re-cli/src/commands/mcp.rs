@@ -21,7 +21,8 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         )),
         Some("show") => show_server(args.get(1).map(String::as_str), locale),
         Some("plan") => render_launch_plan(args.get(1).map(String::as_str), locale),
-        Some("launch") => probe_launch(args.get(1).map(String::as_str), locale),
+        Some("launch" | "start") => probe_launch(args.get(1).map(String::as_str), locale),
+        Some("stop") => stop_server(args.get(1).map(String::as_str), locale),
         Some("status") => show_status(args.get(1).map(String::as_str), locale),
         Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale, "mcp", other,
@@ -136,6 +137,28 @@ fn probe_launch(server_id: Option<&str>, locale: &str) -> Result<String, CliErro
     lines.push(String::new());
     lines.push(render_mcp_launch_plan_for_locale(&plan, locale));
     Ok(lines.join("\n"))
+}
+
+/// Stops an MCP server (placeholder — shows status and cleanup guidance).
+fn stop_server(server_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let server_id = server_id.ok_or_else(|| {
+        CliError::new(i18n::missing_id(
+            locale,
+            "mcp stop",
+            i18n::mcp_server_id_entity_label(locale),
+        ))
+    })?;
+    catalog::find_official_mcp_server(server_id).ok_or_else(|| {
+        CliError::usage(i18n::unknown_entity(
+            locale,
+            i18n::mcp_server_entity_label(locale),
+            server_id,
+        ))
+    })?;
+
+    Ok(format!(
+        "MCP server '{server_id}' stop requested.\nNote: externally spawned servers need manual stop (Ctrl+C)."
+    ))
 }
 
 /// Handles MCP launch for plugin-managed servers.
@@ -352,5 +375,19 @@ mod tests {
         assert!(result.is_ok());
         let output = result.ok().unwrap_or_default();
         assert!(output.contains("Verificação de lançamento MCP"));
+    }
+
+    #[test]
+    fn start_is_alias_for_launch() {
+        let args = vec!["start".to_owned(), "official.claude.session".to_owned()];
+        let result = execute(&args, "en");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn stop_without_id_returns_error() {
+        let args = vec!["stop".to_owned()];
+        let result = execute(&args, "en");
+        assert!(result.is_err());
     }
 }
