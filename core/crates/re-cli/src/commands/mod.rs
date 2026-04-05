@@ -214,7 +214,7 @@ fn resolve_command_description(key: &'static str, locale: &str) -> &'static str 
 
 fn render_help(locale: &str) -> String {
     let mut lines = vec![
-        re_core::banner(),
+        re_core::banner_with_tagline(i18n::product_tagline(locale)),
         String::new(),
         i18n::usage_help(locale).to_owned(),
         String::new(),
