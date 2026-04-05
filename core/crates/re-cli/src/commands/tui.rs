@@ -117,6 +117,10 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
         .collect();
     shell.set_sidebar_panels(panels);
 
+    // Auto-discover keybindings from plugins
+    let keybindings = catalog::collect_tui_keybindings_from_plugins();
+    shell.set_plugin_keybindings(keybindings);
+
     // Show project status on startup
     push_project_status(&mut shell, has_config, locale);
 
@@ -133,9 +137,25 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
             {
                 match event::read().map_err(|e| format!("read: {e}"))? {
                     Event::Key(key) if key.kind == KeyEventKind::Press => {
-                        shell.handle_key_with_modifiers(key.code, key.modifiers);
+                        let action = shell.handle_key_with_modifiers(key.code, key.modifiers);
 
-                        // Dispatch slash commands
+                        // Dispatch unhandled keys to plugin runtimes
+                        if action == re_tui::PluginKeyAction::NotHandled
+                            && let ratatui::crossterm::event::KeyCode::Char(c) = key.code
+                        {
+                            let state_label = format!("{:?}", shell.state());
+                            if let Some(binding) = shell.find_active_binding(c, &state_label) {
+                                let plugin_id = binding.plugin_id.clone();
+                                let result = catalog::dispatch_plugin_tui_key(
+                                    &plugin_id,
+                                    &c.to_string(),
+                                    &state_label,
+                                );
+                                shell.apply_plugin_action(&result);
+                            }
+                        }
+
+                        // Dispatch slash commands or text input
                         if let Some(text) = shell.take_text_input() {
                             handle_dashboard_command(&mut shell, &text, locale);
                         }
@@ -168,7 +188,14 @@ fn handle_dashboard_command(shell: &mut re_tui::TuiShell, input: &str, locale: &
 
     // Parse slash command
     let Some(command_text) = trimmed.strip_prefix('/') else {
-        // Not a slash command — no agent running in dashboard mode
+        // Not a slash command — try plugin text input handlers first
+        let cwd = std::env::current_dir().unwrap_or_default();
+        let result = catalog::dispatch_plugin_text_input(trimmed, &cwd);
+        if result != re_tui::PluginKeyAction::NotHandled {
+            shell.apply_plugin_action(&result);
+            return;
+        }
+        // No plugin handled it — show "no agent" message
         let you = shell.labels().you_label.clone();
         let msg = shell.labels().no_agent_message.clone();
         shell.push_activity(format!("  ╭─ {you}: {trimmed}"));

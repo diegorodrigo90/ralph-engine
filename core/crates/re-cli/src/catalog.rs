@@ -558,6 +558,90 @@ pub fn agent_command_prefix(agent_plugin_id: &str) -> String {
         .unwrap_or_else(|| "/".to_owned())
 }
 
+/// Collects TUI keybindings from all enabled plugins.
+///
+/// Auto-discovers keybindings declared by plugins via `tui_keybindings()`.
+/// Returns keybindings converted to the TUI's `RegisteredKeybinding` type.
+#[must_use]
+pub fn collect_tui_keybindings_from_plugins() -> Vec<re_tui::RegisteredKeybinding> {
+    let snapshot = official_runtime_snapshot();
+    let mut bindings = Vec::new();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
+            for kb in runtime.tui_keybindings() {
+                if let Some(key_char) = kb.key.chars().next() {
+                    bindings.push(re_tui::RegisteredKeybinding {
+                        key: key_char,
+                        description: kb.description,
+                        plugin_id: kb.plugin_id,
+                        active_states: kb.active_states,
+                    });
+                }
+            }
+        }
+    }
+
+    bindings
+}
+
+/// Dispatches a TUI key event to the plugin that owns the keybinding.
+///
+/// Finds the plugin matching the binding's `plugin_id`, calls
+/// `handle_tui_key()`, and translates the result to a `PluginKeyAction`.
+pub fn dispatch_plugin_tui_key(
+    plugin_id: &str,
+    key: &str,
+    tui_state: &str,
+) -> re_tui::PluginKeyAction {
+    let Some(runtime) = re_official::official_plugin_runtime(plugin_id) else {
+        return re_tui::PluginKeyAction::NotHandled;
+    };
+
+    translate_key_result(runtime.handle_tui_key(key, tui_state))
+}
+
+/// Dispatches text input to all enabled plugins via `handle_tui_text_input()`.
+///
+/// Tries each plugin in order until one handles the input. Returns the
+/// translated result or `NotHandled` if no plugin wants it.
+pub fn dispatch_plugin_text_input(
+    text: &str,
+    project_root: &std::path::Path,
+) -> re_tui::PluginKeyAction {
+    let snapshot = official_runtime_snapshot();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
+            let result = runtime.handle_tui_text_input(text, project_root);
+            if result != re_plugin::TuiKeyResult::NotHandled {
+                return translate_key_result(result);
+            }
+        }
+    }
+
+    re_tui::PluginKeyAction::NotHandled
+}
+
+/// Translates a plugin `TuiKeyResult` to the TUI's `PluginKeyAction`.
+fn translate_key_result(result: re_plugin::TuiKeyResult) -> re_tui::PluginKeyAction {
+    match result {
+        re_plugin::TuiKeyResult::Handled => re_tui::PluginKeyAction::Handled,
+        re_plugin::TuiKeyResult::NotHandled => re_tui::PluginKeyAction::NotHandled,
+        re_plugin::TuiKeyResult::EnterTextInput { prompt } => {
+            re_tui::PluginKeyAction::EnterTextInput { prompt }
+        }
+        re_plugin::TuiKeyResult::SetState(label) => {
+            if let Some(state) = re_tui::TuiState::from_label(&label) {
+                re_tui::PluginKeyAction::SetState(state)
+            } else {
+                re_tui::PluginKeyAction::ShowMessage(format!("Unknown state: {label}"))
+            }
+        }
+        re_plugin::TuiKeyResult::ShowMessage(msg) => re_tui::PluginKeyAction::ShowMessage(msg),
+    }
+}
+
 // ── Community plugin discovery ────────────────────────────────────
 
 /// Descriptor for a community plugin discovered from the filesystem.
@@ -725,6 +809,81 @@ mod tests {
         // In test environment, .ralph-engine/plugins/ doesn't exist
         let plugins = discover_community_plugins();
         assert!(plugins.is_empty());
+    }
+
+    #[test]
+    fn translate_key_result_handled() {
+        let result = translate_key_result(re_plugin::TuiKeyResult::Handled);
+        assert_eq!(result, re_tui::PluginKeyAction::Handled);
+    }
+
+    #[test]
+    fn translate_key_result_not_handled() {
+        let result = translate_key_result(re_plugin::TuiKeyResult::NotHandled);
+        assert_eq!(result, re_tui::PluginKeyAction::NotHandled);
+    }
+
+    #[test]
+    fn translate_key_result_show_message() {
+        let result = translate_key_result(re_plugin::TuiKeyResult::ShowMessage("hello".to_owned()));
+        assert_eq!(
+            result,
+            re_tui::PluginKeyAction::ShowMessage("hello".to_owned())
+        );
+    }
+
+    #[test]
+    fn translate_key_result_enter_text_input() {
+        let result = translate_key_result(re_plugin::TuiKeyResult::EnterTextInput {
+            prompt: "Type:".to_owned(),
+        });
+        assert_eq!(
+            result,
+            re_tui::PluginKeyAction::EnterTextInput {
+                prompt: "Type:".to_owned()
+            }
+        );
+    }
+
+    #[test]
+    fn translate_key_result_set_state_valid() {
+        let result = translate_key_result(re_plugin::TuiKeyResult::SetState("Running".to_owned()));
+        assert_eq!(
+            result,
+            re_tui::PluginKeyAction::SetState(re_tui::TuiState::Running)
+        );
+    }
+
+    #[test]
+    fn translate_key_result_set_state_invalid() {
+        let result = translate_key_result(re_plugin::TuiKeyResult::SetState("Invalid".to_owned()));
+        assert!(matches!(result, re_tui::PluginKeyAction::ShowMessage(_)));
+    }
+
+    #[test]
+    fn collect_tui_keybindings_returns_list() {
+        // Official plugins may or may not declare keybindings, but the function
+        // should always return a valid (possibly empty) list without panicking.
+        let bindings = collect_tui_keybindings_from_plugins();
+        // Guided plugin declares keybindings when loaded
+        for b in &bindings {
+            assert!(!b.description.is_empty());
+            assert!(!b.plugin_id.is_empty());
+        }
+    }
+
+    #[test]
+    fn dispatch_plugin_tui_key_unknown_plugin_returns_not_handled() {
+        let result = dispatch_plugin_tui_key("nonexistent.plugin", "x", "Running");
+        assert_eq!(result, re_tui::PluginKeyAction::NotHandled);
+    }
+
+    #[test]
+    fn dispatch_plugin_text_input_no_handler_returns_not_handled() {
+        let dir = std::env::temp_dir().join("re-test-text-input");
+        let result = dispatch_plugin_text_input("hello world", &dir);
+        // Default plugins return NotHandled for text input
+        assert_eq!(result, re_tui::PluginKeyAction::NotHandled);
     }
 
     #[test]
