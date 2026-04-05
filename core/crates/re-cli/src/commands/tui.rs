@@ -156,8 +156,23 @@ fn handle_dashboard_command(shell: &mut re_tui::TuiShell, input: &str, locale: &
                 shell.push_activity(format!("  /{name:<12} {desc}"));
             }
         }
-        "run" | "doctor" | "plugins" | "agents" | "config" | "runtime" | "init" | "checks"
-        | "templates" | "prompts" | "hooks" | "mcp" | "capabilities" | "providers" | "locales" => {
+        "init" => {
+            // Use --auto for non-interactive TUI init
+            let mut args = vec!["--auto".to_owned()];
+            args.extend(parts[1..].iter().map(|s| (*s).to_owned()));
+            match super::dispatch_command("init", &args, locale) {
+                Ok(output) => {
+                    for line in output.lines() {
+                        shell.push_activity(format!("  {line}"));
+                    }
+                }
+                Err(e) => {
+                    shell.push_activity(format!("  Error: {e}"));
+                }
+            }
+        }
+        "run" | "doctor" | "plugins" | "agents" | "config" | "runtime" | "checks" | "templates"
+        | "prompts" | "hooks" | "mcp" | "capabilities" | "providers" | "locales" => {
             // Build args for the command handler
             let args: Vec<String> = parts[1..].iter().map(|s| (*s).to_owned()).collect();
 
