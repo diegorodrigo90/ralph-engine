@@ -27,6 +27,6 @@ cd site && npm run dev      # Dev server on port 4500
 - Plugin pages: `site/src/pages/plugins/` (custom Astro with StarlightPage wrapper)
 - Landing page: `site/src/pages/index.astro` (custom Astro with StarlightPage wrapper)
 - Custom header with Docs/Plugins nav links: `site/src/components/starlight/Header.astro`
-- Design tokens: `shared/design-tokens.css` (imported by starlight-custom.css)
+- Design tokens: `site/src/styles/design-tokens.css` (imported by starlight-custom.css)
 - Component styles: `site/src/styles/site-components.css` (buttons, cards, terminals, pills)
 - Starlight theme: `site/src/styles/starlight-custom.css` (color overrides)

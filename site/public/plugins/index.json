@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-05T03:37:19.929Z",
-  "count": 11,
+  "generated_at": "2026-04-05T03:59:55.353Z",
+  "count": 12,
   "community_count": 0,
   "last_scan": null,
   "icon_contract": {
@@ -541,6 +541,42 @@
           ]
         }
       }
+    },
+    {
+      "id": "official.context",
+      "kind": "context_manager",
+      "display_name": "Context Manager",
+      "display_name_locales": {
+        "pt-br": "Gerenciador de Contexto"
+      },
+      "summary": "Session persistence, context compaction, and cross-agent transfer.",
+      "summary_locales": {
+        "pt-br": "Persistencia de sessao, compactacao de contexto e transferencia entre agentes."
+      },
+      "description": "Manages conversation context across agent sessions. Saves and loads session snapshots, compacts context to fit within token budgets, and facilitates context transfer when switching between agents.",
+      "description_locales": {
+        "pt-br": "Gerencia o contexto de conversacao entre sessoes de agentes. Salva e carrega snapshots de sessao, compacta contexto para caber nos limites de tokens e facilita transferencia ao trocar entre agentes."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "load"
+      ],
+      "runtime_hooks": [
+        "context_management",
+        "session_persistence"
+      ],
+      "capabilities": [
+        "context_management",
+        "session_persistence"
+      ],
+      "iconUrl": null
     },
     {
       "id": "official.findings",
