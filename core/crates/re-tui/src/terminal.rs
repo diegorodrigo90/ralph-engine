@@ -80,6 +80,66 @@ pub struct TuiConfig {
     pub locale: String,
 }
 
+/// Localized labels for TUI rendering.
+///
+/// The caller (CLI layer) fills these from the i18n system.
+/// `re-tui` never hardcodes user-facing strings.
+#[derive(Debug, Clone)]
+pub struct TuiLabels {
+    /// Idle dashboard: project configured message.
+    pub project_configured: String,
+    /// Idle dashboard: no project found message.
+    pub no_project_found: String,
+    /// Idle dashboard: type /run hint.
+    pub type_run: String,
+    /// Idle dashboard: type /init hint.
+    pub type_init: String,
+    /// Idle dashboard: orchestration runtime subtitle.
+    pub orchestration_runtime: String,
+    /// Idle dashboard: waiting for session message.
+    pub waiting_session: String,
+    /// Help modal title.
+    pub help_title: String,
+    /// Help modal: navigation section header.
+    pub nav_heading: String,
+    /// Help modal: actions section header.
+    pub actions_heading: String,
+    /// Help modal: plugins section header.
+    pub plugins_heading: String,
+    /// Help modal: slash commands hint.
+    pub slash_hint: String,
+    /// Help modal: close instruction.
+    pub press_any_key: String,
+    /// Quit modal title.
+    pub quit_title: String,
+    /// Quit modal: question text.
+    pub quit_question: String,
+    /// Bottom bar: modal open hint.
+    pub modal_open_hint: String,
+}
+
+impl Default for TuiLabels {
+    fn default() -> Self {
+        Self {
+            project_configured: "Project configured".to_owned(),
+            no_project_found: "No project found".to_owned(),
+            type_run: "Type /run to start orchestration".to_owned(),
+            type_init: "Run 'ralph-engine init' to set up".to_owned(),
+            orchestration_runtime: "Orchestration Runtime".to_owned(),
+            waiting_session: "Waiting for agent session...".to_owned(),
+            help_title: "Help".to_owned(),
+            nav_heading: "Navigation".to_owned(),
+            actions_heading: "Actions".to_owned(),
+            plugins_heading: "Plugins".to_owned(),
+            slash_hint: "Type / for slash commands".to_owned(),
+            press_any_key: "Press any key to close".to_owned(),
+            quit_title: "Quit".to_owned(),
+            quit_question: "Quit?".to_owned(),
+            modal_open_hint: "Modal open — press a key".to_owned(),
+        }
+    }
+}
+
 /// A sidebar panel provided by a plugin, ready to render.
 #[derive(Debug, Clone)]
 pub struct SidebarPanel {
@@ -235,6 +295,8 @@ impl AutocompleteState {
 /// to start the render loop. The terminal is restored on drop.
 pub struct TuiShell {
     config: TuiConfig,
+    /// Localized labels for all user-facing strings.
+    labels: TuiLabels,
     /// Active color theme for all rendering.
     theme: Box<dyn crate::theme::Theme>,
     state: TuiState,
@@ -293,6 +355,7 @@ impl TuiShell {
     pub fn new(config: TuiConfig) -> Self {
         Self {
             config,
+            labels: TuiLabels::default(),
             theme: Box::new(crate::theme::CatppuccinMocha),
             state: TuiState::Running,
             progress: 0,
@@ -344,6 +407,11 @@ impl TuiShell {
     /// Switches the active theme by config ID (e.g. `"dracula"`).
     pub fn set_theme(&mut self, id: &str) {
         self.theme = crate::theme::resolve_theme(id);
+    }
+
+    /// Sets the localized labels for all TUI strings.
+    pub fn set_labels(&mut self, labels: TuiLabels) {
+        self.labels = labels;
     }
 
     /// Sets the progress percentage (0-100).
@@ -1546,10 +1614,8 @@ impl TuiShell {
         let theme = self.theme();
         // Quit pending handled by modal now — no bottom bar override
         if self.quit_pending || self.help_modal_visible {
-            let spans = vec![Span::styled(
-                " Modal open — press a key ",
-                Style::default().fg(theme.text_dim()),
-            )];
+            let hint = format!(" {} ", self.labels.modal_open_hint);
+            let spans = vec![Span::styled(hint, Style::default().fg(theme.text_dim()))];
             frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
             return;
         }
@@ -1765,7 +1831,7 @@ impl TuiShell {
         lines.extend(logo_lines);
         lines.push(Line::raw(""));
         lines.push(Line::styled(
-            format!("  v{version} — Orchestration Runtime"),
+            format!("  v{version} — {}", self.labels.orchestration_runtime),
             Style::default().fg(theme.text_dim()),
         ));
         lines.push(Line::raw(""));
@@ -1775,10 +1841,13 @@ impl TuiShell {
         if has_config {
             lines.push(Line::from(vec![
                 Span::styled("  ✓ ", Style::default().fg(theme.success())),
-                Span::styled("Project configured", Style::default().fg(theme.text())),
+                Span::styled(
+                    self.labels.project_configured.as_str(),
+                    Style::default().fg(theme.text()),
+                ),
             ]));
             lines.push(Line::styled(
-                "  Type /run to start orchestration",
+                format!("  {}", self.labels.type_run),
                 Style::default()
                     .fg(theme.accent())
                     .add_modifier(Modifier::ITALIC),
@@ -1786,10 +1855,13 @@ impl TuiShell {
         } else {
             lines.push(Line::from(vec![
                 Span::styled("  ○ ", Style::default().fg(theme.warning())),
-                Span::styled("No project found", Style::default().fg(theme.text())),
+                Span::styled(
+                    self.labels.no_project_found.as_str(),
+                    Style::default().fg(theme.text()),
+                ),
             ]));
             lines.push(Line::styled(
-                "  Run 'ralph-engine init' to set up",
+                format!("  {}", self.labels.type_init),
                 Style::default()
                     .fg(theme.accent_dim())
                     .add_modifier(Modifier::ITALIC),
@@ -1847,7 +1919,7 @@ impl TuiShell {
             Line::raw(""),
             Line::from(vec![
                 Span::styled(
-                    "  Quit? ",
+                    format!("  {} ", self.labels.quit_question),
                     Style::default()
                         .fg(theme.warning())
                         .add_modifier(Modifier::BOLD),
@@ -1872,7 +1944,7 @@ impl TuiShell {
         let block = Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(theme.warning()))
-            .title(" Quit ")
+            .title(format!(" {} ", self.labels.quit_title))
             .title_style(
                 Style::default()
                     .fg(theme.warning())
@@ -1900,7 +1972,7 @@ impl TuiShell {
 
         // Navigation keys
         lines.push(Line::styled(
-            "  Navigation",
+            format!("  {}", self.labels.nav_heading),
             Style::default()
                 .fg(theme.text_bright())
                 .add_modifier(Modifier::BOLD),
@@ -1923,7 +1995,7 @@ impl TuiShell {
 
         // Action keys
         lines.push(Line::styled(
-            "  Actions",
+            format!("  {}", self.labels.actions_heading),
             Style::default()
                 .fg(theme.text_bright())
                 .add_modifier(Modifier::BOLD),
@@ -1957,7 +2029,7 @@ impl TuiShell {
         if !plugin_keys.is_empty() {
             lines.push(Line::raw(""));
             lines.push(Line::styled(
-                "  Plugins",
+                format!("  {}", self.labels.plugins_heading),
                 Style::default()
                     .fg(theme.text_bright())
                     .add_modifier(Modifier::BOLD),
@@ -1979,7 +2051,7 @@ impl TuiShell {
         if self.input_enabled {
             lines.push(Line::raw(""));
             lines.push(Line::styled(
-                "  Type / for slash commands",
+                format!("  {}", self.labels.slash_hint),
                 Style::default()
                     .fg(theme.text_dim())
                     .add_modifier(Modifier::ITALIC),
@@ -1988,7 +2060,7 @@ impl TuiShell {
 
         lines.push(Line::raw(""));
         lines.push(Line::styled(
-            "  Press any key to close",
+            format!("  {}", self.labels.press_any_key),
             Style::default().fg(theme.border()),
         ));
 
@@ -2004,7 +2076,7 @@ impl TuiShell {
         let block = Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(theme.accent()))
-            .title(" Help ")
+            .title(format!(" {} ", self.labels.help_title))
             .title_style(
                 Style::default()
                     .fg(theme.accent())

@@ -42,6 +42,7 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
     };
 
     let mut shell = re_tui::TuiShell::new(config);
+    shell.set_labels(build_labels(locale));
     let cwd = std::env::current_dir().unwrap_or_default();
 
     // Enable input bar — the dashboard is interactive
@@ -229,5 +230,42 @@ fn detect_agent_id(locale: &str) -> String {
             .to_owned()
     } else {
         i18n::tui_no_project_label(locale).to_owned()
+    }
+}
+
+/// Builds localized TUI labels from the CLI i18n system.
+fn build_labels(locale: &str) -> re_tui::TuiLabels {
+    re_tui::TuiLabels {
+        project_configured: i18n::tui_project_configured(locale).to_owned(),
+        no_project_found: i18n::tui_no_project_found(locale).to_owned(),
+        type_run: i18n::tui_type_run(locale).to_owned(),
+        type_init: i18n::tui_type_init(locale).to_owned(),
+        orchestration_runtime: i18n::tui_orchestration_runtime(locale).to_owned(),
+        waiting_session: i18n::tui_waiting_session(locale).to_owned(),
+        help_title: i18n::tui_help_keys_heading(locale).to_owned(),
+        nav_heading: i18n::tui_help_keys_heading(locale).to_owned(),
+        actions_heading: i18n::tui_help_commands_heading(locale).to_owned(),
+        plugins_heading: i18n::tui_help_plugin_keys(locale).to_owned(),
+        slash_hint: i18n::tui_help_type_slash(locale).to_owned(),
+        press_any_key: if locale == "pt-br" {
+            "Pressione qualquer tecla para fechar".to_owned()
+        } else {
+            "Press any key to close".to_owned()
+        },
+        quit_title: if locale == "pt-br" {
+            "Sair".to_owned()
+        } else {
+            "Quit".to_owned()
+        },
+        quit_question: if locale == "pt-br" {
+            "Sair?".to_owned()
+        } else {
+            "Quit?".to_owned()
+        },
+        modal_open_hint: if locale == "pt-br" {
+            "Modal aberto — pressione uma tecla".to_owned()
+        } else {
+            "Modal open — press a key".to_owned()
+        },
     }
 }
