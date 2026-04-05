@@ -19,7 +19,8 @@ confidence-threshold = 0.8
 
 [bans]
 multiple-versions = "warn"
-wildcards = "deny"
+# TODO: restore to "deny" after ratatui-themekit is published to crates.io
+wildcards = "warn"
 
 [advisories]
 ignore = []
@@ -28,3 +29,4 @@ ignore = []
 unknown-registry = "deny"
 unknown-git = "deny"
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = ["https://github.com/diegorodrigo90/ratatui-themekit"]

@@ -2114,6 +2114,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ratatui-themekit"
+version = "0.1.0"
+source = "git+https://github.com/diegorodrigo90/ratatui-themekit.git?rev=87d69af#87d69af71af0abd13f3325aed7bd3ce98d7e6b81"
+dependencies = [
+ "ratatui",
+]
+
+[[package]]
 name = "ratatui-widgets"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2325,6 +2333,7 @@ dependencies = [
  "base64",
  "directories",
  "ratatui",
+ "ratatui-themekit",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",
