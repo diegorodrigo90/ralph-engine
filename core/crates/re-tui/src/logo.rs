@@ -20,17 +20,22 @@ pub fn build_logo_lines(
     width: u16,
     theme: &dyn Theme,
     logo_color: Option<ratatui::style::Color>,
+    tagline: &str,
 ) -> Vec<Line<'static>> {
     let color = logo_color.unwrap_or_else(|| theme.accent());
     if width < 60 {
         build_compact_logo(theme, color)
     } else {
-        build_full_logo(theme, color)
+        build_full_logo(theme, color, tagline)
     }
 }
 
 /// Full logo with orbit icon + text (for terminals >= 60 cols).
-fn build_full_logo(theme: &dyn Theme, color: ratatui::style::Color) -> Vec<Line<'static>> {
+fn build_full_logo(
+    theme: &dyn Theme,
+    color: ratatui::style::Color,
+    tagline: &str,
+) -> Vec<Line<'static>> {
     let b = Style::default().fg(color);
     let bb = Style::default().fg(color).add_modifier(Modifier::BOLD);
     let w = Style::default()
@@ -55,7 +60,7 @@ fn build_full_logo(theme: &dyn Theme, color: ratatui::style::Color) -> Vec<Line<
         Line::from(vec![
             Span::styled("    ╰╮", b),
             Span::styled("     ╭╯", b),
-            Span::styled("    Autonomous AI Dev Loop", d),
+            Span::styled(format!("    {tagline}"), d),
         ]),
         Line::from(vec![Span::styled("  ●", bb), Span::styled("  ╰───╯", b)]),
         Line::from(""),
@@ -87,19 +92,19 @@ mod tests {
 
     #[test]
     fn full_logo_has_lines() {
-        let lines = build_logo_lines(80, &CatppuccinMocha, None);
+        let lines = build_logo_lines(80, &CatppuccinMocha, None, "Test");
         assert!(lines.len() >= 5, "full logo should have 5+ lines");
     }
 
     #[test]
     fn compact_logo_has_lines() {
-        let lines = build_logo_lines(50, &CatppuccinMocha, None);
+        let lines = build_logo_lines(50, &CatppuccinMocha, None, "Test");
         assert!(lines.len() >= 2, "compact logo should have 2+ lines");
     }
 
     #[test]
     fn full_logo_contains_brand_name() {
-        let lines = build_logo_lines(80, &CatppuccinMocha, None);
+        let lines = build_logo_lines(80, &CatppuccinMocha, None, "Test");
         let text: String = lines
             .iter()
             .flat_map(|l| l.spans.iter().map(|s| s.content.to_string()))
@@ -110,7 +115,7 @@ mod tests {
 
     #[test]
     fn compact_logo_contains_brand_name() {
-        let lines = build_logo_lines(50, &CatppuccinMocha, None);
+        let lines = build_logo_lines(50, &CatppuccinMocha, None, "Test");
         let text: String = lines
             .iter()
             .flat_map(|l| l.spans.iter().map(|s| s.content.to_string()))
@@ -121,8 +126,8 @@ mod tests {
     #[test]
     fn logo_responsive_threshold() {
         let t = CatppuccinMocha;
-        let full = build_logo_lines(60, &t, None);
-        let compact = build_logo_lines(59, &t, None);
+        let full = build_logo_lines(60, &t, None, "Test");
+        let compact = build_logo_lines(59, &t, None, "Test");
         assert!(full.len() > compact.len());
     }
 }

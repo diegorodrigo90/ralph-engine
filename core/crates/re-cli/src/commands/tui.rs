@@ -43,6 +43,8 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
 
     let mut shell = re_tui::TuiShell::new(config);
     shell.set_labels(build_labels(locale));
+    // Dashboard starts idle (no agent running)
+    shell.set_state(re_tui::TuiState::Complete);
     let cwd = std::env::current_dir().unwrap_or_default();
 
     // Enable input bar — the dashboard is interactive
@@ -266,6 +268,48 @@ fn build_labels(locale: &str) -> re_tui::TuiLabels {
             "Modal aberto — pressione uma tecla".to_owned()
         } else {
             "Modal open — press a key".to_owned()
+        },
+        state_running: if locale == "pt-br" {
+            "EXECUTANDO"
+        } else {
+            "RUNNING"
+        }
+        .to_owned(),
+        state_paused: if locale == "pt-br" {
+            "PAUSADO"
+        } else {
+            "PAUSED"
+        }
+        .to_owned(),
+        state_complete: if locale == "pt-br" {
+            "COMPLETO"
+        } else {
+            "COMPLETE"
+        }
+        .to_owned(),
+        state_error: if locale == "pt-br" { "ERRO" } else { "ERROR" }.to_owned(),
+        pause_label: if locale == "pt-br" { "pausar" } else { "pause" }.to_owned(),
+        help_label: if locale == "pt-br" { "ajuda" } else { "help" }.to_owned(),
+        quit_label: if locale == "pt-br" { "sair" } else { "quit" }.to_owned(),
+        control_state: if locale == "pt-br" { "Estado" } else { "State" }.to_owned(),
+        control_work: if locale == "pt-br" { "Tarefa" } else { "Work" }.to_owned(),
+        tools_label: if locale == "pt-br" {
+            "Ferramentas"
+        } else {
+            "Tools"
+        }
+        .to_owned(),
+        lines_label: if locale == "pt-br" { "Linhas" } else { "Lines" }.to_owned(),
+        progress_label: if locale == "pt-br" {
+            "Progresso"
+        } else {
+            "Progress"
+        }
+        .to_owned(),
+        logo_tagline: if locale == "pt-br" {
+            "Loop Autônomo de Desenvolvimento IA".to_owned()
+        } else {
+            "Autonomous AI Dev Loop".to_owned()
         },
     }
 }
