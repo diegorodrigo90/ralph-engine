@@ -735,6 +735,55 @@ pub fn agent_context_window_size(agent_plugin_id: &str) -> usize {
         .unwrap_or(0)
 }
 
+// ── Config management discovery ─────────────────────────────────
+
+/// Applies a preset from the first plugin that matches the preset ID.
+///
+/// Returns the list of files created (path → contents).
+pub fn apply_preset(
+    preset_id: &str,
+    project_root: &std::path::Path,
+) -> Result<Vec<(String, String)>, String> {
+    let snapshot = official_runtime_snapshot();
+
+    for plugin in &snapshot.plugins {
+        if (plugin.descriptor.id == preset_id || plugin.descriptor.id.ends_with(preset_id))
+            && let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id)
+        {
+            return runtime
+                .apply_preset(project_root)
+                .map_err(|e| e.to_string());
+        }
+    }
+
+    Err(format!("No preset plugin found for '{preset_id}'"))
+}
+
+/// Runs config migration on all plugins.
+///
+/// Each plugin migrates its own config sections. Returns the final
+/// config content after all migrations.
+pub fn migrate_config(
+    config_content: &str,
+    from_version: &str,
+    to_version: &str,
+) -> Option<String> {
+    let snapshot = official_runtime_snapshot();
+    let mut current = config_content.to_owned();
+    let mut changed = false;
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id)
+            && let Some(migrated) = runtime.migrate_config(&current, from_version, to_version)
+        {
+            current = migrated;
+            changed = true;
+        }
+    }
+
+    if changed { Some(current) } else { None }
+}
+
 // ── Agent routing discovery ──────────────────────────────────────
 
 /// Classifies a task and recommends an agent using routing plugins.
