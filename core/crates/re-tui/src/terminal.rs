@@ -240,6 +240,8 @@ pub struct TuiShell {
     activity_lines: Vec<String>,
     /// Block-based activity feed (new orchestration renderer).
     feed: crate::feed::Feed,
+    /// Quality gate pipeline for orchestration runs.
+    indicator_panel: crate::indicators::IndicatorPanel,
     tool_count: usize,
     should_quit: bool,
     quit_pending: bool,
@@ -267,6 +269,7 @@ impl TuiShell {
             progress: 0,
             activity_lines: Vec::new(),
             feed: crate::feed::Feed::new(),
+            indicator_panel: crate::indicators::IndicatorPanel::new(),
             tool_count: 0,
             should_quit: false,
             quit_pending: false,
@@ -431,6 +434,17 @@ impl TuiShell {
     /// Returns a mutable reference to the block-based feed.
     pub fn feed_mut(&mut self) -> &mut crate::feed::Feed {
         &mut self.feed
+    }
+
+    /// Returns a reference to the gate pipeline.
+    #[must_use]
+    pub fn indicator_panel(&self) -> &crate::indicators::IndicatorPanel {
+        &self.indicator_panel
+    }
+
+    /// Returns a mutable reference to the gate pipeline.
+    pub fn indicator_panel_mut(&mut self) -> &mut crate::indicators::IndicatorPanel {
+        &mut self.indicator_panel
     }
 
     /// Runs the TUI demo loop.
@@ -944,17 +958,23 @@ impl TuiShell {
 
     /// Renders the metrics bar.
     fn render_metrics(&self, frame: &mut Frame<'_>, area: Rect) {
-        let metrics = Line::from(vec![
-            Span::styled(
-                format!(" Tools: {} ", self.tool_count),
-                Style::default().fg(Color::Cyan),
-            ),
-            Span::raw("│ "),
-            Span::raw(format!("Lines: {} ", self.activity_lines.len())),
-            Span::raw("│ "),
-            Span::raw(format!("Progress: {}% ", self.progress)),
-        ]);
-        frame.render_widget(Paragraph::new(metrics), area);
+        // When gates are active, show the gate bar. Otherwise show tool metrics.
+        if !self.indicator_panel.is_empty() {
+            let indicator_bar = self.indicator_panel.render_bar();
+            frame.render_widget(Paragraph::new(indicator_bar), area);
+        } else {
+            let metrics = Line::from(vec![
+                Span::styled(
+                    format!(" Tools: {} ", self.tool_count),
+                    Style::default().fg(Color::Cyan),
+                ),
+                Span::raw("│ "),
+                Span::raw(format!("Lines: {} ", self.activity_lines.len())),
+                Span::raw("│ "),
+                Span::raw(format!("Progress: {}% ", self.progress)),
+            ]);
+            frame.render_widget(Paragraph::new(metrics), area);
+        }
     }
 
     /// Renders the chat input bar.

@@ -166,6 +166,18 @@ impl FeedBlock {
     }
 }
 
+/// A tool-to-block-kind mapping entry, provided by plugins.
+///
+/// Plugins classify their tools at registration time so core
+/// never needs to hardcode tool names (Model B compliance).
+#[derive(Debug, Clone)]
+pub struct ToolKindMapping {
+    /// Tool name as reported by the agent stream (e.g. "file-reader", "shell-exec").
+    pub tool_name: String,
+    /// Block kind to render this tool as.
+    pub kind: BlockKind,
+}
+
 /// Manages the block-based activity feed.
 ///
 /// The feed accumulates blocks from agent events. It tracks which
@@ -175,6 +187,8 @@ impl FeedBlock {
 pub struct Feed {
     /// All blocks in chronological order.
     blocks: Vec<FeedBlock>,
+    /// Plugin-provided tool-to-kind mappings (Model B).
+    tool_mappings: Vec<ToolKindMapping>,
     /// Maximum number of blocks to keep (ring buffer behavior).
     max_blocks: usize,
     /// Scroll offset (0 = bottom, positive = scrolled up).
@@ -187,9 +201,31 @@ impl Feed {
     pub fn new() -> Self {
         Self {
             blocks: Vec::new(),
+            tool_mappings: Vec::new(),
             max_blocks: 5_000,
             scroll_offset: 0,
         }
+    }
+
+    /// Registers tool-to-kind mappings from a plugin.
+    ///
+    /// Call this during setup — the active agent plugin declares
+    /// how its tools should be rendered (Model B: plugins classify,
+    /// core renders).
+    pub fn register_tool_mappings(&mut self, mappings: Vec<ToolKindMapping>) {
+        self.tool_mappings.extend(mappings);
+    }
+
+    /// Resolves a tool name to a block kind using registered mappings.
+    ///
+    /// Falls back to `AgentText` if no mapping exists — core never
+    /// assumes what a tool name means.
+    #[must_use]
+    pub fn resolve_tool_kind(&self, tool_name: &str) -> BlockKind {
+        self.tool_mappings
+            .iter()
+            .find(|m| m.tool_name == tool_name)
+            .map_or(BlockKind::AgentText, |m| m.kind)
     }
 
     /// Returns a slice of all blocks.
@@ -237,11 +273,6 @@ impl Feed {
         if self.blocks.len() > self.max_blocks {
             let drain_count = self.blocks.len() - self.max_blocks;
             self.blocks.drain(..drain_count);
-        }
-
-        // Auto-scroll to bottom when new block arrives (unless user scrolled up)
-        if self.scroll_offset == 0 {
-            // Already at bottom, stay there
         }
     }
 
@@ -318,7 +349,7 @@ pub fn process_agent_event(feed: &mut Feed, event: &crate::events::AgentEvent) {
 
     match event {
         AgentEvent::ToolUse { name } => {
-            let kind = tool_name_to_kind(name);
+            let kind = feed.resolve_tool_kind(name);
             let title = name.clone();
             feed.push_block(FeedBlock::new(kind, title));
         }
@@ -333,7 +364,7 @@ pub fn process_agent_event(feed: &mut Feed, event: &crate::events::AgentEvent) {
             };
 
             if !finalized {
-                let kind = tool_name_to_kind(name);
+                let kind = feed.resolve_tool_kind(name);
                 let mut block = FeedBlock::completed(kind, name.clone());
                 block.success = Some(*success);
                 feed.blocks.push(block);
@@ -359,16 +390,6 @@ pub fn process_agent_event(feed: &mut Feed, event: &crate::events::AgentEvent) {
                 feed.append_to_active(line.clone());
             }
         }
-    }
-}
-
-/// Maps a tool name to a [`BlockKind`].
-fn tool_name_to_kind(name: &str) -> BlockKind {
-    match name {
-        "Read" | "Glob" | "Grep" => BlockKind::FileRead,
-        "Edit" | "Write" | "NotebookEdit" => BlockKind::FileEdit,
-        "Bash" => BlockKind::Command,
-        _ => BlockKind::AgentText,
     }
 }
 
@@ -586,33 +607,92 @@ mod tests {
         assert!(!feed.blocks()[0].active);
     }
 
-    // ── process_agent_event ──
+    // ── Tool kind mapping (Model B) ──
 
     #[test]
-    fn tool_use_creates_block() {
+    fn resolve_tool_kind_uses_registered_mappings() {
         let mut feed = Feed::new();
-        let event = AgentEvent::ToolUse {
-            name: "Read".into(),
-        };
-        process_agent_event(&mut feed, &event);
+        feed.register_tool_mappings(vec![
+            ToolKindMapping {
+                tool_name: "tool-a".into(),
+                kind: BlockKind::FileRead,
+            },
+            ToolKindMapping {
+                tool_name: "tool-b".into(),
+                kind: BlockKind::Command,
+            },
+        ]);
+        assert_eq!(feed.resolve_tool_kind("tool-a"), BlockKind::FileRead);
+        assert_eq!(feed.resolve_tool_kind("tool-b"), BlockKind::Command);
+    }
+
+    #[test]
+    fn resolve_tool_kind_falls_back_to_agent_text() {
+        let feed = Feed::new();
+        assert_eq!(feed.resolve_tool_kind("unknown-tool"), BlockKind::AgentText);
+    }
+
+    // ── process_agent_event ──
+
+    /// Creates a feed with test tool mappings (simulates plugin registration).
+    fn feed_with_test_mappings() -> Feed {
+        let mut feed = Feed::new();
+        feed.register_tool_mappings(vec![
+            ToolKindMapping {
+                tool_name: "file-reader".into(),
+                kind: BlockKind::FileRead,
+            },
+            ToolKindMapping {
+                tool_name: "file-writer".into(),
+                kind: BlockKind::FileEdit,
+            },
+            ToolKindMapping {
+                tool_name: "shell".into(),
+                kind: BlockKind::Command,
+            },
+        ]);
+        feed
+    }
+
+    #[test]
+    fn tool_use_creates_block_with_registered_kind() {
+        let mut feed = feed_with_test_mappings();
+        process_agent_event(
+            &mut feed,
+            &AgentEvent::ToolUse {
+                name: "file-reader".into(),
+            },
+        );
         assert_eq!(feed.len(), 1);
         assert_eq!(feed.blocks()[0].kind, BlockKind::FileRead);
         assert!(feed.blocks()[0].active);
     }
 
     #[test]
-    fn tool_result_finalizes_block() {
-        let mut feed = Feed::new();
+    fn tool_use_unknown_falls_back_to_agent_text() {
+        let mut feed = Feed::new(); // no mappings
         process_agent_event(
             &mut feed,
             &AgentEvent::ToolUse {
-                name: "Bash".into(),
+                name: "custom-tool".into(),
+            },
+        );
+        assert_eq!(feed.blocks()[0].kind, BlockKind::AgentText);
+    }
+
+    #[test]
+    fn tool_result_finalizes_block() {
+        let mut feed = feed_with_test_mappings();
+        process_agent_event(
+            &mut feed,
+            &AgentEvent::ToolUse {
+                name: "shell".into(),
             },
         );
         process_agent_event(
             &mut feed,
             &AgentEvent::ToolResult {
-                name: "Bash".into(),
+                name: "shell".into(),
                 success: true,
             },
         );
@@ -623,11 +703,11 @@ mod tests {
 
     #[test]
     fn text_delta_appends_to_active_block() {
-        let mut feed = Feed::new();
+        let mut feed = feed_with_test_mappings();
         process_agent_event(
             &mut feed,
             &AgentEvent::ToolUse {
-                name: "Read".into(),
+                name: "file-reader".into(),
             },
         );
         process_agent_event(&mut feed, &AgentEvent::TextDelta("file content".into()));
@@ -667,20 +747,20 @@ mod tests {
     }
 
     #[test]
-    fn full_tool_cycle_read_then_edit() {
-        let mut feed = Feed::new();
+    fn full_tool_cycle_with_registered_mappings() {
+        let mut feed = feed_with_test_mappings();
 
         // Agent reads a file
         process_agent_event(
             &mut feed,
             &AgentEvent::ToolUse {
-                name: "Read".into(),
+                name: "file-reader".into(),
             },
         );
         process_agent_event(
             &mut feed,
             &AgentEvent::ToolResult {
-                name: "Read".into(),
+                name: "file-reader".into(),
                 success: true,
             },
         );
@@ -688,11 +768,11 @@ mod tests {
         // Agent thinks
         process_agent_event(&mut feed, &AgentEvent::TextDelta("Analyzing...".into()));
 
-        // Agent edits a file
+        // Agent writes a file
         process_agent_event(
             &mut feed,
             &AgentEvent::ToolUse {
-                name: "Edit".into(),
+                name: "file-writer".into(),
             },
         );
         process_agent_event(&mut feed, &AgentEvent::TextDelta("- old line".into()));
@@ -700,7 +780,7 @@ mod tests {
         process_agent_event(
             &mut feed,
             &AgentEvent::ToolResult {
-                name: "Edit".into(),
+                name: "file-writer".into(),
                 success: true,
             },
         );
@@ -708,23 +788,11 @@ mod tests {
         // Agent completes
         process_agent_event(&mut feed, &AgentEvent::Complete { is_error: false });
 
-        // Read + AgentText + FileEdit + System(complete)
         assert_eq!(feed.len(), 4);
         assert_eq!(feed.blocks()[0].kind, BlockKind::FileRead);
         assert_eq!(feed.blocks()[1].kind, BlockKind::AgentText);
         assert_eq!(feed.blocks()[2].kind, BlockKind::FileEdit);
-        assert_eq!(feed.blocks()[2].content_len(), 2); // diff lines
+        assert_eq!(feed.blocks()[2].content_len(), 2);
         assert_eq!(feed.blocks()[3].kind, BlockKind::System);
-    }
-
-    #[test]
-    fn tool_name_mapping() {
-        assert_eq!(tool_name_to_kind("Read"), BlockKind::FileRead);
-        assert_eq!(tool_name_to_kind("Glob"), BlockKind::FileRead);
-        assert_eq!(tool_name_to_kind("Grep"), BlockKind::FileRead);
-        assert_eq!(tool_name_to_kind("Edit"), BlockKind::FileEdit);
-        assert_eq!(tool_name_to_kind("Write"), BlockKind::FileEdit);
-        assert_eq!(tool_name_to_kind("Bash"), BlockKind::Command);
-        assert_eq!(tool_name_to_kind("SomethingElse"), BlockKind::AgentText);
     }
 }
