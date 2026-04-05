@@ -113,7 +113,7 @@ jobs:
           cargo llvm-cov --workspace --all-features --lcov --output-path coverage/lcov.info
       - name: Upload Rust coverage artifact
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: rust-coverage-lcov
           path: coverage/lcov.info
@@ -305,7 +305,7 @@ jobs:
         shell: bash
         run: dist build --tag "v${{ steps.release_version.outputs.version }}"
       - name: Upload release candidate artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: ${{ matrix.artifact_name }}
           path: target/distrib/*
@@ -357,21 +357,21 @@ jobs:
         shell: bash
         run: ./scripts/verify-release-assets.sh .release/candidates/windows
       - name: Publish approved Linux release artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: release-dist-ubuntu
           path: .release/candidates/ubuntu/*
           if-no-files-found: error
           retention-days: 14
       - name: Publish approved macOS release artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: release-dist-macos
           path: .release/candidates/macos/*
           if-no-files-found: error
           retention-days: 14
       - name: Publish approved Windows release artifacts
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: release-dist-windows
           path: .release/candidates/windows/*

@@ -186,7 +186,7 @@ jobs:
         shell: bash
         run: ./scripts/verify-release-assets.sh .release/assets --require-all-targets
       - name: Upload staged release assets
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: approved-release-assets
           path: .release/assets/*
@@ -302,7 +302,7 @@ jobs:
           node ./scripts/render-homebrew-formula.mjs --version "$VERSION" --dist-dir .release/assets --output .release/homebrew/ralph-engine.rb
       - name: Upload staged Homebrew formula
         if: inputs.publish_homebrew
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
         with:
           name: staged-homebrew-formula
           path: .release/homebrew/ralph-engine.rb
