@@ -496,6 +496,18 @@ impl PluginRuntime for ClaudeRuntime {
             zone_hint: "sidebar".to_owned(),
         }]
     }
+
+    /// Reports current session usage from Claude API responses.
+    ///
+    /// Claude's API returns `usage.input_tokens` and `usage.output_tokens`
+    /// in each message response. Cost is calculated here using known
+    /// model pricing — core never knows about Anthropic pricing.
+    fn report_usage(&self) -> Option<re_plugin::UsageReport> {
+        // In real use, this reads from the active session's accumulated
+        // token counts (parsed from stream-json events). For now, returns
+        // None until the stream parser wires usage events.
+        None
+    }
 }
 
 /// Exports the most recent Claude Code session as `PortableContext`.

@@ -417,8 +417,14 @@ pub struct TuiShell {
     /// Quality gate pipeline for orchestration runs.
     indicator_panel: crate::indicators::IndicatorPanel,
     tool_count: usize,
-    /// Approximate token count (set by caller from agent stream).
+    /// Approximate token count (set by agent plugin via stream).
     token_count: usize,
+    /// Cost label from agent plugin (e.g. "$0.42", "extra usage").
+    /// Core never calculates — plugin owns the format and logic.
+    cost_label: Option<String>,
+    /// Whether the agent is in "extra usage" (over budget/plan).
+    /// Set by agent plugin. Core only renders the warning.
+    extra_usage: bool,
     /// Frame counter for spinner animation.
     tick: usize,
     should_quit: bool,
@@ -476,6 +482,8 @@ impl TuiShell {
             indicator_panel: crate::indicators::IndicatorPanel::new(),
             tool_count: 0,
             token_count: 0,
+            cost_label: None,
+            extra_usage: false,
             tick: 0,
             should_quit: false,
             quit_pending: false,
@@ -590,6 +598,22 @@ impl TuiShell {
     /// Sets the token count (from agent stream metadata).
     pub fn set_token_count(&mut self, count: usize) {
         self.token_count = count;
+    }
+
+    /// Sets the cost label from the agent plugin (e.g. "$0.42", "~$1.20").
+    ///
+    /// Core never calculates cost — the agent plugin owns the format,
+    /// currency, and pricing logic. Core just renders the string.
+    pub fn set_cost_label(&mut self, label: String) {
+        self.cost_label = Some(label);
+    }
+
+    /// Marks whether the agent is in "extra usage" mode (over plan/budget).
+    ///
+    /// When true, the header shows a warning indicator. The agent plugin
+    /// determines this from its own API response (e.g., Claude's billing).
+    pub fn set_extra_usage(&mut self, extra: bool) {
+        self.extra_usage = extra;
     }
 
     /// Sets the available agent IDs for the switcher popup.
@@ -720,7 +744,7 @@ impl TuiShell {
                 self.tool_count += 1;
             }
             // Simulate token consumption (~500-2000 per action)
-            self.token_count += match next_kind {
+            let tokens_delta = match next_kind {
                 crate::feed::BlockKind::Thinking => 1200,
                 crate::feed::BlockKind::FileEdit => 800,
                 crate::feed::BlockKind::FileRead => 300,
@@ -728,6 +752,17 @@ impl TuiShell {
                 crate::feed::BlockKind::AgentText => 600,
                 _ => 100,
             };
+            self.token_count += tokens_delta;
+
+            // Simulate cost tracking (agent plugin responsibility in real use)
+            // Pricing: ~$3/M input + ~$15/M output ≈ ~$0.009 per 1k tokens avg
+            let cost_cents = (self.token_count as f64 * 0.9) / 1000.0;
+            self.cost_label = Some(format!("${:.2}", cost_cents / 100.0));
+
+            // Simulate extra usage trigger at ~8k tokens
+            if self.token_count > 8000 && !self.extra_usage {
+                self.extra_usage = true;
+            }
 
             // Update progress
             let completed = self.pending_total - self.pending_blocks.len();
@@ -1429,6 +1464,28 @@ impl TuiShell {
             spans.push(Span::styled(
                 format!(" │ {} tools", self.tool_count),
                 Style::default().fg(theme.text_dim()),
+            ));
+        }
+
+        // Cost label (from agent plugin — core doesn't calculate)
+        if let Some(ref cost) = self.cost_label {
+            spans.push(Span::styled(
+                format!(" │ {cost}"),
+                Style::default().fg(if self.extra_usage {
+                    theme.warning()
+                } else {
+                    theme.text_dim()
+                }),
+            ));
+        }
+
+        // Extra usage warning
+        if self.extra_usage {
+            spans.push(Span::styled(
+                " ⚠ extra",
+                Style::default()
+                    .fg(theme.warning())
+                    .add_modifier(Modifier::BOLD),
             ));
         }
 

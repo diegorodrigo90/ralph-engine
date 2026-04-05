@@ -1701,6 +1701,37 @@ pub trait PluginRuntime: Send + Sync {
             format!("Plugin '{}' does not provide presets", self.plugin_id()),
         ))
     }
+
+    /// Reports current usage metrics for the active session.
+    ///
+    /// Agent plugins track token usage, cost, and billing status.
+    /// Core displays the report in the TUI header — never calculates
+    /// cost or interprets billing state (Model B).
+    ///
+    /// Default: no usage data available.
+    fn report_usage(&self) -> Option<UsageReport> {
+        None
+    }
+}
+
+/// Usage metrics reported by an agent plugin.
+///
+/// Core renders these values as-is. The plugin owns all calculations
+/// (pricing, currency, budget thresholds, extra usage detection).
+#[derive(Clone, Debug, Default)]
+pub struct UsageReport {
+    /// Input tokens consumed in the current session.
+    pub input_tokens: usize,
+    /// Output tokens generated in the current session.
+    pub output_tokens: usize,
+    /// Human-readable cost label (e.g. "$0.42", "~R$2.10").
+    /// Plugin formats this — core never parses or calculates.
+    pub cost_label: Option<String>,
+    /// Whether the agent is operating under "extra usage" billing.
+    /// Plugin determines this from its API/billing response.
+    pub extra_usage: bool,
+    /// Optional model name for display (e.g. "claude-opus-4-6").
+    pub model: Option<String>,
 }
 
 /// A slash command discovered from an agent CLI.
