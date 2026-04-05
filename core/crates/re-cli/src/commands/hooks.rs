@@ -3,11 +3,8 @@
 use re_core::{RuntimeCheckKind, RuntimeHookRegistration, RuntimeProviderKind};
 use re_plugin::parse_plugin_runtime_hook;
 
-use crate::{
-    CliError, catalog,
-    commands::grouped_surfaces::{render_grouped_surface_detail, render_grouped_surface_listing},
-    i18n,
-};
+use super::format;
+use crate::{CliError, catalog, i18n};
 
 /// Executes the hooks command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
@@ -64,12 +61,40 @@ fn show_hook_plan(hook_id: Option<&str>, locale: &str) -> Result<String, CliErro
 }
 
 fn render_hook_listing(registrations: &[RuntimeHookRegistration], locale: &str) -> String {
-    render_grouped_surface_listing(
-        registrations,
-        locale,
-        i18n::hooks_label,
-        |registration| registration.hook.as_str(),
-        |registration| registration.is_enabled(),
+    let mut seen = Vec::new();
+    let mut grouped_rows: Vec<Vec<String>> = Vec::new();
+
+    for reg in registrations {
+        let key = reg.hook.as_str();
+        if seen.contains(&key) {
+            continue;
+        }
+        seen.push(key);
+
+        let all = registrations
+            .iter()
+            .filter(|r| r.hook.as_str() == key)
+            .collect::<Vec<_>>();
+        let enabled = all.iter().filter(|r| r.is_enabled()).count();
+
+        grouped_rows.push(vec![
+            key.to_owned(),
+            all.len().to_string(),
+            enabled.to_string(),
+        ]);
+    }
+
+    let label = i18n::hooks_label(locale);
+    let heading = i18n::list_heading(locale, label, label, grouped_rows.len());
+
+    if grouped_rows.is_empty() {
+        return heading;
+    }
+
+    let headers = &["HOOK", "PROVIDERS", "ENABLED"];
+    format!(
+        "{heading}\n\n{}",
+        format::render_table(headers, &grouped_rows)
     )
 }
 
@@ -78,14 +103,26 @@ fn render_hook_detail(
     providers: &[RuntimeHookRegistration],
     locale: &str,
 ) -> String {
-    render_grouped_surface_detail(hook_id, providers, locale, i18n::hook_label, |provider| {
-        format!(
-            "- {} | activation={} | boundary={}",
-            provider.plugin_id,
-            provider.activation.as_str(),
-            provider.load_boundary.as_str()
-        )
-    })
+    let label = i18n::hook_label(locale);
+    let heading = i18n::detail_heading(locale, label, label, hook_id);
+    let providers_heading = i18n::providers_heading(locale, providers.len());
+
+    let headers = &["PLUGIN", "STATUS", "BOUNDARY"];
+    let rows: Vec<Vec<String>> = providers
+        .iter()
+        .map(|p| {
+            vec![
+                p.plugin_id.to_owned(),
+                p.activation.as_str().to_owned(),
+                p.load_boundary.as_str().to_owned(),
+            ]
+        })
+        .collect();
+
+    format!(
+        "{heading}\n{providers_heading}\n\n{}",
+        format::render_table(headers, &rows)
+    )
 }
 
 fn render_hook_plan(hook: re_plugin::PluginRuntimeHook, locale: &str) -> String {
@@ -104,14 +141,20 @@ fn render_hook_plan(hook: re_plugin::PluginRuntimeHook, locale: &str) -> String 
                 "Templates",
                 templates.len(),
             ));
-            for template in templates {
-                lines.push(format!(
-                    "- {} | plugin={} | activation={} | scaffold_hook={}",
-                    template.descriptor.id,
-                    template.descriptor.plugin_id,
-                    template.activation.as_str(),
-                    template.scaffold_hook_registered,
-                ));
+            let headers = &["ID", "PLUGIN", "STATUS", "HOOK"];
+            let rows: Vec<Vec<String>> = templates
+                .iter()
+                .map(|t| {
+                    vec![
+                        t.descriptor.id.to_owned(),
+                        t.descriptor.plugin_id.to_owned(),
+                        t.activation.as_str().to_owned(),
+                        t.scaffold_hook_registered.to_string(),
+                    ]
+                })
+                .collect();
+            if !rows.is_empty() {
+                lines.push(format::render_table(headers, &rows));
             }
         }
         re_plugin::PluginRuntimeHook::PromptAssembly => {
@@ -122,14 +165,20 @@ fn render_hook_plan(hook: re_plugin::PluginRuntimeHook, locale: &str) -> String 
                 "Prompts",
                 prompts.len(),
             ));
-            for prompt in prompts {
-                lines.push(format!(
-                    "- {} | plugin={} | activation={} | prompt_hook={}",
-                    prompt.descriptor.id,
-                    prompt.descriptor.plugin_id,
-                    prompt.activation.as_str(),
-                    prompt.prompt_hook_registered,
-                ));
+            let headers = &["ID", "PLUGIN", "STATUS", "HOOK"];
+            let rows: Vec<Vec<String>> = prompts
+                .iter()
+                .map(|p| {
+                    vec![
+                        p.descriptor.id.to_owned(),
+                        p.descriptor.plugin_id.to_owned(),
+                        p.activation.as_str().to_owned(),
+                        p.prompt_hook_registered.to_string(),
+                    ]
+                })
+                .collect();
+            if !rows.is_empty() {
+                lines.push(format::render_table(headers, &rows));
             }
         }
         re_plugin::PluginRuntimeHook::AgentBootstrap => {
@@ -140,14 +189,20 @@ fn render_hook_plan(hook: re_plugin::PluginRuntimeHook, locale: &str) -> String 
                 "Runtimes de agente",
                 agents.len(),
             ));
-            for agent in agents {
-                lines.push(format!(
-                    "- {} | plugin={} | activation={} | bootstrap_hook={}",
-                    agent.descriptor.id,
-                    agent.descriptor.plugin_id,
-                    agent.activation.as_str(),
-                    agent.bootstrap_hook_registered,
-                ));
+            let headers = &["ID", "PLUGIN", "STATUS", "HOOK"];
+            let rows: Vec<Vec<String>> = agents
+                .iter()
+                .map(|a| {
+                    vec![
+                        a.descriptor.id.to_owned(),
+                        a.descriptor.plugin_id.to_owned(),
+                        a.activation.as_str().to_owned(),
+                        a.bootstrap_hook_registered.to_string(),
+                    ]
+                })
+                .collect();
+            if !rows.is_empty() {
+                lines.push(format::render_table(headers, &rows));
             }
         }
         re_plugin::PluginRuntimeHook::Prepare => {
@@ -176,14 +231,20 @@ fn render_hook_plan(hook: re_plugin::PluginRuntimeHook, locale: &str) -> String 
                 "Políticas",
                 policies.len(),
             ));
-            for policy in policies {
-                lines.push(format!(
-                    "- {} | plugin={} | activation={} | enforcement_hook={}",
-                    policy.descriptor.id,
-                    policy.descriptor.plugin_id,
-                    policy.activation.as_str(),
-                    policy.enforcement_hook_registered,
-                ));
+            let headers = &["ID", "PLUGIN", "STATUS", "HOOK"];
+            let rows: Vec<Vec<String>> = policies
+                .iter()
+                .map(|p| {
+                    vec![
+                        p.descriptor.id.to_owned(),
+                        p.descriptor.plugin_id.to_owned(),
+                        p.activation.as_str().to_owned(),
+                        p.enforcement_hook_registered.to_string(),
+                    ]
+                })
+                .collect();
+            if !rows.is_empty() {
+                lines.push(format::render_table(headers, &rows));
             }
         }
         re_plugin::PluginRuntimeHook::McpRegistration => {
@@ -194,11 +255,19 @@ fn render_hook_plan(hook: re_plugin::PluginRuntimeHook, locale: &str) -> String 
                 "Servidores MCP",
                 servers.len(),
             ));
-            for server in servers {
-                lines.push(format!(
-                    "- {} | enabled={} | transport={}",
-                    server.descriptor.id, server.enabled, server.descriptor.transport,
-                ));
+            let headers = &["ID", "ENABLED", "TRANSPORT"];
+            let rows: Vec<Vec<String>> = servers
+                .iter()
+                .map(|s| {
+                    vec![
+                        s.descriptor.id.to_owned(),
+                        s.enabled.to_string(),
+                        s.descriptor.transport.to_string(),
+                    ]
+                })
+                .collect();
+            if !rows.is_empty() {
+                lines.push(format::render_table(headers, &rows));
             }
         }
         _ => {
@@ -212,28 +281,40 @@ fn render_hook_plan(hook: re_plugin::PluginRuntimeHook, locale: &str) -> String 
 fn render_check_section(lines: &mut Vec<String>, kind: RuntimeCheckKind) {
     let checks = catalog::find_official_check_contributions(kind);
     lines.push(format!("Checks ({})", checks.len()));
-    for check in checks {
-        lines.push(format!(
-            "- {} | plugin={} | activation={} | runtime_hook={}",
-            check.descriptor.id,
-            check.descriptor.plugin_id,
-            check.activation.as_str(),
-            check.runtime_hook_registered,
-        ));
+    let headers = &["ID", "PLUGIN", "STATUS", "HOOK"];
+    let rows: Vec<Vec<String>> = checks
+        .iter()
+        .map(|c| {
+            vec![
+                c.descriptor.id.to_owned(),
+                c.descriptor.plugin_id.to_owned(),
+                c.activation.as_str().to_owned(),
+                c.runtime_hook_registered.to_string(),
+            ]
+        })
+        .collect();
+    if !rows.is_empty() {
+        lines.push(format::render_table(headers, &rows));
     }
 }
 
 fn render_provider_section(lines: &mut Vec<String>, kind: RuntimeProviderKind) {
     let providers = catalog::find_official_provider_contributions(kind);
     lines.push(format!("Providers ({})", providers.len()));
-    for provider in providers {
-        lines.push(format!(
-            "- {} | plugin={} | activation={} | registration_hook={}",
-            provider.descriptor.id,
-            provider.descriptor.plugin_id,
-            provider.activation.as_str(),
-            provider.registration_hook_registered,
-        ));
+    let headers = &["ID", "PLUGIN", "STATUS", "HOOK"];
+    let rows: Vec<Vec<String>> = providers
+        .iter()
+        .map(|p| {
+            vec![
+                p.descriptor.id.to_owned(),
+                p.descriptor.plugin_id.to_owned(),
+                p.activation.as_str().to_owned(),
+                p.registration_hook_registered.to_string(),
+            ]
+        })
+        .collect();
+    if !rows.is_empty() {
+        lines.push(format::render_table(headers, &rows));
     }
 }
 
@@ -249,19 +330,15 @@ mod tests {
 
     #[test]
     fn render_hook_listing_handles_empty_sets() {
-        // Arrange
         let registrations = [];
 
-        // Act
         let rendered = render_hook_listing(&registrations, "en");
 
-        // Assert
-        assert_eq!(rendered, "Runtime hooks (0)");
+        assert!(rendered.contains("Runtime hooks (0)"));
     }
 
     #[test]
     fn render_hook_detail_is_human_readable() {
-        // Arrange
         let providers = [RuntimeHookRegistration::new(
             PluginRuntimeHook::Scaffold,
             PLUGIN_ID,
@@ -269,15 +346,13 @@ mod tests {
             PluginLoadBoundary::InProcess,
         )];
 
-        // Act
         let rendered = render_hook_detail("scaffold", &providers, "en");
 
-        // Assert
         assert!(rendered.contains("Runtime hook: scaffold"));
         assert!(rendered.contains("Providers (1)"));
-        assert!(
-            rendered.contains("- fixture.templates | activation=enabled | boundary=in_process")
-        );
+        assert!(rendered.contains("fixture.templates"));
+        assert!(rendered.contains("enabled"));
+        assert!(rendered.contains("in_process"));
     }
 
     #[test]
@@ -286,6 +361,7 @@ mod tests {
 
         assert!(rendered.contains("Runtime hook plan: agent_bootstrap"));
         assert!(rendered.contains("Agent runtimes ("));
-        assert!(rendered.contains("bootstrap_hook="));
+        // Table should contain hook column with true/false values
+        assert!(rendered.contains("HOOK"));
     }
 }

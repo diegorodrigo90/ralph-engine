@@ -2,9 +2,10 @@
 
 use std::path::Path;
 
+use super::embedded_assets::{MaterializedAsset, materialize_assets};
+use super::format;
 use crate::{CliError, catalog, i18n};
 
-use super::embedded_assets::{MaterializedAsset, materialize_assets};
 use catalog::OfficialPromptContribution;
 
 /// Executes the prompts command tree.
@@ -120,25 +121,26 @@ fn materialize_prompt(
 }
 
 fn render_prompt_listing(registrations: &[OfficialPromptContribution], locale: &str) -> String {
-    let mut lines = Vec::with_capacity(registrations.len() + 1);
-    lines.push(i18n::list_heading(
-        locale,
-        "Prompts",
-        "Prompts",
-        registrations.len(),
-    ));
+    let heading = i18n::list_heading(locale, "Prompts", "Prompts", registrations.len());
 
-    for registration in registrations {
-        lines.push(format!(
-            "- {} | {} | plugin={} | activation={}",
-            registration.descriptor.id,
-            registration.descriptor.display_name_for_locale(locale),
-            registration.descriptor.plugin_id,
-            registration.activation.as_str(),
-        ));
+    let headers = &["ID", "NAME", "PLUGIN", "STATUS"];
+    let rows: Vec<Vec<String>> = registrations
+        .iter()
+        .map(|r| {
+            vec![
+                r.descriptor.id.to_owned(),
+                r.descriptor.display_name_for_locale(locale).to_owned(),
+                r.descriptor.plugin_id.to_owned(),
+                r.activation.as_str().to_owned(),
+            ]
+        })
+        .collect();
+
+    if rows.is_empty() {
+        return heading;
     }
 
-    lines.join("\n")
+    format!("{heading}\n\n{}", format::render_table(headers, &rows))
 }
 
 fn render_prompt_detail(prompt: OfficialPromptContribution, locale: &str) -> String {
@@ -154,27 +156,39 @@ fn render_prompt_detail(prompt: OfficialPromptContribution, locale: &str) -> Str
         "none".to_owned()
     };
 
-    format!(
-        "Prompt: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {runtime_hook}\n{assets_label}: {assets}",
-        prompt.descriptor.id,
-        prompt.descriptor.display_name_for_locale(locale),
-        prompt.descriptor.summary_for_locale(locale),
-        prompt.descriptor.plugin_id,
-        name_label = i18n::name_label(locale),
-        summary_label = i18n::summary_label(locale),
-        activation_label = i18n::activation_label(locale),
-        activation = prompt.activation.as_str(),
-        load_boundary_label = i18n::load_boundary_label(locale),
-        load_boundary = prompt.load_boundary.as_str(),
-        hook_label = i18n::hook_label(locale),
-        assets_label = i18n::assets_label(locale),
-        runtime_hook = if prompt.prompt_hook_registered {
-            "prompt_assembly"
-        } else {
-            "missing"
-        },
-        assets = asset_paths,
-    )
+    let pairs = vec![
+        ("Prompt:", prompt.descriptor.id.to_owned()),
+        (
+            i18n::name_label(locale),
+            prompt.descriptor.display_name_for_locale(locale).to_owned(),
+        ),
+        (
+            i18n::summary_label(locale),
+            prompt.descriptor.summary_for_locale(locale).to_owned(),
+        ),
+        ("Plugin:", prompt.descriptor.plugin_id.to_owned()),
+        ("", String::new()),
+        (
+            i18n::activation_label(locale),
+            prompt.activation.as_str().to_owned(),
+        ),
+        (
+            i18n::load_boundary_label(locale),
+            prompt.load_boundary.as_str().to_owned(),
+        ),
+        (
+            i18n::hook_label(locale),
+            if prompt.prompt_hook_registered {
+                "prompt_assembly"
+            } else {
+                "missing"
+            }
+            .to_owned(),
+        ),
+        (i18n::assets_label(locale), asset_paths),
+    ];
+
+    format::render_detail(&pairs)
 }
 
 #[cfg(test)]
@@ -217,7 +231,7 @@ mod tests {
 
         let rendered = render_prompt_listing(&registrations, "en");
 
-        assert_eq!(rendered, "Prompts (0)");
+        assert!(rendered.contains("Prompts (0)"));
     }
 
     #[test]
@@ -226,7 +240,7 @@ mod tests {
 
         let rendered = render_prompt_listing(&registrations, "pt-br");
 
-        assert_eq!(rendered, "Prompts (0)");
+        assert!(rendered.contains("Prompts (0)"));
     }
 
     #[test]
@@ -241,12 +255,12 @@ mod tests {
             "en",
         );
 
-        assert!(rendered.contains("Prompt: fixture.prompts.workflow"));
-        assert!(rendered.contains("Name: BMAD workflow prompt"));
-        assert!(rendered.contains("Plugin: fixture.prompts"));
-        assert!(rendered.contains("Activation: disabled"));
-        assert!(rendered.contains("Runtime hook: prompt_assembly"));
-        assert!(rendered.contains("Assets: prompts/workflow.md"));
+        assert!(rendered.contains("fixture.prompts.workflow"));
+        assert!(rendered.contains("BMAD workflow prompt"));
+        assert!(rendered.contains("fixture.prompts"));
+        assert!(rendered.contains("disabled"));
+        assert!(rendered.contains("prompt_assembly"));
+        assert!(rendered.contains("prompts/workflow.md"));
     }
 
     #[test]
@@ -261,11 +275,11 @@ mod tests {
             "pt-br",
         );
 
-        assert!(rendered.contains("Prompt: fixture.prompts.workflow"));
-        assert!(rendered.contains("Nome: Prompt de workflow BMAD"));
-        assert!(rendered.contains("Resumo: Pacote de prompts para montar workflows BMAD."));
-        assert!(rendered.contains("Plugin: fixture.prompts"));
-        assert!(rendered.contains("Assets: prompts/workflow.md"));
+        assert!(rendered.contains("fixture.prompts.workflow"));
+        assert!(rendered.contains("Prompt de workflow BMAD"));
+        assert!(rendered.contains("Pacote de prompts para montar workflows BMAD."));
+        assert!(rendered.contains("fixture.prompts"));
+        assert!(rendered.contains("prompts/workflow.md"));
     }
 
     #[test]

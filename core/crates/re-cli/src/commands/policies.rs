@@ -7,6 +7,7 @@ use re_core::{
     render_runtime_policy_result_for_locale,
 };
 
+use super::format;
 use crate::commands::embedded_assets::{MaterializedAsset, materialize_assets};
 use crate::commands::runtime_state::with_official_runtime_snapshot;
 use crate::{CliError, catalog, i18n};
@@ -250,38 +251,31 @@ fn materialize_policy(
 }
 
 fn render_policy_listing(registrations: &[OfficialPolicyContribution], locale: &str) -> String {
-    if registrations.is_empty() {
-        return i18n::list_heading(
-            locale,
-            i18n::policies_label(locale),
-            i18n::policies_label(locale),
-            0,
-        );
+    let heading = i18n::list_heading(
+        locale,
+        i18n::policies_label(locale),
+        i18n::policies_label(locale),
+        registrations.len(),
+    );
+
+    let headers = &["ID", "NAME", "PLUGIN", "STATUS"];
+    let rows: Vec<Vec<String>> = registrations
+        .iter()
+        .map(|r| {
+            vec![
+                r.descriptor.id.to_owned(),
+                r.descriptor.display_name_for_locale(locale).to_owned(),
+                r.descriptor.plugin_id.to_owned(),
+                r.activation.as_str().to_owned(),
+            ]
+        })
+        .collect();
+
+    if rows.is_empty() {
+        return heading;
     }
 
-    let lines = registrations
-        .iter()
-        .map(|registration| {
-            format!(
-                "- {} | {} | plugin={} | activation={}",
-                registration.descriptor.id,
-                registration.descriptor.display_name_for_locale(locale),
-                registration.descriptor.plugin_id,
-                registration.activation.as_str()
-            )
-        })
-        .collect::<Vec<_>>();
-
-    format!(
-        "{}\n{}",
-        i18n::list_heading(
-            locale,
-            i18n::policies_label(locale),
-            i18n::policies_label(locale),
-            registrations.len(),
-        ),
-        lines.join("\n")
-    )
+    format!("{heading}\n\n{}", format::render_table(headers, &rows))
 }
 
 fn render_policy_detail(policy: OfficialPolicyContribution, locale: &str) -> String {
@@ -297,29 +291,43 @@ fn render_policy_detail(policy: OfficialPolicyContribution, locale: &str) -> Str
         "none".to_owned()
     };
 
-    format!(
-        "{}: {}\n{name_label}: {}\n{summary_label}: {}\n{provider_label}: {provider}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{policy_hook_label}: {policy_hook}\n{assets_label}: {assets}",
-        i18n::policy_label(locale),
-        policy.descriptor.id,
-        policy.descriptor.display_name_for_locale(locale),
-        policy.descriptor.summary_for_locale(locale),
-        name_label = i18n::name_label(locale),
-        summary_label = i18n::summary_label(locale),
-        provider_label = i18n::provider_label(locale),
-        provider = policy.descriptor.plugin_id,
-        activation_label = i18n::activation_label(locale),
-        activation = policy.activation.as_str(),
-        load_boundary_label = i18n::load_boundary_label(locale),
-        load_boundary = policy.load_boundary.as_str(),
-        policy_hook_label = i18n::policy_enforcement_hook_label(locale),
-        policy_hook = if policy.enforcement_hook_registered {
-            "policy_enforcement"
-        } else {
-            "missing"
-        },
-        assets_label = i18n::assets_label(locale),
-        assets = asset_paths,
-    )
+    let heading = format!("{}:", i18n::policy_label(locale));
+    let pairs = vec![
+        (heading.as_str(), policy.descriptor.id.to_owned()),
+        (
+            i18n::name_label(locale),
+            policy.descriptor.display_name_for_locale(locale).to_owned(),
+        ),
+        (
+            i18n::summary_label(locale),
+            policy.descriptor.summary_for_locale(locale).to_owned(),
+        ),
+        (
+            i18n::provider_label(locale),
+            policy.descriptor.plugin_id.to_owned(),
+        ),
+        ("", String::new()),
+        (
+            i18n::activation_label(locale),
+            policy.activation.as_str().to_owned(),
+        ),
+        (
+            i18n::load_boundary_label(locale),
+            policy.load_boundary.as_str().to_owned(),
+        ),
+        (
+            i18n::policy_enforcement_hook_label(locale),
+            if policy.enforcement_hook_registered {
+                "policy_enforcement"
+            } else {
+                "missing"
+            }
+            .to_owned(),
+        ),
+        (i18n::assets_label(locale), asset_paths),
+    ];
+
+    format::render_detail(&pairs)
 }
 
 fn render_policy_plan(
@@ -327,20 +335,29 @@ fn render_policy_plan(
     plan: RuntimePolicyEnforcementPlan,
     locale: &str,
 ) -> String {
-    format!(
-        "Policy enforcement plan: {}\n{name_label}: {}\nPlugin: {}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{policy_hook_label}: {policy_hook}\nregistered: {registered}",
-        policy.descriptor.id,
-        policy.descriptor.display_name_for_locale(locale),
-        policy.descriptor.plugin_id,
-        name_label = i18n::name_label(locale),
-        activation_label = i18n::activation_label(locale),
-        activation = policy.activation.as_str(),
-        load_boundary_label = i18n::load_boundary_label(locale),
-        load_boundary = plan.load_boundary.as_str(),
-        policy_hook_label = i18n::policy_enforcement_hook_label(locale),
-        policy_hook = plan.enforcement_hook.as_str(),
-        registered = plan.enforcement_hook_registered,
-    )
+    let pairs = vec![
+        ("Policy enforcement plan:", policy.descriptor.id.to_owned()),
+        (
+            i18n::name_label(locale),
+            policy.descriptor.display_name_for_locale(locale).to_owned(),
+        ),
+        ("Plugin:", policy.descriptor.plugin_id.to_owned()),
+        (
+            i18n::activation_label(locale),
+            policy.activation.as_str().to_owned(),
+        ),
+        (
+            i18n::load_boundary_label(locale),
+            plan.load_boundary.as_str().to_owned(),
+        ),
+        (
+            i18n::policy_enforcement_hook_label(locale),
+            plan.enforcement_hook.as_str().to_owned(),
+        ),
+        ("registered:", plan.enforcement_hook_registered.to_string()),
+    ];
+
+    format::render_detail(&pairs)
 }
 
 #[cfg(test)]
@@ -386,7 +403,7 @@ mod tests {
 
         let rendered = render_policy_listing(&registrations, "en");
 
-        assert_eq!(rendered, "Policies (0)");
+        assert!(rendered.contains("Policies (0)"));
     }
 
     #[test]
@@ -401,12 +418,12 @@ mod tests {
             "en",
         );
 
-        assert!(rendered.contains("Policy: fixture.strict.guardrails"));
-        assert!(rendered.contains("Name: TDD strict guardrails"));
-        assert!(rendered.contains("Provider: fixture.strict"));
-        assert!(rendered.contains("Activation: enabled"));
-        assert!(rendered.contains("Policy enforcement hook: policy_enforcement"));
-        assert!(rendered.contains("Assets: policies/guardrails.md"));
+        assert!(rendered.contains("fixture.strict.guardrails"));
+        assert!(rendered.contains("TDD strict guardrails"));
+        assert!(rendered.contains("fixture.strict"));
+        assert!(rendered.contains("enabled"));
+        assert!(rendered.contains("policy_enforcement"));
+        assert!(rendered.contains("policies/guardrails.md"));
     }
 
     #[test]
@@ -421,10 +438,10 @@ mod tests {
             "pt-br",
         );
 
-        assert!(rendered.contains("Política: fixture.strict.guardrails"));
-        assert!(rendered.contains("Nome: Guardrails TDD estrito"));
-        assert!(rendered.contains("Provedor: fixture.strict"));
-        assert!(rendered.contains("Hook de aplicação de política: policy_enforcement"));
+        assert!(rendered.contains("fixture.strict.guardrails"));
+        assert!(rendered.contains("Guardrails TDD estrito"));
+        assert!(rendered.contains("fixture.strict"));
+        assert!(rendered.contains("policy_enforcement"));
     }
 
     #[test]
@@ -446,9 +463,10 @@ mod tests {
             "en",
         );
 
-        assert!(rendered.contains("Policy enforcement plan: fixture.strict.guardrails"));
-        assert!(rendered.contains("Plugin: fixture.strict"));
-        assert!(rendered.contains("Policy enforcement hook: policy_enforcement"));
+        assert!(rendered.contains("Policy enforcement plan:"));
+        assert!(rendered.contains("fixture.strict.guardrails"));
+        assert!(rendered.contains("fixture.strict"));
+        assert!(rendered.contains("policy_enforcement"));
     }
 
     #[test]

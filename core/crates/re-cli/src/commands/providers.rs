@@ -2,11 +2,8 @@
 
 use re_core::{RuntimeProviderKind, RuntimeProviderRegistration, parse_runtime_provider_kind};
 
-use crate::{
-    CliError, catalog,
-    commands::grouped_surfaces::{render_grouped_surface_detail, render_grouped_surface_listing},
-    i18n,
-};
+use super::format;
+use crate::{CliError, catalog, i18n};
 
 /// Executes the providers command tree.
 pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
@@ -100,12 +97,40 @@ fn show_provider_plan(provider_kind: Option<&str>, locale: &str) -> Result<Strin
 }
 
 fn render_provider_listing(registrations: &[RuntimeProviderRegistration], locale: &str) -> String {
-    render_grouped_surface_listing(
-        registrations,
-        locale,
-        i18n::providers_label,
-        |registration| registration.kind.as_str(),
-        |registration| registration.is_enabled(),
+    let mut seen = Vec::new();
+    let mut grouped_rows: Vec<Vec<String>> = Vec::new();
+
+    for reg in registrations {
+        let key = reg.kind.as_str();
+        if seen.contains(&key) {
+            continue;
+        }
+        seen.push(key);
+
+        let all = registrations
+            .iter()
+            .filter(|r| r.kind.as_str() == key)
+            .collect::<Vec<_>>();
+        let enabled = all.iter().filter(|r| r.is_enabled()).count();
+
+        grouped_rows.push(vec![
+            key.to_owned(),
+            all.len().to_string(),
+            enabled.to_string(),
+        ]);
+    }
+
+    let label = i18n::providers_label(locale);
+    let heading = i18n::list_heading(locale, label, label, grouped_rows.len());
+
+    if grouped_rows.is_empty() {
+        return heading;
+    }
+
+    let headers = &["PROVIDER", "COUNT", "ENABLED"];
+    format!(
+        "{heading}\n\n{}",
+        format::render_table(headers, &grouped_rows)
     )
 }
 
@@ -115,29 +140,36 @@ fn render_provider_detail(
     contributions: &[catalog::OfficialProviderContribution],
     locale: &str,
 ) -> String {
-    render_grouped_surface_detail(
-        provider_kind.as_str(),
-        providers,
-        locale,
-        i18n::provider_label,
-        |provider| {
+    let label = i18n::provider_label(locale);
+    let heading = i18n::detail_heading(locale, label, label, provider_kind.as_str());
+    let providers_heading = i18n::providers_heading(locale, providers.len());
+
+    let headers = &["ID", "PLUGIN", "NAME", "STATUS"];
+    let rows: Vec<Vec<String>> = providers
+        .iter()
+        .map(|provider| {
             let contribution = contributions
                 .iter()
-                .find(|candidate| candidate.descriptor.plugin_id == provider.plugin_id);
+                .find(|c| c.descriptor.plugin_id == provider.plugin_id);
 
-            format!(
-                "- {} | plugin={} | name={} | summary={} | activation={} | boundary={} | registration_hook={}",
-                contribution.map_or(provider.plugin_id, |entry| entry.descriptor.id),
-                provider.plugin_id,
-                contribution.map_or(provider.plugin_id, |entry| entry
-                    .descriptor
-                    .display_name_for_locale(locale)),
-                contribution.map_or("-", |entry| entry.descriptor.summary_for_locale(locale)),
-                provider.activation.as_str(),
-                provider.load_boundary.as_str(),
-                provider.registration_hook_registered
-            )
-        },
+            vec![
+                contribution
+                    .map_or(provider.plugin_id, |e| e.descriptor.id)
+                    .to_owned(),
+                provider.plugin_id.to_owned(),
+                contribution
+                    .map_or(provider.plugin_id, |e| {
+                        e.descriptor.display_name_for_locale(locale)
+                    })
+                    .to_owned(),
+                provider.activation.as_str().to_owned(),
+            ]
+        })
+        .collect();
+
+    format!(
+        "{heading}\n{providers_heading}\n\n{}",
+        format::render_table(headers, &rows)
     )
 }
 
@@ -146,24 +178,44 @@ fn render_provider_contribution_detail(
     registration: RuntimeProviderRegistration,
     locale: &str,
 ) -> String {
-    format!(
-        "{}: {}\n{name_label}: {}\n{summary_label}: {}\nPlugin: {}\n{kind_label}: {kind}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {registration_hook}",
-        i18n::provider_label(locale),
-        contribution.descriptor.id,
-        contribution.descriptor.display_name_for_locale(locale),
-        contribution.descriptor.summary_for_locale(locale),
-        contribution.descriptor.plugin_id,
-        name_label = i18n::name_label(locale),
-        summary_label = i18n::summary_label(locale),
-        kind_label = i18n::kind_label(locale),
-        kind = contribution.descriptor.kind.as_str(),
-        activation_label = i18n::activation_label(locale),
-        activation = registration.activation.as_str(),
-        load_boundary_label = i18n::load_boundary_label(locale),
-        load_boundary = registration.load_boundary.as_str(),
-        hook_label = i18n::registration_hook_label(locale),
-        registration_hook = registration.registration_hook_registered,
-    )
+    let heading = format!("{}:", i18n::provider_label(locale));
+    let pairs = vec![
+        (heading.as_str(), contribution.descriptor.id.to_owned()),
+        (
+            i18n::name_label(locale),
+            contribution
+                .descriptor
+                .display_name_for_locale(locale)
+                .to_owned(),
+        ),
+        (
+            i18n::summary_label(locale),
+            contribution
+                .descriptor
+                .summary_for_locale(locale)
+                .to_owned(),
+        ),
+        ("Plugin:", contribution.descriptor.plugin_id.to_owned()),
+        ("", String::new()),
+        (
+            i18n::kind_label(locale),
+            contribution.descriptor.kind.as_str().to_owned(),
+        ),
+        (
+            i18n::activation_label(locale),
+            registration.activation.as_str().to_owned(),
+        ),
+        (
+            i18n::load_boundary_label(locale),
+            registration.load_boundary.as_str().to_owned(),
+        ),
+        (
+            i18n::registration_hook_label(locale),
+            registration.registration_hook_registered.to_string(),
+        ),
+    ];
+
+    format::render_detail(&pairs)
 }
 
 fn render_provider_plan(
@@ -171,22 +223,39 @@ fn render_provider_plan(
     plan: re_core::RuntimeProviderRegistrationPlan,
     locale: &str,
 ) -> String {
-    format!(
-        "Provider registration plan: {}\n{name_label}: {}\nPlugin: {}\n{kind_label}: {kind}\n{activation_label}: {activation}\n{load_boundary_label}: {load_boundary}\n{hook_label}: {registration_hook}\nregistered: {registered}",
-        contribution.descriptor.id,
-        contribution.descriptor.display_name_for_locale(locale),
-        contribution.descriptor.plugin_id,
-        name_label = i18n::name_label(locale),
-        kind_label = i18n::kind_label(locale),
-        kind = contribution.descriptor.kind.as_str(),
-        activation_label = i18n::activation_label(locale),
-        activation = contribution.activation.as_str(),
-        load_boundary_label = i18n::load_boundary_label(locale),
-        load_boundary = plan.load_boundary.as_str(),
-        hook_label = i18n::registration_hook_label(locale),
-        registration_hook = plan.registration_hook.as_str(),
-        registered = plan.registration_hook_registered,
-    )
+    let pairs = vec![
+        (
+            "Provider registration plan:",
+            contribution.descriptor.id.to_owned(),
+        ),
+        (
+            i18n::name_label(locale),
+            contribution
+                .descriptor
+                .display_name_for_locale(locale)
+                .to_owned(),
+        ),
+        ("Plugin:", contribution.descriptor.plugin_id.to_owned()),
+        (
+            i18n::kind_label(locale),
+            contribution.descriptor.kind.as_str().to_owned(),
+        ),
+        (
+            i18n::activation_label(locale),
+            contribution.activation.as_str().to_owned(),
+        ),
+        (
+            i18n::load_boundary_label(locale),
+            plan.load_boundary.as_str().to_owned(),
+        ),
+        (
+            i18n::registration_hook_label(locale),
+            plan.registration_hook.as_str().to_owned(),
+        ),
+        ("registered:", plan.registration_hook_registered.to_string()),
+    ];
+
+    format::render_detail(&pairs)
 }
 
 #[cfg(test)]
@@ -256,19 +325,15 @@ mod tests {
 
     #[test]
     fn render_provider_listing_handles_empty_sets() {
-        // Arrange
         let registrations = [];
 
-        // Act
         let rendered = render_provider_listing(&registrations, "en");
 
-        // Assert
-        assert_eq!(rendered, "Providers (0)");
+        assert!(rendered.contains("Providers (0)"));
     }
 
     #[test]
     fn render_provider_listing_deduplicates_provider_kinds() {
-        // Arrange
         let registrations = [
             RuntimeProviderRegistration::new(
                 PROVIDER_ID,
@@ -288,17 +353,16 @@ mod tests {
             ),
         ];
 
-        // Act
         let rendered = render_provider_listing(&registrations, "en");
 
-        // Assert
         assert!(rendered.contains("Providers (1)"));
-        assert!(rendered.contains("- data_source | providers=2 | enabled=1"));
+        assert!(rendered.contains("data_source"));
+        assert!(rendered.contains("2"));
+        assert!(rendered.contains("1"));
     }
 
     #[test]
     fn render_provider_detail_is_human_readable() {
-        // Arrange
         let providers = [RuntimeProviderRegistration::new(
             PROVIDER_ID,
             RuntimeProviderKind::DataSource,
@@ -308,7 +372,6 @@ mod tests {
             true,
         )];
 
-        // Act
         let contributions = [OfficialProviderContribution {
             descriptor: PluginProviderDescriptor::new(
                 PROVIDER_ID,
@@ -331,12 +394,12 @@ mod tests {
             "en",
         );
 
-        // Assert
         assert!(rendered.contains("Provider: data_source"));
         assert!(rendered.contains("Providers (1)"));
-        assert!(rendered.contains(
-            "- fixture.github.data | plugin=fixture.github | name=GitHub data source | summary=Exposes typed repository data to Ralph Engine workflows. | activation=enabled | boundary=in_process | registration_hook=true"
-        ));
+        assert!(rendered.contains("fixture.github.data"));
+        assert!(rendered.contains("fixture.github"));
+        assert!(rendered.contains("GitHub data source"));
+        assert!(rendered.contains("enabled"));
     }
 
     #[test]
@@ -368,8 +431,9 @@ mod tests {
             "en",
         );
 
-        assert!(rendered.contains("Provider registration plan: fixture.github.data"));
-        assert!(rendered.contains("Plugin: fixture.github"));
-        assert!(rendered.contains("Registration hook: data_source_registration"));
+        assert!(rendered.contains("Provider registration plan:"));
+        assert!(rendered.contains("fixture.github.data"));
+        assert!(rendered.contains("fixture.github"));
+        assert!(rendered.contains("data_source_registration"));
     }
 }

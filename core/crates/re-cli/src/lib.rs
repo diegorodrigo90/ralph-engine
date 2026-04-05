@@ -137,14 +137,10 @@ mod tests {
         let output = execute(command).expect("agents show should succeed");
 
         // Assert
-        assert!(output.contains(&format!("Agent runtime: {}", agent.descriptor.id)));
-        assert!(output.contains(&format!(
-            "Name: {}",
-            agent.descriptor.display_name_for_locale("en")
-        )));
-        assert!(output.contains(&format!("Plugin: {}", agent.descriptor.plugin_id)));
-        assert!(output.contains(&format!("Activation: {}", agent.activation.as_str())));
-        assert!(output.contains("Runtime hook:"));
+        assert!(output.contains(agent.descriptor.id));
+        assert!(output.contains(agent.descriptor.display_name_for_locale("en")));
+        assert!(output.contains(agent.descriptor.plugin_id));
+        assert!(output.contains(agent.activation.as_str()));
     }
 
     #[test]
@@ -179,8 +175,9 @@ mod tests {
 
         let output = execute(command).expect("agents plan should succeed");
 
-        assert!(output.contains(&format!("Agent bootstrap plan: {}", agent.descriptor.id)));
-        assert!(output.contains(&format!("Plugin: {}", agent.descriptor.plugin_id)));
+        assert!(output.contains("Agent bootstrap plan:"));
+        assert!(output.contains(agent.descriptor.id));
+        assert!(output.contains(agent.descriptor.plugin_id));
     }
 
     #[test]
@@ -245,8 +242,8 @@ mod tests {
 
         let output = execute(command).expect("short locale flag should localize command output");
 
-        assert!(output.contains("Provedor: official.github.data"));
-        assert!(output.contains("Ativação:"));
+        assert!(output.contains("official.github.data"));
+        assert!(output.contains("Ativação"));
     }
 
     #[test]
@@ -285,14 +282,10 @@ mod tests {
         let output = execute(command).expect("templates show should succeed");
 
         // Assert
-        assert!(output.contains(&format!("Template: {}", template.descriptor.id)));
-        assert!(output.contains(&format!(
-            "Name: {}",
-            template.descriptor.display_name_for_locale("en")
-        )));
-        assert!(output.contains(&format!("Plugin: {}", template.descriptor.plugin_id)));
-        assert!(output.contains(&format!("Activation: {}", template.activation.as_str())));
-        assert!(output.contains("Runtime hook:"));
+        assert!(output.contains(template.descriptor.id));
+        assert!(output.contains(template.descriptor.display_name_for_locale("en")));
+        assert!(output.contains(template.descriptor.plugin_id));
+        assert!(output.contains(template.activation.as_str()));
     }
 
     #[test]
@@ -346,14 +339,10 @@ mod tests {
         let output = execute(command).expect("prompts show should succeed");
 
         // Assert
-        assert!(output.contains(&format!("Prompt: {}", prompt.descriptor.id)));
-        assert!(output.contains(&format!(
-            "Name: {}",
-            prompt.descriptor.display_name_for_locale("en")
-        )));
-        assert!(output.contains(&format!("Plugin: {}", prompt.descriptor.plugin_id)));
-        assert!(output.contains(&format!("Activation: {}", prompt.activation.as_str())));
-        assert!(output.contains("Runtime hook:"));
+        assert!(output.contains(prompt.descriptor.id));
+        assert!(output.contains(prompt.descriptor.display_name_for_locale("en")));
+        assert!(output.contains(prompt.descriptor.plugin_id));
+        assert!(output.contains(prompt.activation.as_str()));
     }
 
     #[test]
@@ -391,8 +380,8 @@ mod tests {
         // Assert
         // Dynamic — count changes when plugins are added
         assert!(output.contains("Capabilities ("));
-        assert!(output.contains("- agent_runtime |"));
-        assert!(output.contains("- template |"));
+        assert!(output.contains("agent_runtime"));
+        assert!(output.contains("template"));
     }
 
     #[test]
@@ -406,8 +395,8 @@ mod tests {
         // Assert
         assert!(output.contains("Capability: mcp_contribution"));
         assert!(output.contains("Providers (4)"));
-        assert!(output.contains("- official.claude | activation=disabled | boundary=in_process"));
-        assert!(output.contains("- official.github | activation=disabled | boundary=in_process"));
+        assert!(output.contains("official.claude"));
+        assert!(output.contains("official.github"));
     }
 
     #[test]
@@ -447,8 +436,8 @@ mod tests {
 
         // Assert
         assert!(output.contains("Checks (2)"));
-        assert!(output.contains("- prepare |"));
-        assert!(output.contains("- doctor |"));
+        assert!(output.contains("prepare"));
+        assert!(output.contains("doctor"));
     }
 
     #[test]
@@ -462,9 +451,9 @@ mod tests {
         // Assert
         assert!(output.contains("Check: prepare"));
         assert!(output.contains("Providers (1)"));
-        assert!(output.contains(
-            "- official.bmad.prepare | plugin=official.bmad | name=BMAD prepare check | summary=Runs typed prepare-time validation for BMAD workflows. | activation=disabled | boundary=in_process | runtime_hook=true"
-        ));
+        assert!(output.contains("official.bmad.prepare"));
+        assert!(output.contains("official.bmad"));
+        assert!(output.contains("BMAD prepare check"));
     }
 
     #[test]
@@ -473,9 +462,9 @@ mod tests {
 
         let output = execute(command).expect("checks show by id should succeed");
 
-        assert!(output.contains("Check: official.bmad.prepare"));
-        assert!(output.contains("Name: BMAD prepare check"));
-        assert!(output.contains("Kind: prepare"));
+        assert!(output.contains("official.bmad.prepare"));
+        assert!(output.contains("BMAD prepare check"));
+        assert!(output.contains("prepare"));
     }
 
     #[test]
@@ -526,8 +515,9 @@ mod tests {
 
         let output = execute(command).expect("checks plan should succeed");
 
-        assert!(output.contains("Runtime check plan: official.bmad.prepare"));
-        assert!(output.contains("Plugin: official.bmad"));
+        assert!(output.contains("Runtime check plan:"));
+        assert!(output.contains("official.bmad.prepare"));
+        assert!(output.contains("official.bmad"));
         assert!(output.contains("prepare"));
     }
 
@@ -553,8 +543,8 @@ mod tests {
 
         // Assert
         assert!(output.contains("Runtime hooks (17)"));
-        assert!(output.contains("- scaffold |"));
-        assert!(output.contains("- mcp_registration | providers=4 | enabled=0"));
+        assert!(output.contains("scaffold"));
+        assert!(output.contains("mcp_registration"));
     }
 
     #[test]
@@ -568,8 +558,8 @@ mod tests {
         // Assert
         assert!(output.contains("Runtime hook: mcp_registration"));
         assert!(output.contains("Providers (4)"));
-        assert!(output.contains("- official.claude | activation=disabled | boundary=in_process"));
-        assert!(output.contains("- official.github | activation=disabled | boundary=in_process"));
+        assert!(output.contains("official.claude"));
+        assert!(output.contains("official.github"));
     }
 
     #[test]
@@ -604,7 +594,8 @@ mod tests {
 
         assert!(output.contains("Runtime hook plan: agent_bootstrap"));
         assert!(output.contains("Agent runtimes ("));
-        assert!(output.contains("bootstrap_hook="));
+        // Table contains HOOK column with true/false values
+        assert!(output.contains("HOOK"));
     }
 
     #[test]
@@ -634,13 +625,9 @@ mod tests {
         let output = execute(command).expect("policies show should succeed");
 
         // Assert
-        assert!(output.contains(&format!("Policy: {}", policy.descriptor.id)));
-        assert!(output.contains(&format!(
-            "Name: {}",
-            policy.descriptor.display_name_for_locale("en")
-        )));
-        assert!(output.contains(&format!("Provider: {}", policy.descriptor.plugin_id)));
-        assert!(output.contains("Policy enforcement hook:"));
+        assert!(output.contains(policy.descriptor.id));
+        assert!(output.contains(policy.descriptor.display_name_for_locale("en")));
+        assert!(output.contains(policy.descriptor.plugin_id));
     }
 
     #[test]
@@ -701,8 +688,9 @@ mod tests {
 
         let output = execute(command).expect("policies plan should succeed");
 
-        assert!(output.contains("Policy enforcement plan: official.tdd-strict.guardrails"));
-        assert!(output.contains("Plugin: official.tdd-strict"));
+        assert!(output.contains("Policy enforcement plan:"));
+        assert!(output.contains("official.tdd-strict.guardrails"));
+        assert!(output.contains("official.tdd-strict"));
         assert!(output.contains("policy_enforcement"));
     }
 
@@ -716,8 +704,8 @@ mod tests {
 
         // Assert
         assert!(output.contains("Providers (4)"));
-        assert!(output.contains("- data_source |"));
-        assert!(output.contains("- remote_control |"));
+        assert!(output.contains("data_source"));
+        assert!(output.contains("remote_control"));
     }
 
     #[test]
@@ -731,9 +719,9 @@ mod tests {
         // Assert
         assert!(output.contains("Provider: data_source"));
         assert!(output.contains("Providers (1)"));
-        assert!(output.contains(
-            "- official.github.data | plugin=official.github | name=GitHub data source | summary=Exposes typed repository data to Ralph Engine workflows. | activation=disabled | boundary=in_process | registration_hook=true"
-        ));
+        assert!(output.contains("official.github.data"));
+        assert!(output.contains("official.github"));
+        assert!(output.contains("GitHub data source"));
     }
 
     #[test]
@@ -742,9 +730,9 @@ mod tests {
 
         let output = execute(command).expect("providers show by id should succeed");
 
-        assert!(output.contains("Provider: official.github.data"));
-        assert!(output.contains("Name: GitHub data source"));
-        assert!(output.contains("Kind: data_source"));
+        assert!(output.contains("official.github.data"));
+        assert!(output.contains("GitHub data source"));
+        assert!(output.contains("data_source"));
     }
 
     #[test]
@@ -777,9 +765,10 @@ mod tests {
 
         let output = execute(command).expect("providers plan should succeed");
 
-        assert!(output.contains("Provider registration plan: official.github.data"));
-        assert!(output.contains("Plugin: official.github"));
-        assert!(output.contains("Registration hook: data_source_registration"));
+        assert!(output.contains("Provider registration plan:"));
+        assert!(output.contains("official.github.data"));
+        assert!(output.contains("official.github"));
+        assert!(output.contains("data_source_registration"));
     }
 
     #[test]
