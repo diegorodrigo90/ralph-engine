@@ -46,6 +46,7 @@ mcp_server_entity_label = "servidor MCP"
 materialized_assets_heading = "Assets materializados"
 
 # ── Help / usage ──────────────────────────────────────────────────
+product_tagline = "Runtime open-source plugin-first para workflows de codificacao com agentes."
 usage_help = "Uso: ralph-engine [--locale <id>] <comando> [argumentos]"
 commands_heading = "Comandos:"
 set_locale_help = "Define o idioma (en, pt-br)"

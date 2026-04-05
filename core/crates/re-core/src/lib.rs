@@ -55,16 +55,22 @@ use re_plugin::{
 /// Public product name.
 pub const PRODUCT_NAME: &str = "Ralph Engine";
 
-/// Public one-line positioning statement.
+/// Public one-line positioning statement (English default).
 pub const PRODUCT_TAGLINE: &str = "Open-source plugin-first runtime for agentic coding workflows.";
 
 /// Builds the startup banner for CLI surfaces.
+///
+/// The tagline parameter allows the CLI to pass the localized version.
+/// Core does not own translations — the CLI resolves via i18n.
+#[must_use]
+pub fn banner_with_tagline(tagline: &str) -> String {
+    format!("{PRODUCT_NAME}\n{tagline}")
+}
+
+/// Builds the startup banner with the default English tagline.
 #[must_use]
 pub fn banner() -> String {
-    format!(
-        "{PRODUCT_NAME}
-{PRODUCT_TAGLINE}"
-    )
+    banner_with_tagline(PRODUCT_TAGLINE)
 }
 
 define_runtime_enum! {

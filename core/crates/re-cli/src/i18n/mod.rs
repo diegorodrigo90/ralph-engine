@@ -55,6 +55,7 @@ pub(super) struct CliLocaleCatalog {
     pub materialized_assets_heading: &'static str,
 
     // ── Help / usage ─────────────────────────────────────────────
+    pub product_tagline: &'static str,
     pub usage_help: &'static str,
     pub commands_heading: &'static str,
     pub set_locale_help: &'static str,
@@ -516,6 +517,7 @@ catalog_str!(policy_entity_label, policy_entity_label);
 
 // ── Help / usage accessors ───────────────────────────────────────
 
+catalog_str!(product_tagline, product_tagline);
 catalog_str!(usage_help, usage_help);
 catalog_str!(commands_heading, commands_heading);
 catalog_str!(set_locale_help, set_locale_help);
