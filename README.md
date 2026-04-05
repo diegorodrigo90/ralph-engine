@@ -39,6 +39,10 @@ ralph-engine run plan 5.3     # Dry-run preview
 
 ### TUI Dashboard
 
+<p align="center">
+  <img src="docs/assets/tui-demo.gif" alt="Ralph Engine TUI Demo" width="800">
+</p>
+
 Real-time terminal dashboard powered by ratatui:
 
 - **Responsive layout**: adapts to terminal width (compact / standard / wide)

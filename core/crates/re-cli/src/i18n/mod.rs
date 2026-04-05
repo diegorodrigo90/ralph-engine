@@ -201,6 +201,33 @@ pub(super) struct CliLocaleCatalog {
     pub tui_enabled_plugins: &'static str,
     pub tui_init_auto_label: &'static str,
 
+    // ── Demo (debug only) ───────────────────────────────────────
+    pub demo_story_title: &'static str,
+    pub demo_workflow_info: &'static str,
+    pub demo_prompt_info: &'static str,
+    pub demo_think_planning: &'static str,
+    pub demo_think_planning_1: &'static str,
+    pub demo_think_planning_2: &'static str,
+    pub demo_think_planning_3: &'static str,
+    pub demo_think_planning_4: &'static str,
+    pub demo_think_cursor: &'static str,
+    pub demo_think_cursor_1: &'static str,
+    pub demo_think_cursor_2: &'static str,
+    pub demo_think_debug: &'static str,
+    pub demo_think_debug_1: &'static str,
+    pub demo_think_debug_2: &'static str,
+    pub demo_gate_tests_fail: &'static str,
+    pub demo_gate_tests_pass: &'static str,
+    pub demo_gate_typecheck: &'static str,
+    pub demo_gate_build: &'static str,
+    pub demo_summary_1: &'static str,
+    pub demo_summary_2: &'static str,
+    pub demo_summary_3: &'static str,
+    pub demo_done_title: &'static str,
+    pub demo_done_info: &'static str,
+    pub demo_next: &'static str,
+    pub demo_toast: &'static str,
+
     // ── Parameterized functions (fn_fields in build.rs) ──────────
     pub unknown_command: fn(&str) -> String,
     pub unknown_subcommand: fn(&str, &str) -> String,
@@ -708,6 +735,39 @@ catalog_str!(tui_unknown_command, tui_unknown_command);
 catalog_str!(tui_type_help_hint, tui_type_help_hint);
 catalog_str!(tui_already_initialized, tui_already_initialized);
 catalog_str!(tui_project_initialized, tui_project_initialized);
+
+// ── Demo accessors (debug only) ─────────────────────────────────
+#[cfg(debug_assertions)]
+mod demo_i18n {
+    use super::locale_catalog;
+    catalog_str!(demo_story_title, demo_story_title);
+    catalog_str!(demo_workflow_info, demo_workflow_info);
+    catalog_str!(demo_prompt_info, demo_prompt_info);
+    catalog_str!(demo_think_planning, demo_think_planning);
+    catalog_str!(demo_think_planning_1, demo_think_planning_1);
+    catalog_str!(demo_think_planning_2, demo_think_planning_2);
+    catalog_str!(demo_think_planning_3, demo_think_planning_3);
+    catalog_str!(demo_think_planning_4, demo_think_planning_4);
+    catalog_str!(demo_think_cursor, demo_think_cursor);
+    catalog_str!(demo_think_cursor_1, demo_think_cursor_1);
+    catalog_str!(demo_think_cursor_2, demo_think_cursor_2);
+    catalog_str!(demo_think_debug, demo_think_debug);
+    catalog_str!(demo_think_debug_1, demo_think_debug_1);
+    catalog_str!(demo_think_debug_2, demo_think_debug_2);
+    catalog_str!(demo_gate_tests_fail, demo_gate_tests_fail);
+    catalog_str!(demo_gate_tests_pass, demo_gate_tests_pass);
+    catalog_str!(demo_gate_typecheck, demo_gate_typecheck);
+    catalog_str!(demo_gate_build, demo_gate_build);
+    catalog_str!(demo_summary_1, demo_summary_1);
+    catalog_str!(demo_summary_2, demo_summary_2);
+    catalog_str!(demo_summary_3, demo_summary_3);
+    catalog_str!(demo_done_title, demo_done_title);
+    catalog_str!(demo_done_info, demo_done_info);
+    catalog_str!(demo_next, demo_next);
+    catalog_str!(demo_toast, demo_toast);
+}
+#[cfg(debug_assertions)]
+pub use demo_i18n::*;
 
 // ── Init parameterized ───────────────────────────────────────────
 

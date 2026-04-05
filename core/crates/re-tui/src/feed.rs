@@ -142,6 +142,11 @@ impl FeedBlock {
         })
     }
 
+    /// Overrides the elapsed time (for demos and testing).
+    pub fn elapsed_ms_override(&mut self, ms: u64) {
+        self.elapsed_ms = Some(ms);
+    }
+
     /// Number of content lines.
     #[must_use]
     pub fn content_len(&self) -> usize {

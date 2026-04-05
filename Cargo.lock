@@ -2322,6 +2322,7 @@ name = "re-tui"
 version = "0.2.0-alpha.1"
 dependencies = [
  "arboard",
+ "base64",
  "directories",
  "ratatui",
  "tracing",

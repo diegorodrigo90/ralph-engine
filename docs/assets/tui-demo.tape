@@ -1,78 +1,39 @@
 # VHS tape for recording Ralph Engine TUI demo GIF
-# Install: pacman -S vhs
 # Run: vhs docs/assets/tui-demo.tape
 
 Output docs/assets/tui-demo.gif
 
 Set Shell "bash"
 Set FontSize 14
-Set Width 1200
-Set Height 700
+Set Width 1000
+Set Height 600
 Set Theme "Catppuccin Mocha"
-Set TypingSpeed 60ms
+Set TypingSpeed 50ms
 Set Padding 10
 
-# Build first
+# Launch TUI hidden, show after it's up
 Hide
-Type "cd ~/Projects/ralph-engine && cargo build --release 2>/dev/null"
+Type "cd ~/Projects/cp/correndo-provas && ralph-engine"
 Enter
-Sleep 2s
+Sleep 2.5s
 Show
 
-# Launch TUI
-Type "cargo run"
-Enter
+# Idle dashboard visible
 Sleep 2s
 
-# Show the idle dashboard
-Sleep 1.5s
-
-# Type /help to show commands
-Type "/help"
+# Run a story
+Type "/run plan 5.3"
 Enter
-Sleep 2s
+Sleep 3s
 
-# Type /doctor to check health
-Type "/doctor"
-Enter
-Sleep 2s
-
-# Open help modal
+# Help modal
 Type "?"
-Sleep 2s
-
-# Close help modal
-Type "q"
-Sleep 0.5s
-
-# Try typing a message
-Type "hello world"
-Enter
-Sleep 1.5s
-
-# Type /plugins to see installed plugins
-Type "/plugins"
-Enter
-Sleep 2s
-
-# Scroll up
-Up Up Up
-Sleep 1s
-
-# Focus blocks with j/k
-Type "j"
-Sleep 0.5s
-Type "j"
-Sleep 0.5s
-Type "k"
-Sleep 0.5s
-
-# Press G to follow
-Type "G"
-Sleep 1s
+Sleep 2.5s
+Type " "
 
 # Quit
+Sleep 0.5s
 Type "q"
 Sleep 0.5s
 Type "y"
-Sleep 1s
+Sleep 0.5s

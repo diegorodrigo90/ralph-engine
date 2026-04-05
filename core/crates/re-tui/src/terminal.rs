@@ -629,6 +629,19 @@ impl TuiShell {
         self.push_activity(String::new());
     }
 
+    /// Handles a bracketed paste event (multi-line text pasted at once).
+    ///
+    /// Appends the entire paste to the input buffer. If input is not
+    /// enabled, the paste is ignored.
+    pub fn handle_paste(&mut self, text: &str) {
+        if !self.input_enabled {
+            return;
+        }
+        // Append pasted text to buffer (may contain newlines)
+        self.text_input_buffer.push_str(text);
+        self.autocomplete.update_filter(&self.text_input_buffer);
+    }
+
     /// Whether the TUI is waiting for quit confirmation.
     #[must_use]
     pub fn is_quit_pending(&self) -> bool {
@@ -1398,51 +1411,45 @@ impl TuiShell {
         let mut focused_line: Option<u16> = None;
 
         for (block_idx, block) in self.feed.blocks().iter().enumerate() {
-            // Block padding + separator between blocks
+            // Spacing between blocks
             if block_idx > 0 {
-                let sep_color = match block.kind {
-                    BlockKind::FileEdit => theme.block_file_edit(),
-                    BlockKind::GateFail => theme.block_fail(),
-                    BlockKind::Command => theme.block_command(),
-                    _ => theme.border(),
-                };
-                all_lines.push(Line::styled("─".repeat(40), Style::default().fg(sep_color)));
+                all_lines.push(Line::raw(""));
             }
 
             let is_focused = focused == Some(block_idx);
             if is_focused {
                 focused_line = Some(all_lines.len() as u16);
             }
-            // Title line: icon + title + elapsed
+
+            let block_color = match block.kind {
+                BlockKind::FileRead => theme.block_file_read(),
+                BlockKind::FileEdit => theme.block_file_edit(),
+                BlockKind::Command => theme.block_command(),
+                BlockKind::Thinking => theme.block_thinking(),
+                BlockKind::AgentText => theme.text_dim(),
+                BlockKind::GatePass => theme.block_pass(),
+                BlockKind::GateFail => theme.block_fail(),
+                BlockKind::System => theme.block_system(),
+            };
+
+            // ── Top border: ╭─── kind badge ─── title ─── elapsed ───╮
             let icon = block.kind.icon();
-            let icon_style = match block.kind {
-                BlockKind::FileRead => Style::default().fg(theme.block_file_read()),
-                BlockKind::FileEdit => Style::default().fg(theme.block_file_edit()),
-                BlockKind::Command => Style::default().fg(theme.block_command()),
-                BlockKind::Thinking => Style::default()
-                    .fg(theme.block_thinking())
-                    .add_modifier(Modifier::ITALIC),
-                BlockKind::AgentText => Style::default().fg(theme.text()),
-                BlockKind::GatePass => Style::default().fg(theme.block_pass()),
-                BlockKind::GateFail => Style::default().fg(theme.block_fail()),
-                BlockKind::System => Style::default().fg(theme.block_system()),
+            let kind_label = match block.kind {
+                BlockKind::FileRead => "Read",
+                BlockKind::FileEdit => "Edit",
+                BlockKind::Command => "Bash",
+                BlockKind::Thinking => "Think",
+                BlockKind::AgentText => "Text",
+                BlockKind::GatePass => "Pass",
+                BlockKind::GateFail => "Fail",
+                BlockKind::System => "System",
             };
 
-            let title_style = match block.kind {
-                BlockKind::FileRead | BlockKind::FileEdit => {
-                    Style::default().add_modifier(Modifier::BOLD)
-                }
-                BlockKind::Command => Style::default().add_modifier(Modifier::BOLD),
-                BlockKind::GateFail => Style::default().fg(theme.error()),
-                BlockKind::System => Style::default().fg(theme.text_dim()),
-                _ => Style::default(),
-            };
-
-            let mut spans = Vec::new();
+            let mut header_spans: Vec<Span<'_>> = Vec::new();
 
             // Focus indicator
             if is_focused {
-                spans.push(Span::styled(
+                header_spans.push(Span::styled(
                     "▸ ",
                     Style::default()
                         .fg(theme.accent())
@@ -1450,54 +1457,68 @@ impl TuiShell {
                 ));
             }
 
-            // Icon
-            if !icon.is_empty() {
-                spans.push(Span::styled(format!("{icon} "), icon_style));
-            }
+            // Left border + kind badge
+            header_spans.push(Span::styled("╭─ ", Style::default().fg(block_color)));
+            header_spans.push(Span::styled(
+                format!("{icon} {kind_label}"),
+                Style::default()
+                    .fg(block_color)
+                    .add_modifier(Modifier::BOLD),
+            ));
 
             // Title
             if !block.title.is_empty() {
-                spans.push(Span::styled(block.title.as_str(), title_style));
+                header_spans.push(Span::styled(" │ ", Style::default().fg(theme.border())));
+                header_spans.push(Span::styled(
+                    block.title.as_str(),
+                    Style::default().add_modifier(Modifier::BOLD),
+                ));
             }
 
             // Collapsed hint
             if block.collapsed && !block.content.is_empty() {
-                spans.push(Span::styled(
+                header_spans.push(Span::styled(
                     format!(" ({} lines)", block.content.len()),
                     Style::default().fg(theme.text_dim()),
                 ));
             }
 
-            // Elapsed time (right-aligned feel via padding)
+            // Elapsed + status badges (right side)
             if let Some(elapsed) = block.elapsed_label() {
-                spans.push(Span::styled(
-                    format!("  [{elapsed}]"),
+                header_spans.push(Span::styled(
+                    format!("  {elapsed}"),
                     Style::default().fg(theme.text_dim()),
                 ));
             }
 
-            // Active indicator (animated spinner)
+            // Active spinner
             if block.active {
-                const SPINNER_FRAMES: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-                let frame_idx = self.tick / 2 % SPINNER_FRAMES.len(); // slow down: 2 ticks per frame
-                spans.push(Span::styled(
-                    format!(" {}", SPINNER_FRAMES[frame_idx]),
+                const SPINNER: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+                let idx = self.tick / 2 % SPINNER.len();
+                header_spans.push(Span::styled(
+                    format!(" {}", SPINNER[idx]),
                     Style::default().fg(theme.warning()),
                 ));
             }
 
-            // Success/failure indicator on finalized blocks
-            if let Some(false) = block.success {
-                spans.push(Span::styled(" [FAIL]", Style::default().fg(theme.error())));
+            // Success/failure badge
+            match block.success {
+                Some(true) => {
+                    header_spans.push(Span::styled(" ✓", Style::default().fg(theme.success())));
+                }
+                Some(false) => {
+                    header_spans.push(Span::styled(" ✗", Style::default().fg(theme.error())));
+                }
+                None => {}
             }
 
-            let mut title_line = Line::from(spans);
+            let mut header = Line::from(header_spans);
             if is_focused {
-                title_line = title_line.style(Style::default().bg(theme.surface()));
+                header = header.style(Style::default().bg(theme.surface()));
             }
-            all_lines.push(title_line);
+            all_lines.push(header);
 
-            // Content lines (only if expanded)
+            // ── Content lines with left border: │  content
             if !block.collapsed {
                 let max_lines = crate::theme::MAX_COLLAPSED_LINES;
                 let total_content = block.content.len();
@@ -1506,20 +1527,36 @@ impl TuiShell {
                 let show_count = if truncated { max_lines } else { total_content };
                 for content_line in block.content.iter().take(show_count) {
                     let styled = style_content_line(content_line, block.kind, theme);
-                    all_lines.push(styled);
+                    // Prepend left border
+                    let mut spans = vec![Span::styled("│ ", Style::default().fg(block_color))];
+                    spans.extend(styled.spans);
+                    let mut bordered = Line::from(spans);
+                    if is_focused {
+                        bordered = bordered.style(Style::default().bg(theme.surface()));
+                    }
+                    all_lines.push(bordered);
                 }
 
                 // Truncation hint
                 if truncated {
                     let remaining = total_content - max_lines;
-                    all_lines.push(Line::styled(
-                        format!("  … +{remaining} lines (focus + Enter to expand)"),
-                        Style::default()
-                            .fg(theme.accent_dim())
-                            .add_modifier(Modifier::ITALIC),
-                    ));
+                    all_lines.push(Line::from(vec![
+                        Span::styled("│ ", Style::default().fg(block_color)),
+                        Span::styled(
+                            format!("… +{remaining} lines (Enter to expand)"),
+                            Style::default()
+                                .fg(theme.accent_dim())
+                                .add_modifier(Modifier::ITALIC),
+                        ),
+                    ]));
                 }
             }
+
+            // ── Bottom border: ╰───────────╯
+            all_lines.push(Line::styled(
+                format!("╰{}", "─".repeat(40)),
+                Style::default().fg(block_color),
+            ));
         }
 
         let content_height = all_lines.len() as u16;
@@ -2288,39 +2325,28 @@ fn style_content_line<'a>(
     match kind {
         BlockKind::FileEdit => {
             if line.starts_with('+') {
-                Line::styled(format!("  {line}"), Style::default().fg(theme.diff_added()))
+                Line::styled(line, Style::default().fg(theme.diff_added()))
             } else if line.starts_with('-') {
-                Line::styled(
-                    format!("  {line}"),
-                    Style::default()
-                        .fg(theme.diff_removed())
-                        .add_modifier(Modifier::CROSSED_OUT),
-                )
+                Line::styled(line, Style::default().fg(theme.diff_removed()))
             } else if line.starts_with("@@") {
-                // Hunk header — accent color
                 Line::styled(
-                    format!("  {line}"),
+                    line,
                     Style::default()
                         .fg(theme.info())
                         .add_modifier(Modifier::BOLD),
                 )
             } else {
-                Line::styled(
-                    format!("  {line}"),
-                    Style::default().fg(theme.diff_context()),
-                )
+                Line::styled(line, Style::default().fg(theme.diff_context()))
             }
         }
-        BlockKind::Command => {
-            Line::styled(format!("  {line}"), Style::default().fg(theme.text_dim()))
-        }
+        BlockKind::Command => Line::styled(line, Style::default().fg(theme.text_dim())),
         BlockKind::Thinking => Line::styled(
-            format!("  {line}"),
+            line,
             Style::default()
                 .fg(theme.text_dim())
                 .add_modifier(Modifier::ITALIC),
         ),
-        _ => Line::raw(format!("  {line}")),
+        _ => Line::raw(line),
     }
 }
 

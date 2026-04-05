@@ -129,6 +129,12 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
 
     let mut terminal = ratatui::init();
 
+    // Enable bracketed paste so multi-line pastes arrive as a single Event::Paste
+    let _ = ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::event::EnableBracketedPaste
+    );
+
     let result: Result<(), String> = (|| {
         loop {
             terminal
@@ -171,6 +177,9 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
                     Event::Mouse(MouseEvent { kind, .. }) => {
                         shell.handle_mouse(kind);
                     }
+                    Event::Paste(text) => {
+                        shell.handle_paste(&text);
+                    }
                     _ => {}
                 }
             }
@@ -182,6 +191,10 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
         Ok(())
     })();
 
+    let _ = ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::event::DisableBracketedPaste
+    );
     ratatui::restore();
     result.map_err(CliError::new)?;
     Ok(String::new())
@@ -240,6 +253,10 @@ fn handle_dashboard_command(shell: &mut re_tui::TuiShell, input: &str, locale: &
                     shell.push_activity(format!("  Error: {e}"));
                 }
             }
+        }
+        #[cfg(debug_assertions)]
+        "demo" => {
+            populate_demo_feed(shell, locale);
         }
         "run" | "doctor" | "plugins" | "agents" | "config" | "runtime" | "checks" | "templates"
         | "prompts" | "hooks" | "mcp" | "capabilities" | "providers" | "locales" => {
@@ -489,4 +506,312 @@ fn load_previous_session(shell: &mut re_tui::TuiShell) {
             // No previous session — that's fine
         }
     }
+}
+
+/// Populates the feed with a realistic implementation demo.
+///
+/// Simulates a full story implementation cycle: read → analyze → edit →
+/// test → fix → test again → commit. Enough content to fill scroll.
+/// Only available in debug builds (`cargo run`), stripped from release.
+#[cfg(debug_assertions)]
+#[allow(clippy::too_many_lines)]
+fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
+    use re_tui::feed::{BlockKind, FeedBlock};
+
+    shell.set_state(re_tui::TuiState::Running);
+
+    // ── Phase 1: Start ──────────────────────────────────────────────
+    let mut sys =
+        FeedBlock::completed(BlockKind::System, i18n::demo_story_title(locale).to_owned());
+    sys.collapsed = false;
+    sys.push_content(i18n::demo_workflow_info(locale).to_owned());
+    sys.push_content(i18n::demo_prompt_info(locale).to_owned());
+    shell.feed_mut().push_block(sys);
+
+    let mut think1 = FeedBlock::completed(
+        BlockKind::Thinking,
+        i18n::demo_think_planning(locale).to_owned(),
+    );
+    think1.collapsed = false;
+    think1.push_content(i18n::demo_think_planning_1(locale).to_owned());
+    think1.push_content(i18n::demo_think_planning_2(locale).to_owned());
+    think1.push_content(i18n::demo_think_planning_3(locale).to_owned());
+    think1.push_content(i18n::demo_think_planning_4(locale).to_owned());
+    shell.feed_mut().push_block(think1);
+
+    // ── Phase 2: Read existing code ─────────────────────────────────
+    let mut r1 = FeedBlock::completed(
+        BlockKind::FileRead,
+        "src/modules/search/search.service.ts".to_owned(),
+    );
+    r1.push_content("@Injectable()".to_owned());
+    r1.push_content("export class SearchService {".to_owned());
+    r1.push_content("  constructor(private readonly prisma: PrismaService) {}".to_owned());
+    r1.push_content("".to_owned());
+    r1.push_content(
+        "  async searchEvents(query: string, page: number, limit: number) {".to_owned(),
+    );
+    r1.push_content("    const offset = (page - 1) * limit;".to_owned());
+    r1.push_content("    const events = await this.prisma.event.findMany({".to_owned());
+    r1.push_content("      where: { title: { contains: query, mode: 'insensitive' } },".to_owned());
+    r1.push_content("      skip: offset,".to_owned());
+    r1.push_content("      take: limit,".to_owned());
+    r1.push_content("      orderBy: { date: 'desc' },".to_owned());
+    r1.push_content("    });".to_owned());
+    r1.push_content("    const total = await this.prisma.event.count({ where: ... });".to_owned());
+    r1.push_content("    return { events, total, page, limit };".to_owned());
+    r1.push_content("  }".to_owned());
+    r1.push_content("}".to_owned());
+    r1.elapsed_ms_override(95);
+    shell.feed_mut().push_block(r1);
+
+    let mut r2 = FeedBlock::completed(
+        BlockKind::FileRead,
+        "src/modules/search/search.resolver.ts".to_owned(),
+    );
+    r2.push_content("@Resolver()".to_owned());
+    r2.push_content("export class SearchResolver {".to_owned());
+    r2.push_content("  @Query(() => SearchResult)".to_owned());
+    r2.push_content("  async searchEvents(@Args() args: SearchArgs) { ... }".to_owned());
+    r2.push_content("}".to_owned());
+    r2.elapsed_ms_override(78);
+    shell.feed_mut().push_block(r2);
+
+    let mut r3 = FeedBlock::completed(
+        BlockKind::FileRead,
+        "src/modules/search/search.service.spec.ts".to_owned(),
+    );
+    r3.push_content("describe('SearchService', () => {".to_owned());
+    r3.push_content("  it('should paginate results with offset', async () => { ... });".to_owned());
+    r3.push_content("  it('should return total count', async () => { ... });".to_owned());
+    r3.push_content("});".to_owned());
+    r3.elapsed_ms_override(62);
+    shell.feed_mut().push_block(r3);
+
+    // ── Phase 3: Edit service ───────────────────────────────────────
+    let mut think2 = FeedBlock::completed(
+        BlockKind::Thinking,
+        i18n::demo_think_cursor(locale).to_owned(),
+    );
+    think2.collapsed = false;
+    think2.push_content(i18n::demo_think_cursor_1(locale).to_owned());
+    think2.push_content(i18n::demo_think_cursor_2(locale).to_owned());
+    shell.feed_mut().push_block(think2);
+
+    let mut e1 = FeedBlock::completed(
+        BlockKind::FileEdit,
+        "src/modules/search/search.service.ts".to_owned(),
+    );
+    e1.collapsed = false;
+    e1.push_content("@@ -5,10 +5,22 @@".to_owned());
+    e1.push_content(
+        "-  async searchEvents(query: string, page: number, limit: number) {".to_owned(),
+    );
+    e1.push_content("-    const offset = (page - 1) * limit;".to_owned());
+    e1.push_content("-    const events = await this.prisma.event.findMany({".to_owned());
+    e1.push_content(
+        "-      where: { title: { contains: query, mode: 'insensitive' } },".to_owned(),
+    );
+    e1.push_content("-      skip: offset,".to_owned());
+    e1.push_content("-      take: limit,".to_owned());
+    e1.push_content(
+        "+  async searchEvents(query: string, first: number, after?: string) {".to_owned(),
+    );
+    e1.push_content("+    const cursor = after ? { id: after } : undefined;".to_owned());
+    e1.push_content("+    const events = await this.prisma.event.findMany({".to_owned());
+    e1.push_content(
+        "+      where: { title: { contains: query, mode: 'insensitive' } },".to_owned(),
+    );
+    e1.push_content("+      take: first + 1,".to_owned());
+    e1.push_content("+      cursor,".to_owned());
+    e1.push_content("+      skip: cursor ? 1 : 0,".to_owned());
+    e1.push_content("       orderBy: { date: 'desc' },".to_owned());
+    e1.push_content("     });".to_owned());
+    e1.push_content("-    const total = await this.prisma.event.count({ where: ... });".to_owned());
+    e1.push_content("-    return { events, total, page, limit };".to_owned());
+    e1.push_content("+    const hasNextPage = events.length > first;".to_owned());
+    e1.push_content("+    const edges = events.slice(0, first);".to_owned());
+    e1.push_content("+    return {".to_owned());
+    e1.push_content("+      edges: edges.map(e => ({ node: e, cursor: e.id })),".to_owned());
+    e1.push_content("+      pageInfo: {".to_owned());
+    e1.push_content("+        hasNextPage,".to_owned());
+    e1.push_content("+        endCursor: edges.at(-1)?.id ?? null,".to_owned());
+    e1.push_content("+      },".to_owned());
+    e1.push_content("+    };".to_owned());
+    e1.elapsed_ms_override(140);
+    shell.feed_mut().push_block(e1);
+
+    // ── Phase 4: Edit resolver ──────────────────────────────────────
+    let mut e2 = FeedBlock::completed(
+        BlockKind::FileEdit,
+        "src/modules/search/search.resolver.ts".to_owned(),
+    );
+    e2.collapsed = false;
+    e2.push_content("@@ -3,4 +3,8 @@".to_owned());
+    e2.push_content("-  @Query(() => SearchResult)".to_owned());
+    e2.push_content("-  async searchEvents(@Args() args: SearchArgs) { ... }".to_owned());
+    e2.push_content("+  @Query(() => SearchConnection)".to_owned());
+    e2.push_content("+  async searchEvents(".to_owned());
+    e2.push_content("+    @Args('query') query: string,".to_owned());
+    e2.push_content("+    @Args('first', { defaultValue: 20 }) first: number,".to_owned());
+    e2.push_content("+    @Args('after', { nullable: true }) after?: string,".to_owned());
+    e2.push_content("+  ) {".to_owned());
+    e2.push_content("+    return this.searchService.searchEvents(query, first, after);".to_owned());
+    e2.push_content("+  }".to_owned());
+    e2.elapsed_ms_override(95);
+    shell.feed_mut().push_block(e2);
+
+    // ── Phase 5: Update tests ───────────────────────────────────────
+    let mut e3 = FeedBlock::completed(
+        BlockKind::FileEdit,
+        "src/modules/search/search.service.spec.ts".to_owned(),
+    );
+    e3.collapsed = false;
+    e3.push_content("@@ -1,5 +1,14 @@".to_owned());
+    e3.push_content(" describe('SearchService', () => {".to_owned());
+    e3.push_content(
+        "-  it('should paginate results with offset', async () => { ... });".to_owned(),
+    );
+    e3.push_content("-  it('should return total count', async () => { ... });".to_owned());
+    e3.push_content("+  it('should return first N results with cursor', async () => {".to_owned());
+    e3.push_content("+    const result = await service.searchEvents('marathon', 10);".to_owned());
+    e3.push_content("+    expect(result.edges).toHaveLength(10);".to_owned());
+    e3.push_content("+    expect(result.pageInfo.hasNextPage).toBe(true);".to_owned());
+    e3.push_content("+  });".to_owned());
+    e3.push_content("+".to_owned());
+    e3.push_content("+  it('should paginate with after cursor', async () => {".to_owned());
+    e3.push_content("+    const page1 = await service.searchEvents('run', 5);".to_owned());
+    e3.push_content("+    const cursor = page1.pageInfo.endCursor;".to_owned());
+    e3.push_content("+    const page2 = await service.searchEvents('run', 5, cursor);".to_owned());
+    e3.push_content(
+        "+    expect(page2.edges[0].node.id).not.toBe(page1.edges[0].node.id);".to_owned(),
+    );
+    e3.push_content("+  });".to_owned());
+    e3.elapsed_ms_override(110);
+    shell.feed_mut().push_block(e3);
+
+    // ── Phase 6: First test run — fails ─────────────────────────────
+    let mut bash1 = FeedBlock::completed(
+        BlockKind::Command,
+        "pnpm test -- --testPathPattern=search".to_owned(),
+    );
+    bash1.push_content("FAIL src/modules/search/search.service.spec.ts".to_owned());
+    bash1.push_content("  SearchService".to_owned());
+    bash1.push_content("    ✓ should return first N results with cursor (45ms)".to_owned());
+    bash1.push_content("    ✗ should paginate with after cursor (12ms)".to_owned());
+    bash1.push_content("".to_owned());
+    bash1
+        .push_content("  TypeError: Cannot read properties of undefined (reading 'id')".to_owned());
+    bash1.push_content("    at Object.<anonymous> (search.service.spec.ts:14:52)".to_owned());
+    bash1.push_content("".to_owned());
+    bash1.push_content("Tests:  1 failed, 1 passed, 2 total".to_owned());
+    bash1.active = false;
+    bash1.success = Some(false);
+    bash1.elapsed_ms_override(4800);
+    shell.feed_mut().push_block(bash1);
+
+    let mut fail = FeedBlock::completed(
+        BlockKind::GateFail,
+        i18n::demo_gate_tests_fail(locale).to_owned(),
+    );
+    fail.success = Some(false);
+    shell.feed_mut().push_block(fail);
+
+    // ── Phase 7: Fix the bug ────────────────────────────────────────
+    let mut think3 = FeedBlock::completed(
+        BlockKind::Thinking,
+        i18n::demo_think_debug(locale).to_owned(),
+    );
+    think3.collapsed = false;
+    think3.push_content(i18n::demo_think_debug_1(locale).to_owned());
+    think3.push_content(i18n::demo_think_debug_2(locale).to_owned());
+    shell.feed_mut().push_block(think3);
+
+    let mut e4 = FeedBlock::completed(
+        BlockKind::FileEdit,
+        "src/modules/search/search.service.ts".to_owned(),
+    );
+    e4.collapsed = false;
+    e4.push_content("@@ -15,1 +15,2 @@".to_owned());
+    e4.push_content("-        endCursor: edges.at(-1)?.id ?? null,".to_owned());
+    e4.push_content(
+        "+        endCursor: edges.length > 0 ? edges[edges.length - 1].id : null,".to_owned(),
+    );
+    e4.push_content("+        hasPreviousPage: !!cursor,".to_owned());
+    e4.elapsed_ms_override(60);
+    shell.feed_mut().push_block(e4);
+
+    // ── Phase 8: Second test run — passes ───────────────────────────
+    let mut bash2 = FeedBlock::completed(
+        BlockKind::Command,
+        "pnpm test -- --testPathPattern=search".to_owned(),
+    );
+    bash2.push_content("PASS src/modules/search/search.service.spec.ts".to_owned());
+    bash2.push_content("  SearchService".to_owned());
+    bash2.push_content("    ✓ should return first N results with cursor (38ms)".to_owned());
+    bash2.push_content("    ✓ should paginate with after cursor (22ms)".to_owned());
+    bash2.push_content("".to_owned());
+    bash2.push_content("Tests:  2 passed, 2 total".to_owned());
+    bash2.elapsed_ms_override(3100);
+    shell.feed_mut().push_block(bash2);
+
+    let pass1 = FeedBlock::completed(
+        BlockKind::GatePass,
+        i18n::demo_gate_tests_pass(locale).to_owned(),
+    );
+    shell.feed_mut().push_block(pass1);
+
+    // ── Phase 9: Quality gates ──────────────────────────────────────
+    let mut bash3 = FeedBlock::completed(BlockKind::Command, "pnpm type-check".to_owned());
+    bash3.push_content("No errors found.".to_owned());
+    bash3.elapsed_ms_override(8500);
+    shell.feed_mut().push_block(bash3);
+
+    let pass2 = FeedBlock::completed(
+        BlockKind::GatePass,
+        i18n::demo_gate_typecheck(locale).to_owned(),
+    );
+    shell.feed_mut().push_block(pass2);
+
+    let mut bash4 = FeedBlock::completed(BlockKind::Command, "pnpm build".to_owned());
+    bash4.push_content("apps/api: build succeeded in 12.3s".to_owned());
+    bash4.push_content("apps/web: build succeeded in 18.7s".to_owned());
+    bash4.push_content("packages/ui: build succeeded in 4.1s".to_owned());
+    bash4.elapsed_ms_override(35200);
+    shell.feed_mut().push_block(bash4);
+
+    let pass3 = FeedBlock::completed(
+        BlockKind::GatePass,
+        i18n::demo_gate_build(locale).to_owned(),
+    );
+    shell.feed_mut().push_block(pass3);
+
+    // ── Phase 10: Commit ────────────────────────────────────────────
+    let mut bash5 = FeedBlock::completed(BlockKind::Command, "git add -A && git commit".to_owned());
+    bash5.push_content(
+        "[main a1b2c3d] feat(search): migrate to cursor-based pagination (5.3)".to_owned(),
+    );
+    bash5.push_content(" 3 files changed, 42 insertions(+), 12 deletions(-)".to_owned());
+    bash5.elapsed_ms_override(1200);
+    shell.feed_mut().push_block(bash5);
+
+    // ── Phase 11: Summary ───────────────────────────────────────────
+    let mut text = FeedBlock::completed(BlockKind::AgentText, String::new());
+    text.collapsed = false;
+    text.push_content(i18n::demo_summary_1(locale).to_owned());
+    text.push_content(i18n::demo_summary_2(locale).to_owned());
+    text.push_content(i18n::demo_summary_3(locale).to_owned());
+    shell.feed_mut().push_block(text);
+
+    let mut done =
+        FeedBlock::completed(BlockKind::System, i18n::demo_done_title(locale).to_owned());
+    done.collapsed = false;
+    done.push_content(i18n::demo_done_info(locale).to_owned());
+    shell.feed_mut().push_block(done);
+
+    // Active: starting next story
+    let active = FeedBlock::new(BlockKind::Thinking, i18n::demo_next(locale).to_owned());
+    shell.feed_mut().push_block(active);
+
+    shell.toast_success(i18n::demo_toast(locale).to_owned());
 }
