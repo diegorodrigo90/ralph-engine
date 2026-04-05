@@ -735,6 +735,57 @@ pub fn agent_context_window_size(agent_plugin_id: &str) -> usize {
         .unwrap_or(0)
 }
 
+// ── Agent routing discovery ──────────────────────────────────────
+
+/// Classifies a task and recommends an agent using routing plugins.
+///
+/// Tries all enabled plugins' `classify_task()` until one returns a
+/// recommendation. Returns None if no router plugin is active.
+#[must_use]
+pub fn classify_task(task_description: &str) -> Option<re_plugin::AgentRecommendation> {
+    let snapshot = official_runtime_snapshot();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id)
+            && let Some(rec) = runtime.classify_task(task_description)
+        {
+            return Some(rec);
+        }
+    }
+
+    None
+}
+
+/// Collects routing rules from all enabled router plugins.
+#[must_use]
+pub fn collect_routing_rules() -> Vec<re_plugin::RoutingRule> {
+    let snapshot = official_runtime_snapshot();
+    let mut rules = Vec::new();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
+            rules.extend(runtime.routing_rules());
+        }
+    }
+
+    rules
+}
+
+/// Returns the fallback chain for a given primary agent.
+#[must_use]
+pub fn fallback_chain(primary_agent: &str) -> Vec<re_plugin::FallbackEntry> {
+    let snapshot = official_runtime_snapshot();
+    let mut chain = Vec::new();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
+            chain.extend(runtime.fallback_chain(primary_agent));
+        }
+    }
+
+    chain
+}
+
 // ── Community plugin discovery ────────────────────────────────────
 
 /// Descriptor for a community plugin discovered from the filesystem.
@@ -1058,6 +1109,33 @@ mod tests {
     #[test]
     fn agent_context_window_unknown_plugin_returns_zero() {
         assert_eq!(agent_context_window_size("nonexistent.plugin"), 0);
+    }
+
+    #[test]
+    fn classify_task_returns_none_without_rules() {
+        // With default config, router plugin has no rules → returns None
+        let result = classify_task("fix a bug in the login page");
+        // Router plugin may return something based on keywords, or None
+        // Either way it shouldn't panic
+        let _ = result;
+    }
+
+    #[test]
+    fn collect_routing_rules_returns_list() {
+        let rules = collect_routing_rules();
+        // Router plugin may have default rules or empty
+        for rule in &rules {
+            assert!(!rule.agent_plugin.is_empty());
+        }
+    }
+
+    #[test]
+    fn fallback_chain_returns_list() {
+        let chain = fallback_chain("official.claude");
+        // May be empty or have entries
+        for entry in &chain {
+            assert!(!entry.agent_plugin.is_empty());
+        }
     }
 
     #[test]

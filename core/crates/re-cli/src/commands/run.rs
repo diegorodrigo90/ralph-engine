@@ -335,9 +335,21 @@ fn run_work_item(work_item_id: &str, locale: &str, verbose: bool) -> Result<Stri
     // Check autonomous mode acceptance
     ensure_autonomous_acceptance(&cwd, locale, verbose)?;
 
-    let agent_id = config
-        .run
-        .agent_id
+    // Try routing: classify work item to auto-select agent
+    let routed_agent = catalog::classify_task(work_item_id);
+    if let Some(ref rec) = routed_agent {
+        dbg_log(
+            verbose,
+            &format!(
+                "router recommended agent '{}' (reason: {})",
+                rec.agent_plugin, rec.reason
+            ),
+        );
+    }
+    let agent_id = routed_agent
+        .as_ref()
+        .map(|r| r.agent_plugin.as_str())
+        .or(config.run.agent_id)
         .ok_or_else(|| CliError::new(i18n::run_missing_agent_id(locale)))?;
 
     // 1. Probe agent
