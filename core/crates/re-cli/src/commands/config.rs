@@ -21,6 +21,8 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         Some("layers" | "show-layers") => Ok(render_config_layers_yaml(canonical_config_layers())),
         Some("show-mcp-server") => show_mcp_server(args.get(1).map(String::as_str), locale),
         Some("show-plugin") => show_plugin(args.get(1).map(String::as_str), locale),
+        Some("preset") => apply_preset(args.get(1).map(String::as_str), locale),
+        Some("migrate") => migrate_config(locale),
         Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale, "config", other,
         ))),
@@ -74,4 +76,41 @@ fn show_mcp_server(server_id: Option<&str>, locale: &str) -> Result<String, CliE
     );
 
     Ok(render_resolved_mcp_server_config_yaml(&resolved))
+}
+
+/// Applies a preset to the current project.
+fn apply_preset(preset_id: Option<&str>, locale: &str) -> Result<String, CliError> {
+    let preset_id = preset_id
+        .ok_or_else(|| CliError::usage(i18n::missing_id(locale, "config preset", "preset-id")))?;
+
+    let cwd =
+        std::env::current_dir().map_err(|e| CliError::new(format!("Cannot determine cwd: {e}")))?;
+
+    let files = catalog::apply_preset(preset_id, &cwd).map_err(CliError::new)?;
+
+    let mut lines = vec![format!("Preset '{preset_id}' applied:")];
+    for (path, _) in &files {
+        lines.push(format!("  ✓ {path}"));
+    }
+    Ok(lines.join("\n"))
+}
+
+/// Runs config migration across all plugins.
+fn migrate_config(_locale: &str) -> Result<String, CliError> {
+    let cwd =
+        std::env::current_dir().map_err(|e| CliError::new(format!("Cannot determine cwd: {e}")))?;
+    let config_path = cwd.join(".ralph-engine/config.yaml");
+
+    let content = std::fs::read_to_string(&config_path)
+        .map_err(|_| CliError::new("No config file found at .ralph-engine/config.yaml"))?;
+
+    let current_version = env!("CARGO_PKG_VERSION");
+    match catalog::migrate_config(&content, "0", current_version) {
+        Some(migrated) => {
+            std::fs::write(&config_path, &migrated)
+                .map_err(|e| CliError::new(format!("Failed to write config: {e}")))?;
+            Ok(format!("Config migrated to v{current_version}"))
+        }
+        None => Ok("Config is up to date, no migration needed.".to_owned()),
+    }
 }
