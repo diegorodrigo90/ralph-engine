@@ -35,28 +35,99 @@ mod tui;
 
 struct CommandDescriptor {
     name: &'static str,
+    description: &'static str,
     subcommands: &'static [&'static str],
     handler: fn(&[String], &str) -> Result<String, CliError>,
 }
 
 const COMMANDS: &[CommandDescriptor] = &[
     CommandDescriptor {
+        name: "run",
+        description: "Execute work items with TUI dashboard",
+        subcommands: &["plan"],
+        handler: run::execute,
+    },
+    CommandDescriptor {
+        name: "tui",
+        description: "Launch TUI demo with simulated events",
+        subcommands: &[],
+        handler: tui::execute,
+    },
+    CommandDescriptor {
+        name: "init",
+        description: "Initialize a new project (.ralph-engine/)",
+        subcommands: &[],
+        handler: init::execute,
+    },
+    CommandDescriptor {
+        name: "doctor",
+        description: "Check project health and fix issues",
+        subcommands: &["config", "apply-config"],
+        handler: doctor::execute,
+    },
+    CommandDescriptor {
+        name: "plugins",
+        description: "List and inspect installed plugins",
+        subcommands: &["list", "show"],
+        handler: plugins::execute,
+    },
+    CommandDescriptor {
+        name: "install",
+        description: "Install a community plugin",
+        subcommands: &[],
+        handler: install::execute,
+    },
+    CommandDescriptor {
+        name: "uninstall",
+        description: "Remove an installed plugin",
+        subcommands: &[],
+        handler: install::execute_uninstall,
+    },
+    CommandDescriptor {
         name: "agents",
+        description: "List and launch agent runtimes",
         subcommands: &["list", "show", "plan", "launch"],
         handler: agents::execute,
     },
     CommandDescriptor {
-        name: "capabilities",
-        subcommands: &["list", "show"],
-        handler: capabilities::execute,
+        name: "mcp",
+        description: "List and manage MCP servers",
+        subcommands: &["list", "show", "plan", "launch", "status"],
+        handler: mcp::execute,
     },
     CommandDescriptor {
         name: "checks",
+        description: "Run prepare and doctor checks",
         subcommands: &["list", "show", "plan", "run", "asset", "materialize"],
         handler: checks::execute,
     },
     CommandDescriptor {
+        name: "templates",
+        description: "List and scaffold project templates",
+        subcommands: &["list", "show", "asset", "scaffold", "materialize"],
+        handler: templates::execute,
+    },
+    CommandDescriptor {
+        name: "prompts",
+        description: "List and inspect prompt contributions",
+        subcommands: &["list", "show", "asset", "materialize"],
+        handler: prompts::execute,
+    },
+    CommandDescriptor {
+        name: "policies",
+        description: "List and enforce policy rules",
+        subcommands: &["list", "show", "plan", "run", "asset", "materialize"],
+        handler: policies::execute,
+    },
+    CommandDescriptor {
+        name: "hooks",
+        description: "List runtime hooks and surfaces",
+        subcommands: &["list", "show", "plan"],
+        handler: hooks::execute,
+    },
+    CommandDescriptor {
         name: "config",
+        description: "Show configuration and defaults",
         subcommands: &[
             "show-defaults",
             "locale",
@@ -68,79 +139,28 @@ const COMMANDS: &[CommandDescriptor] = &[
         handler: config::execute,
     },
     CommandDescriptor {
-        name: "doctor",
-        subcommands: &["config", "apply-config"],
-        handler: doctor::execute,
-    },
-    CommandDescriptor {
-        name: "hooks",
-        subcommands: &["list", "show", "plan"],
-        handler: hooks::execute,
-    },
-    CommandDescriptor {
-        name: "init",
-        subcommands: &[],
-        handler: init::execute,
-    },
-    CommandDescriptor {
-        name: "install",
-        subcommands: &[],
-        handler: install::execute,
-    },
-    CommandDescriptor {
-        name: "locales",
-        subcommands: &["list", "show"],
-        handler: locales::execute,
-    },
-    CommandDescriptor {
-        name: "mcp",
-        subcommands: &["list", "show", "plan", "launch", "status"],
-        handler: mcp::execute,
-    },
-    CommandDescriptor {
-        name: "policies",
-        subcommands: &["list", "show", "plan", "run", "asset", "materialize"],
-        handler: policies::execute,
-    },
-    CommandDescriptor {
-        name: "prompts",
-        subcommands: &["list", "show", "asset", "materialize"],
-        handler: prompts::execute,
-    },
-    CommandDescriptor {
-        name: "providers",
-        subcommands: &["list", "show", "plan"],
-        handler: providers::execute,
-    },
-    CommandDescriptor {
-        name: "plugins",
-        subcommands: &["list", "show"],
-        handler: plugins::execute,
-    },
-    CommandDescriptor {
-        name: "run",
-        subcommands: &["plan"],
-        handler: run::execute,
-    },
-    CommandDescriptor {
         name: "runtime",
+        description: "Inspect runtime state and topology",
         subcommands: &["show", "status", "issues"],
         handler: runtime::execute,
     },
     CommandDescriptor {
-        name: "templates",
-        subcommands: &["list", "show", "asset", "scaffold", "materialize"],
-        handler: templates::execute,
+        name: "capabilities",
+        description: "List plugin capabilities",
+        subcommands: &["list", "show"],
+        handler: capabilities::execute,
     },
     CommandDescriptor {
-        name: "tui",
-        subcommands: &[],
-        handler: tui::execute,
+        name: "providers",
+        description: "List data/context/forge providers",
+        subcommands: &["list", "show", "plan"],
+        handler: providers::execute,
     },
     CommandDescriptor {
-        name: "uninstall",
-        subcommands: &[],
-        handler: install::execute_uninstall,
+        name: "locales",
+        description: "List supported locales",
+        subcommands: &["list", "show"],
+        handler: locales::execute,
     },
 ];
 
@@ -174,8 +194,29 @@ fn render_help(locale: &str) -> String {
         i18n::commands_heading(locale).to_owned(),
     ];
 
+    // Find max command name length for alignment
+    let max_len = COMMANDS.iter().map(|c| c.name.len()).max().unwrap_or(12);
+
     for command in COMMANDS {
-        lines.push(format!("  {}", command.name));
+        let padding = " ".repeat(max_len - command.name.len() + 2);
+        lines.push(format!(
+            "  {}{}{}",
+            command.name, padding, command.description
+        ));
+    }
+
+    // Plugin-contributed commands (auto-discovered)
+    let plugin_cmds = catalog::collect_cli_contributions_from_plugins();
+    if !plugin_cmds.is_empty() {
+        lines.push(String::new());
+        lines.push(format!("  {} (plugins):", i18n::commands_heading(locale)));
+        for (_plugin_id, contrib) in &plugin_cmds {
+            let padding = " ".repeat(max_len.saturating_sub(contrib.name.len()) + 2);
+            lines.push(format!(
+                "  {}{}{}",
+                contrib.name, padding, contrib.description
+            ));
+        }
     }
 
     lines.push(String::new());
