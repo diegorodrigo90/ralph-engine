@@ -167,6 +167,29 @@ impl PluginRuntime for TddStrictRuntime {
             format!("TDD strict plugin does not provide MCP server '{server_id}'"),
         ))
     }
+
+    fn tui_contributions(&self) -> Vec<re_plugin::TuiPanel> {
+        vec![re_plugin::TuiPanel {
+            id: "tdd-status".to_owned(),
+            title: "TDD Strict".to_owned(),
+            lines: Vec::new(),
+            blocks: vec![
+                re_plugin::TuiBlock::indicator(
+                    "Enforcement",
+                    "Active",
+                    re_plugin::Severity::Success,
+                ),
+                re_plugin::TuiBlock::pairs(vec![
+                    ("Policy".to_owned(), "RED → GREEN → REFACTOR".to_owned()),
+                    (
+                        "Gate".to_owned(),
+                        "tests must pass before commit".to_owned(),
+                    ),
+                ]),
+            ],
+            zone_hint: "sidebar".to_owned(),
+        }]
+    }
 }
 
 #[cfg(test)]

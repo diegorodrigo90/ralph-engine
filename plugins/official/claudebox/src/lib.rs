@@ -271,6 +271,29 @@ impl PluginRuntime for ClaudeBoxRuntime {
             },
         })
     }
+
+    fn tui_contributions(&self) -> Vec<re_plugin::TuiPanel> {
+        let available = re_plugin::probe_binary_on_path(AGENT_BINARY).is_some();
+        let sev = if available {
+            re_plugin::Severity::Success
+        } else {
+            re_plugin::Severity::Error
+        };
+        let status = if available { "Available" } else { "Not found" };
+        vec![re_plugin::TuiPanel {
+            id: "claudebox-status".to_owned(),
+            title: "ClaudeBox".to_owned(),
+            lines: Vec::new(),
+            blocks: vec![
+                re_plugin::TuiBlock::indicator("Binary", status, sev),
+                re_plugin::TuiBlock::pairs(vec![
+                    ("Mode".to_owned(), "-p (prompt)".to_owned()),
+                    ("Container".to_owned(), "Docker sandbox".to_owned()),
+                ]),
+            ],
+            zone_hint: "sidebar".to_owned(),
+        }]
+    }
 }
 
 #[cfg(test)]

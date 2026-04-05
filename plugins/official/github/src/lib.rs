@@ -191,6 +191,33 @@ impl PluginRuntime for GitHubRuntime {
             },
         })
     }
+
+    fn tui_contributions(&self) -> Vec<re_plugin::TuiPanel> {
+        let mcp_available = re_plugin::probe_binary_on_path(MCP_BINARY).is_some();
+        let sev = if mcp_available {
+            re_plugin::Severity::Success
+        } else {
+            re_plugin::Severity::Neutral
+        };
+        let status = if mcp_available {
+            "Available"
+        } else {
+            "Not installed"
+        };
+        vec![re_plugin::TuiPanel {
+            id: "github-status".to_owned(),
+            title: "GitHub".to_owned(),
+            lines: Vec::new(),
+            blocks: vec![
+                re_plugin::TuiBlock::indicator("MCP Server", status, sev),
+                re_plugin::TuiBlock::pairs(vec![
+                    ("Transport".to_owned(), "stdio".to_owned()),
+                    ("Tool".to_owned(), "gh CLI".to_owned()),
+                ]),
+            ],
+            zone_hint: "sidebar".to_owned(),
+        }]
+    }
 }
 
 #[cfg(test)]

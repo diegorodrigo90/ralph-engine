@@ -600,16 +600,38 @@ impl PluginRuntime for BmadRuntime {
             0
         };
 
+        // Find current in-progress story name
+        let current_story: Option<String> = content.lines().find_map(|line| {
+            let trimmed = line.trim();
+            if trimmed.ends_with("in-progress") {
+                trimmed.split(':').next().map(|s| s.trim().to_owned())
+            } else {
+                None
+            }
+        });
+
+        let mut blocks = vec![
+            re_plugin::TuiBlock::metric("Done", done as u32, Some(total as u32)),
+            re_plugin::TuiBlock::metric("Doing", doing as u32, None),
+            re_plugin::TuiBlock::metric("Todo", todo as u32, None),
+            re_plugin::TuiBlock::bar("Progress", pct as u32),
+        ];
+
+        // Show current story if any
+        if let Some(story) = current_story {
+            blocks.push(re_plugin::TuiBlock::separator());
+            blocks.push(re_plugin::TuiBlock::indicator(
+                "Active",
+                story,
+                re_plugin::Severity::Warning,
+            ));
+        }
+
         vec![re_plugin::TuiPanel {
             id: "sprint-status".to_owned(),
             title: "Sprint".to_owned(),
             lines: Vec::new(),
-            blocks: vec![
-                re_plugin::TuiBlock::metric("Done", done as u32, Some(total as u32)),
-                re_plugin::TuiBlock::metric("Doing", doing as u32, None),
-                re_plugin::TuiBlock::metric("Todo", todo as u32, None),
-                re_plugin::TuiBlock::bar("Progress", pct as u32),
-            ],
+            blocks,
             zone_hint: "sidebar".to_owned(),
         }]
     }
