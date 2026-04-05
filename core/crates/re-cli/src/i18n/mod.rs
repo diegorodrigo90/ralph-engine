@@ -12,6 +12,7 @@ pub(super) struct CliLocaleCatalog {
     pub name_label: &'static str,
     pub summary_label: &'static str,
     pub kind_label: &'static str,
+    #[allow(dead_code)]
     pub resolved_activation_label: &'static str,
     pub resolved_from_label: &'static str,
     pub activation_label: &'static str,
@@ -472,7 +473,6 @@ pub fn materialized_assets_heading(locale: &str, count: usize) -> String {
 
 // ── Entity/surface label accessors (existing) ────────────────────
 
-catalog_str!(resolved_activation_label, resolved_activation_label);
 catalog_str!(resolved_from_label, resolved_from_label);
 catalog_str!(name_label, name_label);
 catalog_str!(summary_label, summary_label);
