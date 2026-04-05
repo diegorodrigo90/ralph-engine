@@ -1,6 +1,6 @@
 [licenses]
 # All permissive licenses compatible with MIT.
-# Each was verified before adding — see docs/decisions/ for rationale.
+# Each was verified before adding.
 allow = [
   "MIT",
   "MIT-0",
