@@ -9,6 +9,8 @@ const SUPPORTED_KINDS = new Set([
   "policy",
   "workflow",
   "tui_extension",
+  "context_manager",
+  "agent_router",
 ]);
 
 const SUPPORTED_CAPABILITIES = new Set([
@@ -25,6 +27,9 @@ const SUPPORTED_CAPABILITIES = new Set([
   "policy",
   "workflow",
   "tui_widgets",
+  "context_management",
+  "session_persistence",
+  "agent_routing",
 ]);
 
 const DEFAULT_CAPABILITIES_BY_KIND = new Map([
@@ -38,6 +43,8 @@ const DEFAULT_CAPABILITIES_BY_KIND = new Map([
   ["policy", ["policy"]],
   ["workflow", ["workflow"]],
   ["tui_extension", ["tui_widgets"]],
+  ["context_manager", ["context_management", "session_persistence"]],
+  ["agent_router", ["agent_routing"]],
 ]);
 
 const CAPABILITY_IMPORT_NAMES = new Map([
@@ -54,6 +61,9 @@ const CAPABILITY_IMPORT_NAMES = new Map([
   ["policy", "POLICY"],
   ["workflow", "WORKFLOW"],
   ["tui_widgets", "TUI_WIDGETS"],
+  ["context_management", "CONTEXT_MANAGEMENT"],
+  ["session_persistence", "SESSION_PERSISTENCE"],
+  ["agent_routing", "AGENT_ROUTING"],
 ]);
 
 const CAPABILITY_RUNTIME_HOOKS = new Map([
@@ -70,6 +80,9 @@ const CAPABILITY_RUNTIME_HOOKS = new Map([
   ["policy", "PluginRuntimeHook::PolicyEnforcement"],
   ["workflow", "PluginRuntimeHook::WorkItemResolution"],
   ["tui_widgets", "PluginRuntimeHook::TuiContribution"],
+  ["context_management", "PluginRuntimeHook::ContextManagement"],
+  ["session_persistence", "PluginRuntimeHook::SessionPersistence"],
+  ["agent_routing", "PluginRuntimeHook::AgentRouting"],
 ]);
 
 const KIND_VARIANTS = new Map([
@@ -83,6 +96,8 @@ const KIND_VARIANTS = new Map([
   ["policy", "PluginKind::Policy"],
   ["workflow", "PluginKind::Workflow"],
   ["tui_extension", "PluginKind::TuiExtension"],
+  ["context_manager", "PluginKind::ContextManager"],
+  ["agent_router", "PluginKind::AgentRouter"],
 ]);
 
 function capabilityImportName(capability) {

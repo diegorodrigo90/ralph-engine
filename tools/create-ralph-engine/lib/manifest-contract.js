@@ -19,6 +19,8 @@ const KIND_CAPABILITY_REQUIREMENTS = new Map([
   ["policy", "policy"],
   ["workflow", "workflow"],
   ["tui_extension", "tui_widgets"],
+  ["context_manager", "context_management"],
+  ["agent_router", "agent_routing"],
 ]);
 const CONTRIBUTION_CAPABILITY_REQUIREMENTS = new Map([
   ["templates", ["template"]],

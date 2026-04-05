@@ -1,0 +1,3 @@
+[plugin]
+name = "Context Manager"
+summary = "Session persistence, context compaction, and cross-agent transfer."

@@ -25,6 +25,7 @@ re-plugin-tdd-strict = { path = "../../../plugins/official/tdd-strict", version 
 re-plugin-hello-world = { path = "../../../plugins/official/hello-world", version = "0.2.0-alpha.1" }
 re-plugin-findings = { path = "../../../plugins/official/findings", version = "0.2.0-alpha.1" }
 re-plugin-guided = { path = "../../../plugins/official/guided", version = "0.2.0-alpha.1" }
+re-plugin-context = { path = "../../../plugins/official/context", version = "0.2.0-alpha.1" }
 
 [build-dependencies]
 re-build-utils = { path = "../re-build-utils", version = "0.2.0-alpha.1" }

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-04T19:59:17.776Z",
-  "count": 10,
+  "generated_at": "2026-04-05T03:37:19.929Z",
+  "count": 11,
   "community_count": 0,
   "last_scan": null,
   "icon_contract": {
@@ -714,6 +714,40 @@
           ]
         }
       }
+    },
+    {
+      "id": "official.guided",
+      "kind": "tui_extension",
+      "display_name": "Guided Mode",
+      "display_name_locales": {
+        "pt-br": "Modo Guiado"
+      },
+      "summary": "Interactive TUI mode with pause, feedback, and resume controls.",
+      "summary_locales": {
+        "pt-br": "Modo TUI interativo com controles de pausa, feedback e retomada."
+      },
+      "description": "Adds human-in-the-loop interaction to the TUI dashboard. When enabled, users can pause the running agent, provide written feedback, and resume with merged context. When disabled, the TUI is a read-only dashboard. Controls: [p] pause/resume, [f] provide feedback.",
+      "description_locales": {
+        "pt-br": "Adiciona interacao humana ao dashboard TUI. Quando habilitado, usuarios podem pausar o agente em execucao, fornecer feedback escrito e retomar com contexto mesclado. Quando desabilitado, a TUI eh um dashboard apenas leitura. Controles: [p] pausar/retomar, [f] feedback."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "load"
+      ],
+      "runtime_hooks": [
+        "tui_contribution"
+      ],
+      "capabilities": [
+        "tui_widgets"
+      ],
+      "iconUrl": null
     },
     {
       "id": "official.hello-world",

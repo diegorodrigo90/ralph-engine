@@ -119,6 +119,12 @@ pub const POLICY: PluginCapability = PluginCapability::new("policy");
 pub const WORKFLOW: PluginCapability = PluginCapability::new("workflow");
 /// TUI dashboard widget contribution capability.
 pub const TUI_WIDGETS: PluginCapability = PluginCapability::new("tui_widgets");
+/// Context management capability (export, import, compact, persist sessions).
+pub const CONTEXT_MANAGEMENT: PluginCapability = PluginCapability::new("context_management");
+/// Session persistence capability (save/load sessions to disk).
+pub const SESSION_PERSISTENCE: PluginCapability = PluginCapability::new("session_persistence");
+/// Agent routing capability (task classification, agent/model selection).
+pub const AGENT_ROUTING: PluginCapability = PluginCapability::new("agent_routing");
 
 /// Canonical ordered list of reviewed plugin capabilities.
 pub const ALL_PLUGIN_CAPABILITIES: &[PluginCapability] = &[
@@ -135,6 +141,9 @@ pub const ALL_PLUGIN_CAPABILITIES: &[PluginCapability] = &[
     POLICY,
     WORKFLOW,
     TUI_WIDGETS,
+    CONTEXT_MANAGEMENT,
+    SESSION_PERSISTENCE,
+    AGENT_ROUTING,
 ];
 
 /// Parses one reviewed plugin capability identifier.
@@ -209,6 +218,10 @@ define_plugin_enum! {
         Workflow => "workflow",
         /// TUI extension plugin (keybindings, panels, interactive controls).
         TuiExtension => "tui_extension",
+        /// Context management plugin (session persistence, compaction, transfer).
+        ContextManager => "context_manager",
+        /// Agent routing plugin (task classification, agent selection).
+        AgentRouter => "agent_router",
     }
 }
 
@@ -756,6 +769,12 @@ define_plugin_enum! {
         AgentLaunch => "agent_launch",
         /// The plugin contributes TUI dashboard panels.
         TuiContribution => "tui_contribution",
+        /// The plugin provides context management (export, import, compact).
+        ContextManagement => "context_management",
+        /// The plugin provides session persistence (save, load).
+        SessionPersistence => "session_persistence",
+        /// The plugin provides agent routing (task classification).
+        AgentRouting => "agent_routing",
     }
 }
 
@@ -1538,6 +1557,103 @@ pub trait PluginRuntime: Send + Sync {
     fn tui_command_prefix(&self) -> &str {
         "/"
     }
+
+    /// Exports the current session context for transfer to another agent.
+    ///
+    /// Agent plugins serialize their native session state (Claude JSONL,
+    /// Codex rollout, Gemini checkpoint) into the portable format.
+    /// Core calls this when the user switches agents mid-session.
+    ///
+    /// Default: not supported (returns error).
+    fn export_session_context(
+        &self,
+        _project_root: &Path,
+    ) -> Result<PortableContext, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "context_export_not_supported",
+            format!(
+                "Plugin '{}' does not support context export",
+                self.plugin_id()
+            ),
+        ))
+    }
+
+    /// Imports a portable context from another agent.
+    ///
+    /// Agent plugins convert the portable format into their native
+    /// representation (e.g., prepend as system prompt, write to session
+    /// file, pass via CLI flags).
+    ///
+    /// Default: not supported (returns error).
+    fn import_session_context(
+        &self,
+        _context: &PortableContext,
+        _project_root: &Path,
+    ) -> Result<(), PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "context_import_not_supported",
+            format!(
+                "Plugin '{}' does not support context import",
+                self.plugin_id()
+            ),
+        ))
+    }
+
+    /// Returns the maximum context window size (in tokens) for this agent.
+    ///
+    /// Used by the context plugin to compact/summarize before transfer.
+    /// Default: 0 (unknown — context plugin uses a safe default).
+    fn context_window_size(&self) -> usize {
+        0
+    }
+
+    /// Compacts a portable context to fit within a token budget.
+    ///
+    /// Context management plugins implement this to summarize
+    /// conversation history before transfer to a smaller context window.
+    /// The strategy (truncate, summarize, recent-only) is plugin-owned.
+    ///
+    /// Default: returns the context unchanged.
+    fn compact_context(
+        &self,
+        context: &PortableContext,
+        _target_tokens: usize,
+    ) -> Result<PortableContext, PluginRuntimeError> {
+        Ok(context.clone())
+    }
+
+    /// Saves a portable context to persistent storage.
+    ///
+    /// Context management plugins implement this to write session
+    /// snapshots to disk (e.g., `.ralph-engine/sessions/`).
+    ///
+    /// Default: not supported.
+    fn save_session(
+        &self,
+        _context: &PortableContext,
+        _path: &Path,
+    ) -> Result<(), PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "session_save_not_supported",
+            format!(
+                "Plugin '{}' does not support session persistence",
+                self.plugin_id()
+            ),
+        ))
+    }
+
+    /// Loads a portable context from persistent storage.
+    ///
+    /// Default: not supported.
+    fn load_session(&self, _path: &Path) -> Result<PortableContext, PluginRuntimeError> {
+        Err(PluginRuntimeError::new(
+            "session_load_not_supported",
+            format!(
+                "Plugin '{}' does not support session persistence",
+                self.plugin_id()
+            ),
+        ))
+    }
 }
 
 /// A slash command discovered from an agent CLI.
@@ -1549,6 +1665,115 @@ pub struct AgentCommand {
     pub description: String,
     /// Plugin that owns this command.
     pub plugin_id: String,
+}
+
+// ---------------------------------------------------------------------------
+// Portable context types for cross-agent session transfer
+// ---------------------------------------------------------------------------
+
+/// Role of a message in a conversation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum MessageRole {
+    /// User message.
+    User,
+    /// Assistant (agent) response.
+    Assistant,
+    /// System prompt or instruction.
+    System,
+    /// Tool invocation result.
+    Tool,
+}
+
+impl MessageRole {
+    /// Returns the stable string identifier.
+    #[must_use]
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::User => "user",
+            Self::Assistant => "assistant",
+            Self::System => "system",
+            Self::Tool => "tool",
+        }
+    }
+}
+
+/// One block of content within a message.
+///
+/// Based on the Anthropic content-block model (the most expressive
+/// superset). Convertible to/from `OpenAI` and Gemini formats.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ContentBlock {
+    /// Plain text content.
+    Text {
+        /// The text.
+        text: String,
+    },
+    /// Tool invocation by the assistant.
+    ToolUse {
+        /// Tool call identifier.
+        id: String,
+        /// Tool name.
+        name: String,
+        /// Tool input as JSON string.
+        input: String,
+    },
+    /// Result of a tool invocation.
+    ToolResult {
+        /// Matching tool call identifier.
+        tool_use_id: String,
+        /// Result content.
+        content: String,
+        /// Whether the tool call failed.
+        is_error: bool,
+    },
+}
+
+/// One message in a portable conversation.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PortableMessage {
+    /// Message role.
+    pub role: MessageRole,
+    /// Content blocks (text, tool use, tool result).
+    pub content: Vec<ContentBlock>,
+    /// Unix timestamp (seconds) when the message was created.
+    pub timestamp: Option<u64>,
+}
+
+/// Metadata about a portable context snapshot.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ContextMetadata {
+    /// Agent plugin that produced this context.
+    pub source_agent: String,
+    /// Model used in the session (e.g. `"claude-opus-4-6"`).
+    pub source_model: String,
+    /// Session identifier from the agent CLI.
+    pub session_id: Option<String>,
+    /// Unix timestamp when the context was exported.
+    pub created_at: u64,
+}
+
+/// A portable conversation context that can be transferred between agents.
+///
+/// This is the canonical format for cross-agent context sharing.
+/// Agent plugins convert their native format (Claude JSONL, Codex rollout,
+/// Gemini checkpoint) to/from this struct. Core never inspects the content —
+/// it only passes the struct between plugins (Model B).
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PortableContext {
+    /// System prompt / instructions.
+    pub system_prompt: Option<String>,
+    /// Conversation messages.
+    pub messages: Vec<PortableMessage>,
+    /// Files currently in scope.
+    pub active_files: Vec<String>,
+    /// Summarized history (from compaction).
+    pub summary: Option<String>,
+    /// Estimated token count.
+    pub token_count: usize,
+    /// Maximum token budget for the target agent.
+    pub max_tokens: usize,
+    /// Metadata about the source session.
+    pub metadata: ContextMetadata,
 }
 
 /// An issue found during plugin config validation.

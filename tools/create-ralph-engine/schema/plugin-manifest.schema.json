@@ -30,7 +30,9 @@
         "mcp_contribution",
         "policy",
         "workflow",
-        "tui_extension"
+        "tui_extension",
+        "context_manager",
+        "agent_router"
       ]
     },
     "display_name": {
@@ -154,7 +156,10 @@
           "mcp_contribution",
           "policy",
           "workflow",
-          "tui_widgets"
+          "tui_widgets",
+          "context_management",
+          "session_persistence",
+          "agent_routing"
         ]
       }
     },
