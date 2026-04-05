@@ -15,7 +15,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         )),
         Some("show") => show_hook(args.get(1).map(String::as_str), locale),
         Some("plan") => show_hook_plan(args.get(1).map(String::as_str), locale),
-        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+        Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale, "hooks", other,
         ))),
     }
@@ -30,7 +30,7 @@ fn show_hook(hook_id: Option<&str>, locale: &str) -> Result<String, CliError> {
         ))
     })?;
     let hook = parse_plugin_runtime_hook(hook_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::hook_entity_label(locale),
             hook_id,
@@ -50,7 +50,7 @@ fn show_hook_plan(hook_id: Option<&str>, locale: &str) -> Result<String, CliErro
         ))
     })?;
     let hook = parse_plugin_runtime_hook(hook_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::hook_entity_label(locale),
             hook_id,

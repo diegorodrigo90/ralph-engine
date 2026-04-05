@@ -50,7 +50,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         Some("plan") => run_plan(filtered.get(1).copied(), locale, verbose),
         Some(id) if !id.starts_with('-') => run_work_item(id, locale, verbose),
         None => run_loop(locale, verbose),
-        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+        Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale, "run", other,
         ))),
     }

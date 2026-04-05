@@ -202,6 +202,7 @@ fn run_interactive_init(target_dir: &str, locale: &str) -> Result<String, CliErr
         i18n::init_done_prefix(locale),
         i18n::init_done_suffix(locale)
     ));
+    output.push("  Then: 'ralph-engine run' to start orchestration".to_owned());
 
     Ok(output.join("\n"))
 }

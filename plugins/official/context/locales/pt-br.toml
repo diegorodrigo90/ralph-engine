@@ -1,3 +1,3 @@
 [plugin]
 name = "Gerenciador de Contexto"
-summary = "Persistencia de sessao, compactacao de contexto e transferencia entre agentes."
+summary = "Persistência de sessão, compactação de contexto e transferência entre agentes."

@@ -25,7 +25,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
             locale,
             "doctor write-config",
         ),
-        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+        Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale, "doctor", other,
         ))),
     }

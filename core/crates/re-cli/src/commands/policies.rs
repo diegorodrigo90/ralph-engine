@@ -34,7 +34,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
             args.get(2).map(String::as_str),
             locale,
         ),
-        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+        Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale, "policies", other,
         ))),
     }
@@ -49,7 +49,7 @@ fn show_policy(policy_id: Option<&str>, locale: &str) -> Result<String, CliError
         ))
     })?;
     let policy = catalog::find_official_policy_contribution(policy_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::policy_entity_label(locale),
             policy_id,
@@ -68,7 +68,7 @@ fn run_policy(policy_id: Option<&str>, locale: &str) -> Result<String, CliError>
         ))
     })?;
     let policy = catalog::find_official_policy_contribution(policy_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::policy_entity_label(locale),
             policy_id,
@@ -78,7 +78,7 @@ fn run_policy(policy_id: Option<&str>, locale: &str) -> Result<String, CliError>
     let topology_output = with_official_runtime_snapshot(|runtime| {
         let result = build_runtime_policy_result(policy.descriptor.id, &runtime.topology)
             .ok_or_else(|| {
-                CliError::new(i18n::unknown_entity(
+                CliError::usage(i18n::unknown_entity(
                     locale,
                     i18n::policy_entity_label(locale),
                     policy.descriptor.id,
@@ -163,7 +163,7 @@ fn show_policy_plan(policy_id: Option<&str>, locale: &str) -> Result<String, Cli
         ))
     })?;
     let policy = catalog::find_official_policy_contribution(policy_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::policy_entity_label(locale),
             policy_id,
@@ -196,7 +196,7 @@ fn show_policy_asset(
     let asset_path = asset_path
         .ok_or_else(|| CliError::new(i18n::missing_asset_path(locale, "policies asset")))?;
     let policy = catalog::find_official_policy_contribution(policy_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::policy_entity_label(locale),
             policy_id,
@@ -207,7 +207,7 @@ fn show_policy_asset(
         .assets
         .iter()
         .find(|asset| asset.path == asset_path)
-        .ok_or_else(|| CliError::new(i18n::unknown_policy_asset(locale, asset_path)))?;
+        .ok_or_else(|| CliError::usage(i18n::unknown_policy_asset(locale, asset_path)))?;
 
     Ok(asset.contents.to_owned())
 }
@@ -231,7 +231,7 @@ fn materialize_policy(
         ))
     })?;
     let policy = catalog::find_official_policy_contribution(policy_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::policy_entity_label(locale),
             policy_id,

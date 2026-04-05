@@ -300,7 +300,7 @@ fn normalize_cli_locale(value: &str) -> Result<&'static str, CliError> {
         Some(locale) => Ok(locale.as_str()),
         None => {
             let other = normalized.to_ascii_lowercase();
-            Err(CliError::new(format!(
+            Err(CliError::usage(format!(
                 "unsupported locale: {other}. supported locales: {}",
                 supported_locale_ids(),
             )))

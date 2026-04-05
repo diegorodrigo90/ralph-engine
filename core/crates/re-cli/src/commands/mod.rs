@@ -300,7 +300,7 @@ fn dispatch_command(command_name: &str, args: &[String], locale: &str) -> Result
         }
     }
 
-    Err(CliError::new(i18n::unknown_command(locale, command_name)))
+    Err(CliError::usage(i18n::unknown_command(locale, command_name)))
 }
 
 fn render_command_help(command: &CommandDescriptor, locale: &str) -> String {

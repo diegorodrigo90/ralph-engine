@@ -496,8 +496,13 @@ pub fn builtin_themes() -> Vec<Box<dyn Theme>> {
 }
 
 /// Resolves a theme by its config ID, defaulting to Catppuccin Mocha.
+///
+/// Respects `NO_COLOR` env var: when set, always returns `NoColor`.
 #[must_use]
 pub fn resolve_theme(id: &str) -> Box<dyn Theme> {
+    if no_color_active() {
+        return Box::new(NoColor);
+    }
     match id {
         "catppuccin" => Box::new(CatppuccinMocha),
         "dracula" => Box::new(Dracula),
@@ -520,6 +525,68 @@ pub fn available_theme_ids() -> Vec<&'static str> {
         "one-dark",
         "solarized",
     ]
+}
+
+/// Returns `true` if `NO_COLOR` env var is set (any value).
+///
+/// Follows the <https://no-color.org/> convention.
+#[must_use]
+pub fn no_color_active() -> bool {
+    std::env::var_os("NO_COLOR").is_some()
+}
+
+/// Plain theme for `NO_COLOR` mode — all colors are `Reset` (terminal default).
+pub struct NoColor;
+
+impl Theme for NoColor {
+    fn name(&self) -> &str {
+        "No Color"
+    }
+    fn id(&self) -> &str {
+        "no-color"
+    }
+    fn accent(&self) -> Color {
+        Color::Reset
+    }
+    fn accent_dim(&self) -> Color {
+        Color::Reset
+    }
+    fn text(&self) -> Color {
+        Color::Reset
+    }
+    fn text_dim(&self) -> Color {
+        Color::Reset
+    }
+    fn text_bright(&self) -> Color {
+        Color::Reset
+    }
+    fn success(&self) -> Color {
+        Color::Reset
+    }
+    fn error(&self) -> Color {
+        Color::Reset
+    }
+    fn warning(&self) -> Color {
+        Color::Reset
+    }
+    fn info(&self) -> Color {
+        Color::Reset
+    }
+    fn diff_added(&self) -> Color {
+        Color::Reset
+    }
+    fn diff_removed(&self) -> Color {
+        Color::Reset
+    }
+    fn diff_context(&self) -> Color {
+        Color::Reset
+    }
+    fn border(&self) -> Color {
+        Color::Reset
+    }
+    fn surface(&self) -> Color {
+        Color::Reset
+    }
 }
 
 // ── Tests ──────────────────────────────────────────────────────────

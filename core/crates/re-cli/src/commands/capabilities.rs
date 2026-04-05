@@ -14,7 +14,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
             locale,
         )),
         Some("show") => show_capability(args.get(1).map(String::as_str), locale),
-        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+        Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale,
             "capabilities",
             other,
@@ -31,7 +31,7 @@ fn show_capability(capability_id: Option<&str>, locale: &str) -> Result<String, 
         ))
     })?;
     let capability = parse_reviewed_plugin_capability(capability_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::capability_entity_label(locale),
             capability_id,
