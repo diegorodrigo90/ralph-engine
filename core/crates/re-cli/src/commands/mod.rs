@@ -35,7 +35,8 @@ mod tui;
 
 struct CommandDescriptor {
     name: &'static str,
-    description: &'static str,
+    /// i18n key for the command description (resolved at render time).
+    description_key: &'static str,
     subcommands: &'static [&'static str],
     handler: fn(&[String], &str) -> Result<String, CliError>,
 }
@@ -43,91 +44,91 @@ struct CommandDescriptor {
 const COMMANDS: &[CommandDescriptor] = &[
     CommandDescriptor {
         name: "run",
-        description: "Execute work items with TUI dashboard",
+        description_key: "cmd_run",
         subcommands: &["plan"],
         handler: run::execute,
     },
     CommandDescriptor {
         name: "tui",
-        description: "Launch TUI demo with simulated events",
+        description_key: "cmd_tui",
         subcommands: &[],
         handler: tui::execute,
     },
     CommandDescriptor {
         name: "init",
-        description: "Initialize a new project (.ralph-engine/)",
+        description_key: "cmd_init",
         subcommands: &[],
         handler: init::execute,
     },
     CommandDescriptor {
         name: "doctor",
-        description: "Check project health and fix issues",
+        description_key: "cmd_doctor",
         subcommands: &["config", "apply-config"],
         handler: doctor::execute,
     },
     CommandDescriptor {
         name: "plugins",
-        description: "List and inspect installed plugins",
+        description_key: "cmd_plugins",
         subcommands: &["list", "show"],
         handler: plugins::execute,
     },
     CommandDescriptor {
         name: "install",
-        description: "Install a community plugin",
+        description_key: "cmd_install",
         subcommands: &[],
         handler: install::execute,
     },
     CommandDescriptor {
         name: "uninstall",
-        description: "Remove an installed plugin",
+        description_key: "cmd_uninstall",
         subcommands: &[],
         handler: install::execute_uninstall,
     },
     CommandDescriptor {
         name: "agents",
-        description: "List and launch agent runtimes",
+        description_key: "cmd_agents",
         subcommands: &["list", "show", "plan", "launch"],
         handler: agents::execute,
     },
     CommandDescriptor {
         name: "mcp",
-        description: "List and manage MCP servers",
+        description_key: "cmd_mcp",
         subcommands: &["list", "show", "plan", "launch", "status"],
         handler: mcp::execute,
     },
     CommandDescriptor {
         name: "checks",
-        description: "Run prepare and doctor checks",
+        description_key: "cmd_checks",
         subcommands: &["list", "show", "plan", "run", "asset", "materialize"],
         handler: checks::execute,
     },
     CommandDescriptor {
         name: "templates",
-        description: "List and scaffold project templates",
+        description_key: "cmd_templates",
         subcommands: &["list", "show", "asset", "scaffold", "materialize"],
         handler: templates::execute,
     },
     CommandDescriptor {
         name: "prompts",
-        description: "List and inspect prompt contributions",
+        description_key: "cmd_prompts",
         subcommands: &["list", "show", "asset", "materialize"],
         handler: prompts::execute,
     },
     CommandDescriptor {
         name: "policies",
-        description: "List and enforce policy rules",
+        description_key: "cmd_policies",
         subcommands: &["list", "show", "plan", "run", "asset", "materialize"],
         handler: policies::execute,
     },
     CommandDescriptor {
         name: "hooks",
-        description: "List runtime hooks and surfaces",
+        description_key: "cmd_hooks",
         subcommands: &["list", "show", "plan"],
         handler: hooks::execute,
     },
     CommandDescriptor {
         name: "config",
-        description: "Show configuration and defaults",
+        description_key: "cmd_config",
         subcommands: &[
             "show-defaults",
             "locale",
@@ -140,25 +141,25 @@ const COMMANDS: &[CommandDescriptor] = &[
     },
     CommandDescriptor {
         name: "runtime",
-        description: "Inspect runtime state and topology",
+        description_key: "cmd_runtime",
         subcommands: &["show", "status", "issues"],
         handler: runtime::execute,
     },
     CommandDescriptor {
         name: "capabilities",
-        description: "List plugin capabilities",
+        description_key: "cmd_capabilities",
         subcommands: &["list", "show"],
         handler: capabilities::execute,
     },
     CommandDescriptor {
         name: "providers",
-        description: "List data/context/forge providers",
+        description_key: "cmd_providers",
         subcommands: &["list", "show", "plan"],
         handler: providers::execute,
     },
     CommandDescriptor {
         name: "locales",
-        description: "List supported locales",
+        description_key: "cmd_locales",
         subcommands: &["list", "show"],
         handler: locales::execute,
     },
@@ -185,6 +186,32 @@ pub fn execute(args: &[String]) -> Result<String, CliError> {
     }
 }
 
+/// Resolves a command description key to the localized string.
+fn resolve_command_description(key: &'static str, locale: &str) -> &'static str {
+    match key {
+        "cmd_run" => i18n::cmd_run(locale),
+        "cmd_tui" => i18n::cmd_tui(locale),
+        "cmd_init" => i18n::cmd_init(locale),
+        "cmd_doctor" => i18n::cmd_doctor(locale),
+        "cmd_plugins" => i18n::cmd_plugins(locale),
+        "cmd_install" => i18n::cmd_install(locale),
+        "cmd_uninstall" => i18n::cmd_uninstall(locale),
+        "cmd_agents" => i18n::cmd_agents(locale),
+        "cmd_mcp" => i18n::cmd_mcp(locale),
+        "cmd_checks" => i18n::cmd_checks(locale),
+        "cmd_templates" => i18n::cmd_templates(locale),
+        "cmd_prompts" => i18n::cmd_prompts(locale),
+        "cmd_policies" => i18n::cmd_policies(locale),
+        "cmd_hooks" => i18n::cmd_hooks(locale),
+        "cmd_config" => i18n::cmd_config(locale),
+        "cmd_runtime" => i18n::cmd_runtime(locale),
+        "cmd_capabilities" => i18n::cmd_capabilities(locale),
+        "cmd_providers" => i18n::cmd_providers(locale),
+        "cmd_locales" => i18n::cmd_locales(locale),
+        _ => key,
+    }
+}
+
 fn render_help(locale: &str) -> String {
     let mut lines = vec![
         re_core::banner(),
@@ -199,10 +226,8 @@ fn render_help(locale: &str) -> String {
 
     for command in COMMANDS {
         let padding = " ".repeat(max_len - command.name.len() + 2);
-        lines.push(format!(
-            "  {}{}{}",
-            command.name, padding, command.description
-        ));
+        let desc = resolve_command_description(command.description_key, locale);
+        lines.push(format!("  {}{}{desc}", command.name, padding));
     }
 
     // Plugin-contributed commands (auto-discovered)
@@ -220,7 +245,7 @@ fn render_help(locale: &str) -> String {
     }
 
     lines.push(String::new());
-    lines.push("Flags:".to_owned());
+    lines.push(i18n::flags_heading(locale).to_owned());
     lines.push(format!(
         "  --locale <id>, -L <id>   {}",
         i18n::set_locale_help(locale)

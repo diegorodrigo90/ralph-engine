@@ -60,9 +60,31 @@ pub(super) struct CliLocaleCatalog {
     pub set_locale_help: &'static str,
     pub show_version_help: &'static str,
     pub show_help_help: &'static str,
+    pub flags_heading: &'static str,
     pub subcommand_label: &'static str,
     pub subcommands_heading: &'static str,
     pub usage_label: &'static str,
+
+    // ── Command descriptions ────────────────────────────────────
+    pub cmd_run: &'static str,
+    pub cmd_tui: &'static str,
+    pub cmd_init: &'static str,
+    pub cmd_doctor: &'static str,
+    pub cmd_plugins: &'static str,
+    pub cmd_install: &'static str,
+    pub cmd_uninstall: &'static str,
+    pub cmd_agents: &'static str,
+    pub cmd_mcp: &'static str,
+    pub cmd_checks: &'static str,
+    pub cmd_templates: &'static str,
+    pub cmd_prompts: &'static str,
+    pub cmd_policies: &'static str,
+    pub cmd_hooks: &'static str,
+    pub cmd_config: &'static str,
+    pub cmd_runtime: &'static str,
+    pub cmd_capabilities: &'static str,
+    pub cmd_providers: &'static str,
+    pub cmd_locales: &'static str,
 
     // ── Run command ──────────────────────────────────────────────
     #[allow(dead_code)]
@@ -500,8 +522,31 @@ catalog_str!(set_locale_help, set_locale_help);
 catalog_str!(show_version_help, show_version_help);
 catalog_str!(show_help_help, show_help_help);
 catalog_str!(subcommand_label, subcommand_label);
+catalog_str!(flags_heading, flags_heading);
 catalog_str!(subcommands_heading, subcommands_heading);
 catalog_str!(usage_label, usage_label);
+
+// ── Command description accessors ───────────────────────────────
+
+catalog_str!(cmd_run, cmd_run);
+catalog_str!(cmd_tui, cmd_tui);
+catalog_str!(cmd_init, cmd_init);
+catalog_str!(cmd_doctor, cmd_doctor);
+catalog_str!(cmd_plugins, cmd_plugins);
+catalog_str!(cmd_install, cmd_install);
+catalog_str!(cmd_uninstall, cmd_uninstall);
+catalog_str!(cmd_agents, cmd_agents);
+catalog_str!(cmd_mcp, cmd_mcp);
+catalog_str!(cmd_checks, cmd_checks);
+catalog_str!(cmd_templates, cmd_templates);
+catalog_str!(cmd_prompts, cmd_prompts);
+catalog_str!(cmd_policies, cmd_policies);
+catalog_str!(cmd_hooks, cmd_hooks);
+catalog_str!(cmd_config, cmd_config);
+catalog_str!(cmd_runtime, cmd_runtime);
+catalog_str!(cmd_capabilities, cmd_capabilities);
+catalog_str!(cmd_providers, cmd_providers);
+catalog_str!(cmd_locales, cmd_locales);
 
 // ── Run command accessors ────────────────────────────────────────
 
