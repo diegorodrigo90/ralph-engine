@@ -144,14 +144,33 @@ impl PluginRuntime for RouterRuntime {
     fn tui_contributions(&self) -> Vec<re_plugin::TuiPanel> {
         let rules = self.routing_rules();
         let fallbacks = self.fallback_chain("primary");
+        let mut blocks = vec![
+            re_plugin::TuiBlock::pairs(vec![("Mode".to_owned(), "config-driven".to_owned())]),
+            re_plugin::TuiBlock::metric("Rules", rules.len() as u32, None),
+            re_plugin::TuiBlock::metric("Fallbacks", fallbacks.len() as u32, None),
+        ];
+
+        // Show actual routing rules as pairs
+        if !rules.is_empty() {
+            blocks.push(re_plugin::TuiBlock::separator());
+            let rule_pairs: Vec<(String, String)> = rules
+                .iter()
+                .map(|r| {
+                    let pattern = if r.task_pattern.is_empty() {
+                        "*".to_owned()
+                    } else {
+                        r.task_pattern.clone()
+                    };
+                    (pattern, r.agent_plugin.clone())
+                })
+                .collect();
+            blocks.push(re_plugin::TuiBlock::pairs(rule_pairs));
+        }
+
         vec![re_plugin::TuiPanel {
             id: "router-status".to_owned(),
             title: "Routing".to_owned(),
-            blocks: vec![
-                re_plugin::TuiBlock::pairs(vec![("Mode".to_owned(), "config-driven".to_owned())]),
-                re_plugin::TuiBlock::metric("Rules", rules.len() as u32, None),
-                re_plugin::TuiBlock::metric("Fallbacks", fallbacks.len() as u32, None),
-            ],
+            blocks,
             lines: Vec::new(),
             zone_hint: "sidebar".to_owned(),
         }]

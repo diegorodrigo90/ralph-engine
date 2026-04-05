@@ -196,15 +196,28 @@ impl PluginRuntime for FindingsRuntime {
         };
 
         let line_count = content.lines().count();
-        let heading_count = content.lines().filter(|l| l.starts_with('#')).count();
+        let headings: Vec<String> = content
+            .lines()
+            .filter(|l| l.starts_with('#'))
+            .map(|l| l.trim_start_matches('#').trim().to_owned())
+            .collect();
+        let heading_count = headings.len();
+
+        let mut blocks = vec![
+            re_plugin::TuiBlock::metric("Sections", heading_count as u32, None),
+            re_plugin::TuiBlock::metric("Lines", line_count as u32, None),
+        ];
+
+        // Show actual section names — gives real context
+        if !headings.is_empty() {
+            blocks.push(re_plugin::TuiBlock::separator());
+            blocks.push(re_plugin::TuiBlock::list(headings));
+        }
 
         vec![re_plugin::TuiPanel {
             id: "findings".to_owned(),
             title: "Findings".to_owned(),
-            blocks: vec![
-                re_plugin::TuiBlock::metric("Sections", heading_count as u32, None),
-                re_plugin::TuiBlock::metric("Lines", line_count as u32, None),
-            ],
+            blocks,
             lines: vec![],
             zone_hint: "sidebar".to_owned(),
         }]

@@ -250,19 +250,35 @@ impl PluginRuntime for ContextRuntime {
         deserialize_context(&content)
     }
 
-    /// Shows context status in TUI sidebar.
+    /// Shows context status in TUI sidebar — dynamic session info.
     fn tui_contributions(&self) -> Vec<re_plugin::TuiPanel> {
+        let cwd = std::env::current_dir().unwrap_or_default();
+        let sessions_dir = cwd.join(".ralph-engine/sessions");
+
+        // Count existing session files
+        let session_count = std::fs::read_dir(&sessions_dir)
+            .map(|entries| entries.filter_map(Result::ok).count())
+            .unwrap_or(0);
+
+        let mut blocks = vec![
+            re_plugin::TuiBlock::indicator("Status", "Ready", re_plugin::Severity::Success),
+            re_plugin::TuiBlock::metric("Sessions", session_count as u32, None),
+            re_plugin::TuiBlock::pairs(vec![
+                ("Compaction".to_owned(), "enabled".to_owned()),
+                ("Storage".to_owned(), ".ralph-engine/sessions/".to_owned()),
+            ]),
+        ];
+
+        // Show session recovery hint if sessions exist
+        if session_count > 0 {
+            blocks.push(re_plugin::TuiBlock::text("Ctrl+A to switch/restore"));
+        }
+
         vec![re_plugin::TuiPanel {
             id: "context-status".to_owned(),
             title: "Context".to_owned(),
             lines: Vec::new(),
-            blocks: vec![
-                re_plugin::TuiBlock::indicator("Status", "Ready", re_plugin::Severity::Success),
-                re_plugin::TuiBlock::pairs(vec![
-                    ("Compaction".to_owned(), "enabled".to_owned()),
-                    ("Sessions".to_owned(), ".ralph-engine/sessions/".to_owned()),
-                ]),
-            ],
+            blocks,
             zone_hint: "sidebar".to_owned(),
         }]
     }

@@ -600,31 +600,56 @@ impl PluginRuntime for BmadRuntime {
             0
         };
 
-        // Find current in-progress story name
-        let current_story: Option<String> = content.lines().find_map(|line| {
-            let trimmed = line.trim();
-            if trimmed.ends_with("in-progress") {
-                trimmed.split(':').next().map(|s| s.trim().to_owned())
-            } else {
-                None
-            }
-        });
+        // Find in-progress stories
+        let active_stories: Vec<String> = content
+            .lines()
+            .filter_map(|line| {
+                let trimmed = line.trim();
+                if trimmed.ends_with("in-progress") {
+                    trimmed.split(':').next().map(|s| s.trim().to_owned())
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        // Find ready-for-dev stories (next up)
+        let ready_stories: Vec<String> = content
+            .lines()
+            .filter_map(|line| {
+                let trimmed = line.trim();
+                if trimmed.ends_with("ready-for-dev") {
+                    trimmed.split(':').next().map(|s| s.trim().to_owned())
+                } else {
+                    None
+                }
+            })
+            .take(3) // show max 3 upcoming
+            .collect();
 
         let mut blocks = vec![
+            re_plugin::TuiBlock::bar("Progress", pct as u32),
             re_plugin::TuiBlock::metric("Done", done as u32, Some(total as u32)),
             re_plugin::TuiBlock::metric("Doing", doing as u32, None),
             re_plugin::TuiBlock::metric("Todo", todo as u32, None),
-            re_plugin::TuiBlock::bar("Progress", pct as u32),
         ];
 
-        // Show current story if any
-        if let Some(story) = current_story {
+        // Show active stories
+        if !active_stories.is_empty() {
             blocks.push(re_plugin::TuiBlock::separator());
-            blocks.push(re_plugin::TuiBlock::indicator(
-                "Active",
-                story,
-                re_plugin::Severity::Warning,
-            ));
+            for story in &active_stories {
+                blocks.push(re_plugin::TuiBlock::indicator(
+                    "Active",
+                    story.clone(),
+                    re_plugin::Severity::Warning,
+                ));
+            }
+        }
+
+        // Show next up
+        if !ready_stories.is_empty() {
+            blocks.push(re_plugin::TuiBlock::separator());
+            blocks.push(re_plugin::TuiBlock::list(ready_stories));
         }
 
         vec![re_plugin::TuiPanel {
