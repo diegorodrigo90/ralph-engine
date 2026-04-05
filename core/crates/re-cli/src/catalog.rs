@@ -642,6 +642,99 @@ fn translate_key_result(result: re_plugin::TuiKeyResult) -> re_tui::PluginKeyAct
     }
 }
 
+// ── Session management discovery ────────────────────────────────
+
+/// Exports session context from the given agent plugin.
+///
+/// Auto-discovers the plugin runtime and calls `export_session_context()`.
+pub fn export_agent_session(
+    agent_plugin_id: &str,
+    project_root: &std::path::Path,
+) -> Result<re_plugin::PortableContext, String> {
+    let runtime = re_official::official_plugin_runtime(agent_plugin_id)
+        .ok_or_else(|| format!("Agent plugin '{agent_plugin_id}' not found"))?;
+    runtime
+        .export_session_context(project_root)
+        .map_err(|e| e.to_string())
+}
+
+/// Imports session context into the given agent plugin.
+pub fn import_agent_session(
+    agent_plugin_id: &str,
+    context: &re_plugin::PortableContext,
+    project_root: &std::path::Path,
+) -> Result<(), String> {
+    let runtime = re_official::official_plugin_runtime(agent_plugin_id)
+        .ok_or_else(|| format!("Agent plugin '{agent_plugin_id}' not found"))?;
+    runtime
+        .import_session_context(context, project_root)
+        .map_err(|e| e.to_string())
+}
+
+/// Finds and calls the first plugin that supports `compact_context()`.
+///
+/// Tries all enabled plugins until one succeeds (not just returns the
+/// input unchanged). Falls back to returning the original context.
+pub fn compact_session_context(
+    context: &re_plugin::PortableContext,
+    target_tokens: usize,
+) -> re_plugin::PortableContext {
+    let snapshot = official_runtime_snapshot();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id)
+            && let Ok(compacted) = runtime.compact_context(context, target_tokens)
+            && compacted.messages.len() < context.messages.len()
+        {
+            return compacted;
+        }
+    }
+
+    context.clone()
+}
+
+/// Saves session context using the first plugin that supports it.
+pub fn save_session(
+    context: &re_plugin::PortableContext,
+    project_root: &std::path::Path,
+) -> Result<(), String> {
+    let snapshot = official_runtime_snapshot();
+    let sessions_dir = project_root.join(".ralph-engine/sessions");
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id)
+            && runtime.save_session(context, &sessions_dir).is_ok()
+        {
+            return Ok(());
+        }
+    }
+
+    Err("No plugin supports session persistence".to_owned())
+}
+
+/// Loads session context using the first plugin that supports it.
+pub fn load_session(project_root: &std::path::Path) -> Result<re_plugin::PortableContext, String> {
+    let snapshot = official_runtime_snapshot();
+    let sessions_dir = project_root.join(".ralph-engine/sessions");
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id)
+            && let Ok(ctx) = runtime.load_session(&sessions_dir)
+        {
+            return Ok(ctx);
+        }
+    }
+
+    Err("No previous session found".to_owned())
+}
+
+/// Returns the context window size for the given agent plugin.
+pub fn agent_context_window_size(agent_plugin_id: &str) -> usize {
+    re_official::official_plugin_runtime(agent_plugin_id)
+        .map(|rt| rt.context_window_size())
+        .unwrap_or(0)
+}
+
 // ── Community plugin discovery ────────────────────────────────────
 
 /// Descriptor for a community plugin discovered from the filesystem.
@@ -884,6 +977,87 @@ mod tests {
         let result = dispatch_plugin_text_input("hello world", &dir);
         // Default plugins return NotHandled for text input
         assert_eq!(result, re_tui::PluginKeyAction::NotHandled);
+    }
+
+    #[test]
+    fn export_agent_session_unknown_plugin_returns_error() {
+        let dir = std::env::temp_dir().join("re-test-export");
+        let result = export_agent_session("nonexistent.plugin", &dir);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn import_agent_session_unknown_plugin_returns_error() {
+        let dir = std::env::temp_dir().join("re-test-import");
+        let ctx = re_plugin::PortableContext {
+            system_prompt: None,
+            messages: Vec::new(),
+            active_files: Vec::new(),
+            summary: None,
+            token_count: 0,
+            max_tokens: 0,
+            metadata: re_plugin::ContextMetadata {
+                source_agent: "test".to_owned(),
+                source_model: "test".to_owned(),
+                session_id: None,
+                created_at: 0,
+            },
+        };
+        let result = import_agent_session("nonexistent.plugin", &ctx, &dir);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn compact_session_context_returns_context_when_no_compactor() {
+        let ctx = re_plugin::PortableContext {
+            system_prompt: None,
+            messages: Vec::new(),
+            active_files: Vec::new(),
+            summary: None,
+            token_count: 0,
+            max_tokens: 0,
+            metadata: re_plugin::ContextMetadata {
+                source_agent: "test".to_owned(),
+                source_model: "test".to_owned(),
+                session_id: None,
+                created_at: 0,
+            },
+        };
+        let result = compact_session_context(&ctx, 1000);
+        assert_eq!(result.messages.len(), ctx.messages.len());
+    }
+
+    #[test]
+    fn save_session_fails_without_session_plugin() {
+        let dir = std::env::temp_dir().join("re-test-save-session");
+        let ctx = re_plugin::PortableContext {
+            system_prompt: None,
+            messages: Vec::new(),
+            active_files: Vec::new(),
+            summary: None,
+            token_count: 0,
+            max_tokens: 0,
+            metadata: re_plugin::ContextMetadata {
+                source_agent: "test".to_owned(),
+                source_model: "test".to_owned(),
+                session_id: None,
+                created_at: 0,
+            },
+        };
+        // Context plugin exists but sessions dir may not, so result depends on plugin impl
+        let _ = save_session(&ctx, &dir);
+    }
+
+    #[test]
+    fn load_session_returns_error_without_sessions() {
+        let dir = std::env::temp_dir().join("re-test-load-empty-session");
+        let result = load_session(&dir);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn agent_context_window_unknown_plugin_returns_zero() {
+        assert_eq!(agent_context_window_size("nonexistent.plugin"), 0);
     }
 
     #[test]

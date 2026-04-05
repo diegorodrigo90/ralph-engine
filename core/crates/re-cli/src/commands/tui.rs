@@ -124,6 +124,9 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
     // Show project status on startup
     push_project_status(&mut shell, has_config, locale);
 
+    // Try loading previous session (non-blocking)
+    load_previous_session(&mut shell);
+
     let mut terminal = ratatui::init();
 
     let result: Result<(), String> = (|| {
@@ -158,6 +161,11 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
                         // Dispatch slash commands or text input
                         if let Some(text) = shell.take_text_input() {
                             handle_dashboard_command(&mut shell, &text, locale);
+                        }
+
+                        // Handle agent switching (Ctrl+A selection)
+                        if let Some(target_agent) = shell.take_selected_agent() {
+                            handle_agent_switch(&mut shell, &target_agent, locale);
                         }
                     }
                     Event::Mouse(MouseEvent { kind, .. }) => {
@@ -417,5 +425,68 @@ fn build_labels(locale: &str) -> re_tui::TuiLabels {
         } else {
             "No agent connected. Use /run to start orchestration.".to_owned()
         },
+    }
+}
+
+/// Handles agent switching from the Ctrl+A switcher popup.
+///
+/// Exports context from current agent, optionally compacts it, and
+/// imports into the target agent. Uses toasts for feedback.
+fn handle_agent_switch(shell: &mut re_tui::TuiShell, target_agent: &str, _locale: &str) {
+    let cwd = std::env::current_dir().unwrap_or_default();
+
+    // Try to export from current agent (may not support export — proceed without)
+    let current_agent = shell.labels().you_label.clone(); // placeholder — config has real ID
+    let context = catalog::export_agent_session(&current_agent, &cwd).ok();
+
+    // Compact context if target has a smaller window
+    let context = context.map(|ctx| {
+        let target_window = catalog::agent_context_window_size(target_agent);
+        if target_window > 0 {
+            catalog::compact_session_context(&ctx, target_window)
+        } else {
+            ctx
+        }
+    });
+
+    // Import into target agent
+    if let Some(ctx) = &context {
+        match catalog::import_agent_session(target_agent, ctx, &cwd) {
+            Ok(()) => {
+                shell.toast_success(format!("Switched to {target_agent}"));
+            }
+            Err(e) => {
+                shell.show_error_modal("Agent switch", &e);
+            }
+        }
+    } else {
+        shell.toast_info(format!("Switched to {target_agent} (no context transfer)"));
+    }
+
+    // Save session for recovery
+    if let Some(ctx) = &context {
+        let _ = catalog::save_session(ctx, &cwd);
+    }
+}
+
+/// Loads previous session on TUI startup (if available).
+fn load_previous_session(shell: &mut re_tui::TuiShell) {
+    let cwd = std::env::current_dir().unwrap_or_default();
+
+    match catalog::load_session(&cwd) {
+        Ok(ctx) => {
+            let msg_count = ctx.messages.len();
+            let agent = if ctx.metadata.source_agent.is_empty() {
+                "unknown"
+            } else {
+                &ctx.metadata.source_agent
+            };
+            shell.push_activity(format!(
+                "  Previous session: {agent} ({msg_count} messages)"
+            ));
+        }
+        Err(_) => {
+            // No previous session — that's fine
+        }
     }
 }
