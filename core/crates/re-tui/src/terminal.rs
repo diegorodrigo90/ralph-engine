@@ -651,55 +651,76 @@ impl TuiShell {
 
     /// Drains one pending block into the feed if the cadence allows.
     ///
-    /// Cadence varies by block kind: thinking is slower (feels deliberate),
-    /// reads are fast (file I/O), edits medium, gates instant.
+    /// Drip-feeds one pending block with realistic cadence.
+    ///
+    /// Two-phase timing: first the block appears as "active" (spinner),
+    /// then after a hold period it finalizes and the next block drips.
+    /// This creates the loading feel: think → show result → think → next.
     fn drain_pending_block(&mut self) -> bool {
         if self.pending_blocks.is_empty() {
             return false;
         }
         self.drip_counter += 1;
 
-        // Variable cadence based on next block type
-        let next_kind = self.pending_blocks[0].kind;
-        let interval = match next_kind {
-            crate::feed::BlockKind::Thinking => 20, // ~1s — deliberate
-            crate::feed::BlockKind::FileEdit => 14, // ~700ms — shows diff
-            crate::feed::BlockKind::FileRead => 8,  // ~400ms — quick
-            crate::feed::BlockKind::Command => 16,  // ~800ms — running
-            crate::feed::BlockKind::GatePass | crate::feed::BlockKind::GateFail => 6, // ~300ms — instant feedback
-            crate::feed::BlockKind::System => 10,                                     // ~500ms
-            crate::feed::BlockKind::AgentText => 12,                                  // ~600ms
+        // Phase 1: "hold" — the last fed block stays active (spinner visible)
+        // before we finalize it and drip the next one.
+        let last_kind = self.feed.blocks().last().map(|b| (b.kind, b.active));
+
+        // Hold time: how long the last block shows its spinner before next drips
+        let hold = match last_kind {
+            Some((crate::feed::BlockKind::Thinking, true)) => 30, // ~1.5s thinking
+            Some((crate::feed::BlockKind::Command, true)) => 40,  // ~2s running command
+            Some((crate::feed::BlockKind::System, true)) => 16,   // ~800ms system
+            _ => 0,                                               // No hold for finalized blocks
         };
 
-        if self.drip_counter >= interval {
-            self.drip_counter = 0;
-            let mut block = self.pending_blocks.remove(0);
+        // Phase 2: interval before the next block appears
+        let next_kind = self.pending_blocks[0].kind;
+        let appear_delay = match next_kind {
+            crate::feed::BlockKind::FileEdit => 6, // ~300ms — fast reveal
+            crate::feed::BlockKind::FileRead => 4, // ~200ms — instant
+            crate::feed::BlockKind::GatePass | crate::feed::BlockKind::GateFail => 3,
+            _ => 8, // ~400ms default
+        };
 
-            // Finalize previous active block in feed
+        let total_interval = hold + appear_delay;
+
+        if self.drip_counter >= total_interval {
+            self.drip_counter = 0;
+
+            // Finalize previous active block
             if let Some(last) = self.feed.blocks_mut().last_mut()
                 && last.active
             {
                 last.finalize(last.success.unwrap_or(true));
             }
 
-            // If more blocks pending, keep this one "active" briefly
-            if !self.pending_blocks.is_empty() && block.active {
-                // Already active — keep as is
-            } else if self.pending_blocks.is_empty() {
-                // Last block — finalize if it was marked completed
-                if block.success.is_some() {
-                    block.active = false;
-                }
+            // Pop next block from queue
+            let mut block = self.pending_blocks.remove(0);
+
+            // Mark as active if more blocks coming (shows spinner)
+            if !self.pending_blocks.is_empty() {
+                block.active = true;
+            } else if block.success.is_some() {
+                block.active = false;
             }
 
             self.feed.push_block(block);
 
-            // Update progress based on completed/total
+            // Update progress
             let completed = self.pending_total - self.pending_blocks.len();
             let pct = (completed * 100 / self.pending_total.max(1)) as u16;
             self.set_progress(pct);
 
             true
+        } else if self.drip_counter == hold && hold > 0 {
+            // At hold boundary: finalize the active block (spinner stops)
+            if let Some(last) = self.feed.blocks_mut().last_mut()
+                && last.active
+            {
+                last.finalize(last.success.unwrap_or(true));
+            }
+            false
         } else {
             false
         }
