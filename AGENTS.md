@@ -112,6 +112,22 @@ When writing or editing docs:
 
 ## Structure
 
+66. The monorepo directory structure SHALL be maintained. New code SHALL go into the correct directory — never create top-level directories without justification. Internal ADRs, planning artifacts, and session notes SHALL NOT be committed to the RE public repo (they belong in the CP private repo). Build artifacts (target/, coverage/, node_modules/, .site-dist/) SHALL be gitignored, never committed.
+
+```
+ralph-engine/
+├── core/          # Rust runtime crates (re-cli, re-plugin, re-config, ...)
+├── plugins/       # Official plugin crates (official/) and community plugins
+├── site/          # Public website, docs, plugin catalog (Astro + Starlight)
+├── packaging/     # Distribution (npm, Homebrew)
+├── scripts/       # Dev, validation, and release scripts
+├── tools/         # Developer tooling (plugin scaffolder)
+├── .github/       # CI workflows, templates, security policy
+├── .claude/       # Claude Code commands/skills for this repo
+├── Cargo.toml     # Workspace root
+└── *.md / *.toml  # Repo-level config (AGENTS, CLAUDE, deny, dist, etc.)
+```
+
 - `core/` SHALL own the Rust runtime crates.
 - `core/crates/re-core/` SHALL own shared runtime foundations.
 - `core/crates/re-config/` SHALL own typed runtime configuration contracts and defaults.
