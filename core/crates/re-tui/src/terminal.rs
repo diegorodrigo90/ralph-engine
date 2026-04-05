@@ -254,6 +254,10 @@ pub struct TuiShell {
     /// Quality gate pipeline for orchestration runs.
     indicator_panel: crate::indicators::IndicatorPanel,
     tool_count: usize,
+    /// Approximate token count (set by caller from agent stream).
+    token_count: usize,
+    /// Frame counter for spinner animation.
+    tick: usize,
     should_quit: bool,
     quit_pending: bool,
     sidebar_panels: Vec<SidebarPanel>,
@@ -290,6 +294,8 @@ impl TuiShell {
             copy_feedback: None,
             indicator_panel: crate::indicators::IndicatorPanel::new(),
             tool_count: 0,
+            token_count: 0,
+            tick: 0,
             should_quit: false,
             quit_pending: false,
             sidebar_panels: Vec::new(),
@@ -341,6 +347,11 @@ impl TuiShell {
     /// Increments the tool call counter.
     pub fn increment_tools(&mut self) {
         self.tool_count += 1;
+    }
+
+    /// Sets the token count (from agent stream metadata).
+    pub fn set_token_count(&mut self, count: usize) {
+        self.token_count = count;
     }
 
     /// Sets the sidebar panels from auto-discovered plugin contributions.
@@ -935,6 +946,7 @@ impl TuiShell {
 
     /// Internal render implementation for a given area.
     fn render_in(&mut self, frame: &mut Frame<'_>, area: Rect) {
+        self.tick = self.tick.wrapping_add(1);
         if layout::is_terminal_too_small(area) {
             let msg = format!(
                 "Terminal too small ({}x{}). Minimum: {}x{}.",
@@ -975,28 +987,53 @@ impl TuiShell {
         }
     }
 
-    /// Renders the header bar with title, agent, state, and progress.
+    /// Renders the header bar with version, agent, tokens, state badge, and progress.
     fn render_header(&self, frame: &mut Frame<'_>, area: Rect) {
         let state_label = self.state.label();
         let state_color = self.state.color(self.theme());
+        let version = env!("CARGO_PKG_VERSION");
 
         let theme = self.theme();
-        let header = Line::from(vec![
+        let mut spans = vec![
             Span::styled(
-                " ◎ Ralph Engine ",
+                format!(" ◎ RE v{version} "),
                 Style::default()
                     .fg(theme.accent())
                     .add_modifier(Modifier::BOLD),
             ),
-            Span::styled("• ", Style::default().fg(theme.text_dim())),
-            Span::raw(format!("Agent: {} ", self.config.agent_id)),
+            Span::styled("│ ", Style::default().fg(theme.border())),
+            Span::styled(&self.config.agent_id, Style::default().fg(theme.text())),
+            Span::raw(" "),
             Span::styled(
                 format!("[{state_label}]"),
                 Style::default()
                     .fg(state_color)
                     .add_modifier(Modifier::BOLD),
             ),
-        ]);
+        ];
+
+        // Token count (if available)
+        if self.token_count > 0 {
+            let token_label = if self.token_count >= 1000 {
+                format!(" │ {}k tok", self.token_count / 1000)
+            } else {
+                format!(" │ {} tok", self.token_count)
+            };
+            spans.push(Span::styled(
+                token_label,
+                Style::default().fg(theme.text_dim()),
+            ));
+        }
+
+        // Tool count
+        if self.tool_count > 0 {
+            spans.push(Span::styled(
+                format!(" │ {} tools", self.tool_count),
+                Style::default().fg(theme.text_dim()),
+            ));
+        }
+
+        let header = Line::from(spans);
 
         if area.width > 60 {
             let cols =
@@ -1166,9 +1203,14 @@ impl TuiShell {
                 ));
             }
 
-            // Active indicator (spinner)
+            // Active indicator (animated spinner)
             if block.active {
-                spans.push(Span::styled(" ...", Style::default().fg(theme.warning())));
+                const SPINNER_FRAMES: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+                let frame_idx = self.tick / 2 % SPINNER_FRAMES.len(); // slow down: 2 ticks per frame
+                spans.push(Span::styled(
+                    format!(" {}", SPINNER_FRAMES[frame_idx]),
+                    Style::default().fg(theme.warning()),
+                ));
             }
 
             // Success/failure indicator on finalized blocks
@@ -1632,6 +1674,14 @@ fn style_content_line<'a>(
                     Style::default()
                         .fg(theme.diff_removed())
                         .add_modifier(Modifier::CROSSED_OUT),
+                )
+            } else if line.starts_with("@@") {
+                // Hunk header — accent color
+                Line::styled(
+                    format!("  {line}"),
+                    Style::default()
+                        .fg(theme.info())
+                        .add_modifier(Modifier::BOLD),
                 )
             } else {
                 Line::styled(
