@@ -11,4 +11,4 @@ authors.workspace = true
 publish = false
 
 [dependencies]
-toml = "0.8"
+toml = "1.1"
