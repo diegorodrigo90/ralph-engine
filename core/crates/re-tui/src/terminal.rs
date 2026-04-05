@@ -260,6 +260,8 @@ pub struct TuiShell {
     tick: usize,
     should_quit: bool,
     quit_pending: bool,
+    /// Whether the help modal popup is visible.
+    help_modal_visible: bool,
     sidebar_panels: Vec<SidebarPanel>,
     /// Whether the sidebar is visible (toggled with F2).
     sidebar_visible: bool,
@@ -306,6 +308,7 @@ impl TuiShell {
             tick: 0,
             should_quit: false,
             quit_pending: false,
+            help_modal_visible: false,
             sidebar_panels: Vec::new(),
             sidebar_visible: true,
             available_agents: Vec::new(),
@@ -711,7 +714,13 @@ impl TuiShell {
         code: KeyCode,
         modifiers: KeyModifiers,
     ) -> PluginKeyAction {
-        // Quit confirmation flow
+        // Help modal: any key closes it
+        if self.help_modal_visible {
+            self.help_modal_visible = false;
+            return PluginKeyAction::Handled;
+        }
+
+        // Quit confirmation modal
         if self.quit_pending {
             match code {
                 KeyCode::Char('y' | 'Y') => {
@@ -720,7 +729,6 @@ impl TuiShell {
                 }
                 _ => {
                     self.quit_pending = false;
-                    self.push_activity(">> Quit cancelled.".to_owned());
                 }
             }
             return PluginKeyAction::Handled;
@@ -800,9 +808,6 @@ impl TuiShell {
         match code {
             KeyCode::Char('q') => {
                 self.quit_pending = true;
-                self.push_activity(
-                    ">> Quit? Press 'y' to confirm, any other key to cancel.".to_owned(),
-                );
                 return PluginKeyAction::Handled;
             }
             KeyCode::Char('p') => {
@@ -816,7 +821,7 @@ impl TuiShell {
                 return PluginKeyAction::Handled;
             }
             KeyCode::Char('?') => {
-                self.push_help_to_activity();
+                self.help_modal_visible = !self.help_modal_visible;
                 return PluginKeyAction::Handled;
             }
             // Block focus navigation (vim j/k)
@@ -957,38 +962,6 @@ impl TuiShell {
     }
 
     /// Pushes help text to the activity stream based on state and plugin bindings.
-    fn push_help_to_activity(&mut self) {
-        let state_label = format!("{:?}", self.state);
-
-        self.push_activity("── Keys ──".to_owned());
-        self.push_activity("  j/k  navigate blocks   ↑↓  scroll   PgUp/PgDn  page".to_owned());
-        self.push_activity("  ⏎    expand/collapse   y   copy     ⎋  clear focus".to_owned());
-        self.push_activity("  F2   sidebar           G   follow   Ctrl+A  agents".to_owned());
-        self.push_activity("  q    quit              ?   help".to_owned());
-
-        // Plugin keybindings active in current state
-        let mut plugin_keys = Vec::new();
-        for binding in &self.plugin_keybindings {
-            if binding.active_states.is_empty()
-                || binding.active_states.iter().any(|s| s == &state_label)
-            {
-                plugin_keys.push(format!("  [{}] {}", binding.key, binding.description));
-            }
-        }
-        if !plugin_keys.is_empty() {
-            self.push_activity("── Plugin keys ──".to_owned());
-            for key in plugin_keys {
-                self.push_activity(key);
-            }
-        }
-
-        // Slash commands hint
-        if self.input_enabled {
-            self.push_activity("── Commands ──".to_owned());
-            self.push_activity("  Type / to see available commands".to_owned());
-        }
-    }
-
     /// Renders the TUI frame with responsive zone-based layout.
     pub fn render_frame(&mut self, frame: &mut Frame<'_>) {
         let area = frame.area();
@@ -1047,6 +1020,14 @@ impl TuiShell {
         // Agent switcher popup (Ctrl+A)
         if self.agent_switcher_visible {
             self.render_agent_switcher(frame, zones.activity);
+        }
+
+        // Modal popups — rendered LAST, on top of EVERYTHING
+        if self.quit_pending {
+            self.render_quit_modal(frame, area);
+        }
+        if self.help_modal_visible {
+            self.render_help_modal(frame, area);
         }
     }
 
@@ -1132,7 +1113,8 @@ impl TuiShell {
         let visible_lines = area.height as usize;
 
         let theme = self.theme();
-        let logo_lines = crate::logo::build_logo_lines(area.width, theme);
+        let logo_color = Some(self.state.color(theme));
+        let logo_lines = crate::logo::build_logo_lines(area.width, theme, logo_color);
         let logo_count = logo_lines.len();
 
         let activity: Vec<Line<'_>> = self
@@ -1562,17 +1544,12 @@ impl TuiShell {
     /// Renders the help bar at the bottom.
     fn render_help(&self, frame: &mut Frame<'_>, zones: &layout::LayoutZones) {
         let theme = self.theme();
-        if self.quit_pending {
-            let warn = Style::default()
-                .fg(theme.warning())
-                .add_modifier(Modifier::BOLD);
-            let spans = vec![
-                Span::styled(" Quit? ", warn),
-                Span::styled(
-                    "[y] yes  [any key] cancel",
-                    Style::default().fg(theme.text_dim()),
-                ),
-            ];
+        // Quit pending handled by modal now — no bottom bar override
+        if self.quit_pending || self.help_modal_visible {
+            let spans = vec![Span::styled(
+                " Modal open — press a key ",
+                Style::default().fg(theme.text_dim()),
+            )];
             frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
             return;
         }
@@ -1768,7 +1745,13 @@ impl TuiShell {
         let theme = self.theme();
         let version = env!("CARGO_PKG_VERSION");
 
-        let logo_lines = crate::logo::build_logo_lines(area.width, theme);
+        // Idle: dim logo. Running: accent. Error: red.
+        let logo_color = Some(match self.state {
+            TuiState::Running => theme.text_dim(),
+            TuiState::Error => theme.error(),
+            _ => theme.accent(),
+        });
+        let logo_lines = crate::logo::build_logo_lines(area.width, theme, logo_color);
 
         let mut lines: Vec<Line<'_>> = Vec::new();
 
@@ -1846,6 +1829,190 @@ impl TuiShell {
         ]));
 
         frame.render_widget(Paragraph::new(lines), area);
+    }
+
+    /// Renders the quit confirmation modal (centered overlay).
+    fn render_quit_modal(&self, frame: &mut Frame<'_>, area: Rect) {
+        let theme = self.theme();
+        let popup_w = 36u16.min(area.width);
+        let popup_h = 5u16.min(area.height);
+        let popup = Rect {
+            x: area.x + (area.width.saturating_sub(popup_w)) / 2,
+            y: area.y + (area.height.saturating_sub(popup_h)) / 2,
+            width: popup_w,
+            height: popup_h,
+        };
+
+        let lines = vec![
+            Line::raw(""),
+            Line::from(vec![
+                Span::styled(
+                    "  Quit? ",
+                    Style::default()
+                        .fg(theme.warning())
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(
+                    "y",
+                    Style::default()
+                        .fg(theme.accent())
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(" yes  ", Style::default().fg(theme.text_dim())),
+                Span::styled(
+                    "n",
+                    Style::default()
+                        .fg(theme.accent())
+                        .add_modifier(Modifier::BOLD),
+                ),
+                Span::styled(" cancel", Style::default().fg(theme.text_dim())),
+            ]),
+        ];
+
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(theme.warning()))
+            .title(" Quit ")
+            .title_style(
+                Style::default()
+                    .fg(theme.warning())
+                    .add_modifier(Modifier::BOLD),
+            );
+
+        frame.render_widget(Clear, popup);
+        frame.render_widget(Paragraph::new(lines).block(block), popup);
+    }
+
+    /// Renders the help modal popup (centered overlay with grouped keys).
+    fn render_help_modal(&self, frame: &mut Frame<'_>, area: Rect) {
+        let theme = self.theme();
+        let version = env!("CARGO_PKG_VERSION");
+
+        let mut lines: Vec<Line<'_>> = Vec::new();
+
+        lines.push(Line::from(vec![Span::styled(
+            format!("  Ralph Engine v{version}"),
+            Style::default()
+                .fg(theme.accent())
+                .add_modifier(Modifier::BOLD),
+        )]));
+        lines.push(Line::raw(""));
+
+        // Navigation keys
+        lines.push(Line::styled(
+            "  Navigation",
+            Style::default()
+                .fg(theme.text_bright())
+                .add_modifier(Modifier::BOLD),
+        ));
+        let nav_keys = [
+            ("j/k", "Focus blocks"),
+            ("↑↓", "Scroll lines"),
+            ("PgUp/PgDn", "Scroll pages"),
+            ("G / End", "Follow mode"),
+            ("Home", "Scroll to top"),
+        ];
+        for (key, desc) in nav_keys {
+            lines.push(Line::from(vec![
+                Span::styled(format!("  {key:<12}"), Style::default().fg(theme.accent())),
+                Span::styled(desc, Style::default().fg(theme.text_dim())),
+            ]));
+        }
+
+        lines.push(Line::raw(""));
+
+        // Action keys
+        lines.push(Line::styled(
+            "  Actions",
+            Style::default()
+                .fg(theme.text_bright())
+                .add_modifier(Modifier::BOLD),
+        ));
+        let action_keys = [
+            ("⏎ Enter", "Expand/collapse"),
+            ("y", "Copy block"),
+            ("⎋ Esc", "Clear focus"),
+            ("F2", "Toggle sidebar"),
+            ("Ctrl+A", "Agent switcher"),
+            ("?", "This help"),
+            ("q", "Quit"),
+        ];
+        for (key, desc) in action_keys {
+            lines.push(Line::from(vec![
+                Span::styled(format!("  {key:<12}"), Style::default().fg(theme.accent())),
+                Span::styled(desc, Style::default().fg(theme.text_dim())),
+            ]));
+        }
+
+        // Plugin keybindings
+        let state_label = format!("{:?}", self.state);
+        let plugin_keys: Vec<_> = self
+            .plugin_keybindings
+            .iter()
+            .filter(|b| {
+                b.active_states.is_empty() || b.active_states.iter().any(|s| s == &state_label)
+            })
+            .collect();
+
+        if !plugin_keys.is_empty() {
+            lines.push(Line::raw(""));
+            lines.push(Line::styled(
+                "  Plugins",
+                Style::default()
+                    .fg(theme.text_bright())
+                    .add_modifier(Modifier::BOLD),
+            ));
+            for binding in plugin_keys {
+                lines.push(Line::from(vec![
+                    Span::styled(
+                        format!("  {:<12}", binding.key),
+                        Style::default().fg(theme.accent()),
+                    ),
+                    Span::styled(
+                        binding.description.as_str(),
+                        Style::default().fg(theme.text_dim()),
+                    ),
+                ]));
+            }
+        }
+
+        if self.input_enabled {
+            lines.push(Line::raw(""));
+            lines.push(Line::styled(
+                "  Type / for slash commands",
+                Style::default()
+                    .fg(theme.text_dim())
+                    .add_modifier(Modifier::ITALIC),
+            ));
+        }
+
+        lines.push(Line::raw(""));
+        lines.push(Line::styled(
+            "  Press any key to close",
+            Style::default().fg(theme.border()),
+        ));
+
+        let popup_h = (lines.len() as u16 + 2).min(area.height.saturating_sub(2));
+        let popup_w = 44u16.min(area.width.saturating_sub(4));
+        let popup = Rect {
+            x: area.x + (area.width.saturating_sub(popup_w)) / 2,
+            y: area.y + (area.height.saturating_sub(popup_h)) / 2,
+            width: popup_w,
+            height: popup_h,
+        };
+
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(theme.accent()))
+            .title(" Help ")
+            .title_style(
+                Style::default()
+                    .fg(theme.accent())
+                    .add_modifier(Modifier::BOLD),
+            );
+
+        frame.render_widget(Clear, popup);
+        frame.render_widget(Paragraph::new(lines).block(block), popup);
     }
 }
 
@@ -2057,10 +2224,14 @@ mod tests {
     }
 
     #[test]
-    fn handle_key_help_adds_activity() {
+    fn handle_key_help_toggles_modal() {
         let mut shell = empty_shell();
+        assert!(!shell.help_modal_visible);
         shell.handle_key(KeyCode::Char('?'));
-        assert!(shell.activity_lines.last().unwrap().contains("help"));
+        assert!(shell.help_modal_visible);
+        // Any key closes it
+        shell.handle_key(KeyCode::Char('a'));
+        assert!(!shell.help_modal_visible);
     }
 
     #[test]
