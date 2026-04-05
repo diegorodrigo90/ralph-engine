@@ -140,8 +140,18 @@ fn handle_dashboard_command(shell: &mut re_tui::TuiShell, input: &str, locale: &
 
     // Parse slash command
     let Some(command_text) = trimmed.strip_prefix('/') else {
-        // Not a slash command — show as message
-        shell.push_activity(format!(">> {trimmed}"));
+        // Not a slash command — no agent running in dashboard mode
+        if locale == "pt-br" {
+            shell.push_activity(format!("  ╭─ Você: {trimmed}"));
+            shell.push_activity(
+                "  ╰─ Nenhum agente conectado. Use /run para iniciar orquestração.".to_owned(),
+            );
+        } else {
+            shell.push_activity(format!("  ╭─ You: {trimmed}"));
+            shell.push_activity(
+                "  ╰─ No agent connected. Use /run to start orchestration.".to_owned(),
+            );
+        }
         return;
     };
 
