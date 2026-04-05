@@ -38,7 +38,7 @@ pub use terminal::{
 };
 pub use theme::{
     BLOCK_PADDING, INDENT_WIDTH, MAX_COLLAPSED_LINES, Theme, available_theme_ids, builtin_themes,
-    resolve_theme,
+    no_color_active, resolve_theme,
 };
 
 /// Minimum terminal width supported (columns).

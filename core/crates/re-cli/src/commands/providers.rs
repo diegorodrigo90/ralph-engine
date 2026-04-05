@@ -14,7 +14,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         )),
         Some("show") => show_provider(args.get(1).map(String::as_str), locale),
         Some("plan") => show_provider_plan(args.get(1).map(String::as_str), locale),
-        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+        Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale,
             "providers",
             other,
@@ -40,7 +40,7 @@ fn show_provider(provider_kind: Option<&str>, locale: &str) -> Result<String, Cl
     }
 
     let kind = parse_runtime_provider_kind(provider_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::provider_entity_label(locale),
             provider_id,
@@ -67,7 +67,7 @@ fn show_provider_plan(provider_kind: Option<&str>, locale: &str) -> Result<Strin
     })?;
 
     let surface = catalog::find_official_provider_surface(provider_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::provider_entity_label(locale),
             provider_id,

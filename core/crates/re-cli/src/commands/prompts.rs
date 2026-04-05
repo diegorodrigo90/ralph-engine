@@ -26,7 +26,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
             args.get(2).map(String::as_str),
             locale,
         ),
-        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+        Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale, "prompts", other,
         ))),
     }
@@ -41,7 +41,7 @@ fn show_prompt(prompt_id: Option<&str>, locale: &str) -> Result<String, CliError
         ))
     })?;
     let prompt = catalog::find_official_prompt_contribution(prompt_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::prompt_entity_label(locale),
             prompt_id,
@@ -66,7 +66,7 @@ fn show_prompt_asset(
     let asset_path = asset_path
         .ok_or_else(|| CliError::new(i18n::missing_asset_path(locale, "prompts asset")))?;
     let prompt = catalog::find_official_prompt_contribution(prompt_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::prompt_entity_label(locale),
             prompt_id,
@@ -77,7 +77,7 @@ fn show_prompt_asset(
         .assets
         .iter()
         .find(|asset| asset.path == asset_path)
-        .ok_or_else(|| CliError::new(i18n::unknown_prompt_asset(locale, asset_path)))?;
+        .ok_or_else(|| CliError::usage(i18n::unknown_prompt_asset(locale, asset_path)))?;
 
     Ok(asset.contents.to_owned())
 }
@@ -101,7 +101,7 @@ fn materialize_prompt(
         ))
     })?;
     let prompt = catalog::find_official_prompt_contribution(prompt_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::prompt_entity_label(locale),
             prompt_id,

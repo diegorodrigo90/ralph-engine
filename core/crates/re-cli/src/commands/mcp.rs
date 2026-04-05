@@ -23,7 +23,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         Some("plan") => render_launch_plan(args.get(1).map(String::as_str), locale),
         Some("launch") => probe_launch(args.get(1).map(String::as_str), locale),
         Some("status") => show_status(args.get(1).map(String::as_str), locale),
-        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+        Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale, "mcp", other,
         ))),
     }
@@ -38,7 +38,7 @@ fn show_server(server_id: Option<&str>, locale: &str) -> Result<String, CliError
         ))
     })?;
     let server = catalog::find_official_mcp_server(server_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::mcp_server_entity_label(locale),
             server_id,
@@ -57,7 +57,7 @@ fn render_launch_plan(server_id: Option<&str>, locale: &str) -> Result<String, C
         ))
     })?;
     let server = catalog::find_official_mcp_server(server_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::mcp_server_entity_label(locale),
             server_id,
@@ -79,7 +79,7 @@ fn show_status(server_id: Option<&str>, locale: &str) -> Result<String, CliError
 
 fn show_single_status(server_id: &str, locale: &str) -> Result<String, CliError> {
     catalog::find_official_mcp_server(server_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::mcp_server_entity_label(locale),
             server_id,
@@ -88,7 +88,7 @@ fn show_single_status(server_id: &str, locale: &str) -> Result<String, CliError>
 
     with_official_runtime_snapshot(|runtime| {
         let result = build_mcp_server_status(server_id, &runtime.topology).ok_or_else(|| {
-            CliError::new(i18n::unknown_entity(
+            CliError::usage(i18n::unknown_entity(
                 locale,
                 i18n::mcp_server_entity_label(locale),
                 server_id,
@@ -109,7 +109,7 @@ fn probe_launch(server_id: Option<&str>, locale: &str) -> Result<String, CliErro
         ))
     })?;
     let server = catalog::find_official_mcp_server(server_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::mcp_server_entity_label(locale),
             server_id,

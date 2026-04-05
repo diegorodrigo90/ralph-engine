@@ -36,7 +36,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         ),
         Some("plan") => show_check_plan(args.get(1).map(String::as_str), locale),
         Some("run") => run_check(args.get(1).map(String::as_str), locale),
-        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+        Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale, "checks", other,
         ))),
     }
@@ -57,7 +57,7 @@ fn show_check_asset(
     let asset_path = asset_path
         .ok_or_else(|| CliError::new(i18n::missing_asset_path(locale, "checks asset")))?;
     let surface = catalog::find_official_check_surface(check_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::check_entity_label(locale),
             check_id,
@@ -69,7 +69,7 @@ fn show_check_asset(
         .assets
         .iter()
         .find(|asset| asset.path == asset_path)
-        .ok_or_else(|| CliError::new(i18n::unknown_check_asset(locale, asset_path)))?;
+        .ok_or_else(|| CliError::usage(i18n::unknown_check_asset(locale, asset_path)))?;
 
     Ok(asset.contents.to_owned())
 }
@@ -90,7 +90,7 @@ fn materialize_check(
         CliError::new(i18n::missing_output_directory(locale, "checks materialize"))
     })?;
     let surface = catalog::find_official_check_surface(check_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::check_entity_label(locale),
             check_id,
@@ -123,7 +123,7 @@ fn run_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError>
         surface.registration.kind
     } else {
         parse_runtime_check_kind(check_id).ok_or_else(|| {
-            CliError::new(i18n::unknown_entity(
+            CliError::usage(i18n::unknown_entity(
                 locale,
                 i18n::check_entity_label(locale),
                 check_id,
@@ -249,7 +249,7 @@ fn show_check_plan(check_kind: Option<&str>, locale: &str) -> Result<String, Cli
     })?;
 
     let surface = catalog::find_official_check_surface(check_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::check_entity_label(locale),
             check_id,
@@ -285,7 +285,7 @@ fn show_check(check_kind: Option<&str>, locale: &str) -> Result<String, CliError
     }
 
     let kind = parse_runtime_check_kind(check_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::check_entity_label(locale),
             check_id,

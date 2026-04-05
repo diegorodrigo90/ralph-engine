@@ -17,7 +17,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         Some("show") => show_agent(args.get(1).map(String::as_str), locale),
         Some("plan") => show_agent_plan(args.get(1).map(String::as_str), locale),
         Some("launch") => probe_agent_launch(args.get(1).map(String::as_str), locale),
-        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+        Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale, "agents", other,
         ))),
     }
@@ -32,7 +32,7 @@ fn show_agent(agent_id: Option<&str>, locale: &str) -> Result<String, CliError> 
         ))
     })?;
     let agent = catalog::find_official_agent_contribution(agent_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::agent_runtime_entity_label(locale),
             agent_id,
@@ -51,7 +51,7 @@ fn show_agent_plan(agent_id: Option<&str>, locale: &str) -> Result<String, CliEr
         ))
     })?;
     let agent = catalog::find_official_agent_contribution(agent_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::agent_runtime_entity_label(locale),
             agent_id,
@@ -77,7 +77,7 @@ fn probe_agent_launch(agent_id: Option<&str>, locale: &str) -> Result<String, Cl
         ))
     })?;
     let agent = catalog::find_official_agent_contribution(agent_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::agent_runtime_entity_label(locale),
             agent_id,

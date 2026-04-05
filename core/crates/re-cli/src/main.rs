@@ -49,7 +49,7 @@ fn main() -> ExitCode {
         Err(error) => {
             sentry::capture_message(&error.to_string(), sentry::Level::Error);
             eprintln!("{error}");
-            ExitCode::from(2)
+            ExitCode::from(error.exit_code)
         }
     }
 }

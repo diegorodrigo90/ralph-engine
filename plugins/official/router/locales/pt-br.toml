@@ -1,3 +1,3 @@
 [plugin]
 name = "Roteador de Agentes"
-summary = "Selecao de agente baseada em tarefas com regras configuradas e cadeias de fallback."
+summary = "Seleção de agente baseada em tarefas com regras configuradas e cadeias de fallback."

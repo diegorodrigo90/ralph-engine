@@ -37,7 +37,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         Some("policy-plans") => Ok(show_runtime_policy_enforcement_plans(locale)),
         Some("mcp-plans") => Ok(show_runtime_mcp_launch_plans(locale)),
         Some("status") => Ok(show_runtime_status(locale)),
-        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+        Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale, "runtime", other,
         ))),
     }

@@ -14,7 +14,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
         None | Some("list") => Ok(render_plugin_list(locale)),
         Some("show") => show_plugin(args.get(1).map(String::as_str), locale),
-        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+        Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale, "plugins", other,
         ))),
     }
@@ -59,7 +59,7 @@ fn show_plugin(plugin_id: Option<&str>, locale: &str) -> Result<String, CliError
         ))
     })?;
     let plugin = catalog::find_official_plugin(plugin_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::plugin_entity_label(locale),
             plugin_id,

@@ -26,7 +26,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
             args.get(2).map(String::as_str),
             locale,
         ),
-        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+        Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale,
             "templates",
             other,
@@ -43,7 +43,7 @@ fn show_template(template_id: Option<&str>, locale: &str) -> Result<String, CliE
         ))
     })?;
     let template = catalog::find_official_template_contribution(template_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::template_entity_label(locale),
             template_id,
@@ -68,7 +68,7 @@ fn show_template_asset(
     let asset_path = asset_path
         .ok_or_else(|| CliError::new(i18n::missing_asset_path(locale, "templates asset")))?;
     let template = catalog::find_official_template_contribution(template_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::template_entity_label(locale),
             template_id,
@@ -79,7 +79,7 @@ fn show_template_asset(
         .assets
         .iter()
         .find(|asset| asset.path == asset_path)
-        .ok_or_else(|| CliError::new(i18n::unknown_template_asset(locale, asset_path)))?;
+        .ok_or_else(|| CliError::usage(i18n::unknown_template_asset(locale, asset_path)))?;
 
     Ok(asset.contents.to_owned())
 }
@@ -103,7 +103,7 @@ fn materialize_template(
         ))
     })?;
     let template = catalog::find_official_template_contribution(template_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::template_entity_label(locale),
             template_id,

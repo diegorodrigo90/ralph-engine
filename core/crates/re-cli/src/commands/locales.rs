@@ -12,7 +12,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     match args.first().map(String::as_str) {
         None | Some("list") => Ok(render_supported_locales_yaml(supported_locales())),
         Some("show") => show_locale(args.get(1).map(String::as_str), locale),
-        Some(other) => Err(CliError::new(i18n::unknown_subcommand(
+        Some(other) => Err(CliError::usage(i18n::unknown_subcommand(
             locale, "locales", other,
         ))),
     }
@@ -27,7 +27,7 @@ fn show_locale(locale_id: Option<&str>, locale: &str) -> Result<String, CliError
         ))
     })?;
     let supported_locale = find_locale_descriptor(locale_id).ok_or_else(|| {
-        CliError::new(i18n::unknown_entity(
+        CliError::usage(i18n::unknown_entity(
             locale,
             i18n::locale_entity_label(locale),
             locale_id,
