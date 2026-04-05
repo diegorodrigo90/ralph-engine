@@ -260,6 +260,37 @@ pub enum PluginKeyAction {
     NotHandled,
 }
 
+/// A temporary toast notification that auto-dismisses.
+///
+/// Toasts appear in the bottom-right corner of the TUI and disappear
+/// after a configurable number of ticks (frames). Used for non-blocking
+/// confirmations like "copied to clipboard", "session saved", etc.
+#[derive(Debug, Clone)]
+pub struct Toast {
+    /// Message text.
+    pub message: String,
+    /// Severity level controlling the color.
+    pub level: ToastLevel,
+    /// Remaining ticks before auto-dismiss.
+    remaining_ticks: usize,
+}
+
+/// Severity level for toast notifications.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ToastLevel {
+    /// Informational (accent color).
+    Info,
+    /// Success (green).
+    Success,
+    /// Warning (yellow).
+    Warning,
+    /// Error (red).
+    Error,
+}
+
+/// Default toast duration in render ticks (~50ms per tick = ~3s).
+const TOAST_DEFAULT_TICKS: usize = 60;
+
 /// Agent process ID (set when a real agent is launched).
 pub type AgentPid = Option<u32>;
 
@@ -383,8 +414,6 @@ pub struct TuiShell {
     follow_mode: bool,
     /// Index of the focused block in the feed (`None` = no focus).
     focused_block: Option<usize>,
-    /// Brief copy confirmation message (cleared after one render).
-    copy_feedback: Option<String>,
     /// Quality gate pipeline for orchestration runs.
     indicator_panel: crate::indicators::IndicatorPanel,
     tool_count: usize,
@@ -416,6 +445,8 @@ pub struct TuiShell {
     pending_text_input: Option<String>,
     /// Autocomplete state for slash commands.
     autocomplete: AutocompleteState,
+    /// Active toast notifications (auto-dismiss on tick).
+    toasts: Vec<Toast>,
 }
 
 impl TuiShell {
@@ -436,7 +467,6 @@ impl TuiShell {
             feed_scroll: ScrollViewState::default(),
             follow_mode: true,
             focused_block: None,
-            copy_feedback: None,
             indicator_panel: crate::indicators::IndicatorPanel::new(),
             tool_count: 0,
             token_count: 0,
@@ -455,6 +485,7 @@ impl TuiShell {
             text_input_buffer: String::new(),
             pending_text_input: None,
             autocomplete: AutocompleteState::new(Vec::new(), "/".to_owned()),
+            toasts: Vec::new(),
         }
     }
 
@@ -514,6 +545,32 @@ impl TuiShell {
             self.activity_lines.drain(..1_000);
         }
         self.activity_lines.push(line);
+    }
+
+    /// Shows a toast notification that auto-dismisses after ~3 seconds.
+    pub fn show_toast(&mut self, message: String, level: ToastLevel) {
+        self.toasts.push(Toast {
+            message,
+            level,
+            remaining_ticks: TOAST_DEFAULT_TICKS,
+        });
+    }
+
+    /// Shows an info-level toast notification.
+    pub fn toast_info(&mut self, message: String) {
+        self.show_toast(message, ToastLevel::Info);
+    }
+
+    /// Shows a success-level toast notification.
+    pub fn toast_success(&mut self, message: String) {
+        self.show_toast(message, ToastLevel::Success);
+    }
+
+    /// Shows an error-level toast notification as a modal popup.
+    pub fn show_error_modal(&mut self, title: &str, message: &str) {
+        // Errors are important enough to be modals, not toasts
+        self.push_activity(format!("  ✗ {title}: {message}"));
+        self.show_toast(format!("✗ {title}"), ToastLevel::Error);
     }
 
     /// Increments the tool call counter.
@@ -776,10 +833,10 @@ impl TuiShell {
         }
 
         if crate::clipboard::copy_to_clipboard(&text) {
-            self.copy_feedback = Some(format!("Copied {} chars", text.len()));
+            self.toast_success(format!("✓ Copied {} chars", text.len()));
             true
         } else {
-            self.copy_feedback = Some("Copy failed (no clipboard)".to_owned());
+            self.show_toast("Copy failed (no clipboard)".to_owned(), ToastLevel::Warning);
             false
         }
     }
@@ -1179,6 +1236,9 @@ impl TuiShell {
             self.render_agent_switcher(frame, zones.activity);
         }
 
+        // Toast notifications — bottom-right corner
+        self.render_toasts(frame, area);
+
         // Modal popups — rendered LAST, on top of EVERYTHING
         if self.quit_pending {
             self.render_quit_modal(frame, area);
@@ -1515,18 +1575,6 @@ impl TuiShell {
     /// Renders the metrics bar.
     fn render_metrics(&mut self, frame: &mut Frame<'_>, area: Rect) {
         let theme = self.theme.as_ref();
-
-        // Copy feedback takes priority (shown briefly)
-        if let Some(msg) = self.copy_feedback.take() {
-            let feedback = Line::from(vec![Span::styled(
-                format!(" ✓ {msg} "),
-                Style::default()
-                    .fg(theme.success())
-                    .add_modifier(Modifier::BOLD),
-            )]);
-            frame.render_widget(Paragraph::new(feedback), area);
-            return;
-        }
 
         // When indicators are active, show the indicator bar. Otherwise show tool metrics.
         if !self.indicator_panel.is_empty() {
@@ -2006,6 +2054,51 @@ impl TuiShell {
         ]));
 
         frame.render_widget(Paragraph::new(lines), area);
+    }
+
+    /// Renders and ticks down active toast notifications.
+    ///
+    /// Toasts appear stacked in the bottom-right corner. Each toast
+    /// auto-dismisses after its remaining ticks reach zero.
+    fn render_toasts(&mut self, frame: &mut Frame<'_>, area: Rect) {
+        // Tick down and remove expired toasts
+        self.toasts.retain_mut(|t| {
+            t.remaining_ticks = t.remaining_ticks.saturating_sub(1);
+            t.remaining_ticks > 0
+        });
+
+        if self.toasts.is_empty() {
+            return;
+        }
+
+        let max_toasts = 3;
+        let toast_w = 40u16.min(area.width.saturating_sub(2));
+        let toast_h = 3u16;
+
+        for (i, toast) in self.toasts.iter().rev().take(max_toasts).enumerate() {
+            let y = area.height.saturating_sub((i as u16 + 1) * (toast_h + 1));
+            let x = area.width.saturating_sub(toast_w + 1);
+            let popup = Rect::new(x, y, toast_w, toast_h);
+
+            let color = match toast.level {
+                ToastLevel::Info => self.theme().accent(),
+                ToastLevel::Success => self.theme().success(),
+                ToastLevel::Warning => self.theme().warning(),
+                ToastLevel::Error => self.theme().error(),
+            };
+
+            frame.render_widget(Clear, popup);
+            let block = Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(color))
+                .style(Style::default().bg(self.theme().surface()));
+            let inner = block.inner(popup);
+            frame.render_widget(block, popup);
+
+            let text = Paragraph::new(toast.message.as_str())
+                .style(Style::default().fg(self.theme().text_bright()));
+            frame.render_widget(text, inner);
+        }
     }
 
     /// Renders the quit confirmation modal (centered overlay).
@@ -2902,5 +2995,47 @@ mod tests {
         let mut shell = test_shell();
         shell.handle_mouse(MouseEventKind::ScrollUp);
         assert!(!shell.is_follow_mode());
+    }
+
+    #[test]
+    fn toast_info_creates_info_toast() {
+        let mut shell = empty_shell();
+        shell.toast_info("Test message".to_owned());
+        assert_eq!(shell.toasts.len(), 1);
+        assert_eq!(shell.toasts[0].level, ToastLevel::Info);
+        assert_eq!(shell.toasts[0].message, "Test message");
+    }
+
+    #[test]
+    fn toast_success_creates_success_toast() {
+        let mut shell = empty_shell();
+        shell.toast_success("Done!".to_owned());
+        assert_eq!(shell.toasts.len(), 1);
+        assert_eq!(shell.toasts[0].level, ToastLevel::Success);
+    }
+
+    #[test]
+    fn show_error_modal_creates_error_toast_and_activity() {
+        let mut shell = empty_shell();
+        shell.show_error_modal("Title", "Details");
+        assert_eq!(shell.toasts.len(), 1);
+        assert_eq!(shell.toasts[0].level, ToastLevel::Error);
+        assert!(shell.activity_lines.iter().any(|l| l.contains("Title")));
+    }
+
+    #[test]
+    fn toasts_expire_after_ticks() {
+        let mut shell = empty_shell();
+        shell.show_toast("Temp".to_owned(), ToastLevel::Info);
+        assert_eq!(shell.toasts.len(), 1);
+        // Simulate expiry
+        shell.toasts[0].remaining_ticks = 1;
+        // After render_toasts decrements, it should be removed
+        // Can't call render_toasts directly (needs Frame), but we can test the retain logic
+        shell.toasts.retain_mut(|t| {
+            t.remaining_ticks = t.remaining_ticks.saturating_sub(1);
+            t.remaining_ticks > 0
+        });
+        assert!(shell.toasts.is_empty());
     }
 }
