@@ -11,11 +11,12 @@
 //! is a read-only dashboard.
 
 use ratatui::crossterm::event::{self, Event, KeyCode, KeyEventKind, KeyModifiers};
-use ratatui::layout::{Constraint, Layout, Rect};
+use ratatui::layout::{Constraint, Layout, Rect, Size};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, Gauge, List, ListItem, ListState, Paragraph};
 use ratatui::{DefaultTerminal, Frame};
+use tui_scrollview::{ScrollView, ScrollViewState};
 
 use crate::layout;
 
@@ -242,6 +243,10 @@ pub struct TuiShell {
     activity_lines: Vec<String>,
     /// Block-based activity feed (new orchestration renderer).
     feed: crate::feed::Feed,
+    /// Scroll state for the feed viewport (tui-scrollview).
+    feed_scroll: ScrollViewState,
+    /// Follow mode: auto-scroll to bottom on new content.
+    follow_mode: bool,
     /// Quality gate pipeline for orchestration runs.
     indicator_panel: crate::indicators::IndicatorPanel,
     tool_count: usize,
@@ -275,6 +280,8 @@ impl TuiShell {
             progress: 0,
             activity_lines: Vec::new(),
             feed: crate::feed::Feed::new(),
+            feed_scroll: ScrollViewState::default(),
+            follow_mode: true,
             indicator_panel: crate::indicators::IndicatorPanel::new(),
             tool_count: 0,
             should_quit: false,
@@ -453,6 +460,48 @@ impl TuiShell {
         &mut self.feed
     }
 
+    /// Whether follow mode is active (auto-scroll on new content).
+    #[must_use]
+    pub fn is_follow_mode(&self) -> bool {
+        self.follow_mode
+    }
+
+    /// Scrolls the feed up by one line, disabling follow mode.
+    pub fn scroll_feed_up(&mut self) {
+        self.follow_mode = false;
+        self.feed_scroll.scroll_up();
+    }
+
+    /// Scrolls the feed down by one line, disabling follow mode.
+    pub fn scroll_feed_down(&mut self) {
+        self.follow_mode = false;
+        self.feed_scroll.scroll_down();
+    }
+
+    /// Scrolls the feed up by one page, disabling follow mode.
+    pub fn scroll_feed_page_up(&mut self) {
+        self.follow_mode = false;
+        self.feed_scroll.scroll_page_up();
+    }
+
+    /// Scrolls the feed down by one page, disabling follow mode.
+    pub fn scroll_feed_page_down(&mut self) {
+        self.follow_mode = false;
+        self.feed_scroll.scroll_page_down();
+    }
+
+    /// Scrolls to the top, disabling follow mode.
+    pub fn scroll_feed_to_top(&mut self) {
+        self.follow_mode = false;
+        self.feed_scroll.scroll_to_top();
+    }
+
+    /// Scrolls to the bottom and re-enables follow mode.
+    pub fn scroll_feed_to_bottom(&mut self) {
+        self.follow_mode = true;
+        self.feed_scroll.scroll_to_bottom();
+    }
+
     /// Returns a reference to the gate pipeline.
     #[must_use]
     pub fn indicator_panel(&self) -> &crate::indicators::IndicatorPanel {
@@ -485,11 +534,18 @@ impl TuiShell {
 
                 if event::poll(std::time::Duration::from_millis(100))
                     .map_err(|e| TuiError::new(format!("event poll failed: {e}")))?
-                    && let Event::Key(key) = event::read()
-                        .map_err(|e| TuiError::new(format!("event read failed: {e}")))?
-                    && key.kind == KeyEventKind::Press
                 {
-                    self.handle_key(key.code);
+                    match event::read()
+                        .map_err(|e| TuiError::new(format!("event read failed: {e}")))?
+                    {
+                        Event::Key(key) if key.kind == KeyEventKind::Press => {
+                            self.handle_key(key.code);
+                        }
+                        Event::Mouse(mouse) => {
+                            self.handle_mouse(mouse.kind);
+                        }
+                        _ => {}
+                    }
                 }
 
                 if self.should_quit {
@@ -501,6 +557,19 @@ impl TuiShell {
 
         restore_terminal();
         result
+    }
+
+    /// Handles a mouse event (scroll wheel).
+    ///
+    /// Call this from the event loop when a mouse event is received.
+    /// Only scroll events are handled; other mouse events are ignored.
+    pub fn handle_mouse(&mut self, kind: ratatui::crossterm::event::MouseEventKind) {
+        use ratatui::crossterm::event::MouseEventKind;
+        match kind {
+            MouseEventKind::ScrollUp => self.scroll_feed_up(),
+            MouseEventKind::ScrollDown => self.scroll_feed_down(),
+            _ => {}
+        }
     }
 
     /// Handles a key press event.
@@ -628,6 +697,31 @@ impl TuiShell {
                 self.push_help_to_activity();
                 return PluginKeyAction::Handled;
             }
+            // Feed scroll keys
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.scroll_feed_up();
+                return PluginKeyAction::Handled;
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.scroll_feed_down();
+                return PluginKeyAction::Handled;
+            }
+            KeyCode::PageUp => {
+                self.scroll_feed_page_up();
+                return PluginKeyAction::Handled;
+            }
+            KeyCode::PageDown => {
+                self.scroll_feed_page_down();
+                return PluginKeyAction::Handled;
+            }
+            KeyCode::Home => {
+                self.scroll_feed_to_top();
+                return PluginKeyAction::Handled;
+            }
+            KeyCode::End | KeyCode::Char('G') => {
+                self.scroll_feed_to_bottom();
+                return PluginKeyAction::Handled;
+            }
             _ => {}
         }
 
@@ -728,18 +822,18 @@ impl TuiShell {
     }
 
     /// Renders the TUI frame with responsive zone-based layout.
-    pub fn render_frame(&self, frame: &mut Frame<'_>) {
+    pub fn render_frame(&mut self, frame: &mut Frame<'_>) {
         let area = frame.area();
         self.render_in(frame, area);
     }
 
     /// Renders the TUI into a specific sub-area of the frame.
-    pub fn render_frame_in_area(&self, frame: &mut Frame<'_>, area: Rect) {
+    pub fn render_frame_in_area(&mut self, frame: &mut Frame<'_>, area: Rect) {
         self.render_in(frame, area);
     }
 
     /// Internal render implementation for a given area.
-    fn render_in(&self, frame: &mut Frame<'_>, area: Rect) {
+    fn render_in(&mut self, frame: &mut Frame<'_>, area: Rect) {
         if layout::is_terminal_too_small(area) {
             let msg = format!(
                 "Terminal too small ({}x{}). Minimum: {}x{}.",
@@ -821,7 +915,7 @@ impl TuiShell {
     }
 
     /// Renders the activity stream (main viewport).
-    fn render_activity(&self, frame: &mut Frame<'_>, area: Rect) {
+    fn render_activity(&mut self, frame: &mut Frame<'_>, area: Rect) {
         // Use block-based feed when it has content, fall back to legacy lines
         if !self.feed.is_empty() {
             self.render_feed_blocks(frame, area);
@@ -874,16 +968,20 @@ impl TuiShell {
         frame.render_widget(Paragraph::new(all_lines), area);
     }
 
-    /// Renders the block-based feed (orchestration view).
+    /// Renders the block-based feed using `tui-scrollview`.
     ///
     /// Each block gets an icon prefix, styled title, and optionally
-    /// expanded content lines. Collapsed blocks show just the title
-    /// with a content count hint.
-    fn render_feed_blocks(&self, frame: &mut Frame<'_>, area: Rect) {
+    /// expanded content lines. Follow mode auto-scrolls to bottom
+    /// when new content arrives.
+    fn render_feed_blocks(&mut self, frame: &mut Frame<'_>, area: Rect) {
         use crate::feed::BlockKind;
 
-        let theme = self.theme();
-        let visible_height = area.height as usize;
+        let theme = self.theme.as_ref();
+
+        // Capture and clear dirty flag before borrowing feed immutably
+        let was_dirty = self.feed.is_dirty();
+        self.feed.clear_dirty();
+
         let mut all_lines: Vec<Line<'_>> = Vec::new();
 
         for block in self.feed.blocks() {
@@ -961,19 +1059,42 @@ impl TuiShell {
             }
         }
 
-        // Scroll to bottom: show last N lines
-        let total = all_lines.len();
-        let scroll = self.feed.scroll_offset();
-        let start = total.saturating_sub(visible_height + scroll);
-        let end = total.saturating_sub(scroll);
+        let content_height = all_lines.len() as u16;
+        let content_width = area.width.saturating_sub(1); // reserve 1 col for scrollbar
 
-        let visible: Vec<Line<'_>> = all_lines
-            .into_iter()
-            .skip(start)
-            .take(end.saturating_sub(start))
-            .collect();
+        // Follow mode: scroll to bottom when new content arrives
+        if self.follow_mode && was_dirty {
+            self.feed_scroll.scroll_to_bottom();
+        }
 
-        frame.render_widget(Paragraph::new(visible), area);
+        // "↑ more" indicator when scrolled up
+        let scrolled_up = self.feed_scroll.offset().y > 0;
+        if scrolled_up {
+            let indicator = Line::styled(
+                " ↑ more above ",
+                Style::default()
+                    .fg(theme.warning())
+                    .add_modifier(Modifier::BOLD),
+            );
+            // Reserve top row for indicator
+            let [indicator_area, feed_area] =
+                Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(area);
+            frame.render_widget(Paragraph::new(indicator), indicator_area);
+
+            let mut scroll_view = ScrollView::new(Size::new(content_width, content_height));
+            scroll_view.render_widget(
+                Paragraph::new(all_lines),
+                Rect::new(0, 0, content_width, content_height),
+            );
+            frame.render_stateful_widget(scroll_view, feed_area, &mut self.feed_scroll);
+        } else {
+            let mut scroll_view = ScrollView::new(Size::new(content_width, content_height));
+            scroll_view.render_widget(
+                Paragraph::new(all_lines),
+                Rect::new(0, 0, content_width, content_height),
+            );
+            frame.render_stateful_widget(scroll_view, area, &mut self.feed_scroll);
+        }
     }
 
     /// Renders the metrics bar.
@@ -1662,7 +1783,7 @@ mod tests {
         shell
     }
 
-    fn render_to_buffer(shell: &TuiShell, width: u16, height: u16) -> String {
+    fn render_to_buffer(shell: &mut TuiShell, width: u16, height: u16) -> String {
         let backend = TestBackend::new(width, height);
         let mut terminal = Terminal::new(backend).unwrap();
         terminal.draw(|frame| shell.render_frame(frame)).unwrap();
@@ -1696,58 +1817,58 @@ mod tests {
 
     #[test]
     fn render_compact_shows_header_with_agent_id() {
-        let shell = test_shell();
-        let output = render_to_buffer(&shell, 80, 24);
+        let mut shell = test_shell();
+        let output = render_to_buffer(&mut shell, 80, 24);
         assert!(output.contains("test.claude"));
         assert!(output.contains("[RUNNING]"));
     }
 
     #[test]
     fn render_compact_shows_activity_lines() {
-        let shell = test_shell();
-        let output = render_to_buffer(&shell, 80, 24);
+        let mut shell = test_shell();
+        let output = render_to_buffer(&mut shell, 80, 24);
         assert!(output.contains("Tool Call: search"));
         assert!(output.contains("found 3 items"));
     }
 
     #[test]
     fn render_compact_shows_metrics() {
-        let shell = test_shell();
-        let output = render_to_buffer(&shell, 80, 24);
+        let mut shell = test_shell();
+        let output = render_to_buffer(&mut shell, 80, 24);
         assert!(output.contains("Tools: 1"));
     }
 
     #[test]
     fn render_compact_shows_help_bar() {
-        let shell = test_shell();
-        let output = render_to_buffer(&shell, 80, 24);
+        let mut shell = test_shell();
+        let output = render_to_buffer(&mut shell, 80, 24);
         assert!(output.contains("[q]"));
         assert!(output.contains("compact"));
     }
 
     #[test]
     fn render_compact_no_sidebar() {
-        let shell = test_shell();
-        let output = render_to_buffer(&shell, 80, 24);
+        let mut shell = test_shell();
+        let output = render_to_buffer(&mut shell, 80, 24);
         assert!(!output.contains("Plugins"));
     }
 
     #[test]
     fn render_standard_shows_sidebar() {
-        let shell = test_shell();
-        let output = render_to_buffer(&shell, 140, 40);
+        let mut shell = test_shell();
+        let output = render_to_buffer(&mut shell, 140, 40);
         assert!(output.contains("Plugins"));
         assert!(output.contains("standard"));
     }
 
     #[test]
     fn render_wide_shows_control_panel() {
-        let shell = TuiShell::new(TuiConfig {
+        let mut shell = TuiShell::new(TuiConfig {
             title: "Fix Bug".to_owned(),
             agent_id: "test.claude".to_owned(),
             locale: "en".to_owned(),
         });
-        let output = render_to_buffer(&shell, 200, 60);
+        let output = render_to_buffer(&mut shell, 200, 60);
         assert!(output.contains("Control"));
         assert!(output.contains("Plugins"));
         assert!(output.contains("wide"));
@@ -1755,8 +1876,8 @@ mod tests {
 
     #[test]
     fn render_too_small_shows_error() {
-        let shell = test_shell();
-        let output = render_to_buffer(&shell, 60, 20);
+        let mut shell = test_shell();
+        let output = render_to_buffer(&mut shell, 60, 20);
         assert!(output.contains("too small"));
     }
 
@@ -1764,7 +1885,7 @@ mod tests {
     fn render_paused_state_shows_in_header() {
         let mut shell = test_shell();
         shell.set_state(TuiState::Paused);
-        let output = render_to_buffer(&shell, 80, 24);
+        let output = render_to_buffer(&mut shell, 80, 24);
         assert!(output.contains("[PAUSED]"));
     }
 
@@ -1772,7 +1893,7 @@ mod tests {
     fn render_progress_gauge_shows_in_wide_header() {
         let mut shell = test_shell();
         shell.set_progress(75);
-        let output = render_to_buffer(&shell, 100, 24);
+        let output = render_to_buffer(&mut shell, 100, 24);
         assert!(output.contains("test.claude"));
     }
 
@@ -1868,7 +1989,7 @@ mod tests {
                 plugin_id: "official.bmad".to_owned(),
             },
         ]);
-        let output = render_to_buffer(&shell, 140, 40);
+        let output = render_to_buffer(&mut shell, 140, 40);
         assert!(output.contains("Findings"));
         assert!(output.contains("Sprint"));
         assert!(output.contains("3 issues"));
@@ -1876,8 +1997,8 @@ mod tests {
 
     #[test]
     fn render_standard_empty_panels_shows_placeholder() {
-        let shell = test_shell();
-        let output = render_to_buffer(&shell, 140, 40);
+        let mut shell = test_shell();
+        let output = render_to_buffer(&mut shell, 140, 40);
         assert!(output.contains("no panels"));
     }
 
@@ -1913,7 +2034,7 @@ mod tests {
                 active_states: vec!["Paused".to_owned()], // only when paused
             },
         ]);
-        let output = render_to_buffer(&shell, 80, 24);
+        let output = render_to_buffer(&mut shell, 80, 24);
         // Running state → 'p' should appear, 'f' should not
         assert!(
             output.contains("[p]"),
@@ -1935,10 +2056,69 @@ mod tests {
             active_states: vec!["Paused".to_owned()],
         }]);
         shell.set_state(TuiState::Paused);
-        let output = render_to_buffer(&shell, 80, 24);
+        let output = render_to_buffer(&mut shell, 80, 24);
         assert!(
             output.contains("[f]"),
             "help should show [f] when Paused, got:\n{output}"
         );
+    }
+
+    // ── Scroll tests ──
+
+    #[test]
+    fn follow_mode_enabled_by_default() {
+        let shell = test_shell();
+        assert!(shell.is_follow_mode());
+    }
+
+    #[test]
+    fn scroll_up_disables_follow_mode() {
+        let mut shell = test_shell();
+        shell.scroll_feed_up();
+        assert!(!shell.is_follow_mode());
+    }
+
+    #[test]
+    fn scroll_to_bottom_re_enables_follow() {
+        let mut shell = test_shell();
+        shell.scroll_feed_up();
+        assert!(!shell.is_follow_mode());
+        shell.scroll_feed_to_bottom();
+        assert!(shell.is_follow_mode());
+    }
+
+    #[test]
+    fn page_up_disables_follow() {
+        let mut shell = test_shell();
+        shell.scroll_feed_page_up();
+        assert!(!shell.is_follow_mode());
+    }
+
+    #[test]
+    fn scroll_to_top_disables_follow() {
+        let mut shell = test_shell();
+        shell.scroll_feed_to_top();
+        assert!(!shell.is_follow_mode());
+    }
+
+    #[test]
+    fn scroll_keys_handled_in_key_handler() {
+        let mut shell = test_shell();
+        // j/k should be handled as scroll keys
+        let result = shell.handle_key(KeyCode::Char('j'));
+        assert_eq!(result, PluginKeyAction::Handled);
+        assert!(!shell.is_follow_mode());
+
+        let result = shell.handle_key(KeyCode::Char('G'));
+        assert_eq!(result, PluginKeyAction::Handled);
+        assert!(shell.is_follow_mode());
+    }
+
+    #[test]
+    fn mouse_scroll_disables_follow() {
+        use ratatui::crossterm::event::MouseEventKind;
+        let mut shell = test_shell();
+        shell.handle_mouse(MouseEventKind::ScrollUp);
+        assert!(!shell.is_follow_mode());
     }
 }

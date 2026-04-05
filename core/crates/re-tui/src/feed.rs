@@ -191,8 +191,8 @@ pub struct Feed {
     tool_mappings: Vec<ToolKindMapping>,
     /// Maximum number of blocks to keep (ring buffer behavior).
     max_blocks: usize,
-    /// Scroll offset (0 = bottom, positive = scrolled up).
-    scroll_offset: usize,
+    /// Whether new content was added since last render (for follow mode).
+    dirty: bool,
 }
 
 impl Feed {
@@ -203,7 +203,7 @@ impl Feed {
             blocks: Vec::new(),
             tool_mappings: Vec::new(),
             max_blocks: 5_000,
-            scroll_offset: 0,
+            dirty: false,
         }
     }
 
@@ -234,26 +234,18 @@ impl Feed {
         &self.blocks
     }
 
-    /// Returns the current scroll offset.
+    /// Whether new content was added since last render check.
+    ///
+    /// The renderer uses this to decide if follow mode should scroll
+    /// to the bottom. Call [`Feed::clear_dirty`] after rendering.
     #[must_use]
-    pub fn scroll_offset(&self) -> usize {
-        self.scroll_offset
+    pub fn is_dirty(&self) -> bool {
+        self.dirty
     }
 
-    /// Scrolls up by `n` lines.
-    pub fn scroll_up(&mut self, n: usize) {
-        let total = self.total_visible_lines();
-        self.scroll_offset = (self.scroll_offset + n).min(total.saturating_sub(1));
-    }
-
-    /// Scrolls down by `n` lines.
-    pub fn scroll_down(&mut self, n: usize) {
-        self.scroll_offset = self.scroll_offset.saturating_sub(n);
-    }
-
-    /// Resets scroll to bottom (follow mode).
-    pub fn scroll_to_bottom(&mut self) {
-        self.scroll_offset = 0;
+    /// Clears the dirty flag (called after rendering).
+    pub fn clear_dirty(&mut self) {
+        self.dirty = false;
     }
 
     /// Total visible lines across all blocks.
@@ -268,6 +260,7 @@ impl Feed {
         self.finalize_active_text_block();
 
         self.blocks.push(block);
+        self.dirty = true;
 
         // Evict old blocks if over limit
         if self.blocks.len() > self.max_blocks {
@@ -279,6 +272,7 @@ impl Feed {
     /// Appends content to the last active block, or creates a new
     /// [`BlockKind::AgentText`] block if no block is active.
     pub fn append_to_active(&mut self, line: String) {
+        self.dirty = true;
         if let Some(block) = self.blocks.last_mut().filter(|b| b.active) {
             block.push_content(line);
         } else {
@@ -563,30 +557,27 @@ mod tests {
     }
 
     #[test]
-    fn scroll_up_and_down() {
+    fn dirty_flag_set_on_push() {
         let mut feed = Feed::new();
-        for i in 0..10 {
-            feed.push_block(FeedBlock::completed(BlockKind::System, format!("msg {i}")));
-        }
-        assert_eq!(feed.scroll_offset(), 0);
+        assert!(!feed.is_dirty());
 
-        feed.scroll_up(3);
-        assert_eq!(feed.scroll_offset(), 3);
+        feed.push_block(FeedBlock::completed(BlockKind::System, "msg".into()));
+        assert!(feed.is_dirty());
 
-        feed.scroll_down(1);
-        assert_eq!(feed.scroll_offset(), 2);
-
-        feed.scroll_to_bottom();
-        assert_eq!(feed.scroll_offset(), 0);
+        feed.clear_dirty();
+        assert!(!feed.is_dirty());
     }
 
     #[test]
-    fn scroll_up_capped_at_total() {
+    fn dirty_flag_set_on_append() {
         let mut feed = Feed::new();
-        feed.push_block(FeedBlock::completed(BlockKind::System, "one".into()));
-        feed.scroll_up(100);
-        // Should not exceed total visible lines - 1
-        assert!(feed.scroll_offset() <= feed.total_visible_lines());
+        let mut block = FeedBlock::new(BlockKind::AgentText, String::new());
+        block.push_content("first".into());
+        feed.push_block(block);
+        feed.clear_dirty();
+
+        feed.append_to_active("more content".into());
+        assert!(feed.is_dirty());
     }
 
     #[test]
