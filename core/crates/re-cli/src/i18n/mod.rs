@@ -5,6 +5,7 @@ use std::env;
 use crate::CliError;
 use re_config::SupportedLocale;
 
+#[allow(dead_code)]
 pub(super) struct CliLocaleCatalog {
     // ── Existing labels ──────────────────────────────────────────
     #[allow(dead_code)]
@@ -172,6 +173,33 @@ pub(super) struct CliLocaleCatalog {
 
     // ── Hooks command ────────────────────────────────────────────
     pub hooks_plan_heading: &'static str,
+
+    // ── TUI Dashboard ───────────────────────────────────────────
+    pub tui_dashboard_title: &'static str,
+    pub tui_no_project_title: &'static str,
+    pub tui_no_project_label: &'static str,
+    pub tui_no_agent_label: &'static str,
+    pub tui_project_configured: &'static str,
+    pub tui_no_project_found: &'static str,
+    pub tui_type_run: &'static str,
+    pub tui_type_init: &'static str,
+    pub tui_type_init_tui: &'static str,
+    pub tui_type_doctor: &'static str,
+    pub tui_no_config_found: &'static str,
+    pub tui_project_run_hint: &'static str,
+    pub tui_orchestration_runtime: &'static str,
+    pub tui_waiting_session: &'static str,
+    pub tui_available_commands: &'static str,
+    pub tui_unknown_command: &'static str,
+    pub tui_type_help_hint: &'static str,
+    pub tui_help_keys_heading: &'static str,
+    pub tui_help_plugin_keys: &'static str,
+    pub tui_help_commands_heading: &'static str,
+    pub tui_help_type_slash: &'static str,
+    pub tui_already_initialized: &'static str,
+    pub tui_project_initialized: &'static str,
+    pub tui_enabled_plugins: &'static str,
+    pub tui_init_auto_label: &'static str,
 
     // ── Parameterized functions (fn_fields in build.rs) ──────────
     pub unknown_command: fn(&str) -> String,
@@ -654,6 +682,22 @@ catalog_fn1!(policies_materialize_hint, policies_materialize_hint);
 // ── Hooks command accessors ──────────────────────────────────────
 
 catalog_str!(hooks_plan_heading, hooks_plan_heading);
+
+// ── TUI Dashboard accessors ─────────────────────────────────────
+// Only accessors actually used from tui.rs and init.rs are generated.
+// Additional keys exist in the TOML for future terminal.rs i18n refactor.
+catalog_str!(tui_dashboard_title, tui_dashboard_title);
+catalog_str!(tui_no_project_title, tui_no_project_title);
+catalog_str!(tui_no_project_label, tui_no_project_label);
+catalog_str!(tui_no_agent_label, tui_no_agent_label);
+catalog_str!(tui_type_init_tui, tui_type_init_tui);
+catalog_str!(tui_no_config_found, tui_no_config_found);
+catalog_str!(tui_project_run_hint, tui_project_run_hint);
+catalog_str!(tui_available_commands, tui_available_commands);
+catalog_str!(tui_unknown_command, tui_unknown_command);
+catalog_str!(tui_type_help_hint, tui_type_help_hint);
+catalog_str!(tui_already_initialized, tui_already_initialized);
+catalog_str!(tui_project_initialized, tui_project_initialized);
 
 // ── Init parameterized ───────────────────────────────────────────
 

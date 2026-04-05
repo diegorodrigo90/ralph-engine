@@ -12,6 +12,7 @@ use ratatui::crossterm::event::{self, Event, KeyEventKind, MouseEvent};
 
 use crate::CliError;
 use crate::catalog;
+use crate::i18n;
 
 /// Built-in slash commands available in the dashboard.
 const DASHBOARD_COMMANDS: &[(&str, &str)] = &[
@@ -32,11 +33,11 @@ pub fn execute(_args: &[String], locale: &str) -> Result<String, CliError> {
 
     let config = re_tui::TuiConfig {
         title: if has_config {
-            "Dashboard".to_owned()
+            i18n::tui_dashboard_title(locale).to_owned()
         } else {
-            "No project — type /init".to_owned()
+            i18n::tui_no_project_title(locale).to_owned()
         },
-        agent_id: detect_agent_id(),
+        agent_id: detect_agent_id(locale),
         locale: locale.to_owned(),
     };
 
@@ -151,7 +152,7 @@ fn handle_dashboard_command(shell: &mut re_tui::TuiShell, input: &str, locale: &
 
     match *cmd_name {
         "help" => {
-            shell.push_activity("── Available commands ──".to_owned());
+            shell.push_activity(format!("── {} ──", i18n::tui_available_commands(locale)));
             for (name, desc) in DASHBOARD_COMMANDS {
                 shell.push_activity(format!("  /{name:<12} {desc}"));
             }
@@ -190,7 +191,9 @@ fn handle_dashboard_command(shell: &mut re_tui::TuiShell, input: &str, locale: &
         }
         other => {
             shell.push_activity(format!(
-                "  Unknown command: /{other}. Type /help for available commands."
+                "  {}: /{other}. {}",
+                i18n::tui_unknown_command(locale),
+                i18n::tui_type_help_hint(locale)
             ));
         }
     }
@@ -207,20 +210,24 @@ fn push_project_status(shell: &mut re_tui::TuiShell, has_config: bool, locale: &
                 }
             }
             Err(_) => {
-                shell.push_activity("  Project configured. Type /run to start.".to_owned());
+                shell.push_activity(format!("  {}", i18n::tui_project_run_hint(locale)));
             }
         }
     } else {
-        shell.push_activity("  No .ralph-engine/ config found.".to_owned());
-        shell.push_activity("  Type /init to set up this project.".to_owned());
+        shell.push_activity(format!("  {}", i18n::tui_no_config_found(locale)));
+        shell.push_activity(format!("  {}", i18n::tui_type_init_tui(locale)));
     }
 }
 
 /// Detects the configured agent ID from project config, if available.
-fn detect_agent_id() -> String {
+fn detect_agent_id(locale: &str) -> String {
     if let Ok(config) = super::runtime_state::load_project_config() {
-        config.run.agent_id.unwrap_or("no agent").to_owned()
+        config
+            .run
+            .agent_id
+            .unwrap_or(i18n::tui_no_agent_label(locale))
+            .to_owned()
     } else {
-        "no project".to_owned()
+        i18n::tui_no_project_label(locale).to_owned()
     }
 }

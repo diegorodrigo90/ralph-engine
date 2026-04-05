@@ -66,9 +66,7 @@ fn run_auto_init(target_dir: &str, locale: &str) -> Result<String, CliError> {
     let mut output = Vec::new();
 
     if re_dir.exists() {
-        return Ok(
-            "Project already initialized. Delete .ralph-engine/ to reinitialize.".to_owned(),
-        );
+        return Ok(i18n::tui_already_initialized(locale).to_owned());
     }
 
     // Use first available template (usually "basic")
@@ -137,7 +135,7 @@ fn run_auto_init(target_dir: &str, locale: &str) -> Result<String, CliError> {
         }
     }
 
-    output.push("  Project initialized. Type /doctor to check health.".to_owned());
+    output.push(format!("  {}", i18n::tui_project_initialized(locale)));
     Ok(output.join("\n"))
 }
 
