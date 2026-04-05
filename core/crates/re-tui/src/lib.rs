@@ -15,6 +15,7 @@
 
 pub mod events;
 pub mod feed;
+pub mod indicators;
 pub mod keybindings;
 pub mod layout;
 mod logging;
@@ -23,7 +24,8 @@ pub mod process;
 mod terminal;
 
 pub use events::{AgentEvent, parse_stream_line, parse_stream_lines};
-pub use feed::{BlockKind, Feed, FeedBlock, process_agent_event};
+pub use feed::{BlockKind, Feed, FeedBlock, ToolKindMapping, process_agent_event};
+pub use indicators::{IndicatorPanel, IndicatorState, StatusIndicator};
 pub use keybindings::{KeybindingRegistry, format_key, is_core_key};
 pub use layout::{LayoutTier, LayoutZones, compute_zones, is_terminal_too_small};
 pub use logging::{LogConfig, init_logging};
