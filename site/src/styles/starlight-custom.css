@@ -1,5 +1,5 @@
 /* ── Import shared design tokens (used by site pages, not Starlight) ── */
-@import '../../../shared/design-tokens.css';
+@import './design-tokens.css';
 
 /* ── Starlight theme — Ralph Engine brand ── */
 /* Starlight uses absolute color values, not semantic tokens.
