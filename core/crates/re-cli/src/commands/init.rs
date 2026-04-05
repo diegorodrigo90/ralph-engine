@@ -20,10 +20,22 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 }
 
 /// Reads a line from stdin, trimmed.
+///
+/// # Panics
+///
+/// Returns empty string if stdin is not a terminal (CI, pipes).
+/// Callers should check `is_interactive()` before starting flows
+/// that depend on user input.
 fn read_line() -> String {
     let mut input = String::new();
     let _ = std::io::stdin().read_line(&mut input);
     input.trim().to_owned()
+}
+
+/// Returns true if stdin is a terminal (safe to read interactively).
+fn is_interactive() -> bool {
+    use std::io::IsTerminal as _;
+    std::io::stdin().is_terminal()
 }
 
 /// Prompts user and returns trimmed input.
@@ -45,6 +57,14 @@ fn confirm(question: &str, default: bool) -> bool {
 
 /// Runs the interactive init flow with auto-discovered templates and plugins.
 fn run_interactive_init(target_dir: &str, locale: &str) -> Result<String, CliError> {
+    // Rule 62: stdin must be a terminal for interactive init
+    if !is_interactive() {
+        return Err(CliError::new(
+            "Interactive init requires a terminal. Use --preset <name> for non-interactive setup."
+                .to_owned(),
+        ));
+    }
+
     let target = Path::new(target_dir);
     let re_dir = target.join(".ralph-engine");
     let mut output = Vec::new();
