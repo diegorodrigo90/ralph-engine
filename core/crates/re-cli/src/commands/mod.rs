@@ -17,6 +17,7 @@ mod checks;
 mod config;
 mod doctor;
 mod embedded_assets;
+pub(crate) mod format;
 mod grouped_surfaces;
 mod hooks;
 mod init;

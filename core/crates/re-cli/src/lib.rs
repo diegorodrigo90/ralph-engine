@@ -792,7 +792,7 @@ mod tests {
         let output = execute(command).expect("plugins list should succeed");
 
         // Assert
-        assert!(output.contains(&format!("Official plugins ({})", plugins.len())));
+        assert!(output.contains(&format!("Plugins ({})", plugins.len())));
         for plugin in plugins {
             assert!(output.contains(plugin.id));
         }
@@ -809,22 +809,11 @@ mod tests {
         let output = execute(command).expect("plugins show should succeed");
 
         // Assert
-        assert!(output.contains(&format!("Plugin: {}", plugin.id)));
-        assert!(output.contains(&format!("Name: {}", plugin.display_name_for_locale("en"))));
-        let lifecycle = plugin
-            .lifecycle
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(" -> ");
-        assert!(output.contains(&format!("Lifecycle: {lifecycle}")));
-        assert!(output.contains(&format!("Load boundary: {}", plugin.load_boundary.as_str())));
-        assert!(output.contains("Runtime hooks:"));
-        assert!(output.contains(&format!(
-            "Resolved activation: {}",
-            PluginActivation::Disabled.as_str()
-        )));
-        assert!(output.contains("Resolved from: built_in_defaults"));
+        assert!(output.contains(plugin.id));
+        assert!(output.contains(plugin.display_name_for_locale("en")));
+        assert!(output.contains(plugin.kind.as_str()));
+        assert!(output.contains(PluginActivation::Disabled.as_str()));
+        assert!(output.contains("built_in_defaults"));
     }
 
     #[test]
@@ -838,9 +827,9 @@ mod tests {
         let output = execute(command).expect("plugins show should succeed");
 
         // Assert
-        assert!(output.contains(&format!("Plugin: {}", plugin.id)));
-        assert!(output.contains("Resolved activation: enabled"));
-        assert!(output.contains("Resolved from: built_in_defaults"));
+        assert!(output.contains(plugin.id));
+        assert!(output.contains("enabled"));
+        assert!(output.contains("built_in_defaults"));
     }
 
     #[test]
@@ -1710,7 +1699,7 @@ mod tests {
 
         // Assert
         let count = crate::catalog::official_plugins().len();
-        assert!(output.contains(&format!("Official plugins ({count})")));
+        assert!(output.contains(&format!("Plugins ({count})")));
     }
 
     #[test]
