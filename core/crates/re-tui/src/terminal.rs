@@ -1088,6 +1088,17 @@ impl TuiShell {
         let mut focused_line: Option<u16> = None;
 
         for (block_idx, block) in self.feed.blocks().iter().enumerate() {
+            // Block padding + separator between blocks
+            if block_idx > 0 {
+                let sep_color = match block.kind {
+                    BlockKind::FileEdit => theme.diff_added(),
+                    BlockKind::GateFail => theme.error(),
+                    BlockKind::Command => theme.info(),
+                    _ => theme.border(),
+                };
+                all_lines.push(Line::styled("─".repeat(40), Style::default().fg(sep_color)));
+            }
+
             let is_focused = focused == Some(block_idx);
             if is_focused {
                 focused_line = Some(all_lines.len() as u16);
@@ -1173,9 +1184,25 @@ impl TuiShell {
 
             // Content lines (only if expanded)
             if !block.collapsed {
-                for content_line in &block.content {
+                let max_lines = crate::theme::MAX_COLLAPSED_LINES;
+                let total_content = block.content.len();
+                let truncated = total_content > max_lines && !is_focused;
+
+                let show_count = if truncated { max_lines } else { total_content };
+                for content_line in block.content.iter().take(show_count) {
                     let styled = style_content_line(content_line, block.kind, theme);
                     all_lines.push(styled);
+                }
+
+                // Truncation hint
+                if truncated {
+                    let remaining = total_content - max_lines;
+                    all_lines.push(Line::styled(
+                        format!("  … +{remaining} lines (focus + Enter to expand)"),
+                        Style::default()
+                            .fg(theme.accent_dim())
+                            .add_modifier(Modifier::ITALIC),
+                    ));
                 }
             }
         }
