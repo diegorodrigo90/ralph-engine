@@ -34,7 +34,7 @@ pub use logging::{LogConfig, init_logging};
 pub use process::{SessionState, StateEvent, StateListener};
 pub use terminal::{
     CommandEntry, CommandSource, PluginKeyAction, RegisteredKeybinding, SidebarPanel, TuiConfig,
-    TuiShell, TuiState,
+    TuiLabels, TuiShell, TuiState,
 };
 pub use theme::{
     BLOCK_PADDING, INDENT_WIDTH, MAX_COLLAPSED_LINES, Theme, available_theme_ids, builtin_themes,
