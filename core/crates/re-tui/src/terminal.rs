@@ -116,6 +116,37 @@ pub struct TuiLabels {
     pub quit_question: String,
     /// Bottom bar: modal open hint.
     pub modal_open_hint: String,
+    // ── State labels ────────────────────────────────────────────
+    /// TUI state: running.
+    pub state_running: String,
+    /// TUI state: paused.
+    pub state_paused: String,
+    /// TUI state: complete.
+    pub state_complete: String,
+    /// TUI state: error.
+    pub state_error: String,
+    // ── Help bar ────────────────────────────────────────────────
+    /// Help bar: pause label.
+    pub pause_label: String,
+    /// Help bar: help label.
+    pub help_label: String,
+    /// Help bar: quit label.
+    pub quit_label: String,
+    // ── Control panel ───────────────────────────────────────────
+    /// Control panel: state label prefix.
+    pub control_state: String,
+    /// Control panel: work label prefix.
+    pub control_work: String,
+    // ── Metrics bar ─────────────────────────────────────────────
+    /// Metrics: tools label.
+    pub tools_label: String,
+    /// Metrics: lines label.
+    pub lines_label: String,
+    /// Metrics: progress label.
+    pub progress_label: String,
+    // ── Logo ────────────────────────────────────────────────────
+    /// Logo tagline.
+    pub logo_tagline: String,
 }
 
 impl Default for TuiLabels {
@@ -136,6 +167,19 @@ impl Default for TuiLabels {
             quit_title: "Quit".to_owned(),
             quit_question: "Quit?".to_owned(),
             modal_open_hint: "Modal open — press a key".to_owned(),
+            state_running: "RUNNING".to_owned(),
+            state_paused: "PAUSED".to_owned(),
+            state_complete: "COMPLETE".to_owned(),
+            state_error: "ERROR".to_owned(),
+            pause_label: "pause".to_owned(),
+            help_label: "help".to_owned(),
+            quit_label: "quit".to_owned(),
+            control_state: "State".to_owned(),
+            control_work: "Work".to_owned(),
+            tools_label: "Tools".to_owned(),
+            lines_label: "Lines".to_owned(),
+            progress_label: "Progress".to_owned(),
+            logo_tagline: "Autonomous AI Dev Loop".to_owned(),
         }
     }
 }
@@ -412,6 +456,16 @@ impl TuiShell {
     /// Sets the localized labels for all TUI strings.
     pub fn set_labels(&mut self, labels: TuiLabels) {
         self.labels = labels;
+    }
+
+    /// Returns the localized label for the current TUI state.
+    fn localized_state_label(&self) -> &str {
+        match self.state {
+            TuiState::Running => &self.labels.state_running,
+            TuiState::Paused => &self.labels.state_paused,
+            TuiState::Complete => &self.labels.state_complete,
+            TuiState::Error => &self.labels.state_error,
+        }
     }
 
     /// Sets the progress percentage (0-100).
@@ -1101,7 +1155,7 @@ impl TuiShell {
 
     /// Renders the header bar with version, agent, tokens, state badge, and progress.
     fn render_header(&self, frame: &mut Frame<'_>, area: Rect) {
-        let state_label = self.state.label();
+        let state_label = self.localized_state_label();
         let state_color = self.state.color(self.theme());
         let version = env!("CARGO_PKG_VERSION");
 
@@ -1182,7 +1236,8 @@ impl TuiShell {
 
         let theme = self.theme();
         let logo_color = Some(self.state.color(theme));
-        let logo_lines = crate::logo::build_logo_lines(area.width, theme, logo_color);
+        let logo_lines =
+            crate::logo::build_logo_lines(area.width, theme, logo_color, &self.labels.logo_tagline);
         let logo_count = logo_lines.len();
 
         let activity: Vec<Line<'_>> = self
@@ -1445,13 +1500,20 @@ impl TuiShell {
         } else {
             let metrics = Line::from(vec![
                 Span::styled(
-                    format!(" Tools: {} ", self.tool_count),
+                    format!(" {}: {} ", self.labels.tools_label, self.tool_count),
                     Style::default().fg(theme.info()),
                 ),
                 Span::raw("│ "),
-                Span::raw(format!("Lines: {} ", self.activity_lines.len())),
+                Span::raw(format!(
+                    "{}: {} ",
+                    self.labels.lines_label,
+                    self.activity_lines.len()
+                )),
                 Span::raw("│ "),
-                Span::raw(format!("Progress: {}% ", self.progress)),
+                Span::raw(format!(
+                    "{}: {}% ",
+                    self.labels.progress_label, self.progress
+                )),
             ]);
             frame.render_widget(Paragraph::new(metrics), area);
         }
@@ -1651,11 +1713,11 @@ impl TuiShell {
 
         // Core keys
         spans.push(Span::styled(" [p]", dim));
-        spans.push(Span::styled(" pause ", dim));
+        spans.push(Span::styled(format!(" {} ", self.labels.pause_label), dim));
         spans.push(Span::styled(" [?]", dim));
-        spans.push(Span::styled(" help ", dim));
+        spans.push(Span::styled(format!(" {} ", self.labels.help_label), dim));
         spans.push(Span::styled(" [q]", dim));
-        spans.push(Span::styled(" quit ", dim));
+        spans.push(Span::styled(format!(" {} ", self.labels.quit_label), dim));
 
         let tier_label = match zones.tier {
             layout::LayoutTier::Compact => "compact",
@@ -1742,12 +1804,16 @@ impl TuiShell {
 
         let lines = vec![
             Line::styled(
-                format!(" State: {}", self.state.label()),
+                format!(
+                    " {}: {}",
+                    self.labels.control_state,
+                    self.localized_state_label()
+                ),
                 Style::default().fg(state_color),
             ),
             Line::raw(""),
             Line::styled(
-                format!(" Work: {}", self.config.title),
+                format!(" {}: {}", self.labels.control_work, self.config.title),
                 Style::default().fg(theme.text_bright()),
             ),
             Line::raw(""),
@@ -1817,7 +1883,8 @@ impl TuiShell {
             TuiState::Error => theme.error(),
             _ => theme.accent(),
         });
-        let logo_lines = crate::logo::build_logo_lines(area.width, theme, logo_color);
+        let logo_lines =
+            crate::logo::build_logo_lines(area.width, theme, logo_color, &self.labels.logo_tagline);
 
         let mut lines: Vec<Line<'_>> = Vec::new();
 
