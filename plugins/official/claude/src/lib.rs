@@ -508,6 +508,26 @@ impl PluginRuntime for ClaudeRuntime {
         // None until the stream parser wires usage events.
         None
     }
+
+    fn thinking_message(&self, tick: usize) -> Option<String> {
+        const MESSAGES: &[&str] = &[
+            "Thinking...",
+            "Reasoning deeply...",
+            "Analyzing the codebase...",
+            "Considering approaches...",
+            "Reading between the lines...",
+            "Connecting the dots...",
+            "Weighing trade-offs...",
+            "Crafting a solution...",
+            "Almost there...",
+            "Exploring possibilities...",
+            "Mapping dependencies...",
+            "Planning the implementation...",
+        ];
+        // Rotate every ~4 seconds (80 ticks at 50ms)
+        let idx = (tick / 80) % MESSAGES.len();
+        Some(MESSAGES[idx].to_owned())
+    }
 }
 
 /// Exports the most recent Claude Code session as `PortableContext`.

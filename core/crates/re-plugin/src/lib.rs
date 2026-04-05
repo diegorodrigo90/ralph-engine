@@ -1712,6 +1712,18 @@ pub trait PluginRuntime: Send + Sync {
     fn report_usage(&self) -> Option<UsageReport> {
         None
     }
+
+    /// Returns a rotating "thinking" message for the TUI status bar.
+    ///
+    /// Agent plugins provide a pool of messages shown while the agent
+    /// is processing (e.g., "Thinking deeply...", "Analyzing code...").
+    /// Core calls this with a tick counter and the plugin picks a message.
+    /// Each agent has its own style and voice.
+    ///
+    /// Default: `None` (core shows a generic spinner).
+    fn thinking_message(&self, _tick: usize) -> Option<String> {
+        None
+    }
 }
 
 /// Usage metrics reported by an agent plugin.

@@ -735,6 +735,11 @@ pub fn agent_context_window_size(agent_plugin_id: &str) -> usize {
         .unwrap_or(0)
 }
 
+/// Returns a thinking message from the given agent plugin.
+pub fn agent_thinking_message(agent_plugin_id: &str, tick: usize) -> Option<String> {
+    re_official::official_plugin_runtime(agent_plugin_id).and_then(|rt| rt.thinking_message(tick))
+}
+
 /// Reports usage from the given agent plugin.
 pub fn agent_usage_report(agent_plugin_id: &str) -> Option<re_plugin::UsageReport> {
     re_official::official_plugin_runtime(agent_plugin_id).and_then(|rt| rt.report_usage())

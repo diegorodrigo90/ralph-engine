@@ -428,6 +428,8 @@ pub struct TuiShell {
     /// Whether the agent is in "extra usage" (over budget/plan).
     /// Set by agent plugin. Core only renders the warning.
     extra_usage: bool,
+    /// Current thinking message from agent plugin (rotates over time).
+    thinking_message: Option<String>,
     /// Frame counter for spinner animation.
     tick: usize,
     should_quit: bool,
@@ -487,6 +489,7 @@ impl TuiShell {
             token_count: 0,
             cost_label: None,
             extra_usage: false,
+            thinking_message: None,
             tick: 0,
             should_quit: false,
             quit_pending: false,
@@ -619,6 +622,14 @@ impl TuiShell {
         self.extra_usage = extra;
     }
 
+    /// Sets the current thinking message from the agent plugin.
+    ///
+    /// Shown in the status bar while the agent is processing. The plugin
+    /// rotates messages based on tick count. Set to `None` when not thinking.
+    pub fn set_thinking_message(&mut self, msg: Option<String>) {
+        self.thinking_message = msg;
+    }
+
     /// Sets the available agent IDs for the switcher popup.
     pub fn set_available_agents(&mut self, agents: Vec<String>) {
         self.available_agents = agents;
@@ -714,6 +725,20 @@ impl TuiShell {
 
         let total_interval = hold + appear_delay;
 
+        // Rotate thinking message during hold (demo simulation)
+        if hold > 0 && self.drip_counter < hold && self.drip_counter.is_multiple_of(40) {
+            const DEMO_MESSAGES: &[&str] = &[
+                "Thinking...",
+                "Reasoning deeply...",
+                "Analyzing the codebase...",
+                "Considering approaches...",
+                "Crafting a solution...",
+                "Planning the implementation...",
+            ];
+            let msg_idx = (self.tick / 80) % DEMO_MESSAGES.len();
+            self.thinking_message = Some(DEMO_MESSAGES[msg_idx].to_owned());
+        }
+
         if self.drip_counter >= total_interval {
             self.drip_counter = 0;
 
@@ -759,9 +784,8 @@ impl TuiShell {
             };
             self.token_count += tokens_delta;
 
-            // Note: in real use, cost_label and extra_usage are set by the
-            // agent plugin via set_cost_label() / set_extra_usage().
-            // Core never calculates pricing (Model B).
+            // Clear thinking message when new block appears
+            self.thinking_message = None;
 
             // Update progress
             let completed = self.pending_total - self.pending_blocks.len();
@@ -2009,20 +2033,34 @@ impl TuiShell {
             return;
         }
 
-        // Show active block status (thinking/running indicator)
-        if let Some(active_block) = self.feed.blocks().iter().rev().find(|b| b.active) {
+        // Show thinking message from agent plugin (or fallback to block title)
+        if self.feed.blocks().iter().any(|b| b.active) {
             const SPINNER: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
             let idx = self.tick / 2 % SPINNER.len();
             let spinner = SPINNER[idx];
+
+            // Prefer plugin thinking message, fallback to active block title
+            let message = self
+                .thinking_message
+                .as_deref()
+                .or_else(|| {
+                    self.feed
+                        .blocks()
+                        .iter()
+                        .rev()
+                        .find(|b| b.active)
+                        .map(|b| b.title.as_str())
+                })
+                .unwrap_or("Processing...");
+
             let status_spans = vec![
                 Span::styled(format!(" {spinner} "), Style::default().fg(theme.warning())),
                 Span::styled(
-                    format!("{} ", active_block.title),
+                    format!("{message} "),
                     Style::default()
                         .fg(theme.text_bright())
                         .add_modifier(Modifier::ITALIC),
                 ),
-                Span::styled("│", Style::default().fg(theme.border())),
             ];
             frame.render_widget(Paragraph::new(Line::from(status_spans)), zones.help);
             return;
