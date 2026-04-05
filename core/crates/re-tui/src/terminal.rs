@@ -666,21 +666,23 @@ impl TuiShell {
         // before we finalize it and drip the next one.
         let last_kind = self.feed.blocks().last().map(|b| (b.kind, b.active));
 
-        // Hold time: how long the last block shows its spinner before next drips
+        // Hold time: spinner visible while "processing". Real agents: 5-15s for
+        // thinking, 3-10s for commands. Demo compresses but stays believable.
         let hold = match last_kind {
-            Some((crate::feed::BlockKind::Thinking, true)) => 30, // ~1.5s thinking
-            Some((crate::feed::BlockKind::Command, true)) => 40,  // ~2s running command
-            Some((crate::feed::BlockKind::System, true)) => 16,   // ~800ms system
-            _ => 0,                                               // No hold for finalized blocks
+            Some((crate::feed::BlockKind::Thinking, true)) => 80, // ~4s thinking
+            Some((crate::feed::BlockKind::Command, true)) => 100, // ~5s running
+            Some((crate::feed::BlockKind::System, true)) => 40,   // ~2s init
+            _ => 0,
         };
 
-        // Phase 2: interval before the next block appears
+        // Delay before next block appears (after hold finishes)
         let next_kind = self.pending_blocks[0].kind;
         let appear_delay = match next_kind {
-            crate::feed::BlockKind::FileEdit => 6, // ~300ms — fast reveal
-            crate::feed::BlockKind::FileRead => 4, // ~200ms — instant
-            crate::feed::BlockKind::GatePass | crate::feed::BlockKind::GateFail => 3,
-            _ => 8, // ~400ms default
+            crate::feed::BlockKind::FileEdit => 16,  // ~800ms
+            crate::feed::BlockKind::FileRead => 10,  // ~500ms
+            crate::feed::BlockKind::AgentText => 20, // ~1s composing
+            crate::feed::BlockKind::GatePass | crate::feed::BlockKind::GateFail => 6,
+            _ => 14,
         };
 
         let total_interval = hold + appear_delay;
@@ -705,7 +707,27 @@ impl TuiShell {
                 block.active = false;
             }
 
+            // Track tokens + tools for realism
+            let is_tool = matches!(
+                block.kind,
+                crate::feed::BlockKind::FileRead
+                    | crate::feed::BlockKind::FileEdit
+                    | crate::feed::BlockKind::Command
+            );
             self.feed.push_block(block);
+
+            if is_tool {
+                self.tool_count += 1;
+            }
+            // Simulate token consumption (~500-2000 per action)
+            self.token_count += match next_kind {
+                crate::feed::BlockKind::Thinking => 1200,
+                crate::feed::BlockKind::FileEdit => 800,
+                crate::feed::BlockKind::FileRead => 300,
+                crate::feed::BlockKind::Command => 500,
+                crate::feed::BlockKind::AgentText => 600,
+                _ => 100,
+            };
 
             // Update progress
             let completed = self.pending_total - self.pending_blocks.len();
