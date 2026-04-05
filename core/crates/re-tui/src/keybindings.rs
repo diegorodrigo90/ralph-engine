@@ -160,9 +160,17 @@ impl KeybindingRegistry {
 pub fn format_key(key: KeyCode) -> String {
     match key {
         KeyCode::Char(c) => c.to_string(),
-        KeyCode::Esc => "Esc".to_owned(),
-        KeyCode::Enter => "Enter".to_owned(),
-        KeyCode::Tab => "Tab".to_owned(),
+        KeyCode::Esc => "⎋".to_owned(),
+        KeyCode::Enter => "⏎".to_owned(),
+        KeyCode::Tab => "⇥".to_owned(),
+        KeyCode::Up => "↑".to_owned(),
+        KeyCode::Down => "↓".to_owned(),
+        KeyCode::Left => "←".to_owned(),
+        KeyCode::Right => "→".to_owned(),
+        KeyCode::PageUp => "PgUp".to_owned(),
+        KeyCode::PageDown => "PgDn".to_owned(),
+        KeyCode::Home => "Home".to_owned(),
+        KeyCode::End => "End".to_owned(),
         KeyCode::F(n) => format!("F{n}"),
         _ => format!("{key:?}"),
     }
@@ -260,8 +268,10 @@ mod tests {
     #[test]
     fn format_key_renders_chars_and_special() {
         assert_eq!(format_key(KeyCode::Char('q')), "q");
-        assert_eq!(format_key(KeyCode::Esc), "Esc");
-        assert_eq!(format_key(KeyCode::Enter), "Enter");
+        assert_eq!(format_key(KeyCode::Esc), "⎋");
+        assert_eq!(format_key(KeyCode::Enter), "⏎");
+        assert_eq!(format_key(KeyCode::Up), "↑");
+        assert_eq!(format_key(KeyCode::Down), "↓");
         assert_eq!(format_key(KeyCode::F(1)), "F1");
     }
 }
