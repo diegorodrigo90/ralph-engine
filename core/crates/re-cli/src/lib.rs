@@ -85,8 +85,9 @@ mod tests {
         let output = execute(command).expect("default command should succeed");
 
         // Assert
-        assert!(output.contains("Rust foundation bootstrapped."));
+        // No command = show help
         assert!(output.contains("Ralph Engine"));
+        assert!(output.contains("Commands:") || output.contains("Comandos:"));
     }
 
     #[test]
@@ -226,7 +227,8 @@ mod tests {
 
         let output = execute(command).expect("global locale flag should localize command output");
 
-        assert!(output.contains("Fundação Rust inicializada."));
+        // pt-br locale shows localized help
+        assert!(output.contains("Comandos:"));
     }
 
     #[test]
