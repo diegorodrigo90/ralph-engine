@@ -19,7 +19,8 @@ members = [
   "plugins/official/hello-world",
   "plugins/official/findings",
   "plugins/official/guided",
-  "plugins/official/context"
+  "plugins/official/context",
+  "plugins/official/router"
 ]
 resolver = "2"
 

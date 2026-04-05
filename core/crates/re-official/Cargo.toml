@@ -26,6 +26,7 @@ re-plugin-hello-world = { path = "../../../plugins/official/hello-world", versio
 re-plugin-findings = { path = "../../../plugins/official/findings", version = "0.2.0-alpha.1" }
 re-plugin-guided = { path = "../../../plugins/official/guided", version = "0.2.0-alpha.1" }
 re-plugin-context = { path = "../../../plugins/official/context", version = "0.2.0-alpha.1" }
+re-plugin-router = { path = "../../../plugins/official/router", version = "0.2.0-alpha.1" }
 
 [build-dependencies]
 re-build-utils = { path = "../re-build-utils", version = "0.2.0-alpha.1" }

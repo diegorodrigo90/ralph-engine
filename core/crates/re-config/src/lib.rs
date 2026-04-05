@@ -272,7 +272,7 @@ pub struct OwnedMcpConfig {
 }
 
 /// Run command configuration.
-#[derive(Clone, Debug, Eq, PartialEq, Default)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RunConfig {
     /// Workflow plugin that resolves work items and builds prompts.
     pub workflow_plugin: Option<&'static str>,
@@ -280,6 +280,19 @@ pub struct RunConfig {
     pub agent_plugin: Option<&'static str>,
     /// Stable agent identifier to launch.
     pub agent_id: Option<&'static str>,
+    /// Run mode: `"loop"` (default), `"chat"`, or `"task-routed"`.
+    pub mode: &'static str,
+}
+
+impl Default for RunConfig {
+    fn default() -> Self {
+        Self {
+            workflow_plugin: None,
+            agent_plugin: None,
+            agent_id: None,
+            mode: "loop",
+        }
+    }
 }
 
 /// Context management configuration.
@@ -959,6 +972,9 @@ fn parse_run_section(lines: &[&str]) -> RunConfig {
         workflow_plugin: extract_scalar(run_lines, "workflow_plugin").map(leak_str),
         agent_plugin: extract_scalar(run_lines, "agent_plugin").map(leak_str),
         agent_id: extract_scalar(run_lines, "agent_id").map(leak_str),
+        mode: extract_scalar(run_lines, "mode")
+            .map(leak_str)
+            .unwrap_or("loop"),
     }
 }
 
