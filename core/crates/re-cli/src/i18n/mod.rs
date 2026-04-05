@@ -7,6 +7,7 @@ use re_config::SupportedLocale;
 
 pub(super) struct CliLocaleCatalog {
     // ── Existing labels ──────────────────────────────────────────
+    #[allow(dead_code)]
     pub root_bootstrapped: &'static str,
     pub providers_label: &'static str,
     pub name_label: &'static str,

@@ -177,11 +177,7 @@ pub fn execute(args: &[String]) -> Result<String, CliError> {
     let locale = invocation.locale;
 
     match args.get(invocation.command_index).map(String::as_str) {
-        None => Ok(format!(
-            "{}\n\n{}",
-            re_core::banner(),
-            i18n::root_bootstrapped(locale)
-        )),
+        None => dispatch_default(locale),
         Some("--version" | "-V") => Ok(env!("CARGO_PKG_VERSION").to_owned()),
         Some("--help" | "-h") => Ok(render_help(locale)),
         Some(command_name) => dispatch_command(
@@ -217,6 +213,16 @@ fn resolve_command_description(key: &'static str, locale: &str) -> &'static str 
         "cmd_locales" => i18n::cmd_locales(locale),
         _ => key,
     }
+}
+
+/// Default when no command is given — show help.
+///
+/// Future: smart dispatch based on .ralph-engine/ presence
+/// (chat TUI if configured, suggest init if not).
+fn dispatch_default(locale: &str) -> Result<String, CliError> {
+    // Show help — future: smart dispatch (chat TUI if configured, suggest init if not)
+    let _ = i18n::root_bootstrapped(locale); // Keep i18n key alive for future use
+    Ok(render_help(locale))
 }
 
 fn render_help(locale: &str) -> String {

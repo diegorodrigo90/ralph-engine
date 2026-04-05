@@ -40,22 +40,21 @@ fn binary_without_args_succeeds() {
     // Assert
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    assert!(stdout.contains("Rust foundation bootstrapped."));
+    // No args = show help
+    assert!(stdout.contains("Ralph Engine"));
+    assert!(stdout.contains("Commands:"));
 }
 
 #[test]
 fn binary_without_args_succeeds_in_pt_br() {
-    // Arrange
     let mut command = english_command();
     command.env("RALPH_ENGINE_LOCALE", "pt-br");
 
-    // Act
     let output = command.output().expect("binary should run");
 
-    // Assert
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    assert!(stdout.contains("Fundação Rust inicializada."));
+    assert!(stdout.contains("Comandos:"));
 }
 
 #[test]
@@ -67,7 +66,7 @@ fn binary_without_args_accepts_global_locale_flag() {
 
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).expect("stdout should be utf-8");
-    assert!(stdout.contains("Fundação Rust inicializada."));
+    assert!(stdout.contains("Comandos:"));
 }
 
 #[test]
