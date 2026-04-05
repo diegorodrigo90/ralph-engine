@@ -449,8 +449,8 @@ pub struct TuiShell {
     toasts: Vec<Toast>,
     /// Queued blocks to drip-feed into the activity feed (demo/replay).
     pending_blocks: Vec<crate::feed::FeedBlock>,
-    /// Ticks between draining pending blocks (cadence control).
-    drip_interval: usize,
+    /// Total blocks enqueued (for progress calculation).
+    pending_total: usize,
     /// Tick counter for drip timing.
     drip_counter: usize,
 }
@@ -493,7 +493,7 @@ impl TuiShell {
             autocomplete: AutocompleteState::new(Vec::new(), "/".to_owned()),
             toasts: Vec::new(),
             pending_blocks: Vec::new(),
-            drip_interval: 15, // ~750ms at 50ms poll (15 ticks)
+            pending_total: 0,
             drip_counter: 0,
         }
     }
@@ -643,6 +643,7 @@ impl TuiShell {
     /// Blocks appear one by one with a cadence, giving the impression
     /// of a real implementation happening. Auto-scrolls to follow.
     pub fn enqueue_blocks(&mut self, blocks: Vec<crate::feed::FeedBlock>) {
+        self.pending_total = blocks.len();
         self.pending_blocks = blocks;
         self.drip_counter = 0;
         self.follow_mode = true;
@@ -650,16 +651,54 @@ impl TuiShell {
 
     /// Drains one pending block into the feed if the cadence allows.
     ///
-    /// Called on each render tick. Returns true if a block was added.
+    /// Cadence varies by block kind: thinking is slower (feels deliberate),
+    /// reads are fast (file I/O), edits medium, gates instant.
     fn drain_pending_block(&mut self) -> bool {
         if self.pending_blocks.is_empty() {
             return false;
         }
         self.drip_counter += 1;
-        if self.drip_counter >= self.drip_interval {
+
+        // Variable cadence based on next block type
+        let next_kind = self.pending_blocks[0].kind;
+        let interval = match next_kind {
+            crate::feed::BlockKind::Thinking => 20, // ~1s — deliberate
+            crate::feed::BlockKind::FileEdit => 14, // ~700ms — shows diff
+            crate::feed::BlockKind::FileRead => 8,  // ~400ms — quick
+            crate::feed::BlockKind::Command => 16,  // ~800ms — running
+            crate::feed::BlockKind::GatePass | crate::feed::BlockKind::GateFail => 6, // ~300ms — instant feedback
+            crate::feed::BlockKind::System => 10,                                     // ~500ms
+            crate::feed::BlockKind::AgentText => 12,                                  // ~600ms
+        };
+
+        if self.drip_counter >= interval {
             self.drip_counter = 0;
-            let block = self.pending_blocks.remove(0);
+            let mut block = self.pending_blocks.remove(0);
+
+            // Finalize previous active block in feed
+            if let Some(last) = self.feed.blocks_mut().last_mut()
+                && last.active
+            {
+                last.finalize(last.success.unwrap_or(true));
+            }
+
+            // If more blocks pending, keep this one "active" briefly
+            if !self.pending_blocks.is_empty() && block.active {
+                // Already active — keep as is
+            } else if self.pending_blocks.is_empty() {
+                // Last block — finalize if it was marked completed
+                if block.success.is_some() {
+                    block.active = false;
+                }
+            }
+
             self.feed.push_block(block);
+
+            // Update progress based on completed/total
+            let completed = self.pending_total - self.pending_blocks.len();
+            let pct = (completed * 100 / self.pending_total.max(1)) as u16;
+            self.set_progress(pct);
+
             true
         } else {
             false

@@ -239,6 +239,11 @@ impl Feed {
         &self.blocks
     }
 
+    /// Returns a mutable reference to the blocks (for finalization during drip).
+    pub fn blocks_mut(&mut self) -> &mut Vec<FeedBlock> {
+        &mut self.blocks
+    }
+
     /// Whether new content was added since last render check.
     ///
     /// The renderer uses this to decide if follow mode should scroll
