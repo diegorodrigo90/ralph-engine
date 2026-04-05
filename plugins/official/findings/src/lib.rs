@@ -202,8 +202,8 @@ impl PluginRuntime for FindingsRuntime {
             id: "findings".to_owned(),
             title: "Findings".to_owned(),
             lines: vec![
-                format!("{heading_count} sections"),
-                format!("{line_count} lines"),
+                format!("Sections: {heading_count}"),
+                format!("Lines: {line_count}"),
             ],
             zone_hint: "sidebar".to_owned(),
         }]

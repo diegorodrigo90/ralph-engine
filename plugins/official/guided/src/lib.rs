@@ -119,8 +119,9 @@ impl PluginRuntime for GuidedRuntime {
             id: "guided-controls".to_owned(),
             title: "Guided Mode".to_owned(),
             lines: vec![
-                "Chat input enabled".to_owned(),
-                "Type to send feedback".to_owned(),
+                "Status: Active".to_owned(),
+                "Input: enabled".to_owned(),
+                "Feedback: type to send".to_owned(),
             ],
             zone_hint: "sidebar".to_owned(),
         }]

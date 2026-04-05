@@ -2185,10 +2185,7 @@ impl TuiShell {
 
             let mut lines: Vec<Line<'_>> = vec![separator];
             for s in &panel.lines {
-                lines.push(Line::styled(
-                    format!("  {s}"),
-                    Style::default().fg(theme.text_dim()),
-                ));
+                lines.push(style_sidebar_line(s, color, theme));
             }
             frame.render_widget(Paragraph::new(lines), panel_areas[i]);
         }
@@ -2611,6 +2608,80 @@ impl TuiShell {
 ///
 /// Returns spans (not a Line) so the caller can prepend border spans
 /// without losing the style information.
+/// Styles a sidebar panel line with visual emphasis based on content patterns.
+///
+/// Detects common patterns in plugin output and applies colors:
+/// - `Key: Value` → dim label, bright value
+/// - Lines with ✓/✗/● → green/red/accent
+/// - Numeric values → highlighted with panel accent color
+/// - Status words → semantic colors (Available/Ready=green, Error/Failed=red)
+fn style_sidebar_line<'a>(
+    line: &'a str,
+    panel_color: Color,
+    theme: &dyn crate::theme::Theme,
+) -> Line<'a> {
+    // Status indicators
+    if line.starts_with('✓') || line.contains("Available") || line.contains("Ready") {
+        return Line::from(vec![Span::styled(
+            format!("  {line}"),
+            Style::default().fg(theme.success()),
+        )]);
+    }
+    if line.starts_with('✗')
+        || line.contains("Error")
+        || line.contains("Failed")
+        || line.contains("Not found")
+    {
+        return Line::from(vec![Span::styled(
+            format!("  {line}"),
+            Style::default().fg(theme.error()),
+        )]);
+    }
+
+    // Key: Value pattern → dim key, bright value
+    if let Some(colon_pos) = line.find(": ") {
+        let (key, val) = line.split_at(colon_pos + 2);
+        // Check if value is numeric → accent color
+        let val_trimmed = val.trim();
+        let val_style = if val_trimmed.parse::<f64>().is_ok()
+            || val_trimmed.starts_with('$')
+            || val_trimmed.ends_with('%')
+        {
+            Style::default()
+                .fg(panel_color)
+                .add_modifier(Modifier::BOLD)
+        } else if val_trimmed == "true" || val_trimmed == "enabled" || val_trimmed == "yes" {
+            Style::default().fg(theme.success())
+        } else if val_trimmed == "false" || val_trimmed == "disabled" || val_trimmed == "no" {
+            Style::default().fg(theme.text_dim())
+        } else {
+            Style::default().fg(theme.text_bright())
+        };
+        return Line::from(vec![
+            Span::styled(format!("  {key}"), Style::default().fg(theme.text_dim())),
+            Span::styled(val, val_style),
+        ]);
+    }
+
+    // Pure number lines (like "115", "734") → bold accent
+    let trimmed = line.trim();
+    if !trimmed.is_empty() && trimmed.chars().all(|c| c.is_ascii_digit()) {
+        return Line::from(vec![Span::styled(
+            format!("  {line}"),
+            Style::default()
+                .fg(panel_color)
+                .add_modifier(Modifier::BOLD),
+        )]);
+    }
+
+    // Default: dim text
+    Line::from(vec![Span::styled(
+        format!("  {line}"),
+        Style::default().fg(theme.text_dim()),
+    )])
+}
+
+/// Styles a content line as a vec of spans (preserving per-character coloring).
 fn style_content_line<'a>(
     line: &'a str,
     kind: crate::feed::BlockKind,

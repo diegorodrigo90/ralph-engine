@@ -142,10 +142,16 @@ impl PluginRuntime for RouterRuntime {
 
     /// Shows routing status in TUI sidebar.
     fn tui_contributions(&self) -> Vec<re_plugin::TuiPanel> {
+        let rules = self.routing_rules();
+        let fallbacks = self.fallback_chain("primary");
         vec![re_plugin::TuiPanel {
             id: "router-status".to_owned(),
             title: "Routing".to_owned(),
-            lines: vec!["Mode: config-driven".to_owned()],
+            lines: vec![
+                "Mode: config-driven".to_owned(),
+                format!("Rules: {}", rules.len()),
+                format!("Fallbacks: {}", fallbacks.len()),
+            ],
             zone_hint: "sidebar".to_owned(),
         }]
     }

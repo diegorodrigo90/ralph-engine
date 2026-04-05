@@ -492,7 +492,12 @@ impl PluginRuntime for ClaudeRuntime {
         vec![re_plugin::TuiPanel {
             id: "claude-status".to_owned(),
             title: "Claude".to_owned(),
-            lines: vec![format!("Binary: {status}"), "Mode: -p (prompt)".to_owned()],
+            lines: vec![
+                format!("Binary: {status}"),
+                "Mode: -p (prompt)".to_owned(),
+                "Model: claude-opus-4-6".to_owned(),
+                "Stream: JSON".to_owned(),
+            ],
             zone_hint: "sidebar".to_owned(),
         }]
     }
