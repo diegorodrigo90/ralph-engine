@@ -11,6 +11,7 @@ authors.workspace = true
 
 [dependencies]
 arboard = "3.6"
+base64 = "0.22"
 ratatui = "0.30"
 tui-scrollview = "0.6"
 tracing = "0.1"

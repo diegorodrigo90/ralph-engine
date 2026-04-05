@@ -907,6 +907,10 @@ impl TuiShell {
         match kind {
             MouseEventKind::ScrollUp => self.scroll_feed_up(),
             MouseEventKind::ScrollDown => self.scroll_feed_down(),
+            MouseEventKind::Down(_) => {
+                // Click anywhere cycles block focus (simple hit-test)
+                self.focus_next_block();
+            }
             _ => {}
         }
     }
