@@ -261,6 +261,14 @@ pub struct TuiShell {
     should_quit: bool,
     quit_pending: bool,
     sidebar_panels: Vec<SidebarPanel>,
+    /// Whether the sidebar is visible (toggled with F2).
+    sidebar_visible: bool,
+    /// Available agent IDs for the switcher popup (set by caller).
+    available_agents: Vec<String>,
+    /// Whether the agent switcher popup is visible.
+    agent_switcher_visible: bool,
+    /// Selected index in the agent switcher popup.
+    agent_switcher_selected: usize,
     agent_pid: AgentPid,
     /// Plugin-contributed keybindings (from auto-discovery).
     plugin_keybindings: Vec<RegisteredKeybinding>,
@@ -299,6 +307,10 @@ impl TuiShell {
             should_quit: false,
             quit_pending: false,
             sidebar_panels: Vec::new(),
+            sidebar_visible: true,
+            available_agents: Vec::new(),
+            agent_switcher_visible: false,
+            agent_switcher_selected: 0,
             agent_pid: None,
             plugin_keybindings: Vec::new(),
             input_enabled: false,
@@ -352,6 +364,25 @@ impl TuiShell {
     /// Sets the token count (from agent stream metadata).
     pub fn set_token_count(&mut self, count: usize) {
         self.token_count = count;
+    }
+
+    /// Sets the available agent IDs for the switcher popup.
+    pub fn set_available_agents(&mut self, agents: Vec<String>) {
+        self.available_agents = agents;
+    }
+
+    /// Returns the agent ID selected in the switcher, if confirmed.
+    ///
+    /// The caller checks this after the user selects and confirms
+    /// in the popup, then dispatches to the plugin system.
+    #[must_use]
+    pub fn take_selected_agent(&mut self) -> Option<String> {
+        if !self.agent_switcher_visible {
+            return None;
+        }
+        self.available_agents
+            .get(self.agent_switcher_selected)
+            .cloned()
     }
 
     /// Sets the sidebar panels from auto-discovered plugin contributions.
@@ -834,6 +865,19 @@ impl TuiShell {
                 self.scroll_feed_to_bottom();
                 return PluginKeyAction::Handled;
             }
+            // Sidebar toggle
+            KeyCode::F(2) => {
+                self.sidebar_visible = !self.sidebar_visible;
+                return PluginKeyAction::Handled;
+            }
+            // Agent switcher (Ctrl+A)
+            KeyCode::Char('a') if modifiers.contains(KeyModifiers::CONTROL) => {
+                if !self.available_agents.is_empty() {
+                    self.agent_switcher_visible = !self.agent_switcher_visible;
+                    self.agent_switcher_selected = 0;
+                }
+                return PluginKeyAction::Handled;
+            }
             _ => {}
         }
 
@@ -973,7 +1017,9 @@ impl TuiShell {
             self.render_input_bar(frame, input_area);
         }
 
-        if let Some(sidebar) = zones.sidebar {
+        if let Some(sidebar) = zones.sidebar
+            && self.sidebar_visible
+        {
             self.render_sidebar(frame, sidebar);
         }
 
@@ -984,6 +1030,11 @@ impl TuiShell {
         // Autocomplete popup — rendered LAST (on top of everything)
         if let Some(input_area) = zones.input {
             self.render_autocomplete(frame, input_area);
+        }
+
+        // Agent switcher popup (Ctrl+A)
+        if self.agent_switcher_visible {
+            self.render_agent_switcher(frame, zones.activity);
         }
     }
 
@@ -1057,6 +1108,12 @@ impl TuiShell {
         // Use block-based feed when it has content, fall back to legacy lines
         if !self.feed.is_empty() {
             self.render_feed_blocks(frame, area);
+            return;
+        }
+
+        // Idle dashboard when no activity at all
+        if self.activity_lines.is_empty() {
+            self.render_idle_dashboard(frame, area);
             return;
         }
 
@@ -1650,6 +1707,94 @@ impl TuiShell {
             Line::styled(" [q] Quit", Style::default().fg(theme.text_dim())),
         ];
         frame.render_widget(Paragraph::new(lines), inner);
+    }
+
+    /// Renders the agent switcher popup (Ctrl+A).
+    fn render_agent_switcher(&self, frame: &mut Frame<'_>, area: Rect) {
+        let theme = self.theme();
+        let popup_height = (self.available_agents.len() as u16 + 2).min(area.height);
+        let popup_width = 40u16.min(area.width);
+        let popup_area = Rect {
+            x: area.x + (area.width.saturating_sub(popup_width)) / 2,
+            y: area.y + (area.height.saturating_sub(popup_height)) / 2,
+            width: popup_width,
+            height: popup_height,
+        };
+
+        let items: Vec<ListItem<'_>> = self
+            .available_agents
+            .iter()
+            .map(|agent| {
+                ListItem::new(Line::styled(
+                    format!("  {agent}"),
+                    Style::default().fg(theme.text()),
+                ))
+            })
+            .collect();
+
+        let list = List::new(items)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(theme.accent()))
+                    .title(" Switch Agent (Ctrl+A) ")
+                    .title_style(
+                        Style::default()
+                            .fg(theme.accent())
+                            .add_modifier(Modifier::BOLD),
+                    ),
+            )
+            .highlight_style(
+                Style::default()
+                    .bg(theme.surface())
+                    .add_modifier(Modifier::BOLD),
+            )
+            .highlight_symbol("▸ ");
+
+        frame.render_widget(Clear, popup_area);
+        frame.render_stateful_widget(
+            list,
+            popup_area,
+            &mut ListState::default().with_selected(Some(self.agent_switcher_selected)),
+        );
+    }
+
+    /// Renders the idle dashboard when no agent is running.
+    fn render_idle_dashboard(&self, frame: &mut Frame<'_>, area: Rect) {
+        let theme = self.theme();
+        let version = env!("CARGO_PKG_VERSION");
+
+        let logo_lines = crate::logo::build_logo_lines(area.width, theme);
+
+        let mut lines: Vec<Line<'_>> = Vec::new();
+
+        // Center vertically
+        let content_height = logo_lines.len() + 8;
+        let pad_top = area.height.saturating_sub(content_height as u16) / 2;
+        for _ in 0..pad_top {
+            lines.push(Line::raw(""));
+        }
+
+        lines.extend(logo_lines);
+        lines.push(Line::raw(""));
+        lines.push(Line::styled(
+            format!("  v{version} — Orchestration Runtime"),
+            Style::default().fg(theme.text_dim()),
+        ));
+        lines.push(Line::raw(""));
+        lines.push(Line::styled(
+            "  Waiting for agent session...",
+            Style::default()
+                .fg(theme.accent_dim())
+                .add_modifier(Modifier::ITALIC),
+        ));
+        lines.push(Line::raw(""));
+        lines.push(Line::styled(
+            "  [q] quit  [?] help  [F2] sidebar",
+            Style::default().fg(theme.text_dim()),
+        ));
+
+        frame.render_widget(Paragraph::new(lines), area);
     }
 }
 
