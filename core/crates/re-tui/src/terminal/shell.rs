@@ -60,6 +60,7 @@ pub struct TuiShell {
     pub(super) active_tab: TuiTab,
     pub(super) focus: FocusTarget,
     pub(super) tab_bar_area: ratatui::layout::Rect,
+    pub(super) zone_registry: ratatui_zonekit::ZoneRegistry,
     pub(super) log_lines: Vec<String>,
     pub(super) touched_files: Vec<String>,
 }
@@ -111,6 +112,7 @@ impl TuiShell {
             active_tab: TuiTab::Feed,
             focus: FocusTarget::Activity,
             tab_bar_area: ratatui::layout::Rect::default(),
+            zone_registry: ratatui_zonekit::ZoneRegistry::new(),
             log_lines: Vec::new(),
             touched_files: Vec::new(),
         }
@@ -213,6 +215,25 @@ impl TuiShell {
     #[must_use]
     pub fn active_tab(&self) -> TuiTab {
         self.active_tab
+    }
+
+    /// Returns a reference to the zone registry.
+    #[must_use]
+    pub fn zone_registry(&self) -> &ratatui_zonekit::ZoneRegistry {
+        &self.zone_registry
+    }
+
+    /// Returns a mutable reference to the zone registry.
+    pub fn zone_registry_mut(&mut self) -> &mut ratatui_zonekit::ZoneRegistry {
+        &mut self.zone_registry
+    }
+
+    /// Registers a zone plugin and returns the results.
+    pub fn register_zone_plugin(
+        &mut self,
+        plugin: std::sync::Arc<dyn ratatui_zonekit::ZonePlugin>,
+    ) -> Vec<ratatui_zonekit::RegistrationResult> {
+        self.zone_registry.register(plugin)
     }
 
     /// Appends a raw log line (for the Log tab).

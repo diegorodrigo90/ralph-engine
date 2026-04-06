@@ -85,6 +85,14 @@ Ralph Engine is agent-agnostic. It works with:
 - **Codex** — via `codex exec --json`
 - **Any agent** — that outputs stream-json to stdout
 
+### How Agent Integration Works
+
+Ralph Engine is an **orchestrator**, not a wrapper or proxy. It does not access, store, or manage authentication credentials for any agent. Each agent plugin launches the agent's own CLI binary as a subprocess — the agent handles its own authentication, billing, and API communication independently.
+
+Ralph Engine does not intercept API calls, modify agent traffic, or relay requests through its own servers. It reads the agent's stdout stream to display progress in the TUI dashboard, and that is the extent of the integration.
+
+This project is not affiliated with, endorsed by, or sponsored by Anthropic, OpenAI, Google, or any other AI provider. Agent names and trademarks belong to their respective owners.
+
 ### Bilingual (EN + PT-BR)
 
 CLI, docs, and site are fully bilingual. The locale is auto-detected from your system or set explicitly:

@@ -2197,6 +2197,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "ratatui-zonekit"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2beaf79b74a758bc5c3411d46e6e5ded202fae576f035a56b1ddad924b83133"
+dependencies = [
+ "ratatui",
+]
+
+[[package]]
 name = "re-build-utils"
 version = "0.2.0-alpha.1"
 dependencies = [
@@ -2392,6 +2401,7 @@ dependencies = [
  "directories",
  "ratatui",
  "ratatui-themekit",
+ "ratatui-zonekit",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",

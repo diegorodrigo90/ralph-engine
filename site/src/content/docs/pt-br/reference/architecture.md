@@ -27,6 +27,12 @@ Ralph Engine é um runtime open-source, orientado a plugins, para fluxos de dese
 - `re-cli` — crate CLI que produz `ralph-engine`
 - Crates de plugins oficiais ficam em `plugins/official/*`
 
+## Modelo de Integração com Agentes
+
+Plugins de agente lançam o binário CLI do próprio agente como subprocesso (`claude -p`, `codex exec`, etc.). A fronteira de integração é o stream stdout do agente — o Ralph Engine lê eventos stream-json para exibir o progresso na TUI. Ele nunca acessa credenciais do agente, intercepta chamadas de API ou atua como proxy. O binário do agente cuida da sua própria autenticação, cobrança e comunicação com a API.
+
+Isso é equivalente a um shell script executando `claude -p "prompt"` — o Ralph Engine adiciona orquestração (resolução de work items, montagem de prompt, quality gates) em torno dessa mesma chamada de subprocesso.
+
 ## Regras Arquiteturais
 
 - O core permanece plugin-first e agnóstico de workflow.

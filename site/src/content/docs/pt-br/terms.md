@@ -23,9 +23,15 @@ Documentação, guias e tutoriais neste site são fornecidos para fins informati
 
 O Ralph Engine suporta plugins da comunidade. Plugins oficiais são mantidos pela equipe do Ralph Engine. Plugins da comunidade são de responsabilidade de seus respectivos publicadores. Use plugins de terceiros a seu critério.
 
+## Integração com Agentes
+
+O Ralph Engine orquestra agentes de codificação AI lançando seus binários CLI oficiais como subprocessos. Ele não acessa, armazena ou gerencia credenciais de autenticação de nenhum agente. Cada agente cuida da sua própria autenticação, cobrança e comunicação com a API de forma independente. O Ralph Engine não intercepta chamadas de API, modifica tráfego de agentes ou retransmite requisições por seus próprios servidores.
+
+Os usuários são responsáveis por cumprir os termos de serviço de cada provedor de agente. O Ralph Engine não concede, estende ou modifica nenhuma licença ou assinatura de qualquer provedor de IA.
+
 ## Marcas
 
-"Ralph Engine" e o logotipo do Ralph Engine são marcas de seus respectivos proprietários. Nomes de produtos de terceiros mencionados na documentação pertencem a seus respectivos proprietários.
+"Ralph Engine" e o logotipo do Ralph Engine são marcas de seus respectivos proprietários. Claude é uma marca da Anthropic, PBC. Codex é uma marca da OpenAI. Gemini é uma marca do Google. Todos os demais nomes de produtos de terceiros mencionados na documentação pertencem a seus respectivos proprietários. O uso desses nomes é apenas para fins de identificação e não implica endosso ou afiliação.
 
 ## Alterações
 

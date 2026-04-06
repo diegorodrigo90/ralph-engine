@@ -37,6 +37,11 @@ pub use terminal::{
     RegisteredKeybinding, SidebarPanel, Toast, ToastLevel, TuiConfig, TuiLabels, TuiShell,
     TuiState, TuiTab,
 };
+// Re-export ratatui-zonekit for plugin zone management
+pub use ratatui_zonekit::{
+    self as zonekit, RegistrationResult, RenderContext, SafeRenderer, ZoneEvent, ZoneHint, ZoneId,
+    ZonePlugin, ZoneRegistry, ZoneRequest, ZoneSpec,
+};
 pub use theme::{
     BLOCK_PADDING, INDENT_WIDTH, MAX_COLLAPSED_LINES, Theme, available_theme_ids, builtin_themes,
     no_color_active, resolve_theme,
