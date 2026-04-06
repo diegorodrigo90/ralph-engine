@@ -79,9 +79,12 @@ jobs:
         with:
           shared-key: quality-${{ matrix.os }}
       - name: Install repository Node dependencies
+        run: |
+          corepack disable 2>/dev/null || true
+          npm ci
+      - name: Install site Node dependencies
+        working-directory: site
         run: npm ci
-      - name: Install docs Node dependencies
-        run: npm --prefix docs ci
       - name: Restore pinned coverage tool cache
         if: matrix.os == 'ubuntu-latest'
         id: restore_coverage_tool_cache
