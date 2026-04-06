@@ -14,14 +14,17 @@ use super::shell::TuiShell;
 /// Maximum characters stored in input buffer (safety limit).
 const MAX_INPUT_CHARS: usize = 50_000;
 
-/// Pastes with more lines than this are collapsed into a compact indicator.
-const PASTE_COLLAPSE_LINES: usize = 5;
+/// When the input buffer exceeds this many lines, the render shows a
+/// compact summary instead of the full text. The full content is still
+/// sent to the agent on submit.
+const COLLAPSE_DISPLAY_LINES: usize = 5;
 
 impl TuiShell {
     /// Renders the chat input bar with scroll support and visual focus.
     ///
-    /// Layout: separator (1) + text content (fill) + scrollbar indicator.
-    /// Uses `InputStyles` from themekit for focused/unfocused states.
+    /// When the buffer has more than `COLLAPSE_DISPLAY_LINES` lines, shows a
+    /// compact `[Pasted text #N +M lines]` indicator instead of the full text.
+    /// The full content is still submitted on Enter.
     pub(super) fn render_input_bar(&self, frame: &mut Frame<'_>, area: Rect) {
         use super::types::FocusTarget;
 
@@ -52,6 +55,13 @@ impl TuiShell {
             let prompt_span = ratatui::text::Span::styled(prompt, is.prompt);
             frame.render_widget(Paragraph::new(Line::from(prompt_span)), text_area);
             frame.set_cursor_position((text_area.x + prompt_width, text_area.y));
+            return;
+        }
+
+        // Check if content should be collapsed (too many lines for the input area)
+        let buffer_lines = self.text_input_buffer.lines().count();
+        if buffer_lines > COLLAPSE_DISPLAY_LINES {
+            self.render_collapsed_indicator(frame, text_area, buffer_lines, &is);
             return;
         }
 
@@ -103,6 +113,47 @@ impl TuiShell {
         ));
     }
 
+    /// Renders a collapsed indicator for large input content.
+    ///
+    /// Shows: `> [Pasted text +N lines]` with accent styling.
+    fn render_collapsed_indicator(
+        &self,
+        frame: &mut Frame<'_>,
+        area: Rect,
+        line_count: usize,
+        is: &crate::theme::InputStyles,
+    ) {
+        let label = &self.labels.pasted_text_label;
+        let suffix = &self.labels.paste_lines_suffix;
+        let char_count = self.text_input_buffer.len();
+
+        // First line of content (truncated) for preview
+        let first_line = self.text_input_buffer.lines().next().unwrap_or("");
+        let max_preview = (area.width as usize).saturating_sub(10);
+        let preview = if first_line.len() > max_preview {
+            format!("{}…", &first_line[..max_preview])
+        } else {
+            first_line.to_owned()
+        };
+
+        let indicator = format!("[{label} +{line_count} {suffix}, {char_count} chars]");
+
+        let lines = vec![
+            Line::from(vec![
+                ratatui::text::Span::styled(" > ", is.prompt),
+                ratatui::text::Span::styled(preview, is.text),
+            ]),
+            Line::from(vec![ratatui::text::Span::styled(
+                format!("   {indicator}"),
+                is.placeholder,
+            )]),
+        ];
+
+        frame.render_widget(Paragraph::new(lines), area);
+        // Cursor at end of indicator
+        frame.set_cursor_position((area.x + 3 + indicator.len() as u16, area.y + 1));
+    }
+
     /// Builds wrapped display lines from the input buffer.
     fn build_input_lines<'a>(
         &self,
@@ -139,53 +190,23 @@ impl TuiShell {
         lines
     }
 
-    /// Handles paste — collapses large pastes into a compact indicator.
+    /// Handles paste — appends text to buffer with size limit.
     ///
-    /// Pastes with more than `PASTE_COLLAPSE_LINES` lines are stored separately
-    /// and shown as `[Pasted text #N +M lines]` in the input. The full content
-    /// is included when the user submits.
+    /// Large text is stored in full — the render layer handles visual collapse.
+    /// This works regardless of whether the paste arrives as `Event::Paste` or
+    /// as rapid `Event::Key` events (terminal-dependent).
     pub fn handle_paste_with_limit(&mut self, text: &str) {
         if !self.input_enabled || text.is_empty() {
             return;
         }
         self.save_undo_snapshot();
-
-        let line_count = text.lines().count();
-
-        if line_count > PASTE_COLLAPSE_LINES {
-            // Collapse: store full content, show compact indicator
-            self.paste_counter += 1;
-            let number = self.paste_counter;
-            let label = &self.labels.pasted_text_label;
-            let suffix = &self.labels.paste_lines_suffix;
-            let indicator = format!("[{label} #{number} +{line_count} {suffix}]");
-
-            self.collapsed_pastes.push(super::types::CollapsedPaste {
-                number,
-                content: text[..text.len().min(MAX_INPUT_CHARS)].to_owned(),
-                line_count,
-            });
-
-            // Append indicator to input buffer
-            if !self.text_input_buffer.is_empty() {
-                self.text_input_buffer.push(' ');
-            }
-            self.text_input_buffer.push_str(&indicator);
-        } else {
-            // Small paste — append directly
-            let remaining = MAX_INPUT_CHARS.saturating_sub(self.text_input_buffer.len());
-            if remaining == 0 {
-                return;
-            }
-            let truncated = &text[..text.len().min(remaining)];
-            self.text_input_buffer.push_str(truncated);
+        let remaining = MAX_INPUT_CHARS.saturating_sub(self.text_input_buffer.len());
+        if remaining == 0 {
+            return;
         }
+        let truncated = &text[..text.len().min(remaining)];
+        self.text_input_buffer.push_str(truncated);
         self.autocomplete.update_filter(&self.text_input_buffer);
-    }
-
-    /// Returns all collapsed paste contents for submission, consuming them.
-    pub fn take_collapsed_pastes(&mut self) -> Vec<String> {
-        self.collapsed_pastes.drain(..).map(|p| p.content).collect()
     }
 
     /// Renders the autocomplete popup above the input bar.

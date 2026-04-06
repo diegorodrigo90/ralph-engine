@@ -358,33 +358,29 @@ fn paste_small_appends_directly() {
     let mut shell = interactive_shell();
     shell.handle_paste("hello world");
     assert_eq!(shell.text_input_buffer(), "hello world");
-    assert!(shell.collapsed_pastes.is_empty());
 }
 
 #[test]
-fn paste_large_collapses_into_indicator() {
+fn paste_large_stored_in_full_buffer() {
     let mut shell = interactive_shell();
     let large_text = "line1\nline2\nline3\nline4\nline5\nline6\nline7";
     shell.handle_paste(large_text);
 
-    // Buffer should contain the collapsed indicator, not the raw text
-    let buf = shell.text_input_buffer().to_owned();
-    assert!(buf.contains("[Pasted text #1 +7 lines]"), "got: {buf}");
-    assert_eq!(shell.collapsed_pastes.len(), 1);
-    assert_eq!(shell.collapsed_pastes[0].content, large_text);
+    // Buffer stores the FULL text — render layer handles visual collapse
+    assert_eq!(shell.text_input_buffer(), large_text);
 }
 
 #[test]
-fn paste_counter_increments() {
+fn paste_respects_max_limit() {
     let mut shell = interactive_shell();
-    let text6 = "a\nb\nc\nd\ne\nf\ng";
-    shell.handle_paste(text6);
-    shell.handle_paste(text6);
+    // Pre-fill buffer close to limit
+    let big = "x".repeat(49_990);
+    shell.handle_paste(&big);
+    assert_eq!(shell.text_input_buffer().len(), 49_990);
 
-    let buf = shell.text_input_buffer().to_owned();
-    assert!(buf.contains("#1"), "got: {buf}");
-    assert!(buf.contains("#2"), "got: {buf}");
-    assert_eq!(shell.collapsed_pastes.len(), 2);
+    // Paste more — should truncate to MAX_INPUT_CHARS
+    shell.handle_paste("y".repeat(100).as_str());
+    assert_eq!(shell.text_input_buffer().len(), 50_000);
 }
 
 // ── Rendering snapshot tests ────────────────────────────────

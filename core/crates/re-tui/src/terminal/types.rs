@@ -292,21 +292,6 @@ impl Default for TuiLabels {
     }
 }
 
-/// A collapsed paste — large pasted text stored separately from the visible input.
-///
-/// When a paste exceeds `PASTE_COLLAPSE_THRESHOLD` lines, the visible input shows
-/// a compact indicator like `[Pasted text #1 +18 lines]` while the full content
-/// is stored here and sent to the agent on submit.
-#[derive(Debug, Clone)]
-pub struct CollapsedPaste {
-    /// Sequential paste number in this session.
-    pub number: usize,
-    /// Full pasted text content.
-    pub content: String,
-    /// Number of lines in the paste.
-    pub line_count: usize,
-}
-
 /// A sidebar panel provided by a plugin, ready to render.
 #[derive(Debug, Clone)]
 pub struct SidebarPanel {
