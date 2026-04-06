@@ -6,33 +6,30 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph};
 
+use crate::theme::ThemeExt;
+
 use super::shell::TuiShell;
 
 impl TuiShell {
     /// Renders the chat input bar — separator, `>` prompt, multi-line, native cursor.
     pub(super) fn render_input_bar(&self, frame: &mut Frame<'_>, area: Rect) {
-        let theme = self.theme();
-        let prompt_color = theme.accent();
-        let sep = "─".repeat(area.width as usize);
+        let t = self.theme();
         let prompt = " > ";
         let prompt_width = prompt.len() as u16;
 
         let rows = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).split(area);
 
         frame.render_widget(
-            Paragraph::new(Line::styled(sep, Style::default().fg(theme.border()))),
+            Paragraph::new(Line::from(vec![
+                t.fg_border("\u{2500}".repeat(area.width as usize)).build(),
+            ])),
             rows[0],
         );
 
         let text_area = rows[1];
 
         if self.text_input_buffer.is_empty() {
-            let line = Line::from(vec![Span::styled(
-                prompt,
-                Style::default()
-                    .fg(prompt_color)
-                    .add_modifier(Modifier::BOLD),
-            )]);
+            let line = Line::from(vec![t.fg_accent(prompt).bold().build()]);
             frame.render_widget(Paragraph::new(line), text_area);
             frame.set_cursor_position((text_area.x + prompt_width, text_area.y));
         } else {
@@ -44,12 +41,7 @@ impl TuiShell {
                 if text_line.is_empty() {
                     let pfx = if first { prompt } else { "   " };
                     first = false;
-                    display_lines.push(Line::from(Span::styled(
-                        pfx.to_owned(),
-                        Style::default()
-                            .fg(prompt_color)
-                            .add_modifier(Modifier::BOLD),
-                    )));
+                    display_lines.push(Line::from(t.fg_accent(pfx.to_owned()).bold().build()));
                     continue;
                 }
                 let mut pos = 0;
@@ -59,13 +51,8 @@ impl TuiShell {
                     let pfx = if first { prompt } else { "   " };
                     first = false;
                     display_lines.push(Line::from(vec![
-                        Span::styled(
-                            pfx.to_owned(),
-                            Style::default()
-                                .fg(prompt_color)
-                                .add_modifier(Modifier::BOLD),
-                        ),
-                        Span::styled(chunk.to_owned(), Style::default().fg(theme.text())),
+                        t.fg_accent(pfx.to_owned()).bold().build(),
+                        t.fg_text(chunk.to_owned()).build(),
                     ]));
                     pos = end;
                 }
@@ -106,7 +93,7 @@ impl TuiShell {
             height: popup_height,
         };
 
-        let theme = self.theme();
+        let t = self.theme();
         let items: Vec<ListItem<'_>> = self
             .autocomplete
             .filtered
@@ -114,16 +101,13 @@ impl TuiShell {
             .map(|&idx| {
                 let cmd = &self.autocomplete.commands[idx];
                 ListItem::new(Line::from(vec![
-                    Span::styled(
-                        format!("{}{}", self.autocomplete.prefix, cmd.name),
-                        Style::default()
-                            .fg(theme.info())
-                            .add_modifier(Modifier::BOLD),
-                    ),
+                    t.fg_info(format!("{}{}", self.autocomplete.prefix, cmd.name))
+                        .bold()
+                        .build(),
                     Span::raw("  "),
-                    Span::styled(&cmd.description, Style::default().fg(theme.text_dim())),
+                    t.fg_dim(&cmd.description).build(),
                     Span::raw("  "),
-                    Span::styled(cmd.source.label(), Style::default().fg(theme.accent_dim())),
+                    t.fg_dim(cmd.source.label()).build(),
                 ]))
             })
             .collect();
@@ -132,13 +116,13 @@ impl TuiShell {
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(theme.border()))
+                    .border_style(Style::default().fg(t.border()))
                     .title(" Commands ")
-                    .title_style(Style::default().fg(theme.accent())),
+                    .title_style(Style::default().fg(t.accent())),
             )
             .highlight_style(
                 Style::default()
-                    .bg(theme.surface())
+                    .bg(t.surface())
                     .add_modifier(Modifier::BOLD),
             )
             .highlight_symbol("> ");

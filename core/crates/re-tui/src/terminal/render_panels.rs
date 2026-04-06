@@ -7,37 +7,31 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Paragraph};
 
+use crate::theme::ThemeExt;
+
 use super::shell::TuiShell;
 use super::style::{render_panel_item, style_sidebar_line};
 
 impl TuiShell {
     /// Renders the sidebar zone with auto-discovered plugin panels.
     pub(super) fn render_sidebar(&self, frame: &mut Frame<'_>, area: Rect) {
-        let theme = self.theme();
+        let t = self.theme();
 
         let outer = Block::default()
             .borders(Borders::LEFT)
-            .border_style(Style::default().fg(theme.border()));
+            .border_style(Style::default().fg(t.border()));
         let inner = outer.inner(area);
         frame.render_widget(outer, area);
 
         if self.sidebar_panels.is_empty() {
             frame.render_widget(
-                Paragraph::new(Line::styled(
-                    " (no panels)",
-                    Style::default().fg(theme.text_dim()),
-                )),
+                Paragraph::new(Line::from(vec![t.fg_dim(" (no panels)").build()])),
                 inner,
             );
             return;
         }
 
-        let panel_colors = [
-            theme.info(),
-            theme.accent(),
-            theme.success(),
-            theme.warning(),
-        ];
+        let panel_colors = [t.info(), t.accent(), t.success(), t.warning()];
 
         let panel_count = self.sidebar_panels.len();
         let constraints: Vec<Constraint> = (0..panel_count)
@@ -59,26 +53,26 @@ impl TuiShell {
                     format!(" {} ", panel.title),
                     Style::default().fg(color).add_modifier(Modifier::BOLD),
                 ),
-                Span::styled(
-                    "─".repeat(
+                t.fg_border(
+                    "\u{2500}".repeat(
                         panel_areas[i]
                             .width
                             .saturating_sub(panel.title.len() as u16 + 3)
                             as usize,
                     ),
-                    Style::default().fg(theme.border()),
-                ),
+                )
+                .build(),
             ]);
 
             let mut lines: Vec<Line<'_>> = vec![separator];
 
             if !panel.items.is_empty() {
                 for item in &panel.items {
-                    render_panel_item(item, color, theme, &mut lines);
+                    render_panel_item(item, color, t, &mut lines);
                 }
             } else {
                 for s in &panel.lines {
-                    lines.push(style_sidebar_line(s, color, theme));
+                    lines.push(style_sidebar_line(s, color, t));
                 }
             }
             frame.render_widget(Paragraph::new(lines), panel_areas[i]);
@@ -87,12 +81,12 @@ impl TuiShell {
 
     /// Renders the control panel zone (wide tier only).
     pub(super) fn render_control_panel(&self, frame: &mut Frame<'_>, area: Rect) {
-        let theme = self.theme();
-        let state_color = self.state.color(theme);
+        let t = self.theme();
+        let state_color = self.state.color(t);
 
         let block = Block::default()
             .borders(Borders::RIGHT)
-            .border_style(Style::default().fg(theme.border()));
+            .border_style(Style::default().fg(t.border()));
         let inner = block.inner(area);
         frame.render_widget(block, area);
 
@@ -101,30 +95,15 @@ impl TuiShell {
         let lines = vec![
             Line::raw(""),
             Line::from(vec![
-                Span::styled(
-                    format!("  {}: ", self.labels.control_state),
-                    Style::default().fg(theme.text_dim()),
-                ),
-                Span::styled(
-                    format!(" {state_label} "),
-                    Style::default()
-                        .fg(theme.surface())
-                        .bg(state_color)
-                        .add_modifier(Modifier::BOLD),
-                ),
+                t.fg_dim(format!("  {}: ", self.labels.control_state))
+                    .build(),
+                t.badge(format!(" {state_label} "), state_color).build(),
             ]),
             Line::raw(""),
             Line::from(vec![
-                Span::styled(
-                    format!("  {}: ", self.labels.control_work),
-                    Style::default().fg(theme.text_dim()),
-                ),
-                Span::styled(
-                    self.config.title.as_str(),
-                    Style::default()
-                        .fg(theme.text_bright())
-                        .add_modifier(Modifier::BOLD),
-                ),
+                t.fg_dim(format!("  {}: ", self.labels.control_work))
+                    .build(),
+                t.fg_bright(self.config.title.as_str()).bold().build(),
             ]),
         ];
         frame.render_widget(Paragraph::new(lines), inner);

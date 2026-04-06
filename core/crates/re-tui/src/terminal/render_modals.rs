@@ -6,32 +6,34 @@ use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph};
 
+use crate::theme::ThemeExt;
+
 use super::shell::TuiShell;
 use super::types::{ToastLevel, TuiState};
 
 impl TuiShell {
     /// Renders the help bar at the bottom.
     pub(super) fn render_help(&self, frame: &mut Frame<'_>, zones: &crate::layout::LayoutZones) {
-        let theme = self.theme();
+        let t = self.theme();
 
         if self.quit_pending || self.help_modal_visible {
             let hint = format!(" {} ", self.labels.modal_open_hint);
-            let spans = vec![Span::styled(hint, Style::default().fg(theme.text_dim()))];
-            frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
+            frame.render_widget(
+                Paragraph::new(Line::from(vec![t.fg_dim(hint).build()])),
+                zones.help,
+            );
             return;
         }
-
-        let dim = Style::default().fg(theme.text_dim());
 
         // When typing, show input-specific help
         if self.input_enabled && !self.text_input_buffer.is_empty() {
             let spans = vec![
-                Span::styled(" [Enter]", dim),
-                Span::styled(" send ", dim),
-                Span::styled(" [Alt+Enter]", dim),
-                Span::styled(" newline ", dim),
-                Span::styled(" [Esc]", dim),
-                Span::styled(" cancel ", dim),
+                t.fg_dim(" [Enter]").build(),
+                t.fg_dim(" send ").build(),
+                t.fg_dim(" [Alt+Enter]").build(),
+                t.fg_dim(" newline ").build(),
+                t.fg_dim(" [Esc]").build(),
+                t.fg_dim(" cancel ").build(),
             ];
             frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
             return;
@@ -57,13 +59,8 @@ impl TuiShell {
                 .unwrap_or("Processing...");
 
             let status_spans = vec![
-                Span::styled(format!(" {spinner} "), Style::default().fg(theme.warning())),
-                Span::styled(
-                    format!("{message} "),
-                    Style::default()
-                        .fg(theme.text_bright())
-                        .add_modifier(Modifier::ITALIC),
-                ),
+                t.fg_warning(format!(" {spinner} ")).build(),
+                t.fg_bright(format!("{message} ")).italic().build(),
             ];
             frame.render_widget(Paragraph::new(Line::from(status_spans)), zones.help);
             return;
@@ -76,34 +73,31 @@ impl TuiShell {
             if binding.active_states.is_empty()
                 || binding.active_states.iter().any(|s| s == &state_label)
             {
-                spans.push(Span::styled(format!(" [{}]", binding.key), dim));
-                spans.push(Span::styled(format!(" {} ", binding.description), dim));
+                spans.push(t.fg_dim(format!(" [{}]", binding.key)).build());
+                spans.push(t.fg_dim(format!(" {} ", binding.description)).build());
             }
         }
 
-        spans.push(Span::styled(" [p]", dim));
-        spans.push(Span::styled(format!(" {} ", self.labels.pause_label), dim));
-        spans.push(Span::styled(" [?]", dim));
-        spans.push(Span::styled(format!(" {} ", self.labels.help_label), dim));
-        spans.push(Span::styled(" [q]", dim));
-        spans.push(Span::styled(format!(" {} ", self.labels.quit_label), dim));
+        spans.push(t.fg_dim(" [p]").build());
+        spans.push(t.fg_dim(format!(" {} ", self.labels.pause_label)).build());
+        spans.push(t.fg_dim(" [?]").build());
+        spans.push(t.fg_dim(format!(" {} ", self.labels.help_label)).build());
+        spans.push(t.fg_dim(" [q]").build());
+        spans.push(t.fg_dim(format!(" {} ", self.labels.quit_label)).build());
 
         let tier_label = match zones.tier {
             crate::layout::LayoutTier::Compact => "compact",
             crate::layout::LayoutTier::Standard => "standard",
             crate::layout::LayoutTier::Wide => "wide",
         };
-        spans.push(Span::styled(
-            format!(" │ {tier_label}"),
-            Style::default().fg(theme.accent_dim()),
-        ));
+        spans.push(t.fg_dim(format!(" │ {tier_label}")).build());
 
         frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
     }
 
     /// Renders the agent switcher popup (Ctrl+A).
     pub(super) fn render_agent_switcher(&self, frame: &mut Frame<'_>, area: Rect) {
-        let theme = self.theme();
+        let t = self.theme();
         let popup_height = (self.available_agents.len() as u16 + 2).min(area.height);
         let popup_width = 40u16.min(area.width);
         let popup_area = Rect {
@@ -116,29 +110,20 @@ impl TuiShell {
         let items: Vec<ListItem<'_>> = self
             .available_agents
             .iter()
-            .map(|agent| {
-                ListItem::new(Line::styled(
-                    format!("  {agent}"),
-                    Style::default().fg(theme.text()),
-                ))
-            })
+            .map(|agent| ListItem::new(Line::from(vec![t.fg_text(format!("  {agent}")).build()])))
             .collect();
 
         let list = List::new(items)
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(theme.accent()))
+                    .border_style(Style::default().fg(t.accent()))
                     .title(" Switch Agent (Ctrl+A) ")
-                    .title_style(
-                        Style::default()
-                            .fg(theme.accent())
-                            .add_modifier(Modifier::BOLD),
-                    ),
+                    .title_style(Style::default().fg(t.accent()).add_modifier(Modifier::BOLD)),
             )
             .highlight_style(
                 Style::default()
-                    .bg(theme.surface())
+                    .bg(t.surface())
                     .add_modifier(Modifier::BOLD),
             )
             .highlight_symbol("▸ ");
@@ -153,16 +138,16 @@ impl TuiShell {
 
     /// Renders the idle dashboard when no agent is running.
     pub(super) fn render_idle_dashboard(&self, frame: &mut Frame<'_>, area: Rect) {
-        let theme = self.theme();
+        let t = self.theme();
         let version = env!("CARGO_PKG_VERSION");
 
         let logo_color = Some(match self.state {
-            TuiState::Running => theme.text_dim(),
-            TuiState::Error => theme.error(),
-            _ => theme.accent(),
+            TuiState::Running => t.text_dim(),
+            TuiState::Error => t.error(),
+            _ => t.accent(),
         });
         let logo_lines =
-            crate::logo::build_logo_lines(area.width, theme, logo_color, &self.labels.logo_tagline);
+            crate::logo::build_logo_lines(area.width, t, logo_color, &self.labels.logo_tagline);
 
         let mut lines: Vec<Line<'_>> = Vec::new();
 
@@ -174,73 +159,48 @@ impl TuiShell {
 
         lines.extend(logo_lines);
         lines.push(Line::raw(""));
-        lines.push(Line::styled(
-            format!("  v{version} — {}", self.labels.orchestration_runtime),
-            Style::default().fg(theme.text_dim()),
-        ));
+        lines.push(Line::from(vec![
+            t.fg_dim(format!(
+                "  v{version} — {}",
+                self.labels.orchestration_runtime
+            ))
+            .build(),
+        ]));
         lines.push(Line::raw(""));
 
         let has_config = std::path::Path::new(".ralph-engine/config.yaml").exists();
         if has_config {
             lines.push(Line::from(vec![
-                Span::styled("  ✓ ", Style::default().fg(theme.success())),
-                Span::styled(
-                    self.labels.project_configured.as_str(),
-                    Style::default().fg(theme.text()),
-                ),
+                t.fg_success("  ✓ ").build(),
+                t.fg_text(self.labels.project_configured.as_str()).build(),
             ]));
-            lines.push(Line::styled(
-                format!("  {}", self.labels.type_run),
-                Style::default()
-                    .fg(theme.accent())
-                    .add_modifier(Modifier::ITALIC),
-            ));
+            lines.push(Line::from(vec![
+                t.fg_accent(format!("  {}", self.labels.type_run))
+                    .italic()
+                    .build(),
+            ]));
         } else {
             lines.push(Line::from(vec![
-                Span::styled("  ○ ", Style::default().fg(theme.warning())),
-                Span::styled(
-                    self.labels.no_project_found.as_str(),
-                    Style::default().fg(theme.text()),
-                ),
+                t.fg_warning("  ○ ").build(),
+                t.fg_text(self.labels.no_project_found.as_str()).build(),
             ]));
-            lines.push(Line::styled(
-                format!("  {}", self.labels.type_init),
-                Style::default()
-                    .fg(theme.accent_dim())
-                    .add_modifier(Modifier::ITALIC),
-            ));
+            lines.push(Line::from(vec![
+                t.fg_dim(format!("  {}", self.labels.type_init))
+                    .italic()
+                    .build(),
+            ]));
         }
 
         lines.push(Line::raw(""));
         lines.push(Line::from(vec![
-            Span::styled(
-                "  q",
-                Style::default()
-                    .fg(theme.accent())
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(" quit  ", Style::default().fg(theme.text_dim())),
-            Span::styled(
-                "?",
-                Style::default()
-                    .fg(theme.accent())
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(" help  ", Style::default().fg(theme.text_dim())),
-            Span::styled(
-                "F2",
-                Style::default()
-                    .fg(theme.accent())
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(" sidebar  ", Style::default().fg(theme.text_dim())),
-            Span::styled(
-                "j/k",
-                Style::default()
-                    .fg(theme.accent())
-                    .add_modifier(Modifier::BOLD),
-            ),
-            Span::styled(" navigate", Style::default().fg(theme.text_dim())),
+            t.fg_accent("  q").bold().build(),
+            t.fg_dim(" quit  ").build(),
+            t.fg_accent("?").bold().build(),
+            t.fg_dim(" help  ").build(),
+            t.fg_accent("F2").bold().build(),
+            t.fg_dim(" sidebar  ").build(),
+            t.fg_accent("j/k").bold().build(),
+            t.fg_dim(" navigate").build(),
         ]));
 
         frame.render_widget(Paragraph::new(lines), area);
@@ -248,9 +208,9 @@ impl TuiShell {
 
     /// Renders and ticks down active toast notifications.
     pub(super) fn render_toasts(&mut self, frame: &mut Frame<'_>, area: Rect) {
-        self.toasts.retain_mut(|t| {
-            t.remaining_ticks = t.remaining_ticks.saturating_sub(1);
-            t.remaining_ticks > 0
+        self.toasts.retain_mut(|toast| {
+            toast.remaining_ticks = toast.remaining_ticks.saturating_sub(1);
+            toast.remaining_ticks > 0
         });
 
         if self.toasts.is_empty() {
@@ -260,6 +220,7 @@ impl TuiShell {
         let max_toasts = 3;
         let toast_w = 40u16.min(area.width.saturating_sub(2));
         let toast_h = 3u16;
+        let t = self.theme();
 
         for (i, toast) in self.toasts.iter().rev().take(max_toasts).enumerate() {
             let y = area.height.saturating_sub((i as u16 + 1) * (toast_h + 1));
@@ -267,29 +228,30 @@ impl TuiShell {
             let popup = Rect::new(x, y, toast_w, toast_h);
 
             let color = match toast.level {
-                ToastLevel::Info => self.theme().accent(),
-                ToastLevel::Success => self.theme().success(),
-                ToastLevel::Warning => self.theme().warning(),
-                ToastLevel::Error => self.theme().error(),
+                ToastLevel::Info => t.accent(),
+                ToastLevel::Success => t.success(),
+                ToastLevel::Warning => t.warning(),
+                ToastLevel::Error => t.error(),
             };
 
             frame.render_widget(Clear, popup);
             let block = Block::default()
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(color))
-                .style(Style::default().bg(self.theme().surface()));
+                .style(Style::default().bg(t.surface()));
             let inner = block.inner(popup);
             frame.render_widget(block, popup);
 
-            let text = Paragraph::new(toast.message.as_str())
-                .style(Style::default().fg(self.theme().text_bright()));
-            frame.render_widget(text, inner);
+            frame.render_widget(
+                Paragraph::new(toast.message.as_str()).style(Style::default().fg(t.text_bright())),
+                inner,
+            );
         }
     }
 
     /// Renders the quit confirmation modal (centered overlay).
     pub(super) fn render_quit_modal(&self, frame: &mut Frame<'_>, area: Rect) {
-        let theme = self.theme();
+        let t = self.theme();
         let popup_w = 36u16.min(area.width);
         let popup_h = 5u16.min(area.height);
         let popup = Rect {
@@ -302,36 +264,23 @@ impl TuiShell {
         let lines = vec![
             Line::raw(""),
             Line::from(vec![
-                Span::styled(
-                    format!("  {} ", self.labels.quit_question),
-                    Style::default()
-                        .fg(theme.warning())
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(
-                    "y",
-                    Style::default()
-                        .fg(theme.accent())
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(" yes  ", Style::default().fg(theme.text_dim())),
-                Span::styled(
-                    "n",
-                    Style::default()
-                        .fg(theme.accent())
-                        .add_modifier(Modifier::BOLD),
-                ),
-                Span::styled(" cancel", Style::default().fg(theme.text_dim())),
+                t.fg_warning(format!("  {} ", self.labels.quit_question))
+                    .bold()
+                    .build(),
+                t.fg_accent("y").bold().build(),
+                t.fg_dim(" yes  ").build(),
+                t.fg_accent("n").bold().build(),
+                t.fg_dim(" cancel").build(),
             ]),
         ];
 
         let block = Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme.warning()))
+            .border_style(Style::default().fg(t.warning()))
             .title(format!(" {} ", self.labels.quit_title))
             .title_style(
                 Style::default()
-                    .fg(theme.warning())
+                    .fg(t.warning())
                     .add_modifier(Modifier::BOLD),
             );
 
@@ -341,46 +290,43 @@ impl TuiShell {
 
     /// Renders the help modal popup (centered overlay with grouped keys).
     pub(super) fn render_help_modal(&self, frame: &mut Frame<'_>, area: Rect) {
-        let theme = self.theme();
+        let t = self.theme();
         let version = env!("CARGO_PKG_VERSION");
 
         let mut lines: Vec<Line<'_>> = Vec::new();
 
-        lines.push(Line::from(vec![Span::styled(
-            format!("  Ralph Engine v{version}"),
-            Style::default()
-                .fg(theme.accent())
-                .add_modifier(Modifier::BOLD),
-        )]));
+        lines.push(Line::from(vec![
+            t.fg_accent(format!("  Ralph Engine v{version}"))
+                .bold()
+                .build(),
+        ]));
         lines.push(Line::raw(""));
 
         // Navigation keys
-        lines.push(Line::styled(
-            format!("  {}", self.labels.nav_heading),
-            Style::default()
-                .fg(theme.text_bright())
-                .add_modifier(Modifier::BOLD),
-        ));
+        lines.push(Line::from(vec![
+            t.fg_bright(format!("  {}", self.labels.nav_heading))
+                .bold()
+                .build(),
+        ]));
         for (key, desc) in &self.labels.nav_keys {
             lines.push(Line::from(vec![
-                Span::styled(format!("  {key:<12}"), Style::default().fg(theme.accent())),
-                Span::styled(desc.as_str(), Style::default().fg(theme.text_dim())),
+                t.fg_accent(format!("  {key:<12}")).build(),
+                t.fg_dim(desc.as_str()).build(),
             ]));
         }
 
         lines.push(Line::raw(""));
 
         // Action keys
-        lines.push(Line::styled(
-            format!("  {}", self.labels.actions_heading),
-            Style::default()
-                .fg(theme.text_bright())
-                .add_modifier(Modifier::BOLD),
-        ));
+        lines.push(Line::from(vec![
+            t.fg_bright(format!("  {}", self.labels.actions_heading))
+                .bold()
+                .build(),
+        ]));
         for (key, desc) in &self.labels.action_keys {
             lines.push(Line::from(vec![
-                Span::styled(format!("  {key:<12}"), Style::default().fg(theme.accent())),
-                Span::styled(desc.as_str(), Style::default().fg(theme.text_dim())),
+                t.fg_accent(format!("  {key:<12}")).build(),
+                t.fg_dim(desc.as_str()).build(),
             ]));
         }
 
@@ -396,41 +342,33 @@ impl TuiShell {
 
         if !plugin_keys.is_empty() {
             lines.push(Line::raw(""));
-            lines.push(Line::styled(
-                format!("  {}", self.labels.plugins_heading),
-                Style::default()
-                    .fg(theme.text_bright())
-                    .add_modifier(Modifier::BOLD),
-            ));
+            lines.push(Line::from(vec![
+                t.fg_bright(format!("  {}", self.labels.plugins_heading))
+                    .bold()
+                    .build(),
+            ]));
             for binding in plugin_keys {
                 lines.push(Line::from(vec![
-                    Span::styled(
-                        format!("  {:<12}", binding.key),
-                        Style::default().fg(theme.accent()),
-                    ),
-                    Span::styled(
-                        binding.description.as_str(),
-                        Style::default().fg(theme.text_dim()),
-                    ),
+                    t.fg_accent(format!("  {:<12}", binding.key)).build(),
+                    t.fg_dim(binding.description.as_str()).build(),
                 ]));
             }
         }
 
         if self.input_enabled {
             lines.push(Line::raw(""));
-            lines.push(Line::styled(
-                format!("  {}", self.labels.slash_hint),
-                Style::default()
-                    .fg(theme.text_dim())
-                    .add_modifier(Modifier::ITALIC),
-            ));
+            lines.push(Line::from(vec![
+                t.fg_dim(format!("  {}", self.labels.slash_hint))
+                    .italic()
+                    .build(),
+            ]));
         }
 
         lines.push(Line::raw(""));
-        lines.push(Line::styled(
-            format!("  {}", self.labels.press_any_key),
-            Style::default().fg(theme.border()),
-        ));
+        lines.push(Line::from(vec![
+            t.fg_border(format!("  {}", self.labels.press_any_key))
+                .build(),
+        ]));
 
         let popup_h = (lines.len() as u16 + 2).min(area.height.saturating_sub(2));
         let popup_w = 44u16.min(area.width.saturating_sub(4));
@@ -443,13 +381,9 @@ impl TuiShell {
 
         let block = Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(theme.accent()))
+            .border_style(Style::default().fg(t.accent()))
             .title(format!(" {} ", self.labels.help_title))
-            .title_style(
-                Style::default()
-                    .fg(theme.accent())
-                    .add_modifier(Modifier::BOLD),
-            );
+            .title_style(Style::default().fg(t.accent()).add_modifier(Modifier::BOLD));
 
         frame.render_widget(Clear, popup);
         frame.render_widget(Paragraph::new(lines).block(block), popup);
