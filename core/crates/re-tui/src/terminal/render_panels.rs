@@ -159,35 +159,40 @@ fn render_sprint_group<'a>(
     lines: &mut Vec<Line<'a>>,
 ) {
     for panel in panels {
+        // Progress bar first (most important)
         for item in &panel.items {
-            match item.hint {
-                PanelHint::Bar => {
-                    super::style::render_panel_item(item, accent, theme, lines);
+            if item.hint == PanelHint::Bar {
+                super::style::render_panel_item(item, accent, theme, lines);
+            }
+        }
+
+        // Active stories (max 5 per list)
+        for item in &panel.items {
+            if item.hint == PanelHint::List {
+                for story in item.items.iter().take(5) {
+                    let sev_color = match item.severity {
+                        PanelSeverity::Warning => theme.warning(),
+                        PanelSeverity::Success => theme.success(),
+                        _ => accent,
+                    };
+                    lines.push(Line::from(vec![
+                        ThemedSpan::with_color("  → ", sev_color).build(),
+                        theme.fg_text(story.as_str()).build(),
+                    ]));
                 }
-                PanelHint::List => {
-                    // Stories as arrow-prefixed lines
-                    for story in &item.items {
-                        let sev_color = match item.severity {
-                            PanelSeverity::Warning => theme.warning(),
-                            PanelSeverity::Success => theme.success(),
-                            _ => accent,
-                        };
-                        lines.push(Line::from(vec![
-                            ThemedSpan::with_color("  → ", sev_color).build(),
-                            theme.fg_text(story.as_str()).build(),
-                        ]));
-                    }
-                }
-                PanelHint::Inline => {
-                    // Metrics: compact inline
-                    super::style::render_panel_item(item, accent, theme, lines);
-                }
-                _ => {
-                    super::style::render_panel_item(item, accent, theme, lines);
+                let remaining = item.items.len().saturating_sub(5);
+                if remaining > 0 {
+                    lines.push(
+                        theme
+                            .fg_dim(format!("    +{remaining} more"))
+                            .italic()
+                            .build()
+                            .into(),
+                    );
                 }
             }
         }
-        // No legacy lines fallback — all plugins use typed items
+        // Skip: Inline metrics (Done/Doing/Todo), Separator, Pairs, Text
     }
 }
 
@@ -239,13 +244,7 @@ fn render_findings_group<'a>(
     lines: &mut Vec<Line<'a>>,
 ) {
     for panel in panels {
-        // Metrics first (section count)
-        for item in &panel.items {
-            if item.hint == PanelHint::Inline && item.numeric.is_some() {
-                super::style::render_panel_item(item, accent, theme, lines);
-            }
-        }
-        // Section headings as bullets
+        // Only section headings as bullets — skip metrics (Sections/Lines counts)
         for item in &panel.items {
             if item.hint == PanelHint::List {
                 for heading in &item.items {

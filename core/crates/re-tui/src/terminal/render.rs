@@ -110,8 +110,8 @@ impl TuiShell {
             self.render_sidebar(frame, sidebar);
         }
 
-        // Control panel (wide tier)
-        if let Some(control) = zones.control {
+        // Control panel: only when agent is active (not idle)
+        if has_feed && let Some(control) = zones.control {
             self.render_control_panel(frame, control);
         }
 

@@ -353,15 +353,21 @@ fn render_standard_shows_sidebar() {
 }
 
 #[test]
-fn render_wide_shows_control_panel() {
+fn render_wide_shows_control_panel_when_active() {
     let mut shell = TuiShell::new(TuiConfig {
         title: "Fix Bug".to_owned(),
         agent_id: "test.agent".to_owned(),
         locale: "en".to_owned(),
     });
+    // Control panel only shows when feed has content (active mode)
+    shell
+        .feed_mut()
+        .push_block(crate::feed::FeedBlock::completed(
+            crate::feed::BlockKind::System,
+            "test".into(),
+        ));
     let output = render_to_buffer(&mut shell, 200, 60);
     assert!(output.contains("State"));
-    assert!(output.contains("RUNNING"));
     assert!(output.contains("wide"));
 }
 

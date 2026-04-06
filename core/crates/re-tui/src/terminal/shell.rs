@@ -292,9 +292,16 @@ impl TuiShell {
         self.available_agents = agents;
     }
 
-    /// Sets sidebar panels (`zone_hint="sidebar"`).
+    /// Sets sidebar panels, deduplicating by `plugin_id`.
+    ///
+    /// When a plugin returns multiple panels (e.g., BMAD has sidebar + main),
+    /// only the first panel per `plugin_id` is kept to avoid duplication.
     pub fn set_sidebar_panels(&mut self, panels: Vec<SidebarPanel>) {
-        self.sidebar_panels = panels;
+        let mut seen = std::collections::HashSet::new();
+        self.sidebar_panels = panels
+            .into_iter()
+            .filter(|p| seen.insert(p.plugin_id.clone()))
+            .collect();
     }
 
     /// Sets plugin keybindings.
