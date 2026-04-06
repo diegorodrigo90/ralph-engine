@@ -236,16 +236,34 @@ impl TuiShell {
             return;
         }
         self.save_undo_snapshot();
+
+        // Normalize line endings: \r\n → \n, lone \r → \n
+        let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
+
         let remaining = MAX_INPUT_CHARS.saturating_sub(self.text_input_buffer.len());
         if remaining == 0 {
             return;
         }
-        let truncated = &text[..text.len().min(remaining)];
-        // Insert at cursor position (not just append)
+        let truncated = if normalized.len() > remaining {
+            &normalized[..remaining]
+        } else {
+            &normalized
+        };
+
+        // Insert at cursor position
         self.text_input_buffer
             .insert_str(self.cursor_pos, truncated);
         self.cursor_pos += truncated.len();
         self.autocomplete.update_filter(&self.text_input_buffer);
+
+        // Toast: show paste summary
+        let line_count = truncated.lines().count();
+        let char_count = truncated.chars().count();
+        let label = &self.labels.pasted_text_label;
+        let suffix = &self.labels.paste_lines_suffix;
+        self.toast_info(format!(
+            "{label}: {char_count} chars, {line_count} {suffix}"
+        ));
     }
 
     /// Renders the autocomplete popup above the input bar.
