@@ -23,6 +23,9 @@ Ralph Engine ships with official plugins compiled into the binary:
 | **findings** | Context Provider | prompt_fragments | Feedback loop — injects past findings into agent prompts |
 | **github** | MCP Contribution | data_source, context_provider, forge_provider, mcp_contribution | GitHub integration (data, context, forge, MCP) |
 | **ssh** | Remote Control | remote_control | SSH remote control for distributed workflows |
+| **context** | Context Manager | context_management, session_persistence | Session persistence and context compaction |
+| **guided** | TUI Extension | tui_widgets | Interactive TUI input bar for human-in-the-loop guidance |
+| **router** | Agent Router | agent_routing | Task classification and agent selection |
 
 List all registered plugins:
 
@@ -72,6 +75,74 @@ This generates a complete plugin crate with:
 - **Capabilities** define what a plugin can do: template, prompt, agent, check, provider, policy, mcp
 - **Runtime**: every plugin implements the `PluginRuntime` trait for validation and execution
 - **i18n**: translations live in `locales/*.toml` — adding a language means creating one TOML file
+
+## TUI Contributions
+
+Plugins can contribute visual panels and feed blocks to the TUI dashboard.
+
+### Sidebar and Main Panels
+
+Implement `tui_contributions()` to return `TuiPanel` items. Each panel has a `zone_hint` that controls placement:
+
+- `zone_hint: "sidebar"` — appears in the right sidebar (default)
+- `zone_hint: "main"` — appears in the central feed area
+
+```rust
+fn tui_contributions(&self) -> Vec<TuiPanel> {
+    vec![TuiPanel {
+        title: "Sprint Status".to_owned(),
+        zone_hint: "main".to_owned(),
+        lines: vec![],
+        blocks: vec![
+            TuiBlock::bar("Progress", 75, "bar"),
+            TuiBlock::metric("Tests", "994", "metric"),
+        ],
+    }]
+}
+```
+
+### TuiBlock Widgets
+
+`TuiBlock` provides widget builders for dashboard panels:
+
+| Builder | Output | Example |
+|---------|--------|---------|
+| `TuiBlock::bar(label, value, kind)` | Progress bar (0–100) | `TuiBlock::bar("Build", 85, "bar")` |
+| `TuiBlock::metric(label, value, kind)` | Key-value metric | `TuiBlock::metric("Tests", "994", "metric")` |
+| `TuiBlock::indicator(label, status, kind)` | Status indicator | `TuiBlock::indicator("CI", "pass", "indicator")` |
+| `TuiBlock::pairs(label, pairs, kind)` | Key-value pairs | `TuiBlock::pairs("Info", vec![...], "pairs")` |
+| `TuiBlock::list(label, items, kind)` | Bulleted list | `TuiBlock::list("Errors", vec![...], "list")` |
+| `TuiBlock::separator()` | Visual divider | `TuiBlock::separator()` |
+
+### Feed Contributions
+
+Implement `feed_contributions()` to inject status blocks into the live activity feed:
+
+```rust
+fn feed_contributions(&self) -> Vec<FeedContribution> {
+    vec![FeedContribution {
+        title: "Lint Complete".to_owned(),
+        content: vec!["0 warnings, 0 errors".to_owned()],
+        kind: "gate-pass".to_owned(),
+        phase_marker: Some("pass:lint".to_owned()),
+        success: Some(true),
+    }]
+}
+```
+
+### Custom Keybindings
+
+Plugins can register custom key shortcuts:
+
+```rust
+fn tui_keybindings(&self) -> Vec<TuiKeybinding> {
+    vec![TuiKeybinding {
+        key: "F5".to_owned(),
+        label: "Refresh".to_owned(),
+        description: "Refresh sprint data".to_owned(),
+    }]
+}
+```
 
 ## Plugin Lifecycle
 

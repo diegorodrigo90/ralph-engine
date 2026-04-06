@@ -127,7 +127,7 @@ core/crates/
 ├── re-official/  Official plugin registry
 └── re-build-utils/ Build-time locale generation
 
-plugins/official/  10 official plugins (Rust)
+plugins/official/  13 official plugins (Rust)
 site/              Astro + Starlight docs (EN + PT-BR)
 tools/             Plugin scaffolder (npx)
 scripts/           Validation, release, CI
@@ -135,7 +135,7 @@ scripts/           Validation, release, CI
 
 ## Status
 
-Alpha (`v0.2.0-alpha.1`). Core runtime is functional with 830+ tests, 58 Golden Rules, and 10 official plugins. TUI dashboard, autonomous loop, and guided mode are implemented. Release pipeline (npm, Homebrew) is gated pending final validation.
+Alpha (`v0.2.0-alpha.1`). Core runtime is functional with 994 tests, 72 Golden Rules, 13 official plugins, and 11 themes via ratatui-themekit. TUI dashboard with zone_hint panels, autonomous loop, and guided mode are implemented. Release pipeline (npm, Homebrew) is gated pending final validation.
 
 ## License
 

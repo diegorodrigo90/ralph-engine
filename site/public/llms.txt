@@ -12,3 +12,7 @@ Ralph Engine is an open-source plugin-first runtime for agentic coding workflows
 - Building: ./docs/development/building.md
 - Releasing: ./docs/development/releasing.md
 - Roadmap: ./docs/development/roadmap.md
+- Backlog: ./docs/development/backlog.md
+- Plugins: ./docs/guides/plugins.mdx
+- Hooks: ./docs/guides/hooks.md
+- Configuration: ./docs/guides/configuration.md

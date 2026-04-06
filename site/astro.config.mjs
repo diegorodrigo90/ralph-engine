@@ -115,6 +115,16 @@ export default defineConfig({
               label: 'Releasing',
               translations: { 'pt-BR': 'Publicação' },
             },
+            {
+              slug: 'development/roadmap',
+              label: 'Roadmap',
+              translations: { 'pt-BR': 'Roadmap' },
+            },
+            {
+              slug: 'development/backlog',
+              label: 'Backlog',
+              translations: { 'pt-BR': 'Backlog' },
+            },
           ],
         },
       ],
