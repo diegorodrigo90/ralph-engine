@@ -748,13 +748,21 @@ impl TuiShell {
             return PluginKeyAction::Handled;
         }
 
-        let typing = self.input_enabled && !self.text_input_buffer.is_empty();
-
-        if typing {
-            return self.handle_typing_key(code, modifiers);
+        // When input is enabled and user types a printable character,
+        // ALWAYS route to the input buffer — never trigger core keys like q/?.
+        if self.input_enabled {
+            if !self.text_input_buffer.is_empty() {
+                return self.handle_typing_key(code, modifiers);
+            }
+            // Empty buffer: slash starts command, other chars start typing
+            if let KeyCode::Char(c) = code {
+                self.text_input_buffer.push(c);
+                self.autocomplete.update_filter(&self.text_input_buffer);
+                return PluginKeyAction::Handled;
+            }
         }
 
-        // Core keys (always available when not typing)
+        // Core keys (only when not typing in input)
         if let Some(action) = self.handle_core_key(code, modifiers) {
             return action;
         }
@@ -765,12 +773,6 @@ impl TuiShell {
             if self.find_active_binding(c, &state_label).is_some() {
                 tracing::debug!(key = %c, "dispatching key to plugin");
                 return PluginKeyAction::NotHandled;
-            }
-
-            if self.input_enabled {
-                self.text_input_buffer.push(c);
-                self.autocomplete.update_filter(&self.text_input_buffer);
-                return PluginKeyAction::Handled;
             }
         }
 
