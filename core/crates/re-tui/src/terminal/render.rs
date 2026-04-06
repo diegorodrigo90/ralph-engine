@@ -141,7 +141,7 @@ impl TuiShell {
             right_spans
                 .push(ThemedSpan::with_color(format!("{}%", self.progress), state_color).build());
         }
-        right_spans.push(Span::raw(" "));
+        right_spans.push(t.fg_text(" ").build());
 
         let left = Line::from(spans);
         let right = Line::from(right_spans);
@@ -194,7 +194,7 @@ impl TuiShell {
                 } else if s.starts_with(">> Keys:") {
                     Line::from(t.fg_dim(s.as_str()).build())
                 } else {
-                    Line::raw(s.as_str())
+                    Line::from(t.fg_text(s.as_str()).build())
                 }
             })
             .collect();
@@ -462,24 +462,16 @@ impl TuiShell {
             let indicator_bar = self.indicator_panel.render_bar(t);
             frame.render_widget(Paragraph::new(indicator_bar), area);
         } else {
-            let metrics = Line::from(vec![
-                t.fg_info(format!(
-                    " {}: {} ",
-                    self.labels.tools_label, self.tool_count
-                ))
-                .build(),
-                Span::raw("│ "),
-                Span::raw(format!(
-                    "{}: {} ",
-                    self.labels.lines_label,
-                    self.activity_lines.len()
-                )),
-                Span::raw("│ "),
-                Span::raw(format!(
-                    "{}: {}% ",
-                    self.labels.progress_label, self.progress
-                )),
-            ]);
+            let metrics = t
+                .status_line()
+                .kv(&self.labels.tools_label, format!("{}", self.tool_count))
+                .kv(
+                    &self.labels.lines_label,
+                    format!("{}", self.activity_lines.len()),
+                )
+                .kv(&self.labels.progress_label, format!("{}%", self.progress))
+                .separator(" │ ")
+                .build();
             frame.render_widget(Paragraph::new(metrics), area);
         }
     }

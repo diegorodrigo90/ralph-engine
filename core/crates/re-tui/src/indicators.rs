@@ -8,6 +8,7 @@
 //! what any indicator represents — it just renders the icon and label.
 
 use ratatui::text::{Line, Span};
+use ratatui_themekit::ThemeExt;
 use ratatui_themekit::builders::ThemedSpan;
 
 use crate::theme::Theme;
@@ -238,14 +239,14 @@ impl IndicatorPanel {
     #[must_use]
     pub fn render_bar(&self, theme: &dyn Theme) -> Line<'static> {
         if self.indicators.is_empty() {
-            return Line::raw("");
+            return Line::from("");
         }
 
         let mut spans: Vec<Span<'static>> = Vec::new();
 
         for (i, ind) in self.indicators.iter().enumerate() {
             if i > 0 {
-                spans.push(Span::raw("  "));
+                spans.push(theme.fg_dim("  ").build());
             }
             let color = ind.state.color(theme);
             spans.push(

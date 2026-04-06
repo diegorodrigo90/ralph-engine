@@ -164,14 +164,14 @@ fn render_text<'a>(
 ) {
     let text = item.label.as_deref().unwrap_or("");
     lines.push(Line::from(vec![
-        Span::raw("  "),
+        theme.fg_dim("  ").build(),
         theme.fg_dim(text).italic().build(),
     ]));
 }
 
 fn render_separator(theme: &dyn crate::theme::Theme, lines: &mut Vec<Line<'_>>) {
     lines.push(Line::from(vec![
-        Span::raw("  "),
+        theme.fg_dim("  ").build(),
         theme.fg_border("· · · · · · · ·").build(),
     ]));
 }
@@ -262,6 +262,6 @@ pub(super) fn style_content_line<'a>(
         BlockKind::Thinking => vec![theme.fg_dim(line).italic().build()],
         BlockKind::GateFail => vec![theme.fg_error(line).build()],
         BlockKind::GatePass => vec![theme.fg_success(line).build()],
-        _ => vec![Span::raw(line)],
+        _ => vec![theme.fg_text(line).build()],
     }
 }
