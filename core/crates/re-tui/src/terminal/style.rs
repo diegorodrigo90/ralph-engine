@@ -3,8 +3,10 @@
 //! Free functions that convert raw text + context into styled
 //! ratatui `Line` / `Span` sequences. Used by render modules.
 
-use ratatui::style::{Color, Modifier, Style};
+use ratatui::style::Color;
 use ratatui::text::{Line, Span};
+use ratatui_themekit::ThemeExt;
+use ratatui_themekit::builders::ThemedSpan;
 
 use super::types::{PanelHint, PanelItem, PanelSeverity};
 
@@ -28,7 +30,7 @@ pub(super) fn render_panel_item<'a>(
 
     match item.hint {
         PanelHint::Indicator => render_indicator(item, sev_color, theme, lines),
-        PanelHint::Inline => render_inline(item, accent, sev_color, theme, lines),
+        PanelHint::Inline => render_inline(item, accent, theme, lines),
         PanelHint::Bar => render_bar(item, accent, theme, lines),
         PanelHint::Pairs => render_pairs(item, theme, lines),
         PanelHint::List => render_list(item, accent, theme, lines),
@@ -52,22 +54,17 @@ fn render_indicator<'a>(
     let label = item.label.as_deref().unwrap_or("");
     let value = item.value.as_deref().unwrap_or("");
     lines.push(Line::from(vec![
-        Span::styled(
-            format!("  {icon} "),
-            Style::default().fg(sev_color).add_modifier(Modifier::BOLD),
-        ),
-        Span::styled(format!("{label} "), Style::default().fg(theme.text_dim())),
-        Span::styled(
-            value,
-            Style::default().fg(sev_color).add_modifier(Modifier::BOLD),
-        ),
+        ThemedSpan::with_color(format!("  {icon} "), sev_color)
+            .bold()
+            .build(),
+        theme.fg_dim(format!("{label} ")).build(),
+        ThemedSpan::with_color(value, sev_color).bold().build(),
     ]));
 }
 
 fn render_inline<'a>(
     item: &'a PanelItem,
     accent: Color,
-    _sev_color: Color,
     theme: &dyn crate::theme::Theme,
     lines: &mut Vec<Line<'a>>,
 ) {
@@ -79,31 +76,22 @@ fn render_inline<'a>(
             format!("{num}")
         };
         let mut spans = vec![
-            Span::styled(format!("  {label} "), Style::default().fg(theme.text_dim())),
-            Span::styled(
-                num_str,
-                Style::default().fg(accent).add_modifier(Modifier::BOLD),
-            ),
+            theme.fg_dim(format!("  {label} ")).build(),
+            ThemedSpan::with_color(num_str, accent).bold().build(),
         ];
         if let Some(t) = item.total {
             let pct = if t > 0 { num * 100 / t } else { 0 };
-            spans.push(Span::styled(
-                format!("/{t}"),
-                Style::default().fg(theme.text_dim()),
-            ));
+            spans.push(theme.fg_dim(format!("/{t}")).build());
             let mini_fill = (pct as usize * 3 / 100).min(3);
             let mini_bar = format!(" {}{}", "▰".repeat(mini_fill), "▱".repeat(3 - mini_fill));
-            spans.push(Span::styled(mini_bar, Style::default().fg(accent)));
+            spans.push(ThemedSpan::with_color(mini_bar, accent).build());
         }
         lines.push(Line::from(spans));
     } else {
         let value = item.value.as_deref().unwrap_or("");
         lines.push(Line::from(vec![
-            Span::styled(
-                format!("  {label}: "),
-                Style::default().fg(theme.text_dim()),
-            ),
-            Span::styled(value, Style::default().fg(theme.text_bright())),
+            theme.fg_dim(format!("  {label}: ")).build(),
+            theme.fg_bright(value).build(),
         ]));
     }
 }
@@ -128,12 +116,11 @@ fn render_bar<'a>(
         theme.warning()
     };
     lines.push(Line::from(vec![
-        Span::styled(format!("  {label} "), Style::default().fg(theme.text_dim())),
-        Span::styled(bar, Style::default().fg(bar_color)),
-        Span::styled(
-            format!(" {pct}%"),
-            Style::default().fg(bar_color).add_modifier(Modifier::BOLD),
-        ),
+        theme.fg_dim(format!("  {label} ")).build(),
+        ThemedSpan::with_color(bar, bar_color).build(),
+        ThemedSpan::with_color(format!(" {pct}%"), bar_color)
+            .bold()
+            .build(),
     ]));
 }
 
@@ -144,9 +131,9 @@ fn render_pairs<'a>(
 ) {
     for (key, val) in &item.pairs {
         lines.push(Line::from(vec![
-            Span::styled(format!("  {key}"), Style::default().fg(theme.text_dim())),
-            Span::styled(" → ", Style::default().fg(theme.border())),
-            Span::styled(val.as_str(), Style::default().fg(theme.text_bright())),
+            theme.fg_dim(format!("  {key}")).build(),
+            theme.fg_border(" → ").build(),
+            theme.fg_bright(val.as_str()).build(),
         ]));
     }
 }
@@ -164,8 +151,8 @@ fn render_list<'a>(
             "  ▸ ".to_owned()
         };
         lines.push(Line::from(vec![
-            Span::styled(bullet, Style::default().fg(accent)),
-            Span::styled(item_text.as_str(), Style::default().fg(theme.text())),
+            ThemedSpan::with_color(bullet, accent).build(),
+            theme.fg_text(item_text.as_str()).build(),
         ]));
     }
 }
@@ -177,20 +164,15 @@ fn render_text<'a>(
 ) {
     let text = item.label.as_deref().unwrap_or("");
     lines.push(Line::from(vec![
-        Span::styled("  ", Style::default()),
-        Span::styled(
-            text,
-            Style::default()
-                .fg(theme.text_dim())
-                .add_modifier(Modifier::ITALIC),
-        ),
+        Span::raw("  "),
+        theme.fg_dim(text).italic().build(),
     ]));
 }
 
 fn render_separator(theme: &dyn crate::theme::Theme, lines: &mut Vec<Line<'_>>) {
     lines.push(Line::from(vec![
-        Span::styled("  ", Style::default()),
-        Span::styled("· · · · · · · ·", Style::default().fg(theme.border())),
+        Span::raw("  "),
+        theme.fg_border("· · · · · · · ·").build(),
     ]));
 }
 
@@ -202,62 +184,47 @@ pub(super) fn style_sidebar_line<'a>(
 ) -> Line<'a> {
     // Status indicators
     if line.starts_with('✓') || line.contains("Available") || line.contains("Ready") {
-        return Line::from(vec![Span::styled(
-            format!("  {line}"),
-            Style::default().fg(theme.success()),
-        )]);
+        return Line::from(vec![theme.fg_success(format!("  {line}")).build()]);
     }
     if line.starts_with('✗')
         || line.contains("Error")
         || line.contains("Failed")
         || line.contains("Not found")
     {
-        return Line::from(vec![Span::styled(
-            format!("  {line}"),
-            Style::default().fg(theme.error()),
-        )]);
+        return Line::from(vec![theme.fg_error(format!("  {line}")).build()]);
     }
 
     // Key: Value pattern → dim key, bright value
     if let Some(colon_pos) = line.find(": ") {
         let (key, val) = line.split_at(colon_pos + 2);
         let val_trimmed = val.trim();
-        let val_style = if val_trimmed.parse::<f64>().is_ok()
+        let val_span = if val_trimmed.parse::<f64>().is_ok()
             || val_trimmed.starts_with('$')
             || val_trimmed.ends_with('%')
         {
-            Style::default()
-                .fg(panel_color)
-                .add_modifier(Modifier::BOLD)
+            ThemedSpan::with_color(val, panel_color).bold().build()
         } else if val_trimmed == "true" || val_trimmed == "enabled" || val_trimmed == "yes" {
-            Style::default().fg(theme.success())
+            theme.fg_success(val).build()
         } else if val_trimmed == "false" || val_trimmed == "disabled" || val_trimmed == "no" {
-            Style::default().fg(theme.text_dim())
+            theme.fg_dim(val).build()
         } else {
-            Style::default().fg(theme.text_bright())
+            theme.fg_bright(val).build()
         };
-        return Line::from(vec![
-            Span::styled(format!("  {key}"), Style::default().fg(theme.text_dim())),
-            Span::styled(val, val_style),
-        ]);
+        return Line::from(vec![theme.fg_dim(format!("  {key}")).build(), val_span]);
     }
 
     // Pure number lines → bold accent
     let trimmed = line.trim();
     if !trimmed.is_empty() && trimmed.chars().all(|c| c.is_ascii_digit()) {
-        return Line::from(vec![Span::styled(
-            format!("  {line}"),
-            Style::default()
-                .fg(panel_color)
-                .add_modifier(Modifier::BOLD),
-        )]);
+        return Line::from(vec![
+            ThemedSpan::with_color(format!("  {line}"), panel_color)
+                .bold()
+                .build(),
+        ]);
     }
 
     // Default: dim text
-    Line::from(vec![Span::styled(
-        format!("  {line}"),
-        Style::default().fg(theme.text_dim()),
-    )])
+    Line::from(vec![theme.fg_dim(format!("  {line}")).build()])
 }
 
 /// Styles a content line as a vec of spans (preserving per-character coloring).
@@ -274,43 +241,27 @@ pub(super) fn style_content_line<'a>(
     match kind {
         BlockKind::FileEdit => {
             if line.starts_with('+') {
-                vec![Span::styled(line, Style::default().fg(theme.diff_added()))]
+                vec![theme.fg_added(line).build()]
             } else if line.starts_with('-') {
-                vec![Span::styled(
-                    line,
-                    Style::default().fg(theme.diff_removed()),
-                )]
+                vec![theme.fg_removed(line).build()]
             } else if line.starts_with("@@") {
-                vec![Span::styled(
-                    line,
-                    Style::default()
-                        .fg(theme.info())
-                        .add_modifier(Modifier::BOLD),
-                )]
+                vec![theme.fg_info(line).bold().build()]
             } else {
-                vec![Span::styled(
-                    line,
-                    Style::default().fg(theme.diff_context()),
-                )]
+                vec![ThemedSpan::with_color(line, theme.diff_context()).build()]
             }
         }
         BlockKind::Command => {
             if line.contains("FAIL") || line.contains("error") || line.contains("Error") {
-                vec![Span::styled(line, Style::default().fg(theme.error()))]
+                vec![theme.fg_error(line).build()]
             } else if line.contains("PASS") || line.contains("✓") || line.starts_with("ok") {
-                vec![Span::styled(line, Style::default().fg(theme.success()))]
+                vec![theme.fg_success(line).build()]
             } else {
-                vec![Span::styled(line, Style::default().fg(theme.text_dim()))]
+                vec![theme.fg_dim(line).build()]
             }
         }
-        BlockKind::Thinking => vec![Span::styled(
-            line,
-            Style::default()
-                .fg(theme.text_dim())
-                .add_modifier(Modifier::ITALIC),
-        )],
-        BlockKind::GateFail => vec![Span::styled(line, Style::default().fg(theme.error()))],
-        BlockKind::GatePass => vec![Span::styled(line, Style::default().fg(theme.success()))],
+        BlockKind::Thinking => vec![theme.fg_dim(line).italic().build()],
+        BlockKind::GateFail => vec![theme.fg_error(line).build()],
+        BlockKind::GatePass => vec![theme.fg_success(line).build()],
         _ => vec![Span::raw(line)],
     }
 }
