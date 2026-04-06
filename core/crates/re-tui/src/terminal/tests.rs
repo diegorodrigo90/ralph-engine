@@ -653,3 +653,113 @@ fn toasts_expire_after_ticks() {
     });
     assert!(shell.toasts.is_empty());
 }
+
+// ── Main panels (zone_hint="main") ──────────────────────────
+
+#[test]
+fn set_main_panels_stores_panels() {
+    let mut shell = empty_shell();
+    assert!(shell.main_panels.is_empty());
+    shell.set_main_panels(vec![SidebarPanel {
+        title: "Sprint".to_owned(),
+        lines: vec!["Story 5.3: in-progress".to_owned()],
+        items: Vec::new(),
+        plugin_id: "test.bmad".to_owned(),
+    }]);
+    assert_eq!(shell.main_panels.len(), 1);
+    assert_eq!(shell.main_panels[0].title, "Sprint");
+}
+
+#[test]
+fn set_main_panels_replaces() {
+    let mut shell = empty_shell();
+    shell.set_main_panels(vec![SidebarPanel {
+        title: "A".to_owned(),
+        lines: vec![],
+        items: Vec::new(),
+        plugin_id: "test".to_owned(),
+    }]);
+    shell.set_main_panels(vec![]);
+    assert!(shell.main_panels.is_empty());
+}
+
+#[test]
+fn render_main_panels_when_idle() {
+    let mut shell = empty_shell();
+    shell.set_main_panels(vec![SidebarPanel {
+        title: "Dashboard".to_owned(),
+        lines: vec!["Status: healthy".to_owned()],
+        items: Vec::new(),
+        plugin_id: "test.dashboard".to_owned(),
+    }]);
+    // No activity + main_panels → should render main panels, not idle dashboard
+    let output = render_to_buffer(&mut shell, 120, 30);
+    assert!(
+        output.contains("Dashboard"),
+        "main panels should render when idle, got:\n{output}"
+    );
+    assert!(output.contains("Status"));
+}
+
+#[test]
+fn render_idle_dashboard_when_no_main_panels() {
+    let mut shell = empty_shell();
+    // No activity + no main_panels → idle dashboard with logo
+    let output = render_to_buffer(&mut shell, 120, 30);
+    assert!(
+        output.contains("Ralph"),
+        "idle dashboard should show logo when no main panels"
+    );
+}
+
+#[test]
+fn startup_banner_counts_both_panel_types() {
+    let mut shell = empty_shell();
+    shell.set_sidebar_panels(vec![SidebarPanel {
+        title: "Side".to_owned(),
+        lines: vec![],
+        items: Vec::new(),
+        plugin_id: "a".to_owned(),
+    }]);
+    shell.set_main_panels(vec![SidebarPanel {
+        title: "Main".to_owned(),
+        lines: vec![],
+        items: Vec::new(),
+        plugin_id: "b".to_owned(),
+    }]);
+    shell.push_startup_banner();
+    let banner = shell.activity_lines.join(" ");
+    assert!(
+        banner.contains("2 panels"),
+        "banner should count sidebar + main panels"
+    );
+}
+
+#[test]
+fn render_main_panels_with_typed_blocks() {
+    use super::types::{PanelHint, PanelItem, PanelSeverity};
+    let mut shell = empty_shell();
+    shell.set_main_panels(vec![SidebarPanel {
+        title: "Sprint".to_owned(),
+        lines: vec![],
+        items: vec![
+            PanelItem {
+                label: Some("Progress".to_owned()),
+                hint: PanelHint::Bar,
+                numeric: Some(75),
+                severity: PanelSeverity::Success,
+                ..PanelItem::default()
+            },
+            PanelItem {
+                label: Some("Stories".to_owned()),
+                value: Some("3/5".to_owned()),
+                hint: PanelHint::Inline,
+                ..PanelItem::default()
+            },
+        ],
+        plugin_id: "test.bmad".to_owned(),
+    }]);
+    let output = render_to_buffer(&mut shell, 120, 30);
+    assert!(output.contains("Sprint"));
+    assert!(output.contains("75%"));
+}

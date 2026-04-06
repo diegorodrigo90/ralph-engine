@@ -1157,4 +1157,54 @@ mod community_plugin_e2e {
         let error = PluginRuntimeError::new("test_code", "something went wrong");
         assert_eq!(error.to_string(), "[test_code] something went wrong");
     }
+
+    // ── FeedContribution ────────────────────────────────────────
+
+    #[test]
+    fn feed_contribution_fields_accessible() {
+        let fc = re_plugin::FeedContribution {
+            title: "Story 5.3 started".to_owned(),
+            content: vec!["Resolving work item...".to_owned()],
+            kind: "system".to_owned(),
+            phase_marker: Some("start:resolve".to_owned()),
+            success: None,
+        };
+        assert_eq!(fc.title, "Story 5.3 started");
+        assert_eq!(fc.kind, "system");
+        assert!(fc.phase_marker.is_some());
+        assert!(fc.success.is_none());
+    }
+
+    #[test]
+    fn feed_contribution_gate_result() {
+        let pass = re_plugin::FeedContribution {
+            title: "lint".to_owned(),
+            content: vec!["0 errors".to_owned()],
+            kind: "gate-pass".to_owned(),
+            phase_marker: Some("pass:lint".to_owned()),
+            success: Some(true),
+        };
+        let fail = re_plugin::FeedContribution {
+            title: "test".to_owned(),
+            content: vec!["3 failures".to_owned()],
+            kind: "gate-fail".to_owned(),
+            phase_marker: Some("fail:test".to_owned()),
+            success: Some(false),
+        };
+        assert_eq!(pass.success, Some(true));
+        assert_eq!(fail.success, Some(false));
+    }
+
+    #[test]
+    fn feed_contribution_empty_content() {
+        let fc = re_plugin::FeedContribution {
+            title: "System init".to_owned(),
+            content: vec![],
+            kind: "system".to_owned(),
+            phase_marker: None,
+            success: None,
+        };
+        assert!(fc.content.is_empty());
+        assert!(fc.phase_marker.is_none());
+    }
 }
