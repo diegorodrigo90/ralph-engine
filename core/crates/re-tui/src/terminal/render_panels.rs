@@ -2,25 +2,22 @@
 //!
 //! The sidebar groups plugin panels into semantic domains (Agents,
 //! Sprint, Tools, Findings) instead of showing one panel per plugin.
-//! This keeps the sidebar scannable even with many active plugins.
+//! Each group has a distinct rendering style optimized for its content.
 
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::layout::{Constraint, Layout};
 use ratatui::text::Line;
 use ratatui::widgets::{Borders, Paragraph};
+use ratatui_themekit::builders::ThemedSpan;
 
 use crate::theme::ThemeExt;
 
 use super::shell::TuiShell;
 use super::sidebar_groups::group_panels;
-use super::style::render_panel_item;
+use super::types::{PanelHint, PanelSeverity, SidebarPanel};
 
 impl TuiShell {
     /// Renders the sidebar zone with grouped plugin panels.
-    ///
-    /// Panels are grouped by domain: Agents, Sprint, Tools, Findings.
-    /// Each group gets a heading and condensed item rendering.
     pub(super) fn render_sidebar(&self, frame: &mut Frame<'_>, area: Rect) {
         let t = self.theme();
 
@@ -39,40 +36,28 @@ impl TuiShell {
         }
 
         let group_colors = [t.accent(), t.info(), t.success(), t.warning()];
-
-        let group_count = groups.len();
-        let constraints: Vec<Constraint> = (0..group_count)
-            .map(|i| {
-                if i < group_count - 1 {
-                    Constraint::Ratio(1, group_count as u32)
-                } else {
-                    Constraint::Fill(1)
-                }
-            })
-            .collect();
-
-        let group_areas = Layout::vertical(constraints).split(inner);
+        let mut all_lines: Vec<Line<'_>> = Vec::new();
 
         for (i, group) in groups.iter().enumerate() {
             let color = group_colors[i % group_colors.len()];
-            let heading = render_group_heading(group.title, group_areas[i].width, color, t);
 
-            let mut lines: Vec<Line<'_>> = vec![heading];
-
-            for panel in &group.panels {
-                if !panel.items.is_empty() {
-                    for item in &panel.items {
-                        render_panel_item(item, color, t, &mut lines);
-                    }
-                } else {
-                    for s in &panel.lines {
-                        lines.push(super::style::style_sidebar_line(s, color, t));
-                    }
-                }
+            if i > 0 {
+                all_lines.push(Line::raw(""));
             }
+            all_lines.push(render_group_heading(group.title, inner.width, color, t));
 
-            frame.render_widget(Paragraph::new(lines), group_areas[i]);
+            // Each group type has a condensed rendering style
+            match group.title {
+                "Agents" => render_agent_group(group.panels.as_slice(), t, &mut all_lines),
+                "Sprint" => render_sprint_group(group.panels.as_slice(), color, t, &mut all_lines),
+                "Findings" => {
+                    render_findings_group(group.panels.as_slice(), color, t, &mut all_lines);
+                }
+                _ => render_tool_group(group.panels.as_slice(), t, &mut all_lines),
+            }
         }
+
+        frame.render_widget(Paragraph::new(all_lines), inner);
     }
 
     /// Renders the control panel zone (wide tier only).
@@ -108,7 +93,7 @@ impl TuiShell {
     }
 }
 
-/// Renders a group heading with a colored title and border line.
+/// Renders a group heading.
 fn render_group_heading<'a>(
     title: &str,
     width: u16,
@@ -117,9 +102,193 @@ fn render_group_heading<'a>(
 ) -> Line<'a> {
     let border_len = width.saturating_sub(title.len() as u16 + 3) as usize;
     Line::from(vec![
-        ratatui_themekit::builders::ThemedSpan::with_color(format!(" {title} "), color)
+        ThemedSpan::with_color(format!(" {title} "), color)
             .bold()
             .build(),
         theme.fg_border("\u{2500}".repeat(border_len)).build(),
     ])
+}
+
+/// Agents group: one-line per agent with status dot.
+///
+/// ```text
+///  ● claude         ready
+///  ○ claudebox      —
+///  ○ codex          —
+/// ```
+fn render_agent_group<'a>(
+    panels: &'a [&'a SidebarPanel],
+    theme: &dyn crate::theme::Theme,
+    lines: &mut Vec<Line<'a>>,
+) {
+    for panel in panels {
+        // Extract status from the first indicator block
+        let (status, severity) = extract_indicator_status(panel);
+        let (icon, icon_color) = match severity {
+            PanelSeverity::Success => ("●", theme.success()),
+            PanelSeverity::Error => ("✗", theme.error()),
+            PanelSeverity::Warning => ("◆", theme.warning()),
+            PanelSeverity::Neutral => ("○", theme.text_dim()),
+        };
+
+        // Short name from panel title (e.g., "Claude" → "claude")
+        let name = panel.title.to_lowercase();
+        let padded = format!("{name:<14}");
+
+        lines.push(Line::from(vec![
+            ThemedSpan::with_color(format!("  {icon} "), icon_color)
+                .bold()
+                .build(),
+            theme.fg_text(padded).build(),
+            ThemedSpan::with_color(status, icon_color).build(),
+        ]));
+    }
+}
+
+/// Sprint group: progress bar + active stories.
+///
+/// ```text
+///  ████████░░ 72%  (36/50)
+///  → Story 5.3   doing
+///  → Story 5.4   todo
+/// ```
+fn render_sprint_group<'a>(
+    panels: &'a [&'a SidebarPanel],
+    accent: ratatui::style::Color,
+    theme: &dyn crate::theme::Theme,
+    lines: &mut Vec<Line<'a>>,
+) {
+    for panel in panels {
+        for item in &panel.items {
+            match item.hint {
+                PanelHint::Bar => {
+                    super::style::render_panel_item(item, accent, theme, lines);
+                }
+                PanelHint::List => {
+                    // Stories as arrow-prefixed lines
+                    for story in &item.items {
+                        let sev_color = match item.severity {
+                            PanelSeverity::Warning => theme.warning(),
+                            PanelSeverity::Success => theme.success(),
+                            _ => accent,
+                        };
+                        lines.push(Line::from(vec![
+                            ThemedSpan::with_color("  → ", sev_color).build(),
+                            theme.fg_text(story.as_str()).build(),
+                        ]));
+                    }
+                }
+                PanelHint::Inline => {
+                    // Metrics: compact inline
+                    super::style::render_panel_item(item, accent, theme, lines);
+                }
+                _ => {
+                    super::style::render_panel_item(item, accent, theme, lines);
+                }
+            }
+        }
+        // Fallback for plain lines
+        for s in &panel.lines {
+            lines.push(super::style::style_sidebar_line(s, accent, theme));
+        }
+    }
+}
+
+/// Tools group: one-line per tool with status dot.
+///
+/// ```text
+///  ● GitHub MCP     ready
+///  ● TDD Strict     active
+///  ● Router         3 rules
+/// ```
+fn render_tool_group<'a>(
+    panels: &'a [&'a SidebarPanel],
+    theme: &dyn crate::theme::Theme,
+    lines: &mut Vec<Line<'a>>,
+) {
+    for panel in panels {
+        let (status, severity) = extract_indicator_status(panel);
+        let (icon, icon_color) = match severity {
+            PanelSeverity::Success => ("●", theme.success()),
+            PanelSeverity::Error => ("✗", theme.error()),
+            PanelSeverity::Warning => ("◆", theme.warning()),
+            PanelSeverity::Neutral => ("○", theme.text_dim()),
+        };
+
+        let name = &panel.title;
+        let padded = format!("{name:<14}");
+
+        lines.push(Line::from(vec![
+            ThemedSpan::with_color(format!("  {icon} "), icon_color)
+                .bold()
+                .build(),
+            theme.fg_text(padded).build(),
+            ThemedSpan::with_color(status, icon_color).build(),
+        ]));
+    }
+}
+
+/// Findings group: section count + headings list.
+///
+/// ```text
+///  3 sections
+///  • Bug in parser
+///  • Performance issue
+/// ```
+fn render_findings_group<'a>(
+    panels: &'a [&'a SidebarPanel],
+    accent: ratatui::style::Color,
+    theme: &dyn crate::theme::Theme,
+    lines: &mut Vec<Line<'a>>,
+) {
+    for panel in panels {
+        // Metrics first (section count)
+        for item in &panel.items {
+            if item.hint == PanelHint::Inline && item.numeric.is_some() {
+                super::style::render_panel_item(item, accent, theme, lines);
+            }
+        }
+        // Section headings as bullets
+        for item in &panel.items {
+            if item.hint == PanelHint::List {
+                for heading in &item.items {
+                    lines.push(Line::from(vec![
+                        ThemedSpan::with_color("  • ", accent).build(),
+                        theme.fg_text(heading.as_str()).build(),
+                    ]));
+                }
+            }
+        }
+        // Fallback for panels with only plain lines
+        if panel.items.is_empty() {
+            for s in &panel.lines {
+                lines.push(super::style::style_sidebar_line(s, accent, theme));
+            }
+        }
+    }
+}
+
+/// Extracts the primary status text and severity from a panel.
+///
+/// Looks for the first Indicator item. Falls back to first line or "—".
+fn extract_indicator_status(panel: &SidebarPanel) -> (String, PanelSeverity) {
+    // Check typed items first
+    for item in &panel.items {
+        if item.hint == PanelHint::Indicator {
+            let status = item.value.as_deref().unwrap_or("—").to_lowercase();
+            return (status, item.severity);
+        }
+    }
+    // Fallback to first plain line
+    if let Some(first) = panel.lines.first() {
+        let sev = if first.contains("Available") || first.contains("Ready") {
+            PanelSeverity::Success
+        } else if first.contains("Error") || first.contains("Not found") {
+            PanelSeverity::Error
+        } else {
+            PanelSeverity::Neutral
+        };
+        return (first.clone(), sev);
+    }
+    ("\u{2014}".to_owned(), PanelSeverity::Neutral) // em dash
 }
