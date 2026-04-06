@@ -902,20 +902,31 @@ impl TuiShell {
             KeyCode::Backspace => {
                 if self.cursor_pos > 0 {
                     self.save_undo_snapshot();
-                    // Find previous char boundary
-                    let mut prev = self.cursor_pos - 1;
-                    while !self.text_input_buffer.is_char_boundary(prev) {
-                        prev -= 1;
+                    // In collapsed mode (>5 lines), clear all at once
+                    if self.text_input_buffer.lines().count() > 5 {
+                        self.text_input_buffer.clear();
+                        self.cursor_pos = 0;
+                    } else {
+                        let mut prev = self.cursor_pos - 1;
+                        while !self.text_input_buffer.is_char_boundary(prev) {
+                            prev -= 1;
+                        }
+                        self.text_input_buffer.remove(prev);
+                        self.cursor_pos = prev;
                     }
-                    self.text_input_buffer.remove(prev);
-                    self.cursor_pos = prev;
                     self.autocomplete.update_filter(&self.text_input_buffer);
                 }
             }
             KeyCode::Delete => {
                 if self.cursor_pos < self.text_input_buffer.len() {
                     self.save_undo_snapshot();
-                    self.text_input_buffer.remove(self.cursor_pos);
+                    // In collapsed mode (>5 lines), clear all at once
+                    if self.text_input_buffer.lines().count() > 5 {
+                        self.text_input_buffer.clear();
+                        self.cursor_pos = 0;
+                    } else {
+                        self.text_input_buffer.remove(self.cursor_pos);
+                    }
                     self.autocomplete.update_filter(&self.text_input_buffer);
                 }
             }
