@@ -72,6 +72,9 @@ It is being rebuilt on a Rust-first foundation as the core runtime of an agentic
 45. Pages publication SHALL happen from published releases and SHALL build from the release tag so the public site, docs, and plugins surface reflect published versions rather than unreleased `main` state.
 46. `dist-workspace.toml` SHALL remain an explicit reviewed contract. CI and release workflows SHALL validate it before building or promoting `cargo-dist` artifacts.
 47. Reusable release artifacts SHALL be treated as first-class contract outputs. Candidate and publishable asset sets SHALL pass explicit checksum and target-completeness validation before approval or publication.
+48. ALL visual styling in the TUI (core and plugins) SHALL use `ratatui-themekit` (`ThemeExt` trait). Zero `Style::default().fg(...)`, zero `Color::Rgb(...)`, zero `Modifier::*` in production code. Colors come from theme slots (`t.accent()`, `t.success()`, etc.), builders (`t.block()`, `t.line()`, `t.status_line()`), or style bundles (`t.table_styles()`, `t.input_styles()`, etc.). `Span::raw()` and `Line::raw()` are allowed for uncolored content only.
+49. Plugin TUI contributions (`tui_contributions()`, `feed_contributions()`) SHALL use `TuiBlock` data types. Plugins SHALL NOT import ratatui directly — the core renders TuiBlock data with themekit. Community plugins that need themed rendering SHALL depend on `ratatui-themekit`.
+50. Code review SHALL flag: `Style::default()`, `Color::Rgb(...)`, `Modifier::BOLD` (use `t.fg_accent("x").bold()` instead), `Block::default()` (use `t.block("title")` instead), hardcoded color values in any form.
 
 ## Documentation Audiences (CRITICAL — AI agents MUST respect)
 

@@ -10,6 +10,26 @@ Use `AGENTS.md` as the primary contract.
 - Hooks: `lefthook.yml`
 - Versioning: Conventional Commits + release-plz + SemVer
 
+## Design System: ratatui-themekit (GOLDEN RULE)
+
+ALL TUI colors in core and plugins use `ratatui-themekit`. No exceptions.
+
+```rust
+// YES — themekit
+let block = t.block(" Title ").focused(true).build();
+let line = t.line().accent("A").dim("|").success("B").build();
+let status = t.status_line().kv("Key", "Val").build();
+let ts = t.table_styles();
+let ns = t.notification_styles();
+
+// NO — never do this
+Style::default().fg(Color::Rgb(137, 180, 250))  // hardcoded color
+Block::default().border_style(...)               // raw Block
+Modifier::BOLD                                   // raw modifier
+```
+
+CR flags: `Style::default()`, `Color::Rgb`, `Modifier::`, `Block::default()`.
+
 ## Important commands
 
 ```bash

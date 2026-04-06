@@ -60,6 +60,9 @@ redundant_closure_for_method_calls = "deny"
 semicolon_if_nothing_returned = "deny"
 unnested_or_patterns = "deny"
 wildcard_imports = "deny"
+# ratatui-themekit enforcement (Golden Rule 48-50)
+disallowed_types = "deny"
+disallowed_methods = "deny"
 
 # The profile that `dist` will build with
 [profile.dist]

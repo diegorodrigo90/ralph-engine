@@ -332,6 +332,49 @@ function assertOfficialPluginOwnedTests() {
   }
 }
 
+function assertNoRawRatatuiStyles() {
+  const FORBIDDEN_PATTERNS = [
+    { pattern: /use ratatui::style::Style;/, label: "use ratatui::style::Style" },
+    { pattern: /use ratatui::style::Modifier;/, label: "use ratatui::style::Modifier" },
+    { pattern: /use ratatui::style::Stylize;/, label: "use ratatui::style::Stylize" },
+    { pattern: /Style::default\(\)/, label: "Style::default()" },
+    { pattern: /Style::new\(\)/, label: "Style::new()" },
+    { pattern: /Color::Rgb\(/, label: "Color::Rgb(...)" },
+  ];
+
+  const pluginDirs = fs.readdirSync(OFFICIAL_PLUGIN_DIR, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => path.join(OFFICIAL_PLUGIN_DIR, entry.name));
+
+  for (const pluginDir of pluginDirs) {
+    const pluginName = path.basename(pluginDir);
+    const srcDir = path.join(pluginDir, "src");
+
+    if (!fs.existsSync(srcDir)) {
+      continue;
+    }
+
+    const rsFiles = fs.readdirSync(srcDir, { recursive: true })
+      .filter((f) => f.endsWith(".rs"))
+      .map((f) => path.join(srcDir, f));
+
+    for (const rsFile of rsFiles) {
+      const source = readUtf8(rsFile);
+
+      // Skip test blocks
+      const prodSource = source.replace(/#\[cfg\(test\)\][\s\S]*?^}/gm, "");
+
+      for (const { pattern, label } of FORBIDDEN_PATTERNS) {
+        if (pattern.test(prodSource)) {
+          fail(
+            `official plugin ${pluginName} uses raw ratatui style (${label}) in ${path.basename(rsFile)}. Use ratatui-themekit instead. See AGENTS.md Rule 48-50.`,
+          );
+        }
+      }
+    }
+  }
+}
+
 function parseDefaultKind(source) {
   const match = source.match(/const DEFAULT_KIND = "([^"]+)";/);
   if (!match) {
@@ -467,5 +510,6 @@ assertOfficialManifestContributionLocalization(
 );
 assertOfficialPluginLocaleModules(rustSupportedLocales);
 assertOfficialPluginOwnedTests();
+assertNoRawRatatuiStyles();
 
 process.stdout.write("Plugin contracts verified.\n");

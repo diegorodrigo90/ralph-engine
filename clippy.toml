@@ -1,0 +1,15 @@
+# Clippy configuration — enforces ratatui-themekit as the sole styling API.
+# Raw ratatui styling types are banned in production code.
+# See AGENTS.md Golden Rule 48-50.
+
+disallowed-types = [
+    { path = "ratatui::style::Modifier", reason = "Use ThemedSpan builder methods (.bold(), .italic(), .underlined()) instead of raw Modifier" },
+    { path = "ratatui::style::Stylize", reason = "Use ratatui_themekit::ThemeExt trait for all styling" },
+]
+
+disallowed-methods = [
+    { path = "ratatui::style::Style::new", reason = "Use ThemeExt methods or builders" },
+]
+
+# Note: Style::default() cannot be caught by disallowed-methods (Default trait).
+# It is enforced by disallowed-types on Style + code review (AGENTS.md Rule 50).
