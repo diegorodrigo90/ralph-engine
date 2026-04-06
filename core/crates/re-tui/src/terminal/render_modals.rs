@@ -117,9 +117,9 @@ impl TuiShell {
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(t.accent()))
+                    .border_style(t.style_accent())
                     .title(" Switch Agent (Ctrl+A) ")
-                    .title_style(Style::default().fg(t.accent()).add_modifier(Modifier::BOLD)),
+                    .title_style(t.style_accent().add_modifier(Modifier::BOLD)),
             )
             .highlight_style(
                 Style::default()
@@ -237,13 +237,13 @@ impl TuiShell {
             frame.render_widget(Clear, popup);
             let block = Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(color))
+                .border_style(ratatui_themekit::builders::style_fg(color))
                 .style(Style::default().bg(t.surface()));
             let inner = block.inner(popup);
             frame.render_widget(block, popup);
 
             frame.render_widget(
-                Paragraph::new(toast.message.as_str()).style(Style::default().fg(t.text_bright())),
+                Paragraph::new(toast.message.as_str()).style(t.style_bright()),
                 inner,
             );
         }
@@ -276,7 +276,7 @@ impl TuiShell {
 
         let block = Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(t.warning()))
+            .border_style(t.style_warning())
             .title(format!(" {} ", self.labels.quit_title))
             .title_style(
                 Style::default()
@@ -381,9 +381,9 @@ impl TuiShell {
 
         let block = Block::default()
             .borders(Borders::ALL)
-            .border_style(Style::default().fg(t.accent()))
+            .border_style(t.style_accent())
             .title(format!(" {} ", self.labels.help_title))
-            .title_style(Style::default().fg(t.accent()).add_modifier(Modifier::BOLD));
+            .title_style(t.style_accent().add_modifier(Modifier::BOLD));
 
         frame.render_widget(Clear, popup);
         frame.render_widget(Paragraph::new(lines).block(block), popup);

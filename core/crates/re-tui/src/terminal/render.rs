@@ -2,7 +2,7 @@
 
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Position, Rect, Size};
-use ratatui::style::{Modifier, Style};
+use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui_themekit::builders::ThemedSpan;
@@ -38,10 +38,7 @@ impl TuiShell {
                 crate::MIN_TERMINAL_WIDTH,
                 crate::MIN_TERMINAL_HEIGHT,
             );
-            frame.render_widget(
-                Paragraph::new(msg).style(Style::default().fg(self.theme().error())),
-                area,
-            );
+            frame.render_widget(Paragraph::new(msg).style(self.theme().style_error()), area);
             return;
         }
 
@@ -281,10 +278,7 @@ impl TuiShell {
 
             if !block.title.is_empty() {
                 header_spans.push(t.fg_border(" │ ").build());
-                header_spans.push(Span::styled(
-                    block.title.as_str(),
-                    Style::default().add_modifier(Modifier::BOLD),
-                ));
+                header_spans.push(t.fg_text(block.title.as_str()).bold().build());
             }
 
             if block.collapsed && !block.content.is_empty() {

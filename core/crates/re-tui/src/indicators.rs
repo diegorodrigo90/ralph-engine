@@ -7,8 +7,8 @@
 //! which indicators exist and update their state. Core never knows
 //! what any indicator represents — it just renders the icon and label.
 
-use ratatui::style::Style;
 use ratatui::text::{Line, Span};
+use ratatui_themekit::builders::ThemedSpan;
 
 use crate::theme::Theme;
 
@@ -247,11 +247,10 @@ impl IndicatorPanel {
             if i > 0 {
                 spans.push(Span::raw("  "));
             }
-            let style = Style::default().fg(ind.state.color(theme));
-            spans.push(Span::styled(
-                format!("{}{}", ind.state.icon(), ind.label),
-                style,
-            ));
+            let color = ind.state.color(theme);
+            spans.push(
+                ThemedSpan::with_color(format!("{}{}", ind.state.icon(), ind.label), color).build(),
+            );
         }
 
         Line::from(spans)

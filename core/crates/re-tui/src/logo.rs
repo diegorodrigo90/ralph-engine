@@ -4,8 +4,9 @@
 //! Uses ratatui Spans with theme colors for consistent rendering
 //! across all terminals — no image protocol dependencies.
 
-use ratatui::style::{Modifier, Style};
-use ratatui::text::{Line, Span};
+use ratatui::text::Line;
+use ratatui_themekit::ThemeExt;
+use ratatui_themekit::builders::ThemedSpan;
 
 use crate::theme::Theme;
 
@@ -36,50 +37,44 @@ fn build_full_logo(
     color: ratatui::style::Color,
     tagline: &str,
 ) -> Vec<Line<'static>> {
-    let b = Style::default().fg(color);
-    let bb = Style::default().fg(color).add_modifier(Modifier::BOLD);
-    let w = Style::default()
-        .fg(theme.text_bright())
-        .add_modifier(Modifier::BOLD);
-    let d = Style::default().fg(theme.text_dim());
-
     vec![
         Line::from(""),
-        Line::from(vec![Span::styled("      ╭───╮ ", b), Span::styled("●", bb)]),
         Line::from(vec![
-            Span::styled("    ╭╯", b),
-            Span::styled("     ╰╮", b),
-            Span::styled("    Ralph ", w),
-            Span::styled("Engine", bb),
+            ThemedSpan::with_color("      ╭───╮ ", color).build(),
+            ThemedSpan::with_color("●", color).bold().build(),
         ]),
         Line::from(vec![
-            Span::styled("    │", b),
-            Span::styled("  ◉  ", bb),
-            Span::styled(" │", b),
+            ThemedSpan::with_color("    ╭╯", color).build(),
+            ThemedSpan::with_color("     ╰╮", color).build(),
+            theme.fg_bright("    Ralph ").bold().build(),
+            ThemedSpan::with_color("Engine", color).bold().build(),
         ]),
         Line::from(vec![
-            Span::styled("    ╰╮", b),
-            Span::styled("     ╭╯", b),
-            Span::styled(format!("    {tagline}"), d),
+            ThemedSpan::with_color("    │", color).build(),
+            ThemedSpan::with_color("  ◉  ", color).bold().build(),
+            ThemedSpan::with_color(" │", color).build(),
         ]),
-        Line::from(vec![Span::styled("  ●", bb), Span::styled("  ╰───╯", b)]),
+        Line::from(vec![
+            ThemedSpan::with_color("    ╰╮", color).build(),
+            ThemedSpan::with_color("     ╭╯", color).build(),
+            theme.fg_dim(format!("    {tagline}")).build(),
+        ]),
+        Line::from(vec![
+            ThemedSpan::with_color("  ●", color).bold().build(),
+            ThemedSpan::with_color("  ╰───╯", color).build(),
+        ]),
         Line::from(""),
     ]
 }
 
 /// Compact logo for narrow terminals (< 60 cols).
 fn build_compact_logo(theme: &dyn Theme, color: ratatui::style::Color) -> Vec<Line<'static>> {
-    let bb = Style::default().fg(color).add_modifier(Modifier::BOLD);
-    let w = Style::default()
-        .fg(theme.text_bright())
-        .add_modifier(Modifier::BOLD);
-
     vec![
         Line::from(""),
         Line::from(vec![
-            Span::styled("  ◎ ", bb),
-            Span::styled("Ralph ", w),
-            Span::styled("Engine", bb),
+            ThemedSpan::with_color("  ◎ ", color).bold().build(),
+            theme.fg_bright("Ralph ").bold().build(),
+            ThemedSpan::with_color("Engine", color).bold().build(),
         ]),
         Line::from(""),
     ]

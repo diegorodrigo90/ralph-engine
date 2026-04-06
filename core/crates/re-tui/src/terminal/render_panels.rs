@@ -3,9 +3,9 @@
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::layout::{Constraint, Layout};
-use ratatui::style::{Modifier, Style};
-use ratatui::text::{Line, Span};
+use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Paragraph};
+use ratatui_themekit::builders::ThemedSpan;
 
 use crate::theme::ThemeExt;
 
@@ -19,7 +19,7 @@ impl TuiShell {
 
         let outer = Block::default()
             .borders(Borders::LEFT)
-            .border_style(Style::default().fg(t.border()));
+            .border_style(t.style_border());
         let inner = outer.inner(area);
         frame.render_widget(outer, area);
 
@@ -49,10 +49,9 @@ impl TuiShell {
         for (i, panel) in self.sidebar_panels.iter().enumerate() {
             let color = panel_colors[i % panel_colors.len()];
             let separator = Line::from(vec![
-                Span::styled(
-                    format!(" {} ", panel.title),
-                    Style::default().fg(color).add_modifier(Modifier::BOLD),
-                ),
+                ThemedSpan::with_color(format!(" {} ", panel.title), color)
+                    .bold()
+                    .build(),
                 t.fg_border(
                     "\u{2500}".repeat(
                         panel_areas[i]
@@ -86,7 +85,7 @@ impl TuiShell {
 
         let block = Block::default()
             .borders(Borders::RIGHT)
-            .border_style(Style::default().fg(t.border()));
+            .border_style(t.style_border());
         let inner = block.inner(area);
         frame.render_widget(block, area);
 

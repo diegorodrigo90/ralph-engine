@@ -116,9 +116,9 @@ impl TuiShell {
             .block(
                 Block::default()
                     .borders(Borders::ALL)
-                    .border_style(Style::default().fg(t.border()))
+                    .border_style(t.style_border())
                     .title(" Commands ")
-                    .title_style(Style::default().fg(t.accent())),
+                    .title_style(t.style_accent()),
             )
             .highlight_style(
                 Style::default()
