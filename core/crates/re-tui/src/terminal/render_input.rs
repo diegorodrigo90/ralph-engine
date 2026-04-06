@@ -10,35 +10,37 @@ use crate::theme::ThemeExt;
 use super::shell::TuiShell;
 
 impl TuiShell {
-    /// Renders the chat input bar — separator, `>` prompt, multi-line, native cursor.
+    /// Renders the chat input bar — separator, prompt, multi-line, native cursor.
     ///
-    /// Shows accent border when focused, dim when unfocused.
+    /// Uses `InputStyles` from themekit for focused/unfocused visual states.
     pub(super) fn render_input_bar(&self, frame: &mut Frame<'_>, area: Rect) {
         use super::types::FocusTarget;
 
         let t = self.theme();
+        let is = t.input_styles();
         let is_focused = self.focus == FocusTarget::Input;
         let prompt = if is_focused { " > " } else { " · " };
         let prompt_width = prompt.len() as u16;
 
         let rows = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).split(area);
 
-        // Separator line — accent when focused, dim border otherwise
-        let sep_color = if is_focused { t.accent() } else { t.border() };
+        // Separator line — styled by InputStyles (accent focused, dim unfocused)
+        let sep_style = if is_focused {
+            is.border_focused
+        } else {
+            is.border
+        };
         let sep_line = "─".repeat(area.width as usize);
         frame.render_widget(
-            Paragraph::new(Line::from(ratatui::text::Span::styled(
-                sep_line,
-                ratatui::style::Style::default().fg(sep_color),
-            ))),
+            Paragraph::new(Line::from(ratatui::text::Span::styled(sep_line, sep_style))),
             rows[0],
         );
 
         let text_area = rows[1];
 
         if self.text_input_buffer.is_empty() {
-            let line = Line::from(vec![t.fg_accent(prompt).bold().build()]);
-            frame.render_widget(Paragraph::new(line), text_area);
+            let prompt_span = ratatui::text::Span::styled(prompt, is.prompt);
+            frame.render_widget(Paragraph::new(Line::from(prompt_span)), text_area);
             frame.set_cursor_position((text_area.x + prompt_width, text_area.y));
         } else {
             let content_width = text_area.width.saturating_sub(prompt_width).max(1) as usize;
@@ -49,7 +51,7 @@ impl TuiShell {
                 if text_line.is_empty() {
                     let pfx = if first { prompt } else { "   " };
                     first = false;
-                    display_lines.push(Line::from(t.fg_accent(pfx.to_owned()).bold().build()));
+                    display_lines.push(Line::from(ratatui::text::Span::styled(pfx, is.prompt)));
                     continue;
                 }
                 let mut pos = 0;
@@ -58,12 +60,10 @@ impl TuiShell {
                     let chunk = &text_line[pos..end];
                     let pfx = if first { prompt } else { "   " };
                     first = false;
-                    display_lines.push(
-                        t.line()
-                            .accent_bold(pfx.to_owned())
-                            .text(chunk.to_owned())
-                            .build(),
-                    );
+                    display_lines.push(Line::from(vec![
+                        ratatui::text::Span::styled(pfx, is.prompt),
+                        ratatui::text::Span::styled(chunk.to_owned(), is.text),
+                    ]));
                     pos = end;
                 }
             }
