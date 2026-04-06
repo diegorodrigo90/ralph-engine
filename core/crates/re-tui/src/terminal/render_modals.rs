@@ -263,8 +263,8 @@ impl TuiShell {
             );
             lines.push(
                 t.line()
-                    .accent_bold("  /run --list")
-                    .dim("    list available work items")
+                    .accent_bold("  /list")
+                    .dim("          available work items")
                     .build(),
             );
         } else {
