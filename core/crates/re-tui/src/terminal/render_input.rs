@@ -1,18 +1,24 @@
-//! Input bar and autocomplete popup rendering.
+//! Input bar rendering with scroll support and visual focus indicator.
 
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::text::Line;
-use ratatui::widgets::{Clear, List, ListItem, ListState, Paragraph};
+use ratatui::widgets::{
+    Clear, List, ListItem, ListState, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
+};
 
 use crate::theme::ThemeExt;
 
 use super::shell::TuiShell;
 
+/// Maximum characters stored in input buffer (safety limit).
+const MAX_INPUT_CHARS: usize = 50_000;
+
 impl TuiShell {
-    /// Renders the chat input bar — separator, prompt, multi-line, native cursor.
+    /// Renders the chat input bar with scroll support and visual focus.
     ///
-    /// Uses `InputStyles` from themekit for focused/unfocused visual states.
+    /// Layout: separator (1) + text content (fill) + scrollbar indicator.
+    /// Uses `InputStyles` from themekit for focused/unfocused states.
     pub(super) fn render_input_bar(&self, frame: &mut Frame<'_>, area: Rect) {
         use super::types::FocusTarget;
 
@@ -22,9 +28,10 @@ impl TuiShell {
         let prompt = if is_focused { " > " } else { " · " };
         let prompt_width = prompt.len() as u16;
 
+        // Split: separator (1 row) + text area (rest)
         let rows = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).split(area);
 
-        // Separator line — styled by InputStyles (accent focused, dim unfocused)
+        // Separator line — accent when focused, dim when unfocused
         let sep_style = if is_focused {
             is.border_focused
         } else {
@@ -42,47 +49,106 @@ impl TuiShell {
             let prompt_span = ratatui::text::Span::styled(prompt, is.prompt);
             frame.render_widget(Paragraph::new(Line::from(prompt_span)), text_area);
             frame.set_cursor_position((text_area.x + prompt_width, text_area.y));
-        } else {
-            let content_width = text_area.width.saturating_sub(prompt_width).max(1) as usize;
-            let mut display_lines: Vec<Line<'_>> = Vec::new();
-            let mut first = true;
-
-            for text_line in self.text_input_buffer.split('\n') {
-                if text_line.is_empty() {
-                    let pfx = if first { prompt } else { "   " };
-                    first = false;
-                    display_lines.push(Line::from(ratatui::text::Span::styled(pfx, is.prompt)));
-                    continue;
-                }
-                let mut pos = 0;
-                while pos < text_line.len() {
-                    let end = (pos + content_width).min(text_line.len());
-                    let chunk = &text_line[pos..end];
-                    let pfx = if first { prompt } else { "   " };
-                    first = false;
-                    display_lines.push(Line::from(vec![
-                        ratatui::text::Span::styled(pfx, is.prompt),
-                        ratatui::text::Span::styled(chunk.to_owned(), is.text),
-                    ]));
-                    pos = end;
-                }
-            }
-
-            let visible = text_area.height as usize;
-            let start = display_lines.len().saturating_sub(visible);
-            let shown: Vec<Line<'_>> = display_lines.into_iter().skip(start).collect();
-            let line_count = shown.len();
-
-            frame.render_widget(Paragraph::new(shown), text_area);
-
-            let last_text_line = self.text_input_buffer.rsplit('\n').next().unwrap_or("");
-            let cursor_col = (last_text_line.chars().count() % content_width) as u16;
-            let cursor_row = (line_count.saturating_sub(1)) as u16;
-            frame.set_cursor_position((
-                text_area.x + prompt_width + cursor_col,
-                text_area.y + cursor_row.min(text_area.height.saturating_sub(1)),
-            ));
+            return;
         }
+
+        // Build display lines with wrapping
+        let content_width = text_area.width.saturating_sub(prompt_width + 1).max(1) as usize;
+        let display_lines = self.build_input_lines(prompt, content_width, &is);
+        let total_lines = display_lines.len();
+        let visible = text_area.height as usize;
+
+        // Scroll: always show the last lines (cursor at bottom)
+        let start = total_lines.saturating_sub(visible);
+        let shown: Vec<Line<'_>> = display_lines.into_iter().skip(start).collect();
+        let line_count = shown.len();
+
+        // Render text content (leave 1 col for scrollbar when needed)
+        let needs_scroll = total_lines > visible;
+        let (text_rect, scroll_rect) = if needs_scroll {
+            let cols =
+                Layout::horizontal([Constraint::Fill(1), Constraint::Length(1)]).split(text_area);
+            (cols[0], Some(cols[1]))
+        } else {
+            (text_area, None)
+        };
+
+        frame.render_widget(Paragraph::new(shown), text_rect);
+
+        // Scrollbar when content overflows
+        if let Some(sb_area) = scroll_rect {
+            let ss = t.scrollbar_styles();
+            let mut sb_state = ScrollbarState::new(total_lines)
+                .position(start + visible)
+                .viewport_content_length(visible);
+            frame.render_stateful_widget(
+                Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                    .track_style(ss.track)
+                    .thumb_style(ss.thumb),
+                sb_area,
+                &mut sb_state,
+            );
+        }
+
+        // Cursor position
+        let last_text_line = self.text_input_buffer.rsplit('\n').next().unwrap_or("");
+        let cursor_col = (last_text_line.chars().count() % content_width) as u16;
+        let cursor_row = (line_count.saturating_sub(1)) as u16;
+        frame.set_cursor_position((
+            text_rect.x + prompt_width + cursor_col,
+            text_rect.y + cursor_row.min(text_rect.height.saturating_sub(1)),
+        ));
+    }
+
+    /// Builds wrapped display lines from the input buffer.
+    fn build_input_lines<'a>(
+        &self,
+        prompt: &'a str,
+        content_width: usize,
+        is: &crate::theme::InputStyles,
+    ) -> Vec<Line<'a>> {
+        let mut lines: Vec<Line<'a>> = Vec::new();
+        let mut first = true;
+
+        for text_line in self.text_input_buffer.split('\n') {
+            if text_line.is_empty() {
+                let pfx = if first { prompt } else { "   " };
+                first = false;
+                lines.push(Line::from(ratatui::text::Span::styled(
+                    pfx.to_owned(),
+                    is.prompt,
+                )));
+                continue;
+            }
+            let mut pos = 0;
+            while pos < text_line.len() {
+                let end = (pos + content_width).min(text_line.len());
+                let chunk = &text_line[pos..end];
+                let pfx = if first { prompt } else { "   " };
+                first = false;
+                lines.push(Line::from(vec![
+                    ratatui::text::Span::styled(pfx.to_owned(), is.prompt),
+                    ratatui::text::Span::styled(chunk.to_owned(), is.text),
+                ]));
+                pos = end;
+            }
+        }
+        lines
+    }
+
+    /// Handles paste — appends text with size limit and undo snapshot.
+    pub fn handle_paste_with_limit(&mut self, text: &str) {
+        if !self.input_enabled {
+            return;
+        }
+        self.save_undo_snapshot();
+        let remaining = MAX_INPUT_CHARS.saturating_sub(self.text_input_buffer.len());
+        if remaining == 0 {
+            return;
+        }
+        let truncated = &text[..text.len().min(remaining)];
+        self.text_input_buffer.push_str(truncated);
+        self.autocomplete.update_filter(&self.text_input_buffer);
     }
 
     /// Renders the autocomplete popup above the input bar.

@@ -671,13 +671,9 @@ impl TuiShell {
 
     // ── Input handling ──────────────────────────────────────────
 
-    /// Handles paste.
+    /// Handles paste with size limit and undo support.
     pub fn handle_paste(&mut self, text: &str) {
-        if !self.input_enabled {
-            return;
-        }
-        self.text_input_buffer.push_str(text);
-        self.autocomplete.update_filter(&self.text_input_buffer);
+        self.handle_paste_with_limit(text);
     }
 
     /// Handles mouse event with position.
@@ -859,6 +855,11 @@ impl TuiShell {
                 self.focus = FocusTarget::Activity;
                 self.autocomplete.visible = false;
             }
+            // Tab → cycle focus (when autocomplete is not visible)
+            KeyCode::Tab => {
+                let has_sidebar = self.sidebar_visible && !self.sidebar_panels.is_empty();
+                self.focus = self.focus.next(has_sidebar, self.input_enabled);
+            }
             KeyCode::Backspace => {
                 self.save_undo_snapshot();
                 self.text_input_buffer.pop();
@@ -875,7 +876,7 @@ impl TuiShell {
     }
 
     /// Saves current buffer to the undo stack (max 50 entries).
-    fn save_undo_snapshot(&mut self) {
+    pub(super) fn save_undo_snapshot(&mut self) {
         let current = self.text_input_buffer.clone();
         if self.input_undo_stack.last() != Some(&current) {
             self.input_undo_stack.push(current);

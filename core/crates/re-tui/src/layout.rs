@@ -96,7 +96,7 @@ pub fn compute_zones(area: Rect, has_input_bar: bool) -> LayoutZones {
                 Constraint::Length(1), // tab bar
                 Constraint::Fill(1),   // body
                 Constraint::Length(1), // metrics
-                Constraint::Length(4), // input
+                Constraint::Length(6), // input (separator + content + scrollbar)
                 Constraint::Length(1), // help
             ])
             .split(area);
@@ -125,7 +125,7 @@ pub fn compute_zones(area: Rect, has_input_bar: bool) -> LayoutZones {
                 Constraint::Length(1), // header
                 Constraint::Fill(1),   // body
                 Constraint::Length(1), // metrics
-                Constraint::Length(4), // input
+                Constraint::Length(6), // input (separator + content + scrollbar)
                 Constraint::Length(1), // help
             ])
             .split(area);
@@ -245,8 +245,8 @@ mod tests {
     fn compact_zones_with_input_bar() {
         let zones = compute_zones(rect(80, 24), true);
         assert!(zones.input.is_some());
-        assert_eq!(zones.input.unwrap().height, 4); // separator + 3 input lines
-        assert_eq!(zones.activity.height, 17); // 24 - 7
+        assert_eq!(zones.input.unwrap().height, 6); // separator + content + scrollbar
+        assert_eq!(zones.activity.height, 15); // 24 - 9
     }
 
     #[test]
