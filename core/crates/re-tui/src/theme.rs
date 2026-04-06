@@ -7,8 +7,8 @@
 // Re-export everything from ratatui-themekit
 pub use ratatui_themekit::{
     CatppuccinMocha, CustomTheme, Dracula, GruvboxDark, NoColor, Nord, OneDark, SolarizedDark,
-    TailwindDark, TerminalNative, Theme, available_theme_ids, builtin_themes, no_color_active,
-    resolve_theme,
+    TailwindDark, TerminalNative, Theme, ThemeExt, available_theme_ids, builtin_themes,
+    no_color_active, resolve_theme,
 };
 
 // ── RE-specific spacing constants ─────────────────────────────────

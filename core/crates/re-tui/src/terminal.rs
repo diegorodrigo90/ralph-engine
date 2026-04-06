@@ -1509,39 +1509,24 @@ impl TuiShell {
 
     /// Renders the header bar with version, agent, tokens, state badge, and progress.
     fn render_header(&self, frame: &mut Frame<'_>, area: Rect) {
+        use crate::theme::ThemeExt;
+
         let state_label = self.localized_state_label();
         let state_color = self.state.color(self.theme());
         let version = env!("CARGO_PKG_VERSION");
-        let theme = self.theme();
+        let t = self.theme();
 
-        let sep = Span::styled(" │ ", Style::default().fg(theme.border()));
+        let sep = t.fg_border(" │ ").build();
 
         let spans = vec![
-            // Logo + version
-            Span::styled(
-                format!(" ◎ RE v{version}"),
-                Style::default()
-                    .fg(theme.accent())
-                    .add_modifier(Modifier::BOLD),
-            ),
+            t.fg_accent(format!(" ◎ RE v{version}")).bold().build(),
             sep.clone(),
-            // Agent ID
-            Span::styled(
-                self.config.agent_id.as_str(),
-                Style::default().fg(theme.text_bright()),
-            ),
+            t.fg_bright(self.config.agent_id.as_str()).build(),
             sep.clone(),
-            // State badge with background highlight
-            Span::styled(
-                format!(" {state_label} "),
-                Style::default()
-                    .fg(theme.surface())
-                    .bg(state_color)
-                    .add_modifier(Modifier::BOLD),
-            ),
+            t.badge(format!(" {state_label} "), state_color).build(),
         ];
 
-        // Right-side metrics (tokens, tools, cost)
+        // Right-side metrics
         let mut right_spans: Vec<Span<'_>> = Vec::new();
 
         if self.token_count > 0 {
@@ -1550,44 +1535,38 @@ impl TuiShell {
             } else {
                 format!("⚡{}", self.token_count)
             };
-            right_spans.push(Span::styled(tok, Style::default().fg(theme.text_dim())));
+            right_spans.push(t.fg_dim(tok).build());
         }
 
         if self.tool_count > 0 {
             if !right_spans.is_empty() {
-                right_spans.push(Span::styled(" │ ", Style::default().fg(theme.border())));
+                right_spans.push(t.fg_border(" │ ").build());
             }
-            right_spans.push(Span::styled(
-                format!("⚙ {}", self.tool_count),
-                Style::default().fg(theme.text_dim()),
-            ));
+            right_spans.push(t.fg_dim(format!("⚙ {}", self.tool_count)).build());
         }
 
         if let Some(ref cost) = self.cost_label {
             if !right_spans.is_empty() {
-                right_spans.push(Span::styled(" │ ", Style::default().fg(theme.border())));
+                right_spans.push(t.fg_border(" │ ").build());
             }
-            let cost_color = if self.extra_usage {
-                theme.warning()
+            if self.extra_usage {
+                right_spans.push(t.fg_warning(cost.as_str()).build());
             } else {
-                theme.text_dim()
-            };
-            right_spans.push(Span::styled(cost.as_str(), Style::default().fg(cost_color)));
+                right_spans.push(t.fg_dim(cost.as_str()).build());
+            }
         }
 
         if self.extra_usage {
-            right_spans.push(Span::styled(
-                format!(" ⚠ {}", self.labels.extra_usage_label),
-                Style::default()
-                    .fg(theme.warning())
-                    .add_modifier(Modifier::BOLD),
-            ));
+            right_spans.push(
+                t.fg_warning(format!(" ⚠ {}", self.labels.extra_usage_label))
+                    .bold()
+                    .build(),
+            );
         }
 
-        // Progress percentage
         if self.progress > 0 {
             if !right_spans.is_empty() {
-                right_spans.push(Span::styled(" │ ", Style::default().fg(theme.border())));
+                right_spans.push(t.fg_border(" │ ").build());
             }
             right_spans.push(Span::styled(
                 format!("{}%", self.progress),

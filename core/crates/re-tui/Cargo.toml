@@ -13,7 +13,7 @@ authors.workspace = true
 arboard = "3.6"
 base64 = "0.22"
 ratatui = "0.30"
-ratatui-themekit = { git = "https://github.com/diegorodrigo90/ratatui-themekit.git", rev = "87d69af" }
+ratatui-themekit = { git = "https://github.com/diegorodrigo90/ratatui-themekit.git", branch = "main" }
 tui-scrollview = "0.6"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
