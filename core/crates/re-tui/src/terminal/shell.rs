@@ -40,6 +40,7 @@ pub struct TuiShell {
     pub(super) help_modal_visible: bool,
     pub(super) sidebar_panels: Vec<SidebarPanel>,
     pub(super) sidebar_visible: bool,
+    pub(super) main_panels: Vec<SidebarPanel>,
     pub(super) available_agents: Vec<String>,
     pub(super) agent_switcher_visible: bool,
     pub(super) agent_switcher_selected: usize,
@@ -82,6 +83,7 @@ impl TuiShell {
             help_modal_visible: false,
             sidebar_panels: Vec::new(),
             sidebar_visible: true,
+            main_panels: Vec::new(),
             available_agents: Vec::new(),
             agent_switcher_visible: false,
             agent_switcher_selected: 0,
@@ -239,9 +241,14 @@ impl TuiShell {
         self.available_agents = agents;
     }
 
-    /// Sets sidebar panels.
+    /// Sets sidebar panels (`zone_hint="sidebar"`).
     pub fn set_sidebar_panels(&mut self, panels: Vec<SidebarPanel>) {
         self.sidebar_panels = panels;
+    }
+
+    /// Sets main-zone panels (`zone_hint="main"`) — rendered in the feed area when idle.
+    pub fn set_main_panels(&mut self, panels: Vec<SidebarPanel>) {
+        self.main_panels = panels;
     }
 
     /// Sets plugin keybindings.
@@ -310,7 +317,8 @@ impl TuiShell {
         self.push_activity(format!("  ◎ Ralph Engine v{}", env!("CARGO_PKG_VERSION")));
         self.push_activity(format!("  Agent:   {}", self.config.agent_id));
         self.push_activity(format!("  Work:    {}", self.config.title));
-        self.push_activity(format!("  Plugins: {} panels", self.sidebar_panels.len()));
+        let total_panels = self.sidebar_panels.len() + self.main_panels.len();
+        self.push_activity(format!("  Plugins: {total_panels} panels"));
         self.push_activity(String::new());
         self.push_activity("  Initializing...".to_owned());
         self.push_activity(String::new());

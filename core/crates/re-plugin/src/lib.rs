@@ -1506,6 +1506,18 @@ pub trait PluginRuntime: Send + Sync {
         Vec::new()
     }
 
+    /// Returns feed contributions — blocks injected into the central feed.
+    ///
+    /// Unlike `tui_contributions` (which go to the sidebar), feed
+    /// contributions appear inline in the main activity stream. Used by
+    /// workflow plugins to inject status updates, gate results, summaries.
+    ///
+    /// Core calls this periodically and drips returned blocks into the feed.
+    /// Plugins return only NEW blocks since the last call (not cumulative).
+    fn feed_contributions(&self) -> Vec<FeedContribution> {
+        Vec::new()
+    }
+
     /// Returns keybinding contributions for the TUI.
     ///
     /// Plugins declare keybindings that the TUI dispatches when the user
@@ -1961,6 +1973,26 @@ pub struct TuiPanel {
     /// Position hint: `"sidebar"` (default), `"bottom"`, or `"main"`.
     /// Core decides final placement based on layout tier.
     pub zone_hint: String,
+}
+
+/// A block contributed by a plugin to the central feed.
+///
+/// Plugins inject content into the main activity stream — status updates,
+/// gate results, workflow transitions. Core renders these inline with
+/// agent output, using the same block design system.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct FeedContribution {
+    /// Block title (e.g. "Sprint Status", "Gate: lint").
+    pub title: String,
+    /// Content lines (rendered inside the block body).
+    pub content: Vec<String>,
+    /// Block kind hint — maps to the feed block kind for styling.
+    /// Use `"system"` for status, `"gate-pass"`/`"gate-fail"` for results.
+    pub kind: String,
+    /// Phase marker for pipeline indicators (e.g. "start:lint", "pass:test").
+    pub phase_marker: Option<String>,
+    /// Whether this block represents a success (Some(true)) or failure (Some(false)).
+    pub success: Option<bool>,
 }
 
 /// A UI block for plugin TUI panels.

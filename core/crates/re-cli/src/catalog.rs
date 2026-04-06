@@ -514,6 +514,24 @@ pub fn collect_tui_panels_from_plugins() -> Vec<(String, re_plugin::TuiPanel)> {
     panels
 }
 
+/// Collects feed contributions from all enabled plugins.
+///
+/// Plugins inject blocks into the central feed via `feed_contributions()`.
+/// Core drips these inline with agent output.
+#[must_use]
+pub fn collect_feed_contributions_from_plugins() -> Vec<re_plugin::FeedContribution> {
+    let snapshot = official_runtime_snapshot();
+    let mut contributions = Vec::new();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
+            contributions.extend(runtime.feed_contributions());
+        }
+    }
+
+    contributions
+}
+
 /// Collects agent commands from all enabled plugins that provide them.
 ///
 /// Auto-discovers slash commands from agent plugins (e.g., Claude scans

@@ -556,21 +556,30 @@ fn run_with_tui(
         shell.set_agent_commands(commands, "/".to_owned());
     }
 
-    // Auto-discover: sidebar panels
-    let panels: Vec<re_tui::SidebarPanel> = catalog::collect_tui_panels_from_plugins()
+    // Auto-discover: panels — split by zone_hint (sidebar vs main)
+    let all_panels = catalog::collect_tui_panels_from_plugins();
+    let (sidebar, main): (Vec<_>, Vec<_>) = all_panels
         .into_iter()
-        .map(|(plugin_id, panel)| re_tui::SidebarPanel {
-            title: panel.title,
-            lines: panel.lines,
-            items: panel
-                .blocks
-                .into_iter()
-                .map(super::tui::convert_tui_block)
-                .collect(),
-            plugin_id,
-        })
-        .collect();
-    shell.set_sidebar_panels(panels);
+        .partition(|(_, p)| p.zone_hint != "main");
+
+    let to_sidebar = |panels: Vec<(String, re_plugin::TuiPanel)>| -> Vec<re_tui::SidebarPanel> {
+        panels
+            .into_iter()
+            .map(|(plugin_id, panel)| re_tui::SidebarPanel {
+                title: panel.title,
+                lines: panel.lines,
+                items: panel
+                    .blocks
+                    .into_iter()
+                    .map(super::tui::convert_tui_block)
+                    .collect(),
+                plugin_id,
+            })
+            .collect()
+    };
+
+    shell.set_sidebar_panels(to_sidebar(sidebar));
+    shell.set_main_panels(to_sidebar(main));
     shell.push_startup_banner();
 
     // Non-blocking stdout reader via thread

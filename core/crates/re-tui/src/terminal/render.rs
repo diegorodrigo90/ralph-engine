@@ -167,7 +167,11 @@ impl TuiShell {
         }
 
         if self.activity_lines.is_empty() {
-            self.render_idle_dashboard(frame, area);
+            if !self.main_panels.is_empty() {
+                self.render_main_panels(frame, area);
+            } else {
+                self.render_idle_dashboard(frame, area);
+            }
             return;
         }
 
@@ -390,6 +394,64 @@ impl TuiShell {
                 Rect::new(0, 0, content_width, content_height),
             );
             frame.render_stateful_widget(scroll_view, area, &mut self.feed_scroll);
+        }
+    }
+
+    /// Renders main-zone panels in the activity area (when idle).
+    ///
+    /// Main panels are rendered with the same design system as sidebar
+    /// panels but using the full activity width. Used when no agent is
+    /// running and plugins contribute main-zone content (dashboards,
+    /// summaries, etc.).
+    fn render_main_panels(&self, frame: &mut Frame<'_>, area: Rect) {
+        use super::style::{render_panel_item, style_sidebar_line};
+
+        let t = self.theme();
+        let panel_colors = [t.info(), t.accent(), t.success(), t.warning()];
+
+        let panel_count = self.main_panels.len();
+        let constraints: Vec<Constraint> = (0..panel_count)
+            .map(|i| {
+                if i < panel_count - 1 {
+                    Constraint::Ratio(1, panel_count as u32)
+                } else {
+                    Constraint::Fill(1)
+                }
+            })
+            .collect();
+
+        let panel_areas = Layout::vertical(constraints).split(area);
+
+        for (i, panel) in self.main_panels.iter().enumerate() {
+            let color = panel_colors[i % panel_colors.len()];
+            let separator = Line::from(vec![
+                ThemedSpan::with_color(format!(" {} ", panel.title), color)
+                    .bold()
+                    .build(),
+                t.fg_border(
+                    "\u{2500}".repeat(
+                        panel_areas[i]
+                            .width
+                            .saturating_sub(panel.title.len() as u16 + 3)
+                            as usize,
+                    ),
+                )
+                .build(),
+            ]);
+
+            let mut lines: Vec<Line<'_>> = vec![separator];
+
+            if !panel.items.is_empty() {
+                for item in &panel.items {
+                    render_panel_item(item, color, t, &mut lines);
+                }
+            } else {
+                for s in &panel.lines {
+                    lines.push(style_sidebar_line(s, color, t));
+                }
+            }
+
+            frame.render_widget(Paragraph::new(lines), panel_areas[i]);
         }
     }
 
