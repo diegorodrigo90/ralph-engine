@@ -57,6 +57,7 @@ impl TuiShell {
         }
 
         self.render_active_tab(frame, zones.activity);
+
         self.render_metrics(frame, zones.metrics);
         self.render_help(frame, &zones);
 
@@ -493,7 +494,7 @@ impl TuiShell {
         }
     }
 
-    /// Renders the tab bar (Standard + Wide tiers).
+    /// Renders the tab bar (Standard + Wide tiers) with item counts.
     fn render_tab_bar(&mut self, frame: &mut Frame<'_>, area: Rect) {
         self.tab_bar_area = area;
         let t = self.theme();
@@ -503,9 +504,21 @@ impl TuiShell {
             .position(|tab| *tab == self.active_tab)
             .unwrap_or(0);
 
-        let tab_labels: Vec<&str> = super::types::TuiTab::ALL
+        let tab_labels: Vec<String> = super::types::TuiTab::ALL
             .iter()
-            .map(|tab| tab.label())
+            .map(|tab| {
+                let count = match tab {
+                    super::types::TuiTab::Feed => self.feed.blocks().len(),
+                    super::types::TuiTab::Files => self.touched_files.len(),
+                    super::types::TuiTab::Log => self.log_lines.len(),
+                    super::types::TuiTab::Config => 0,
+                };
+                if count > 0 {
+                    format!("{} ({})", tab.label(), count)
+                } else {
+                    tab.label().to_owned()
+                }
+            })
             .collect();
 
         let tabs = Tabs::new(tab_labels)
@@ -527,7 +540,7 @@ impl TuiShell {
         }
     }
 
-    /// Renders the Files tab — list of files touched this session.
+    /// Renders the Files tab — tools used this session with icons by type.
     fn render_files_tab(&self, frame: &mut Frame<'_>, area: Rect) {
         let t = self.theme();
 
@@ -537,26 +550,37 @@ impl TuiShell {
             return;
         }
 
-        let lines: Vec<Line<'_>> = self
-            .touched_files
-            .iter()
-            .map(|path| {
-                let icon = if path.contains("edit") || path.contains("write") {
-                    "←"
-                } else {
-                    "→"
-                };
-                t.line()
-                    .dim(format!("  {icon} "))
-                    .text(path.as_str())
-                    .build()
-            })
-            .collect();
+        let mut lines: Vec<Line<'_>> = Vec::new();
+
+        // Count by type for summary
+        let total = self.touched_files.len();
+        lines.push(
+            t.line()
+                .dim("  ")
+                .bright(format!("{total} tools used"))
+                .build(),
+        );
+        lines.push(Line::raw(""));
+
+        for path in &self.touched_files {
+            let (icon, color) = match path.as_str() {
+                "Edit" | "Write" | "NotebookEdit" => ("✎", t.block_file_edit()),
+                "Read" | "NotebookRead" => ("→", t.block_file_read()),
+                "Bash" => ("$", t.block_command()),
+                _ => ("○", t.text_dim()),
+            };
+            lines.push(Line::from(vec![
+                ratatui_themekit::builders::ThemedSpan::with_color(format!("  {icon} "), color)
+                    .bold()
+                    .build(),
+                t.fg_text(path.as_str()).build(),
+            ]));
+        }
 
         frame.render_widget(Paragraph::new(lines), area);
     }
 
-    /// Renders the Log tab — raw agent output lines.
+    /// Renders the Log tab — raw agent output lines with tail scroll.
     fn render_log_tab(&self, frame: &mut Frame<'_>, area: Rect) {
         let t = self.theme();
 
@@ -567,43 +591,90 @@ impl TuiShell {
         }
 
         let visible = area.height as usize;
-        let start = self.log_lines.len().saturating_sub(visible);
-        let lines: Vec<Line<'_>> = self.log_lines[start..]
-            .iter()
-            .map(|line| Line::from(t.fg_dim(format!("  {line}")).build()))
-            .collect();
+        let total = self.log_lines.len();
+        let start = total.saturating_sub(visible.saturating_sub(1));
+
+        let mut lines: Vec<Line<'_>> = Vec::with_capacity(visible);
+
+        // Line count indicator
+        lines.push(t.line().dim(format!("  {total} lines")).build());
+
+        for (i, line) in self.log_lines[start..].iter().enumerate() {
+            let line_num = start + i + 1;
+            let styled = if line.starts_with(">> Tool") {
+                Line::from(vec![
+                    t.fg_dim(format!("  {line_num:>4} ")).build(),
+                    t.fg_info(line.as_str()).build(),
+                ])
+            } else if line.starts_with(">> Agent") || line.starts_with(">> State") {
+                Line::from(vec![
+                    t.fg_dim(format!("  {line_num:>4} ")).build(),
+                    t.fg_warning(line.as_str()).build(),
+                ])
+            } else {
+                Line::from(vec![
+                    t.fg_dim(format!("  {line_num:>4} ")).build(),
+                    t.fg_dim(line.as_str()).build(),
+                ])
+            };
+            lines.push(styled);
+        }
 
         frame.render_widget(Paragraph::new(lines), area);
     }
 
-    /// Renders the Config tab — active plugins, hooks, agent flags.
+    /// Renders the Config tab — grouped configuration overview.
     fn render_config_tab(&self, frame: &mut Frame<'_>, area: Rect) {
         let t = self.theme();
 
         let mut lines = vec![
+            // Session section
             t.line()
-                .accent_bold("  Agent: ")
-                .text(self.config.agent_id.as_str())
+                .colored(" Session ", t.accent())
+                .border("\u{2500}".repeat(20))
                 .build(),
             t.line()
-                .accent_bold("  Locale: ")
-                .text(self.config.locale.as_str())
+                .dim("  Agent:  ")
+                .bright(self.config.agent_id.as_str())
                 .build(),
             t.line()
-                .accent_bold("  Theme: ")
-                .text(self.theme.id())
+                .dim("  Locale: ")
+                .bright(self.config.locale.as_str())
                 .build(),
-            Line::raw(""),
-            t.line().bright("  Keybindings:").build(),
+            t.line().dim("  Theme:  ").bright(self.theme.id()).build(),
         ];
 
-        for binding in &self.plugin_keybindings {
+        // Sidebar panels section
+        if !self.sidebar_panels.is_empty() {
+            lines.push(Line::raw(""));
             lines.push(
                 t.line()
-                    .accent(format!("    [{:>4}] ", binding.key))
-                    .dim(binding.description.as_str())
+                    .colored(" Plugins ", t.info())
+                    .border("\u{2500}".repeat(20))
                     .build(),
             );
+            for panel in &self.sidebar_panels {
+                lines.push(t.line().dim("  ● ").text(panel.plugin_id.as_str()).build());
+            }
+        }
+
+        // Keybindings section
+        if !self.plugin_keybindings.is_empty() {
+            lines.push(Line::raw(""));
+            lines.push(
+                t.line()
+                    .colored(" Keybindings ", t.success())
+                    .border("\u{2500}".repeat(16))
+                    .build(),
+            );
+            for binding in &self.plugin_keybindings {
+                lines.push(
+                    t.line()
+                        .accent(format!("  [{:>4}] ", binding.key))
+                        .dim(format!("{} ({})", binding.description, binding.plugin_id))
+                        .build(),
+                );
+            }
         }
 
         frame.render_widget(Paragraph::new(lines), area);
