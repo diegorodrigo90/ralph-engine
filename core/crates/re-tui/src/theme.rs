@@ -6,9 +6,43 @@
 
 // Re-export everything from ratatui-themekit
 pub use ratatui_themekit::{
-    CatppuccinMocha, CustomTheme, Dracula, GruvboxDark, NoColor, Nord, OneDark, SolarizedDark,
-    TailwindDark, TerminalNative, Theme, ThemeExt, available_theme_ids, builtin_themes,
-    no_color_active, resolve_theme,
+    BUILTIN_THEMES,
+    // Themes (PascalCase aliases)
+    CatppuccinMocha,
+    CustomTheme,
+    Dracula,
+    GaugeStyles,
+    GruvboxDark,
+    ListStyles,
+    NoColor,
+    Nord,
+    OneDark,
+    RosePine,
+    SolarizedDark,
+    StateStyles,
+    TabStyles,
+    // Widget style bundles
+    TableStyles,
+    TailwindDark,
+    TerminalNative,
+    // Core traits
+    Theme,
+    ThemeData,
+    ThemeExt,
+    ThemedBar,
+    // Builders
+    ThemedBlock,
+    ThemedLine,
+    ThemedSpan,
+    ThemedStatusLine,
+    TokyoNight,
+    // Resolution
+    available_theme_ids,
+    builtin_themes,
+    default_theme,
+    no_color_active,
+    resolve_theme,
+    zebra_rows,
 };
 
 // ── RE-specific spacing constants ─────────────────────────────────
@@ -63,6 +97,42 @@ mod tests {
     #[test]
     fn available_ids_match_builtins() {
         assert_eq!(available_theme_ids().len(), builtin_themes().len());
+    }
+
+    #[test]
+    fn resolve_tokyo_night() {
+        let theme = resolve_theme("tokyo-night");
+        assert_eq!(theme.id(), "tokyo-night");
+    }
+
+    #[test]
+    fn resolve_rose_pine() {
+        let theme = resolve_theme("rose-pine");
+        assert_eq!(theme.id(), "rose-pine");
+    }
+
+    #[test]
+    fn tokyo_night_colors_are_distinct() {
+        let t = TokyoNight;
+        assert_ne!(t.success(), t.error());
+        assert_ne!(t.diff_added(), t.diff_removed());
+    }
+
+    #[test]
+    fn rose_pine_colors_are_distinct() {
+        let t = RosePine;
+        assert_ne!(t.success(), t.error());
+        assert_ne!(t.diff_added(), t.diff_removed());
+    }
+
+    #[test]
+    fn builtin_themes_has_all_entries() {
+        assert!(BUILTIN_THEMES.len() >= 10);
+    }
+
+    #[test]
+    fn default_theme_is_catppuccin() {
+        assert_eq!(default_theme().id(), "catppuccin");
     }
 
     #[test]

@@ -4,8 +4,7 @@ use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::layout::{Constraint, Layout};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, Borders, Paragraph};
-use ratatui_themekit::builders::ThemedSpan;
+use ratatui::widgets::{Borders, Paragraph};
 
 use crate::theme::ThemeExt;
 
@@ -17,17 +16,12 @@ impl TuiShell {
     pub(super) fn render_sidebar(&self, frame: &mut Frame<'_>, area: Rect) {
         let t = self.theme();
 
-        let outer = Block::default()
-            .borders(Borders::LEFT)
-            .border_style(t.style_border());
+        let outer = t.block_plain().borders(Borders::LEFT).build();
         let inner = outer.inner(area);
         frame.render_widget(outer, area);
 
         if self.sidebar_panels.is_empty() {
-            frame.render_widget(
-                Paragraph::new(Line::from(vec![t.fg_dim(" (no panels)").build()])),
-                inner,
-            );
+            frame.render_widget(Paragraph::new(t.line().dim(" (no panels)").build()), inner);
             return;
         }
 
@@ -48,20 +42,14 @@ impl TuiShell {
 
         for (i, panel) in self.sidebar_panels.iter().enumerate() {
             let color = panel_colors[i % panel_colors.len()];
-            let separator = Line::from(vec![
-                ThemedSpan::with_color(format!(" {} ", panel.title), color)
-                    .bold()
-                    .build(),
-                t.fg_border(
-                    "\u{2500}".repeat(
-                        panel_areas[i]
-                            .width
-                            .saturating_sub(panel.title.len() as u16 + 3)
-                            as usize,
-                    ),
-                )
-                .build(),
-            ]);
+            let border_len = panel_areas[i]
+                .width
+                .saturating_sub(panel.title.len() as u16 + 3) as usize;
+            let separator = t
+                .line()
+                .colored(format!(" {} ", panel.title), color)
+                .border("\u{2500}".repeat(border_len))
+                .build();
 
             let mut lines: Vec<Line<'_>> = vec![separator];
 
@@ -83,9 +71,7 @@ impl TuiShell {
         let t = self.theme();
         let state_color = self.state.color(t);
 
-        let block = Block::default()
-            .borders(Borders::RIGHT)
-            .border_style(t.style_border());
+        let block = t.block_plain().borders(Borders::RIGHT).build();
         let inner = block.inner(area);
         frame.render_widget(block, area);
 
@@ -93,15 +79,19 @@ impl TuiShell {
 
         let lines = vec![
             Line::raw(""),
+            t.line()
+                .dim(format!("  {}: ", self.labels.control_state))
+                .build(),
             Line::from(vec![
-                t.fg_dim(format!("  {}: ", self.labels.control_state))
-                    .build(),
+                t.fg_dim("  ").build(),
                 t.badge(format!(" {state_label} "), state_color).build(),
             ]),
             Line::raw(""),
+            t.line()
+                .dim(format!("  {}: ", self.labels.control_work))
+                .build(),
             Line::from(vec![
-                t.fg_dim(format!("  {}: ", self.labels.control_work))
-                    .build(),
+                t.fg_dim("  ").build(),
                 t.fg_bright(self.config.title.as_str()).bold().build(),
             ]),
         ];

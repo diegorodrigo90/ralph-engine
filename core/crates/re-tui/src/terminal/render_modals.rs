@@ -2,9 +2,9 @@
 
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::style::{Modifier, Style};
+use ratatui::style::Style;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph};
+use ratatui::widgets::{Borders, Clear, List, ListItem, ListState, Paragraph};
 
 use crate::theme::ThemeExt;
 
@@ -18,24 +18,22 @@ impl TuiShell {
 
         if self.quit_pending || self.help_modal_visible {
             let hint = format!(" {} ", self.labels.modal_open_hint);
-            frame.render_widget(
-                Paragraph::new(Line::from(vec![t.fg_dim(hint).build()])),
-                zones.help,
-            );
+            frame.render_widget(Paragraph::new(t.line().dim(hint).build()), zones.help);
             return;
         }
 
         // When typing, show input-specific help
         if self.input_enabled && !self.text_input_buffer.is_empty() {
-            let spans = vec![
-                t.fg_dim(" [Enter]").build(),
-                t.fg_dim(" send ").build(),
-                t.fg_dim(" [Alt+Enter]").build(),
-                t.fg_dim(" newline ").build(),
-                t.fg_dim(" [Esc]").build(),
-                t.fg_dim(" cancel ").build(),
-            ];
-            frame.render_widget(Paragraph::new(Line::from(spans)), zones.help);
+            let line = t
+                .line()
+                .dim(" [Enter]")
+                .dim(" send ")
+                .dim(" [Alt+Enter]")
+                .dim(" newline ")
+                .dim(" [Esc]")
+                .dim(" cancel ")
+                .build();
+            frame.render_widget(Paragraph::new(line), zones.help);
             return;
         }
 
@@ -58,11 +56,12 @@ impl TuiShell {
                 })
                 .unwrap_or("Processing...");
 
-            let status_spans = vec![
-                t.fg_warning(format!(" {spinner} ")).build(),
-                t.fg_bright(format!("{message} ")).italic().build(),
-            ];
-            frame.render_widget(Paragraph::new(Line::from(status_spans)), zones.help);
+            let status = t
+                .line()
+                .warning(format!(" {spinner} "))
+                .bright(format!("{message} "))
+                .build();
+            frame.render_widget(Paragraph::new(status), zones.help);
             return;
         }
 
@@ -110,23 +109,14 @@ impl TuiShell {
         let items: Vec<ListItem<'_>> = self
             .available_agents
             .iter()
-            .map(|agent| ListItem::new(Line::from(vec![t.fg_text(format!("  {agent}")).build()])))
+            .map(|agent| ListItem::new(t.line().text(format!("  {agent}")).build()))
             .collect();
 
+        let ls = t.list_styles();
         let list = List::new(items)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(t.style_accent())
-                    .title(" Switch Agent (Ctrl+A) ")
-                    .title_style(t.style_accent().add_modifier(Modifier::BOLD)),
-            )
-            .highlight_style(
-                Style::default()
-                    .bg(t.surface())
-                    .add_modifier(Modifier::BOLD),
-            )
-            .highlight_symbol("▸ ");
+            .block(t.block(" Switch Agent (Ctrl+A) ").focused(true).build())
+            .highlight_style(ls.highlight)
+            .highlight_symbol(ls.symbol.as_str());
 
         frame.render_widget(Clear, popup_area);
         frame.render_stateful_widget(
@@ -159,49 +149,52 @@ impl TuiShell {
 
         lines.extend(logo_lines);
         lines.push(Line::raw(""));
-        lines.push(Line::from(vec![
-            t.fg_dim(format!(
-                "  v{version} — {}",
-                self.labels.orchestration_runtime
-            ))
-            .build(),
-        ]));
+        lines.push(
+            t.line()
+                .dim(format!(
+                    "  v{version} — {}",
+                    self.labels.orchestration_runtime
+                ))
+                .build(),
+        );
         lines.push(Line::raw(""));
 
         let has_config = std::path::Path::new(".ralph-engine/config.yaml").exists();
         if has_config {
-            lines.push(Line::from(vec![
-                t.fg_success("  ✓ ").build(),
-                t.fg_text(self.labels.project_configured.as_str()).build(),
-            ]));
-            lines.push(Line::from(vec![
-                t.fg_accent(format!("  {}", self.labels.type_run))
-                    .italic()
+            lines.push(
+                t.line()
+                    .success("  ✓ ")
+                    .text(self.labels.project_configured.as_str())
                     .build(),
-            ]));
+            );
+            lines.push(
+                t.line()
+                    .accent(format!("  {}", self.labels.type_run))
+                    .build(),
+            );
         } else {
-            lines.push(Line::from(vec![
-                t.fg_warning("  ○ ").build(),
-                t.fg_text(self.labels.no_project_found.as_str()).build(),
-            ]));
-            lines.push(Line::from(vec![
-                t.fg_dim(format!("  {}", self.labels.type_init))
-                    .italic()
+            lines.push(
+                t.line()
+                    .warning("  ○ ")
+                    .text(self.labels.no_project_found.as_str())
                     .build(),
-            ]));
+            );
+            lines.push(t.line().dim(format!("  {}", self.labels.type_init)).build());
         }
 
         lines.push(Line::raw(""));
-        lines.push(Line::from(vec![
-            t.fg_accent("  q").bold().build(),
-            t.fg_dim(" quit  ").build(),
-            t.fg_accent("?").bold().build(),
-            t.fg_dim(" help  ").build(),
-            t.fg_accent("F2").bold().build(),
-            t.fg_dim(" sidebar  ").build(),
-            t.fg_accent("j/k").bold().build(),
-            t.fg_dim(" navigate").build(),
-        ]));
+        lines.push(
+            t.line()
+                .accent_bold("  q")
+                .dim(" quit  ")
+                .accent_bold("?")
+                .dim(" help  ")
+                .accent_bold("F2")
+                .dim(" sidebar  ")
+                .accent_bold("j/k")
+                .dim(" navigate")
+                .build(),
+        );
 
         frame.render_widget(Paragraph::new(lines), area);
     }
@@ -235,12 +228,12 @@ impl TuiShell {
             };
 
             frame.render_widget(Clear, popup);
-            let block = Block::default()
+            let styled_block = ratatui::widgets::Block::new()
                 .borders(Borders::ALL)
                 .border_style(ratatui_themekit::builders::style_fg(color))
                 .style(Style::default().bg(t.surface()));
-            let inner = block.inner(popup);
-            frame.render_widget(block, popup);
+            let inner = styled_block.inner(popup);
+            frame.render_widget(styled_block, popup);
 
             frame.render_widget(
                 Paragraph::new(toast.message.as_str()).style(t.style_bright()),
@@ -263,26 +256,17 @@ impl TuiShell {
 
         let lines = vec![
             Line::raw(""),
-            Line::from(vec![
-                t.fg_warning(format!("  {} ", self.labels.quit_question))
-                    .bold()
-                    .build(),
-                t.fg_accent("y").bold().build(),
-                t.fg_dim(" yes  ").build(),
-                t.fg_accent("n").bold().build(),
-                t.fg_dim(" cancel").build(),
-            ]),
+            t.line()
+                .warning(format!("  {} ", self.labels.quit_question))
+                .accent_bold("y")
+                .dim(" yes  ")
+                .accent_bold("n")
+                .dim(" cancel")
+                .build(),
         ];
 
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(t.style_warning())
-            .title(format!(" {} ", self.labels.quit_title))
-            .title_style(
-                Style::default()
-                    .fg(t.warning())
-                    .add_modifier(Modifier::BOLD),
-            );
+        let title = format!(" {} ", self.labels.quit_title);
+        let block = t.block(&title).focused(true).build();
 
         frame.render_widget(Clear, popup);
         frame.render_widget(Paragraph::new(lines).block(block), popup);
@@ -295,39 +279,43 @@ impl TuiShell {
 
         let mut lines: Vec<Line<'_>> = Vec::new();
 
-        lines.push(Line::from(vec![
-            t.fg_accent(format!("  Ralph Engine v{version}"))
-                .bold()
+        lines.push(
+            t.line()
+                .accent_bold(format!("  Ralph Engine v{version}"))
                 .build(),
-        ]));
+        );
         lines.push(Line::raw(""));
 
         // Navigation keys
-        lines.push(Line::from(vec![
-            t.fg_bright(format!("  {}", self.labels.nav_heading))
-                .bold()
+        lines.push(
+            t.line()
+                .bright(format!("  {}", self.labels.nav_heading))
                 .build(),
-        ]));
+        );
         for (key, desc) in &self.labels.nav_keys {
-            lines.push(Line::from(vec![
-                t.fg_accent(format!("  {key:<12}")).build(),
-                t.fg_dim(desc.as_str()).build(),
-            ]));
+            lines.push(
+                t.line()
+                    .accent(format!("  {key:<12}"))
+                    .dim(desc.as_str())
+                    .build(),
+            );
         }
 
         lines.push(Line::raw(""));
 
         // Action keys
-        lines.push(Line::from(vec![
-            t.fg_bright(format!("  {}", self.labels.actions_heading))
-                .bold()
+        lines.push(
+            t.line()
+                .bright(format!("  {}", self.labels.actions_heading))
                 .build(),
-        ]));
+        );
         for (key, desc) in &self.labels.action_keys {
-            lines.push(Line::from(vec![
-                t.fg_accent(format!("  {key:<12}")).build(),
-                t.fg_dim(desc.as_str()).build(),
-            ]));
+            lines.push(
+                t.line()
+                    .accent(format!("  {key:<12}"))
+                    .dim(desc.as_str())
+                    .build(),
+            );
         }
 
         // Plugin keybindings
@@ -342,33 +330,36 @@ impl TuiShell {
 
         if !plugin_keys.is_empty() {
             lines.push(Line::raw(""));
-            lines.push(Line::from(vec![
-                t.fg_bright(format!("  {}", self.labels.plugins_heading))
-                    .bold()
+            lines.push(
+                t.line()
+                    .bright(format!("  {}", self.labels.plugins_heading))
                     .build(),
-            ]));
+            );
             for binding in plugin_keys {
-                lines.push(Line::from(vec![
-                    t.fg_accent(format!("  {:<12}", binding.key)).build(),
-                    t.fg_dim(binding.description.as_str()).build(),
-                ]));
+                lines.push(
+                    t.line()
+                        .accent(format!("  {:<12}", binding.key))
+                        .dim(binding.description.as_str())
+                        .build(),
+                );
             }
         }
 
         if self.input_enabled {
             lines.push(Line::raw(""));
-            lines.push(Line::from(vec![
-                t.fg_dim(format!("  {}", self.labels.slash_hint))
-                    .italic()
+            lines.push(
+                t.line()
+                    .dim(format!("  {}", self.labels.slash_hint))
                     .build(),
-            ]));
+            );
         }
 
         lines.push(Line::raw(""));
-        lines.push(Line::from(vec![
-            t.fg_border(format!("  {}", self.labels.press_any_key))
+        lines.push(
+            t.line()
+                .border(format!("  {}", self.labels.press_any_key))
                 .build(),
-        ]));
+        );
 
         let popup_h = (lines.len() as u16 + 2).min(area.height.saturating_sub(2));
         let popup_w = 44u16.min(area.width.saturating_sub(4));
@@ -379,11 +370,8 @@ impl TuiShell {
             height: popup_h,
         };
 
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .border_style(t.style_accent())
-            .title(format!(" {} ", self.labels.help_title))
-            .title_style(t.style_accent().add_modifier(Modifier::BOLD));
+        let title = format!(" {} ", self.labels.help_title);
+        let block = t.block(&title).focused(true).build();
 
         frame.render_widget(Clear, popup);
         frame.render_widget(Paragraph::new(lines).block(block), popup);

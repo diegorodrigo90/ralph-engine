@@ -13,7 +13,7 @@ authors.workspace = true
 arboard = "3.6"
 base64 = "0.22"
 ratatui = "0.30"
-ratatui-themekit = "0.3"
+ratatui-themekit = "0.4"
 tui-scrollview = "0.6"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
