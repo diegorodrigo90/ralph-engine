@@ -777,3 +777,111 @@ fn render_main_panels_with_typed_blocks() {
     assert!(output.contains("Sprint"));
     assert!(output.contains("75%"));
 }
+
+// ── Tab rendering ──────────────────────────────────────────
+
+#[test]
+fn tab_bar_shows_counts() {
+    let mut shell = test_shell();
+    shell.touch_file("Read".to_owned());
+    shell.touch_file("Edit".to_owned());
+    shell.push_log("some log".to_owned());
+    let output = render_to_buffer(&mut shell, 140, 40);
+    // Tab bar should show file count
+    assert!(
+        output.contains("Files (2)"),
+        "tab bar should show Files (2), got:\n{output}"
+    );
+}
+
+#[test]
+fn files_tab_shows_tool_icons() {
+    let mut shell = empty_shell();
+    shell.touch_file("Edit".to_owned());
+    shell.touch_file("Read".to_owned());
+    shell.touch_file("Bash".to_owned());
+    shell.active_tab = TuiTab::Files;
+    let output = render_to_buffer(&mut shell, 140, 40);
+    assert!(
+        output.contains("3 tools used"),
+        "Files tab should show tool count"
+    );
+}
+
+#[test]
+fn log_tab_shows_line_numbers() {
+    let mut shell = empty_shell();
+    shell.push_log(">> Tool: Read".to_owned());
+    shell.push_log("some output".to_owned());
+    shell.active_tab = TuiTab::Log;
+    let output = render_to_buffer(&mut shell, 140, 40);
+    assert!(output.contains("2 lines"), "Log tab should show line count");
+}
+
+#[test]
+fn config_tab_shows_grouped_sections() {
+    let mut shell = test_shell();
+    shell.set_sidebar_panels(vec![SidebarPanel {
+        title: "Test".to_owned(),
+        lines: vec![],
+        items: Vec::new(),
+        plugin_id: "official.claude".to_owned(),
+    }]);
+    shell.active_tab = TuiTab::Config;
+    let output = render_to_buffer(&mut shell, 140, 40);
+    assert!(
+        output.contains("Session"),
+        "Config tab should have Session heading"
+    );
+    assert!(
+        output.contains("Plugins"),
+        "Config tab should have Plugins heading"
+    );
+    assert!(
+        output.contains("official.claude"),
+        "Config tab should list plugin IDs"
+    );
+}
+
+#[test]
+fn sidebar_groups_all_agents_in_one_section() {
+    let mut shell = test_shell();
+    shell.set_sidebar_panels(vec![
+        SidebarPanel {
+            title: "Claude".to_owned(),
+            lines: vec!["Available".to_owned()],
+            items: Vec::new(),
+            plugin_id: "official.claude".to_owned(),
+        },
+        SidebarPanel {
+            title: "Codex".to_owned(),
+            lines: vec!["Not found".to_owned()],
+            items: Vec::new(),
+            plugin_id: "official.codex".to_owned(),
+        },
+    ]);
+    let output = render_to_buffer(&mut shell, 140, 40);
+    assert!(
+        output.contains("Agents"),
+        "sidebar should have Agents group"
+    );
+    // Both agent lines should be under the same group
+    assert!(output.contains("Available"));
+    assert!(output.contains("Not found"));
+}
+
+#[test]
+fn files_tab_empty_shows_placeholder() {
+    let mut shell = empty_shell();
+    shell.active_tab = TuiTab::Files;
+    let output = render_to_buffer(&mut shell, 140, 40);
+    assert!(output.contains("No files touched"));
+}
+
+#[test]
+fn log_tab_empty_shows_placeholder() {
+    let mut shell = empty_shell();
+    shell.active_tab = TuiTab::Log;
+    let output = render_to_buffer(&mut shell, 140, 40);
+    assert!(output.contains("No log output"));
+}
