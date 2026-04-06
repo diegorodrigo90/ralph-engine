@@ -2,7 +2,7 @@
 
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
-use ratatui::crossterm::event::KeyCode;
+use ratatui::crossterm::event::{KeyCode, KeyModifiers};
 
 use super::*;
 
@@ -240,12 +240,9 @@ fn chat_input_esc_exits_focus_preserves_buffer() {
     shell.handle_key(KeyCode::Char('b'));
     assert_eq!(shell.text_input_buffer(), "ab");
 
-    // First Esc clears buffer (handle_typing_key path)
+    // Esc exits input focus but PRESERVES buffer text
     shell.handle_key(KeyCode::Esc);
-    assert!(shell.text_input_buffer().is_empty());
-
-    // Second Esc exits input focus (empty buffer path)
-    shell.handle_key(KeyCode::Esc);
+    assert_eq!(shell.text_input_buffer(), "ab");
     assert_eq!(shell.focus, super::types::FocusTarget::Activity);
 }
 
@@ -289,6 +286,71 @@ fn explicit_enter_text_input_activates() {
     assert!(shell.is_input_enabled());
     shell.handle_key(KeyCode::Char('x'));
     assert_eq!(shell.text_input_buffer(), "x");
+}
+
+#[test]
+fn chat_input_ctrl_c_clears_all_text() {
+    let mut shell = interactive_shell();
+    shell.handle_key(KeyCode::Char('h'));
+    shell.handle_key(KeyCode::Char('e'));
+    shell.handle_key(KeyCode::Char('l'));
+    assert_eq!(shell.text_input_buffer(), "hel");
+
+    shell.handle_key_with_modifiers(KeyCode::Char('c'), KeyModifiers::CONTROL);
+    assert!(shell.text_input_buffer().is_empty());
+    // Focus stays on Input
+    assert_eq!(shell.focus, super::types::FocusTarget::Input);
+}
+
+#[test]
+fn chat_input_ctrl_z_undoes_last_change() {
+    let mut shell = interactive_shell();
+    shell.handle_key(KeyCode::Char('a'));
+    shell.handle_key(KeyCode::Char('b'));
+    assert_eq!(shell.text_input_buffer(), "ab");
+
+    shell.handle_key_with_modifiers(KeyCode::Char('z'), KeyModifiers::CONTROL);
+    assert_eq!(shell.text_input_buffer(), "a");
+
+    shell.handle_key_with_modifiers(KeyCode::Char('z'), KeyModifiers::CONTROL);
+    assert!(shell.text_input_buffer().is_empty());
+}
+
+#[test]
+fn mouse_click_on_input_area_sets_focus() {
+    use ratatui::crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+
+    let mut shell = interactive_shell();
+    // Set a known input area
+    shell.input_area = ratatui::layout::Rect::new(0, 20, 80, 3);
+    shell.focus = super::types::FocusTarget::Activity;
+
+    // Click inside input area
+    shell.handle_mouse(MouseEvent {
+        kind: MouseEventKind::Down(MouseButton::Left),
+        column: 10,
+        row: 21,
+        modifiers: KeyModifiers::NONE,
+    });
+    assert_eq!(shell.focus, super::types::FocusTarget::Input);
+}
+
+#[test]
+fn mouse_click_outside_input_area_sets_activity_focus() {
+    use ratatui::crossterm::event::{MouseButton, MouseEvent, MouseEventKind};
+
+    let mut shell = interactive_shell();
+    shell.input_area = ratatui::layout::Rect::new(0, 20, 80, 3);
+    shell.focus = super::types::FocusTarget::Input;
+
+    // Click outside input area (in feed area)
+    shell.handle_mouse(MouseEvent {
+        kind: MouseEventKind::Down(MouseButton::Left),
+        column: 10,
+        row: 5,
+        modifiers: KeyModifiers::NONE,
+    });
+    assert_eq!(shell.focus, super::types::FocusTarget::Activity);
 }
 
 // ── Rendering snapshot tests ────────────────────────────────

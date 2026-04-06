@@ -11,15 +11,28 @@ use super::shell::TuiShell;
 
 impl TuiShell {
     /// Renders the chat input bar — separator, `>` prompt, multi-line, native cursor.
+    ///
+    /// Shows accent border when focused, dim when unfocused.
     pub(super) fn render_input_bar(&self, frame: &mut Frame<'_>, area: Rect) {
+        use super::types::FocusTarget;
+
         let t = self.theme();
-        let prompt = " > ";
+        let is_focused = self.focus == FocusTarget::Input;
+        let prompt = if is_focused { " > " } else { " · " };
         let prompt_width = prompt.len() as u16;
 
         let rows = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).split(area);
 
-        // Separator line
-        frame.render_widget(Paragraph::new(t.separator_line(area.width)), rows[0]);
+        // Separator line — accent when focused, dim border otherwise
+        let sep_color = if is_focused { t.accent() } else { t.border() };
+        let sep_line = "─".repeat(area.width as usize);
+        frame.render_widget(
+            Paragraph::new(Line::from(ratatui::text::Span::styled(
+                sep_line,
+                ratatui::style::Style::default().fg(sep_color),
+            ))),
+            rows[0],
+        );
 
         let text_area = rows[1];
 

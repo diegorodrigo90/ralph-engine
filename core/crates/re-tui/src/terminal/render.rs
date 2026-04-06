@@ -97,8 +97,9 @@ impl TuiShell {
         // Help bar always visible
         self.render_help(frame, &zones);
 
-        // Input bar when enabled
+        // Input bar when enabled — track area for mouse click-to-focus
         if let Some(input_area) = zones.input {
+            self.input_area = input_area;
             self.render_input_bar(frame, input_area);
         }
 

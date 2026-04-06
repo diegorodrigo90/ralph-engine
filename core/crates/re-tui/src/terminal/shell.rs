@@ -46,8 +46,10 @@ pub struct TuiShell {
     pub(super) plugin_keybindings: Vec<RegisteredKeybinding>,
     pub(super) input_enabled: bool,
     pub(super) text_input_buffer: String,
+    pub(super) input_undo_stack: Vec<String>,
     pub(super) pending_text_input: Option<String>,
     pub(super) autocomplete: AutocompleteState,
+    pub(super) input_area: ratatui::layout::Rect,
     pub(super) toasts: Vec<Toast>,
     pub(super) pending_blocks: std::collections::VecDeque<crate::feed::FeedBlock>,
     pub(super) pending_total: usize,
@@ -96,8 +98,10 @@ impl TuiShell {
             plugin_keybindings: Vec::new(),
             input_enabled: false,
             text_input_buffer: String::new(),
+            input_undo_stack: Vec::new(),
             pending_text_input: None,
             autocomplete: AutocompleteState::new(Vec::new(), "/".to_owned()),
+            input_area: ratatui::layout::Rect::default(),
             toasts: Vec::new(),
             pending_blocks: std::collections::VecDeque::new(),
             pending_total: 0,
@@ -319,14 +323,11 @@ impl TuiShell {
         self.agent_pid = Some(pid);
     }
 
-    /// Sets agent commands, plus built-in TUI commands.
-    pub fn set_agent_commands(&mut self, mut commands: Vec<CommandEntry>, prefix: String) {
-        commands.push(CommandEntry {
-            name: "theme".to_owned(),
-            description: "Switch theme".to_owned(),
-            source: super::types::CommandSource::Plugin,
-            source_name: "RE".to_owned(),
-        });
+    /// Sets agent commands for autocomplete.
+    ///
+    /// Theme and other built-in commands come from `DASHBOARD_COMMANDS` — no
+    /// need to push them here. Deduplicates by name to prevent double entries.
+    pub fn set_agent_commands(&mut self, commands: Vec<CommandEntry>, prefix: String) {
         self.autocomplete = AutocompleteState::new(commands, prefix);
     }
 
@@ -693,6 +694,13 @@ impl TuiShell {
                     self.handle_tab_bar_click(pos.x);
                     return;
                 }
+                // Input area click → focus input
+                if self.input_enabled && self.input_area.contains(pos) {
+                    self.focus = FocusTarget::Input;
+                    return;
+                }
+                // Default: focus activity (feed area)
+                self.focus = FocusTarget::Activity;
                 self.focus_next_block();
             }
             _ => {}
@@ -748,27 +756,12 @@ impl TuiShell {
             return PluginKeyAction::Handled;
         }
 
-        // Input handling: when focus is on input, capture keys there.
-        // Esc exits input focus → core keys (q, ?, etc.) become available.
+        // Input handling: when focus is on input, ALL keys go through
+        // handle_typing_key. Esc exits focus (without clearing buffer).
         let input_focused = self.input_enabled && self.focus == FocusTarget::Input;
 
         if input_focused {
-            // Buffer has content → typing mode (Esc clears buffer)
-            if !self.text_input_buffer.is_empty() {
-                return self.handle_typing_key(code, modifiers);
-            }
-            // Empty buffer + Esc → exit input focus
-            if code == KeyCode::Esc {
-                self.focus = FocusTarget::Activity;
-                self.autocomplete.visible = false;
-                return PluginKeyAction::Handled;
-            }
-            // Empty buffer + printable char → start typing
-            if let KeyCode::Char(c) = code {
-                self.text_input_buffer.push(c);
-                self.autocomplete.update_filter(&self.text_input_buffer);
-                return PluginKeyAction::Handled;
-            }
+            return self.handle_typing_key(code, modifiers);
         }
 
         // Core keys (only when not typing in input)
@@ -789,6 +782,7 @@ impl TuiShell {
     }
 
     fn handle_typing_key(&mut self, code: KeyCode, modifiers: KeyModifiers) -> PluginKeyAction {
+        // Autocomplete navigation takes priority when the popup is visible.
         if self.autocomplete.visible {
             match code {
                 KeyCode::Up => {
@@ -811,9 +805,10 @@ impl TuiShell {
                     if let Some(cmd) = self.autocomplete.selected_command() {
                         self.text_input_buffer = cmd;
                     }
-                    // Fall through to normal Enter handling
+                    // Fall through to normal Enter handling below
                 }
                 KeyCode::Esc => {
+                    // First Esc closes autocomplete popup, keeps focus + buffer.
                     self.autocomplete.visible = false;
                     return PluginKeyAction::Handled;
                 }
@@ -822,9 +817,25 @@ impl TuiShell {
         }
 
         match code {
+            // Ctrl+C → clear all text
+            KeyCode::Char('c') if modifiers.contains(KeyModifiers::CONTROL) => {
+                self.save_undo_snapshot();
+                self.text_input_buffer.clear();
+                self.autocomplete.visible = false;
+            }
+            // Ctrl+Z → undo last change
+            KeyCode::Char('z') if modifiers.contains(KeyModifiers::CONTROL) => {
+                if let Some(prev) = self.input_undo_stack.pop() {
+                    self.text_input_buffer = prev;
+                    self.autocomplete.update_filter(&self.text_input_buffer);
+                }
+            }
+            // Alt+Enter → insert newline
             KeyCode::Enter if modifiers.contains(KeyModifiers::ALT) => {
+                self.save_undo_snapshot();
                 self.text_input_buffer.push('\n');
             }
+            // Enter → submit text
             KeyCode::Enter => {
                 if !self.text_input_buffer.trim().is_empty() {
                     let text = self.text_input_buffer.trim().to_owned();
@@ -833,6 +844,7 @@ impl TuiShell {
                         self.open_theme_selector();
                         self.text_input_buffer.clear();
                         self.autocomplete.visible = false;
+                        self.input_undo_stack.clear();
                         return PluginKeyAction::Handled;
                     }
                     self.push_activity(format!(">> You: {text}"));
@@ -840,22 +852,37 @@ impl TuiShell {
                 }
                 self.text_input_buffer.clear();
                 self.autocomplete.visible = false;
+                self.input_undo_stack.clear();
             }
+            // Esc → exit input focus (buffer is PRESERVED)
             KeyCode::Esc => {
-                self.text_input_buffer.clear();
+                self.focus = FocusTarget::Activity;
                 self.autocomplete.visible = false;
             }
             KeyCode::Backspace => {
+                self.save_undo_snapshot();
                 self.text_input_buffer.pop();
                 self.autocomplete.update_filter(&self.text_input_buffer);
             }
             KeyCode::Char(c) => {
+                self.save_undo_snapshot();
                 self.text_input_buffer.push(c);
                 self.autocomplete.update_filter(&self.text_input_buffer);
             }
             _ => {}
         }
         PluginKeyAction::Handled
+    }
+
+    /// Saves current buffer to the undo stack (max 50 entries).
+    fn save_undo_snapshot(&mut self) {
+        let current = self.text_input_buffer.clone();
+        if self.input_undo_stack.last() != Some(&current) {
+            self.input_undo_stack.push(current);
+            if self.input_undo_stack.len() > 50 {
+                self.input_undo_stack.remove(0);
+            }
+        }
     }
 
     fn handle_core_key(
