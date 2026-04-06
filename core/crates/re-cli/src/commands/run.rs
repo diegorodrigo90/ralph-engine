@@ -561,31 +561,21 @@ fn run_with_tui(
         shell.set_agent_commands(commands, "/".to_owned());
     }
 
-    // Auto-discover: panels — split by zone_hint (sidebar vs main)
+    // Auto-discover panels from plugins
     let all_panels = catalog::collect_tui_panels_from_plugins();
-    let (sidebar, main): (Vec<_>, Vec<_>) = all_panels
+    let sidebar_panels: Vec<re_tui::SidebarPanel> = all_panels
         .into_iter()
-        .partition(|(_, p)| p.zone_hint != "main");
-
-    let to_sidebar = |panels: Vec<(String, re_plugin::TuiPanel)>| -> Vec<re_tui::SidebarPanel> {
-        panels
-            .into_iter()
-            .map(|(plugin_id, panel)| re_tui::SidebarPanel {
-                title: panel.title,
-                lines: panel.lines,
-                items: panel
-                    .blocks
-                    .into_iter()
-                    .map(super::tui::convert_tui_block)
-                    .collect(),
-                plugin_id,
-            })
-            .collect()
-    };
-
-    shell.set_sidebar_panels(to_sidebar(sidebar));
-    shell.set_main_panels(to_sidebar(main));
-    shell.push_startup_banner();
+        .map(|(plugin_id, panel)| re_tui::SidebarPanel {
+            title: panel.title,
+            items: panel
+                .blocks
+                .into_iter()
+                .map(super::tui::convert_tui_block)
+                .collect(),
+            plugin_id,
+        })
+        .collect();
+    shell.set_sidebar_panels(sidebar_panels);
 
     // Non-blocking stdout reader via thread
     let (tx, rx) = std::sync::mpsc::channel::<String>();

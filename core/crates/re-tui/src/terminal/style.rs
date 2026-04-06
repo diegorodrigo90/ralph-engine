@@ -176,56 +176,7 @@ fn render_separator(theme: &dyn crate::theme::Theme, lines: &mut Vec<Line<'_>>) 
     ]));
 }
 
-/// Styles a sidebar panel line with visual emphasis based on content patterns.
-pub(super) fn style_sidebar_line<'a>(
-    line: &'a str,
-    panel_color: Color,
-    theme: &dyn crate::theme::Theme,
-) -> Line<'a> {
-    // Status indicators
-    if line.starts_with('✓') || line.contains("Available") || line.contains("Ready") {
-        return Line::from(vec![theme.fg_success(format!("  {line}")).build()]);
-    }
-    if line.starts_with('✗')
-        || line.contains("Error")
-        || line.contains("Failed")
-        || line.contains("Not found")
-    {
-        return Line::from(vec![theme.fg_error(format!("  {line}")).build()]);
-    }
-
-    // Key: Value pattern → dim key, bright value
-    if let Some(colon_pos) = line.find(": ") {
-        let (key, val) = line.split_at(colon_pos + 2);
-        let val_trimmed = val.trim();
-        let val_span = if val_trimmed.parse::<f64>().is_ok()
-            || val_trimmed.starts_with('$')
-            || val_trimmed.ends_with('%')
-        {
-            ThemedSpan::with_color(val, panel_color).bold().build()
-        } else if val_trimmed == "true" || val_trimmed == "enabled" || val_trimmed == "yes" {
-            theme.fg_success(val).build()
-        } else if val_trimmed == "false" || val_trimmed == "disabled" || val_trimmed == "no" {
-            theme.fg_dim(val).build()
-        } else {
-            theme.fg_bright(val).build()
-        };
-        return Line::from(vec![theme.fg_dim(format!("  {key}")).build(), val_span]);
-    }
-
-    // Pure number lines → bold accent
-    let trimmed = line.trim();
-    if !trimmed.is_empty() && trimmed.chars().all(|c| c.is_ascii_digit()) {
-        return Line::from(vec![
-            ThemedSpan::with_color(format!("  {line}"), panel_color)
-                .bold()
-                .build(),
-        ]);
-    }
-
-    // Default: dim text
-    Line::from(vec![theme.fg_dim(format!("  {line}")).build()])
-}
+// style_sidebar_line removed — all plugins use typed PanelItem rendering
 
 /// Styles a content line as a vec of spans (preserving per-character coloring).
 ///

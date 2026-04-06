@@ -207,7 +207,6 @@ impl PluginRuntime for GitHubRuntime {
         vec![re_plugin::TuiPanel {
             id: "github-status".to_owned(),
             title: "GitHub".to_owned(),
-            lines: Vec::new(),
             blocks: vec![
                 re_plugin::TuiBlock::indicator("MCP Server", status, sev),
                 re_plugin::TuiBlock::pairs(vec![

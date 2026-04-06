@@ -171,7 +171,6 @@ impl PluginRuntime for RouterRuntime {
             id: "router-status".to_owned(),
             title: "Routing".to_owned(),
             blocks,
-            lines: Vec::new(),
             zone_hint: "sidebar".to_owned(),
         }]
     }

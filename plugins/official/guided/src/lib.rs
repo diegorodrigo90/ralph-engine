@@ -125,7 +125,6 @@ impl PluginRuntime for GuidedRuntime {
                     ("Feedback".to_owned(), "type to send".to_owned()),
                 ]),
             ],
-            lines: Vec::new(),
             zone_hint: "sidebar".to_owned(),
         }]
     }

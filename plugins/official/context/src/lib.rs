@@ -277,7 +277,6 @@ impl PluginRuntime for ContextRuntime {
         vec![re_plugin::TuiPanel {
             id: "context-status".to_owned(),
             title: "Context".to_owned(),
-            lines: Vec::new(),
             blocks,
             zone_hint: "sidebar".to_owned(),
         }]

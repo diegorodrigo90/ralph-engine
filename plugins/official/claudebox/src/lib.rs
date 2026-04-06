@@ -283,7 +283,6 @@ impl PluginRuntime for ClaudeBoxRuntime {
         vec![re_plugin::TuiPanel {
             id: "claudebox-status".to_owned(),
             title: "ClaudeBox".to_owned(),
-            lines: Vec::new(),
             blocks: vec![
                 re_plugin::TuiBlock::indicator("Binary", status, sev),
                 re_plugin::TuiBlock::pairs(vec![

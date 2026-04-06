@@ -307,7 +307,6 @@ impl PluginRuntime for CodexRuntime {
         vec![re_plugin::TuiPanel {
             id: "codex-status".to_owned(),
             title: "Codex".to_owned(),
-            lines: Vec::new(),
             blocks: vec![
                 re_plugin::TuiBlock::indicator("Binary", status, sev),
                 re_plugin::TuiBlock::pairs(vec![

@@ -218,7 +218,6 @@ impl PluginRuntime for FindingsRuntime {
             id: "findings".to_owned(),
             title: "Findings".to_owned(),
             blocks,
-            lines: vec![],
             zone_hint: "sidebar".to_owned(),
         }]
     }

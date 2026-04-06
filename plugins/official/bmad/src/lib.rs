@@ -656,14 +656,12 @@ impl PluginRuntime for BmadRuntime {
             re_plugin::TuiPanel {
                 id: "sprint-status".to_owned(),
                 title: "Sprint".to_owned(),
-                lines: Vec::new(),
                 blocks: blocks.clone(),
                 zone_hint: "sidebar".to_owned(),
             },
             re_plugin::TuiPanel {
                 id: "sprint-dashboard".to_owned(),
                 title: "Sprint Dashboard".to_owned(),
-                lines: Vec::new(),
                 blocks,
                 zone_hint: "main".to_owned(),
             },

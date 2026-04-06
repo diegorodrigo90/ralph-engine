@@ -23,7 +23,6 @@ pub struct TuiShell {
     pub(super) theme: Box<dyn crate::theme::Theme>,
     pub(super) state: TuiState,
     pub(super) progress: u16,
-    pub(super) activity_lines: Vec<String>,
     pub(super) feed: crate::feed::Feed,
     pub(super) feed_scroll: ScrollViewState,
     pub(super) follow_mode: bool,
@@ -40,7 +39,6 @@ pub struct TuiShell {
     pub(super) help_modal_visible: bool,
     pub(super) sidebar_panels: Vec<SidebarPanel>,
     pub(super) sidebar_visible: bool,
-    pub(super) main_panels: Vec<SidebarPanel>,
     pub(super) available_agents: Vec<String>,
     pub(super) agent_switcher_visible: bool,
     pub(super) agent_switcher_selected: usize,
@@ -75,7 +73,6 @@ impl TuiShell {
             theme: Box::new(crate::theme::CatppuccinMocha),
             state: TuiState::Running,
             progress: 0,
-            activity_lines: Vec::new(),
             feed: crate::feed::Feed::new(),
             feed_scroll: ScrollViewState::default(),
             follow_mode: true,
@@ -92,7 +89,6 @@ impl TuiShell {
             help_modal_visible: false,
             sidebar_panels: Vec::new(),
             sidebar_visible: true,
-            main_panels: Vec::new(),
             available_agents: Vec::new(),
             agent_switcher_visible: false,
             agent_switcher_selected: 0,
@@ -301,11 +297,6 @@ impl TuiShell {
         self.sidebar_panels = panels;
     }
 
-    /// Sets main-zone panels (`zone_hint="main"`) — rendered in the feed area when idle.
-    pub fn set_main_panels(&mut self, panels: Vec<SidebarPanel>) {
-        self.main_panels = panels;
-    }
-
     /// Sets plugin keybindings.
     pub fn set_plugin_keybindings(&mut self, bindings: Vec<RegisteredKeybinding>) {
         self.plugin_keybindings = bindings;
@@ -334,12 +325,17 @@ impl TuiShell {
 
     // ── Activity & toasts ───────────────────────────────────────
 
-    /// Pushes activity.
+    /// Pushes a line to the log (visible in Log tab).
+    ///
+    /// This replaced the old `activity_lines` — feed blocks are the primary
+    /// output display, and the Log tab shows the raw event stream.
     pub fn push_activity(&mut self, line: String) {
-        if self.activity_lines.len() >= 10_000 {
-            self.activity_lines.drain(..1_000);
+        if !line.is_empty() {
+            if self.log_lines.len() >= 10_000 {
+                self.log_lines.drain(..1_000);
+            }
+            self.log_lines.push(line);
         }
-        self.activity_lines.push(line);
     }
 
     /// Shows toast.
@@ -372,17 +368,17 @@ impl TuiShell {
         self.tool_count += 1;
     }
 
-    /// Pushes startup banner.
+    /// Pushes startup banner as a system feed block.
     pub fn push_startup_banner(&mut self) {
-        self.push_activity(String::new());
-        self.push_activity(format!("  ◎ Ralph Engine v{}", env!("CARGO_PKG_VERSION")));
-        self.push_activity(format!("  Agent:   {}", self.config.agent_id));
-        self.push_activity(format!("  Work:    {}", self.config.title));
-        let total_panels = self.sidebar_panels.len() + self.main_panels.len();
-        self.push_activity(format!("  Plugins: {total_panels} panels"));
-        self.push_activity(String::new());
-        self.push_activity("  Initializing...".to_owned());
-        self.push_activity(String::new());
+        let version = env!("CARGO_PKG_VERSION");
+        let mut block = crate::feed::FeedBlock::completed(
+            crate::feed::BlockKind::System,
+            format!("Ralph Engine v{version}"),
+        );
+        block.push_content(format!("Agent:   {}", self.config.agent_id));
+        block.push_content(format!("Work:    {}", self.config.title));
+        block.push_content(format!("Plugins: {} active", self.sidebar_panels.len()));
+        self.feed.push_block(block);
     }
 
     // ── Agent selection ─────────────────────────────────────────
@@ -526,30 +522,17 @@ impl TuiShell {
         }
 
         match event {
-            AgentEvent::TextDelta(_) => {
-                self.push_activity(event.activity_line());
-            }
             AgentEvent::ToolUse { .. } => {
                 self.increment_tools();
-                self.push_activity(event.activity_line());
-            }
-            AgentEvent::ToolResult { .. } => {
-                self.push_activity(event.activity_line());
             }
             AgentEvent::Complete { is_error } => {
-                self.push_activity(event.activity_line());
                 if *is_error {
                     self.set_state(TuiState::Error);
                 } else {
                     self.set_state(TuiState::Complete);
                 }
             }
-            AgentEvent::System(_) | AgentEvent::Unknown(_) => {
-                let line = event.activity_line();
-                if !line.is_empty() {
-                    self.push_activity(line);
-                }
-            }
+            _ => {}
         }
     }
 

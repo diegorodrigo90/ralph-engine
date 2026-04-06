@@ -287,9 +287,7 @@ impl Default for TuiLabels {
 pub struct SidebarPanel {
     /// Panel title (localized).
     pub title: String,
-    /// Legacy plain text lines (fallback).
-    pub lines: Vec<String>,
-    /// Typed content items (preferred — richer rendering).
+    /// Typed content items for theme-driven rendering.
     pub items: Vec<PanelItem>,
     /// Source plugin ID (for attribution).
     pub plugin_id: String,

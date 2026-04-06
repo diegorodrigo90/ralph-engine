@@ -173,13 +173,15 @@ impl TuiShell {
         );
     }
 
-    /// Renders the idle dashboard when no agent is running.
+    /// Renders the idle dashboard — logo, inline agent status, command hints.
+    ///
+    /// This is the "welcome screen" — clean, focused, immediately useful.
+    /// No sidebar, no tabs, no metrics. Just what the user needs to know.
     pub(super) fn render_idle_dashboard(&self, frame: &mut Frame<'_>, area: Rect) {
         let t = self.theme();
         let version = env!("CARGO_PKG_VERSION");
 
         let logo_color = Some(match self.state {
-            TuiState::Running => t.text_dim(),
             TuiState::Error => t.error(),
             _ => t.accent(),
         });
@@ -188,7 +190,8 @@ impl TuiShell {
 
         let mut lines: Vec<Line<'_>> = Vec::new();
 
-        let content_height = logo_lines.len() + 14;
+        // Estimate content height for vertical centering
+        let content_height = logo_lines.len() + 16;
         let pad_top = area.height.saturating_sub(content_height as u16) / 2;
         for _ in 0..pad_top {
             lines.push(Line::raw(""));
@@ -206,17 +209,62 @@ impl TuiShell {
         );
         lines.push(Line::raw(""));
 
+        // Inline agent status row — all agents on one line
+        let mut agent_spans: Vec<ratatui::text::Span<'_>> = vec![t.fg_dim("  ").build()];
+        let mut found_agents = false;
+        for panel in &self.sidebar_panels {
+            let is_agent = matches!(
+                panel.plugin_id.as_str(),
+                "official.claude" | "official.claudebox" | "official.codex"
+            );
+            if !is_agent {
+                continue;
+            }
+            found_agents = true;
+            let (icon, icon_color) = self.plugin_status_icon(panel);
+            let name = panel.title.to_lowercase();
+            let status = panel
+                .items
+                .iter()
+                .find(|i| i.hint == super::types::PanelHint::Indicator)
+                .and_then(|i| i.value.as_deref())
+                .unwrap_or("—")
+                .to_lowercase();
+
+            if agent_spans.len() > 1 {
+                agent_spans.push(t.fg_dim("    ").build());
+            }
+            agent_spans.push(
+                ratatui_themekit::builders::ThemedSpan::with_color(format!("{icon} "), icon_color)
+                    .bold()
+                    .build(),
+            );
+            agent_spans.push(t.fg_text(format!("{name} {status}")).build());
+        }
+        if found_agents {
+            lines.push(Line::from(agent_spans));
+            lines.push(Line::raw(""));
+        }
+
+        // Project status + command hints
         let has_config = std::path::Path::new(".ralph-engine/config.yaml").exists();
         if has_config {
             lines.push(
                 t.line()
-                    .success("  ✓ ")
-                    .text(self.labels.project_configured.as_str())
+                    .accent_bold("  /run")
+                    .dim("           start autonomous loop")
                     .build(),
             );
             lines.push(
                 t.line()
-                    .accent(format!("  {}", self.labels.type_run))
+                    .accent_bold("  /run 5.3")
+                    .dim("       execute story 5.3")
+                    .build(),
+            );
+            lines.push(
+                t.line()
+                    .accent_bold("  /run --list")
+                    .dim("    list available work items")
                     .build(),
             );
         } else {
@@ -226,20 +274,23 @@ impl TuiShell {
                     .text(self.labels.no_project_found.as_str())
                     .build(),
             );
-            lines.push(t.line().dim(format!("  {}", self.labels.type_init)).build());
+            lines.push(
+                t.line()
+                    .accent_bold("  ralph-engine init")
+                    .dim("  set up project")
+                    .build(),
+            );
         }
-
-        lines.push(Line::raw(""));
         lines.push(
             t.line()
-                .accent_bold("  q")
-                .dim(" quit  ")
-                .accent_bold("?")
-                .dim(" help  ")
-                .accent_bold("F2")
-                .dim(" sidebar  ")
-                .accent_bold("j/k")
-                .dim(" navigate")
+                .accent_bold("  /theme")
+                .dim("         change theme")
+                .build(),
+        );
+        lines.push(
+            t.line()
+                .accent_bold("  /help")
+                .dim("          show all commands")
                 .build(),
         );
 

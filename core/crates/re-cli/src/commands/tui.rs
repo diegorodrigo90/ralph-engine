@@ -112,26 +112,17 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         shell.set_agent_commands(commands, prefix);
     }
 
-    // Auto-discover panels from plugins — split by zone_hint
+    // Auto-discover panels from plugins
     let all_panels = catalog::collect_tui_panels_from_plugins();
-    let (sidebar, main): (Vec<_>, Vec<_>) = all_panels
+    let sidebar_panels: Vec<re_tui::SidebarPanel> = all_panels
         .into_iter()
-        .partition(|(_, p)| p.zone_hint != "main");
-
-    let to_sidebar = |panels: Vec<(String, re_plugin::TuiPanel)>| -> Vec<re_tui::SidebarPanel> {
-        panels
-            .into_iter()
-            .map(|(plugin_id, panel)| re_tui::SidebarPanel {
-                title: panel.title,
-                lines: panel.lines,
-                items: panel.blocks.into_iter().map(convert_tui_block).collect(),
-                plugin_id,
-            })
-            .collect()
-    };
-
-    shell.set_sidebar_panels(to_sidebar(sidebar));
-    shell.set_main_panels(to_sidebar(main));
+        .map(|(plugin_id, panel)| re_tui::SidebarPanel {
+            title: panel.title,
+            items: panel.blocks.into_iter().map(convert_tui_block).collect(),
+            plugin_id,
+        })
+        .collect();
+    shell.set_sidebar_panels(sidebar_panels);
 
     // Auto-discover keybindings from plugins
     let keybindings = catalog::collect_tui_keybindings_from_plugins();

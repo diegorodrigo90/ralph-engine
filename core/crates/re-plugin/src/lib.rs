@@ -1963,14 +1963,9 @@ pub struct TuiPanel {
     pub id: String,
     /// Localized panel title shown in the sidebar header.
     pub title: String,
-    /// Panel content as lines of text (legacy — use `blocks` for richer UI).
-    pub lines: Vec<String>,
-    /// Typed content blocks (preferred over `lines`).
-    ///
-    /// Core renders these with consistent theme-driven styling. If both
-    /// `lines` and `blocks` are set, `blocks` takes priority.
+    /// Typed content blocks rendered by core with theme-driven styling.
     pub blocks: Vec<TuiBlock>,
-    /// Position hint: `"sidebar"` (default), `"bottom"`, or `"main"`.
+    /// Position hint: `"sidebar"` (default) or `"main"`.
     /// Core decides final placement based on layout tier.
     pub zone_hint: String,
 }

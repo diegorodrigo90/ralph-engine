@@ -61,7 +61,7 @@ fn tui_shell_new_has_correct_defaults() {
     });
     assert_eq!(shell.state(), TuiState::Running);
     assert_eq!(shell.progress, 0);
-    assert!(shell.activity_lines.is_empty());
+    assert!(shell.log_lines.is_empty());
     assert_eq!(shell.tool_count, 0);
     assert!(!shell.is_input_enabled());
     assert_eq!(shell.theme().id(), "catppuccin");
@@ -89,7 +89,7 @@ fn push_activity_appends_line() {
     let mut shell = empty_shell();
     shell.push_activity("hello".to_owned());
     shell.push_activity("world".to_owned());
-    assert_eq!(shell.activity_lines.len(), 2);
+    assert_eq!(shell.log_lines.len(), 2);
 }
 
 #[test]
@@ -98,8 +98,8 @@ fn push_activity_bounds_buffer() {
     for i in 0..10_001 {
         shell.push_activity(format!("line {i}"));
     }
-    assert!(shell.activity_lines.len() <= 10_000);
-    assert_eq!(shell.activity_lines.last().unwrap(), "line 10000");
+    assert!(shell.log_lines.len() <= 10_000);
+    assert_eq!(shell.log_lines.last().unwrap(), "line 10000");
 }
 
 #[test]
@@ -195,14 +195,14 @@ fn apply_plugin_action_enter_text_input() {
         prompt: "Type feedback:".to_owned(),
     });
     assert!(shell.is_input_enabled());
-    assert!(shell.activity_lines.last().unwrap().contains("feedback"));
+    assert!(shell.log_lines.last().unwrap().contains("feedback"));
 }
 
 #[test]
 fn apply_plugin_action_show_message() {
     let mut shell = empty_shell();
     shell.apply_plugin_action(&PluginKeyAction::ShowMessage("Agent paused.".to_owned()));
-    assert!(shell.activity_lines.last().unwrap().contains("paused"));
+    assert!(shell.log_lines.last().unwrap().contains("paused"));
 }
 
 // ── Chat input ──────────────────────────────────────────────
@@ -285,11 +285,11 @@ fn render_compact_shows_header_with_agent_id() {
 }
 
 #[test]
-fn render_compact_shows_activity_lines() {
-    let mut shell = test_shell();
+fn render_compact_idle_shows_dashboard() {
+    let mut shell = empty_shell();
     let output = render_to_buffer(&mut shell, 80, 24);
-    assert!(output.contains("Tool Call: search"));
-    assert!(output.contains("found 3 items"));
+    // Idle mode: shows logo and commands, not activity lines
+    assert!(output.contains("Ralph"));
 }
 
 #[test]
@@ -317,16 +317,27 @@ fn render_compact_no_sidebar() {
 #[test]
 fn render_standard_shows_sidebar() {
     let mut shell = test_shell();
+    // Use a known agent plugin so it appears in sidebar (not hidden)
     shell.set_sidebar_panels(vec![SidebarPanel {
-        title: "TestPanel".to_owned(),
-        lines: vec!["line1".to_owned()],
-        items: Vec::new(),
-        plugin_id: "test.plugin".to_owned(),
+        title: "Claude".to_owned(),
+        items: vec![super::types::PanelItem {
+            label: Some("Binary".to_owned()),
+            value: Some("Available".to_owned()),
+            hint: super::types::PanelHint::Indicator,
+            severity: super::types::PanelSeverity::Success,
+            ..super::types::PanelItem::default()
+        }],
+        plugin_id: "official.claude".to_owned(),
     }]);
+    // Need feed blocks to trigger active layout (sidebar only shows in active mode)
+    shell
+        .feed_mut()
+        .push_block(crate::feed::FeedBlock::completed(
+            crate::feed::BlockKind::System,
+            "test".into(),
+        ));
     let output = render_to_buffer(&mut shell, 140, 40);
-    // Grouped sidebar: "test.plugin" → Tools group
-    assert!(output.contains("Tools"));
-    assert!(output.contains("standard"));
+    assert!(output.contains("Agents"));
 }
 
 #[test]
@@ -352,6 +363,13 @@ fn render_too_small_shows_error() {
 #[test]
 fn render_paused_state_shows_in_header() {
     let mut shell = test_shell();
+    // Need feed content to trigger active layout where header shows state badge
+    shell
+        .feed_mut()
+        .push_block(crate::feed::FeedBlock::completed(
+            crate::feed::BlockKind::System,
+            "test".into(),
+        ));
     shell.set_state(TuiState::Paused);
     let output = render_to_buffer(&mut shell, 120, 24);
     assert!(output.contains("PAUSED"));
@@ -373,7 +391,7 @@ use crate::events::AgentEvent;
 fn process_event_text_delta_appends() {
     let mut shell = empty_shell();
     shell.process_event(&AgentEvent::TextDelta("Hello".to_owned()));
-    assert_eq!(shell.activity_lines.len(), 1);
+    assert_eq!(shell.log_lines.len(), 1);
 }
 
 #[test]
@@ -383,7 +401,7 @@ fn process_event_tool_use_increments_count() {
         name: "Read".to_owned(),
     });
     assert_eq!(shell.tool_count, 1);
-    assert!(shell.activity_lines[0].contains("Tool: Read"));
+    assert!(shell.log_lines[0].contains("Tool: Read"));
 }
 
 #[test]
@@ -404,21 +422,21 @@ fn process_event_tool_result_appends() {
         name: "Bash".to_owned(),
         success: true,
     });
-    assert!(shell.activity_lines[0].contains("Bash [OK]"));
+    assert!(shell.log_lines[0].contains("Bash [OK]"));
 }
 
 #[test]
 fn process_event_system_appends() {
     let mut shell = empty_shell();
     shell.process_event(&AgentEvent::System("Starting session".to_owned()));
-    assert!(shell.activity_lines[0].contains("Starting session"));
+    assert!(shell.log_lines[0].contains("Starting session"));
 }
 
 #[test]
 fn process_event_unknown_skips_empty() {
     let mut shell = empty_shell();
     shell.process_event(&AgentEvent::Unknown(String::new()));
-    assert!(shell.activity_lines.is_empty());
+    assert!(shell.log_lines.is_empty());
 }
 
 #[test]
@@ -435,7 +453,7 @@ fn process_event_sequence() {
     shell.process_event(&AgentEvent::TextDelta("Processing...".to_owned()));
     shell.process_event(&AgentEvent::Complete { is_error: false });
 
-    assert_eq!(shell.activity_lines.len(), 5);
+    assert_eq!(shell.log_lines.len(), 5);
     assert_eq!(shell.tool_count, 1);
     assert_eq!(shell.state(), TuiState::Complete);
 }
@@ -448,19 +466,16 @@ fn render_standard_with_plugin_panels() {
     shell.set_sidebar_panels(vec![
         SidebarPanel {
             title: "Claude".to_owned(),
-            lines: vec!["Available".to_owned()],
             items: Vec::new(),
             plugin_id: "official.claude".to_owned(),
         },
         SidebarPanel {
             title: "Sprint Status".to_owned(),
-            lines: vec!["Story 5.3: in-progress".to_owned()],
             items: Vec::new(),
             plugin_id: "official.bmad".to_owned(),
         },
         SidebarPanel {
             title: "Findings".to_owned(),
-            lines: vec!["3 issues found".to_owned()],
             items: Vec::new(),
             plugin_id: "official.findings".to_owned(),
         },
@@ -470,7 +485,7 @@ fn render_standard_with_plugin_panels() {
     assert!(output.contains("Agents"));
     assert!(output.contains("Sprint"));
     assert!(output.contains("Findings"));
-    assert!(output.contains("3 issues"));
+    // Findings group heading is visible (items are empty in this test)
 }
 
 #[test]
@@ -485,7 +500,6 @@ fn set_sidebar_panels_replaces() {
     let mut shell = empty_shell();
     shell.set_sidebar_panels(vec![SidebarPanel {
         title: "A".to_owned(),
-        lines: vec![],
         items: Vec::new(),
         plugin_id: "test".to_owned(),
     }]);
@@ -652,7 +666,7 @@ fn show_error_modal_creates_error_toast_and_activity() {
     shell.show_error_modal("Title", "Details");
     assert_eq!(shell.toasts.len(), 1);
     assert_eq!(shell.toasts[0].level, ToastLevel::Error);
-    assert!(shell.activity_lines.iter().any(|l| l.contains("Title")));
+    assert!(shell.log_lines.iter().any(|l| l.contains("Title")));
 }
 
 #[test]
@@ -668,114 +682,68 @@ fn toasts_expire_after_ticks() {
     assert!(shell.toasts.is_empty());
 }
 
-// ── Main panels (zone_hint="main") ──────────────────────────
+// ── Idle dashboard ──────────────────────────────────────────
 
 #[test]
-fn set_main_panels_stores_panels() {
+fn render_idle_shows_dashboard() {
     let mut shell = empty_shell();
-    assert!(shell.main_panels.is_empty());
-    shell.set_main_panels(vec![SidebarPanel {
-        title: "Sprint".to_owned(),
-        lines: vec!["Story 5.3: in-progress".to_owned()],
-        items: Vec::new(),
-        plugin_id: "test.bmad".to_owned(),
-    }]);
-    assert_eq!(shell.main_panels.len(), 1);
-    assert_eq!(shell.main_panels[0].title, "Sprint");
-}
-
-#[test]
-fn set_main_panels_replaces() {
-    let mut shell = empty_shell();
-    shell.set_main_panels(vec![SidebarPanel {
-        title: "A".to_owned(),
-        lines: vec![],
-        items: Vec::new(),
-        plugin_id: "test".to_owned(),
-    }]);
-    shell.set_main_panels(vec![]);
-    assert!(shell.main_panels.is_empty());
-}
-
-#[test]
-fn render_main_panels_when_idle() {
-    let mut shell = empty_shell();
-    shell.set_main_panels(vec![SidebarPanel {
-        title: "Dashboard".to_owned(),
-        lines: vec!["Status: healthy".to_owned()],
-        items: Vec::new(),
-        plugin_id: "test.dashboard".to_owned(),
-    }]);
-    // No activity + main_panels → should render main panels, not idle dashboard
     let output = render_to_buffer(&mut shell, 120, 30);
-    assert!(
-        output.contains("Dashboard"),
-        "main panels should render when idle, got:\n{output}"
-    );
-    assert!(output.contains("Status"));
+    assert!(output.contains("Ralph"), "idle should show logo");
 }
 
 #[test]
-fn render_idle_dashboard_when_no_main_panels() {
-    let mut shell = empty_shell();
-    // No activity + no main_panels → idle dashboard with logo
-    let output = render_to_buffer(&mut shell, 120, 30);
-    assert!(
-        output.contains("Ralph"),
-        "idle dashboard should show logo when no main panels"
-    );
-}
-
-#[test]
-fn startup_banner_counts_both_panel_types() {
+fn startup_banner_creates_feed_block() {
     let mut shell = empty_shell();
     shell.set_sidebar_panels(vec![SidebarPanel {
         title: "Side".to_owned(),
-        lines: vec![],
         items: Vec::new(),
         plugin_id: "a".to_owned(),
     }]);
-    shell.set_main_panels(vec![SidebarPanel {
-        title: "Main".to_owned(),
-        lines: vec![],
-        items: Vec::new(),
-        plugin_id: "b".to_owned(),
-    }]);
     shell.push_startup_banner();
-    let banner = shell.activity_lines.join(" ");
     assert!(
-        banner.contains("2 panels"),
-        "banner should count sidebar + main panels"
+        !shell.feed().is_empty(),
+        "startup banner should create a feed block"
+    );
+    assert_eq!(
+        shell.feed().blocks()[0].kind,
+        crate::feed::BlockKind::System
     );
 }
 
 #[test]
-fn render_main_panels_with_typed_blocks() {
+fn config_tab_shows_all_plugin_details() {
     use super::types::{PanelHint, PanelItem, PanelSeverity};
     let mut shell = empty_shell();
-    shell.set_main_panels(vec![SidebarPanel {
-        title: "Sprint".to_owned(),
-        lines: vec![],
+    // Need feed to trigger active layout where Config tab is accessible
+    shell
+        .feed_mut()
+        .push_block(crate::feed::FeedBlock::completed(
+            crate::feed::BlockKind::System,
+            "test".into(),
+        ));
+    shell.set_sidebar_panels(vec![SidebarPanel {
+        title: "Claude".to_owned(),
         items: vec![
             PanelItem {
-                label: Some("Progress".to_owned()),
-                hint: PanelHint::Bar,
-                numeric: Some(75),
+                label: Some("Binary".to_owned()),
+                value: Some("Available".to_owned()),
+                hint: PanelHint::Indicator,
                 severity: PanelSeverity::Success,
                 ..PanelItem::default()
             },
             PanelItem {
-                label: Some("Stories".to_owned()),
-                value: Some("3/5".to_owned()),
-                hint: PanelHint::Inline,
+                hint: PanelHint::Pairs,
+                pairs: vec![("Mode".to_owned(), "-p (prompt)".to_owned())],
                 ..PanelItem::default()
             },
         ],
-        plugin_id: "test.bmad".to_owned(),
+        plugin_id: "official.claude".to_owned(),
     }]);
-    let output = render_to_buffer(&mut shell, 120, 30);
-    assert!(output.contains("Sprint"));
-    assert!(output.contains("75%"));
+    shell.active_tab = TuiTab::Config;
+    let output = render_to_buffer(&mut shell, 140, 40);
+    // Config tab shows ALL details including Pairs
+    assert!(output.contains("official.claude"));
+    assert!(output.contains("Mode"));
 }
 
 // ── Tab rendering ──────────────────────────────────────────
@@ -823,7 +791,6 @@ fn config_tab_shows_grouped_sections() {
     let mut shell = test_shell();
     shell.set_sidebar_panels(vec![SidebarPanel {
         title: "Test".to_owned(),
-        lines: vec![],
         items: Vec::new(),
         plugin_id: "official.claude".to_owned(),
     }]);
@@ -846,17 +813,34 @@ fn config_tab_shows_grouped_sections() {
 #[test]
 fn sidebar_groups_all_agents_in_one_section() {
     let mut shell = test_shell();
+    // Need feed blocks to enter active layout
+    shell
+        .feed_mut()
+        .push_block(crate::feed::FeedBlock::completed(
+            crate::feed::BlockKind::System,
+            "test".into(),
+        ));
     shell.set_sidebar_panels(vec![
         SidebarPanel {
             title: "Claude".to_owned(),
-            lines: vec!["Available".to_owned()],
-            items: Vec::new(),
+            items: vec![super::types::PanelItem {
+                label: Some("Binary".to_owned()),
+                value: Some("Available".to_owned()),
+                hint: super::types::PanelHint::Indicator,
+                severity: super::types::PanelSeverity::Success,
+                ..super::types::PanelItem::default()
+            }],
             plugin_id: "official.claude".to_owned(),
         },
         SidebarPanel {
             title: "Codex".to_owned(),
-            lines: vec!["Not found".to_owned()],
-            items: Vec::new(),
+            items: vec![super::types::PanelItem {
+                label: Some("Binary".to_owned()),
+                value: Some("Not found".to_owned()),
+                hint: super::types::PanelHint::Indicator,
+                severity: super::types::PanelSeverity::Error,
+                ..super::types::PanelItem::default()
+            }],
             plugin_id: "official.codex".to_owned(),
         },
     ]);
@@ -865,9 +849,8 @@ fn sidebar_groups_all_agents_in_one_section() {
         output.contains("Agents"),
         "sidebar should have Agents group"
     );
-    // Both agent lines should be under the same group
-    assert!(output.contains("Available"));
-    assert!(output.contains("Not found"));
+    assert!(output.contains("available"));
+    assert!(output.contains("not found"));
 }
 
 #[test]

@@ -187,10 +187,7 @@ fn render_sprint_group<'a>(
                 }
             }
         }
-        // Fallback for plain lines
-        for s in &panel.lines {
-            lines.push(super::style::style_sidebar_line(s, accent, theme));
-        }
+        // No legacy lines fallback — all plugins use typed items
     }
 }
 
@@ -259,12 +256,7 @@ fn render_findings_group<'a>(
                 }
             }
         }
-        // Fallback for panels with only plain lines
-        if panel.items.is_empty() {
-            for s in &panel.lines {
-                lines.push(super::style::style_sidebar_line(s, accent, theme));
-            }
-        }
+        // No legacy lines — all plugins use typed items
     }
 }
 
@@ -272,23 +264,11 @@ fn render_findings_group<'a>(
 ///
 /// Looks for the first Indicator item. Falls back to first line or "—".
 fn extract_indicator_status(panel: &SidebarPanel) -> (String, PanelSeverity) {
-    // Check typed items first
     for item in &panel.items {
         if item.hint == PanelHint::Indicator {
-            let status = item.value.as_deref().unwrap_or("—").to_lowercase();
+            let status = item.value.as_deref().unwrap_or("\u{2014}").to_lowercase();
             return (status, item.severity);
         }
-    }
-    // Fallback to first plain line
-    if let Some(first) = panel.lines.first() {
-        let sev = if first.contains("Available") || first.contains("Ready") {
-            PanelSeverity::Success
-        } else if first.contains("Error") || first.contains("Not found") {
-            PanelSeverity::Error
-        } else {
-            PanelSeverity::Neutral
-        };
-        return (first.clone(), sev);
     }
     ("\u{2014}".to_owned(), PanelSeverity::Neutral) // em dash
 }

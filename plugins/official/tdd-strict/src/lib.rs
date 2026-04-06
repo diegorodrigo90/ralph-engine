@@ -172,7 +172,6 @@ impl PluginRuntime for TddStrictRuntime {
         vec![re_plugin::TuiPanel {
             id: "tdd-status".to_owned(),
             title: "TDD Strict".to_owned(),
-            lines: Vec::new(),
             blocks: vec![
                 re_plugin::TuiBlock::indicator(
                     "Enforcement",

@@ -29,18 +29,17 @@ pub(super) fn group_panels(panels: &[SidebarPanel]) -> Vec<SidebarGroup<'_>> {
     let mut agents: Vec<&SidebarPanel> = Vec::new();
     let mut sprint: Vec<&SidebarPanel> = Vec::new();
     let mut findings: Vec<&SidebarPanel> = Vec::new();
-    let mut tools: Vec<&SidebarPanel> = Vec::new();
 
     for panel in panels {
         match classify_plugin(&panel.plugin_id) {
             Domain::Agent => agents.push(panel),
             Domain::Sprint => sprint.push(panel),
             Domain::Findings => findings.push(panel),
-            Domain::Tool => tools.push(panel),
+            Domain::Hidden => {} // Goes to Config tab only
         }
     }
 
-    let mut groups = Vec::with_capacity(4);
+    let mut groups = Vec::with_capacity(3);
 
     if !agents.is_empty() {
         groups.push(SidebarGroup {
@@ -52,12 +51,6 @@ pub(super) fn group_panels(panels: &[SidebarPanel]) -> Vec<SidebarGroup<'_>> {
         groups.push(SidebarGroup {
             title: "Sprint",
             panels: sprint,
-        });
-    }
-    if !tools.is_empty() {
-        groups.push(SidebarGroup {
-            title: "Tools",
-            panels: tools,
         });
     }
     if !findings.is_empty() {
@@ -75,19 +68,21 @@ enum Domain {
     Agent,
     Sprint,
     Findings,
-    Tool,
+    /// Hidden from sidebar — details go to Config tab only.
+    Hidden,
 }
 
 /// Classifies a plugin into a semantic domain by its ID.
 ///
-/// This uses pattern matching on well-known plugin IDs. Community plugins
-/// fall into "Tool" by default — a reasonable grouping for unknown plugins.
+/// Only plugins with actionable, frequently-needed data appear in the sidebar.
+/// Tool/infra plugins (github, tdd-strict, router, context, guided, ssh)
+/// are hidden — their details live in the Config tab (Level 2 disclosure).
 fn classify_plugin(plugin_id: &str) -> Domain {
     match plugin_id {
         "official.claude" | "official.claudebox" | "official.codex" => Domain::Agent,
         "official.bmad" => Domain::Sprint,
         "official.findings" => Domain::Findings,
-        _ => Domain::Tool,
+        _ => Domain::Hidden,
     }
 }
 
@@ -99,7 +94,6 @@ mod tests {
     fn panel(plugin_id: &str, title: &str) -> SidebarPanel {
         SidebarPanel {
             title: title.to_owned(),
-            lines: Vec::new(),
             items: Vec::new(),
             plugin_id: plugin_id.to_owned(),
         }
@@ -131,7 +125,7 @@ mod tests {
     }
 
     #[test]
-    fn groups_tools_as_default() {
+    fn tool_plugins_hidden_from_sidebar() {
         let panels = vec![
             panel("official.github", "GitHub"),
             panel("official.tdd-strict", "TDD"),
@@ -139,21 +133,21 @@ mod tests {
             panel("official.context", "Context"),
         ];
         let groups = group_panels(&panels);
-        assert_eq!(groups.len(), 1);
-        assert_eq!(groups[0].title, "Tools");
-        assert_eq!(groups[0].panels.len(), 4);
+        assert!(
+            groups.is_empty(),
+            "tool plugins should be hidden from sidebar"
+        );
     }
 
     #[test]
-    fn groups_findings_separately() {
+    fn findings_shown_without_tools() {
         let panels = vec![
             panel("official.findings", "Findings"),
             panel("official.github", "GitHub"),
         ];
         let groups = group_panels(&panels);
-        assert_eq!(groups.len(), 2);
-        assert_eq!(groups[0].title, "Tools");
-        assert_eq!(groups[1].title, "Findings");
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].title, "Findings");
     }
 
     #[test]
@@ -171,33 +165,31 @@ mod tests {
     }
 
     #[test]
-    fn all_four_groups_present() {
+    fn all_three_sidebar_groups() {
         let panels = vec![
             panel("official.claude", "Claude"),
             panel("official.bmad", "Sprint"),
-            panel("official.github", "GitHub"),
+            panel("official.github", "GitHub"), // hidden
             panel("official.findings", "Findings"),
         ];
         let groups = group_panels(&panels);
-        assert_eq!(groups.len(), 4);
+        assert_eq!(groups.len(), 3);
         let titles: Vec<&str> = groups.iter().map(|g| g.title).collect();
-        assert_eq!(titles, &["Agents", "Sprint", "Tools", "Findings"]);
+        assert_eq!(titles, &["Agents", "Sprint", "Findings"]);
     }
 
     #[test]
-    fn community_plugins_go_to_tools() {
+    fn community_plugins_hidden() {
         let panels = vec![
             panel("community.acme.jira", "Jira"),
             panel("community.foo.bar", "Custom"),
         ];
         let groups = group_panels(&panels);
-        assert_eq!(groups.len(), 1);
-        assert_eq!(groups[0].title, "Tools");
-        assert_eq!(groups[0].panels.len(), 2);
+        assert!(groups.is_empty(), "community plugins hidden from sidebar");
     }
 
     #[test]
-    fn group_order_is_agents_sprint_tools_findings() {
+    fn group_order_is_agents_sprint_findings() {
         let panels = vec![
             panel("official.findings", "Findings"),
             panel("official.github", "GitHub"),
@@ -206,6 +198,6 @@ mod tests {
         ];
         let groups = group_panels(&panels);
         let titles: Vec<&str> = groups.iter().map(|g| g.title).collect();
-        assert_eq!(titles, &["Agents", "Sprint", "Tools", "Findings"]);
+        assert_eq!(titles, &["Agents", "Sprint", "Findings"]);
     }
 }

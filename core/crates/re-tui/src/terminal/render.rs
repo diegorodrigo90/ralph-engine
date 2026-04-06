@@ -1,4 +1,11 @@
-//! Main render orchestration — header, activity, feed, metrics.
+//! Main render orchestration — state-aware layout with progressive disclosure.
+//!
+//! The TUI has two visual modes:
+//! - **Idle**: logo + agent status + command hints (no sidebar, no tabs, no metrics)
+//! - **Active**: feed blocks + condensed sidebar + tabs + live metrics
+//!
+//! This implements the 50% rule: only show information users need in >50% of
+//! workflows. Details live in the Config tab (Level 2 disclosure).
 
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Position, Rect, Size};
@@ -11,6 +18,7 @@ use crate::theme::ThemeExt;
 
 use super::shell::TuiShell;
 use super::style::style_content_line;
+use super::types::{PanelHint, PanelSeverity, TuiState};
 
 impl TuiShell {
     /// Renders the TUI frame with responsive zone-based layout.
@@ -24,15 +32,16 @@ impl TuiShell {
         self.render_in(frame, area);
     }
 
-    /// Internal render implementation for a given area.
+    /// Whether the TUI has active content (feed blocks or running agent).
+    fn is_active(&self) -> bool {
+        !self.feed.is_empty() || self.state == TuiState::Running
+    }
+
+    /// Internal render — routes to idle or active layout.
     fn render_in(&mut self, frame: &mut Frame<'_>, area: Rect) {
         self.tick = self.tick.wrapping_add(1);
         self.drain_pending_block();
 
-        // Paint the full-area canvas with the theme background + default text.
-        // All subsequent widgets inherit this bg automatically (ratatui's
-        // style system is patch-based). Plugins can override bg on their
-        // own widgets by setting `.style(Style::default().bg(custom))`.
         let canvas = ratatui::widgets::Block::default().style(self.theme().style_base());
         frame.render_widget(canvas, area);
 
@@ -48,6 +57,82 @@ impl TuiShell {
             return;
         }
 
+        if self.is_active() {
+            self.render_active_layout(frame, area);
+        } else {
+            self.render_idle_layout(frame, area);
+        }
+
+        // Overlays render on top of any layout
+        self.render_toasts(frame, area);
+        if self.quit_pending {
+            self.render_quit_modal(frame, area);
+        }
+        if self.help_modal_visible {
+            self.render_help_modal(frame, area);
+        }
+        if self.theme_selector_visible {
+            self.render_theme_selector(frame, area);
+        }
+    }
+
+    /// Idle layout — logo, agent status, command hints. Clean and focused.
+    fn render_idle_layout(&mut self, frame: &mut Frame<'_>, area: Rect) {
+        // Simple vertical: header + content + input(optional) + help
+        let has_input = self.input_enabled;
+        let rows = if has_input {
+            Layout::vertical([
+                Constraint::Length(1), // header
+                Constraint::Fill(1),   // content
+                Constraint::Length(4), // input
+                Constraint::Length(1), // help
+            ])
+            .split(area)
+        } else {
+            Layout::vertical([
+                Constraint::Length(1), // header
+                Constraint::Fill(1),   // content
+                Constraint::Length(1), // help
+            ])
+            .split(area)
+        };
+
+        self.render_header_idle(frame, rows[0]);
+        self.render_idle_dashboard(frame, rows[1]);
+
+        if has_input {
+            self.render_input_bar(frame, rows[2]);
+            self.render_autocomplete(frame, rows[2]);
+            let zones = crate::layout::LayoutZones {
+                header: rows[0],
+                tab_bar: None,
+                activity: rows[1],
+                metrics: rows[0], // unused
+                input: Some(rows[2]),
+                help: rows[3],
+                sidebar: None,
+                control: None,
+                tier: crate::layout::LayoutTier::Compact,
+            };
+            self.render_help(frame, &zones);
+        } else {
+            let zones = crate::layout::LayoutZones {
+                header: rows[0],
+                tab_bar: None,
+                activity: rows[1],
+                metrics: rows[0], // unused
+                input: None,
+                help: rows[2],
+                sidebar: None,
+                control: None,
+                tier: crate::layout::LayoutTier::Compact,
+            };
+            self.render_help(frame, &zones);
+        }
+    }
+
+    /// Active layout — full dashboard with tabs, sidebar, metrics.
+    fn render_active_layout(&mut self, frame: &mut Frame<'_>, area: Rect) {
         let zones = crate::layout::compute_zones(area, self.input_enabled);
 
         self.render_header(frame, zones.header);
@@ -57,7 +142,6 @@ impl TuiShell {
         }
 
         self.render_active_tab(frame, zones.activity);
-
         self.render_metrics(frame, zones.metrics);
         self.render_help(frame, &zones);
 
@@ -82,21 +166,39 @@ impl TuiShell {
         if self.agent_switcher_visible {
             self.render_agent_switcher(frame, zones.activity);
         }
-
-        self.render_toasts(frame, area);
-
-        if self.quit_pending {
-            self.render_quit_modal(frame, area);
-        }
-        if self.help_modal_visible {
-            self.render_help_modal(frame, area);
-        }
-        if self.theme_selector_visible {
-            self.render_theme_selector(frame, area);
-        }
     }
 
-    /// Renders the header bar with version, agent, tokens, state badge, and progress.
+    // ── Header ──────────────────────────────────────────────────
+
+    /// Idle header — version + primary agent status only.
+    fn render_header_idle(&self, frame: &mut Frame<'_>, area: Rect) {
+        let version = env!("CARGO_PKG_VERSION");
+        let t = self.theme();
+
+        // Find primary agent status from sidebar panels
+        let agent_status = self.primary_agent_status();
+
+        let mut spans = vec![t.fg_accent(format!(" ◎ RE v{version}")).bold().build()];
+
+        if let Some((name, status, sev)) = agent_status {
+            let (icon, color) = match sev {
+                PanelSeverity::Success => ("●", t.success()),
+                PanelSeverity::Error => ("✗", t.error()),
+                _ => ("○", t.text_dim()),
+            };
+            spans.push(t.fg_border("  │  ").build());
+            spans.push(
+                ThemedSpan::with_color(format!("{icon} "), color)
+                    .bold()
+                    .build(),
+            );
+            spans.push(t.fg_bright(format!("{name} {status}")).build());
+        }
+
+        frame.render_widget(Paragraph::new(Line::from(spans)), area);
+    }
+
+    /// Active header — version, agent, state badge, live metrics.
     fn render_header(&self, frame: &mut Frame<'_>, area: Rect) {
         let state_label = self.localized_state_label();
         let state_color = self.state.color(self.theme());
@@ -174,67 +276,15 @@ impl TuiShell {
         }
     }
 
-    /// Renders the activity stream (main viewport).
+    // ── Feed ────────────────────────────────────────────────────
+
+    /// Renders the activity stream — feed blocks or idle dashboard.
     fn render_activity(&mut self, frame: &mut Frame<'_>, area: Rect) {
         if !self.feed.is_empty() {
             self.render_feed_blocks(frame, area);
-            return;
+        } else {
+            self.render_idle_dashboard(frame, area);
         }
-
-        if self.activity_lines.is_empty() {
-            if !self.main_panels.is_empty() {
-                self.render_main_panels(frame, area);
-            } else {
-                self.render_idle_dashboard(frame, area);
-            }
-            return;
-        }
-
-        let visible_lines = area.height as usize;
-        let t = self.theme();
-        let logo_color = Some(self.state.color(t));
-        let logo_lines =
-            crate::logo::build_logo_lines(area.width, t, logo_color, &self.labels.logo_tagline);
-        let logo_count = logo_lines.len();
-
-        let activity: Vec<Line<'_>> = self
-            .activity_lines
-            .iter()
-            .map(|s| {
-                if s.starts_with(">> Tool") {
-                    Line::from(t.fg_info(s.as_str()).build())
-                } else if s.starts_with(">> State:") || s.starts_with(">> Agent") {
-                    Line::from(t.fg_warning(s.as_str()).build())
-                } else if s.starts_with(">> Quit") {
-                    Line::from(t.fg_error(s.as_str()).build())
-                } else if s.starts_with(">> Keys:") {
-                    Line::from(t.fg_dim(s.as_str()).build())
-                } else {
-                    Line::from(t.fg_text(s.as_str()).build())
-                }
-            })
-            .collect();
-
-        let total = logo_count + activity.len();
-        let start = total.saturating_sub(visible_lines);
-
-        let mut all_lines: Vec<Line<'_>> = Vec::with_capacity(visible_lines);
-
-        for (i, line) in logo_lines.into_iter().enumerate() {
-            if i >= start {
-                all_lines.push(line);
-            }
-        }
-
-        let activity_start = start.saturating_sub(logo_count);
-        for line in activity.into_iter().skip(activity_start) {
-            if all_lines.len() >= visible_lines {
-                break;
-            }
-            all_lines.push(line);
-        }
-
-        frame.render_widget(Paragraph::new(all_lines), area);
     }
 
     /// Renders the block-based feed using `tui-scrollview`.
@@ -414,87 +464,34 @@ impl TuiShell {
         }
     }
 
-    /// Renders main-zone panels in the activity area (when idle).
-    ///
-    /// Main panels are rendered with the same design system as sidebar
-    /// panels but using the full activity width. Used when no agent is
-    /// running and plugins contribute main-zone content (dashboards,
-    /// summaries, etc.).
-    fn render_main_panels(&self, frame: &mut Frame<'_>, area: Rect) {
-        use super::style::{render_panel_item, style_sidebar_line};
+    // ── Metrics ─────────────────────────────────────────────────
 
-        let t = self.theme();
-        let panel_colors = [t.info(), t.accent(), t.success(), t.warning()];
-
-        let panel_count = self.main_panels.len();
-        let constraints: Vec<Constraint> = (0..panel_count)
-            .map(|i| {
-                if i < panel_count - 1 {
-                    Constraint::Ratio(1, panel_count as u32)
-                } else {
-                    Constraint::Fill(1)
-                }
-            })
-            .collect();
-
-        let panel_areas = Layout::vertical(constraints).split(area);
-
-        for (i, panel) in self.main_panels.iter().enumerate() {
-            let color = panel_colors[i % panel_colors.len()];
-            let separator = Line::from(vec![
-                ThemedSpan::with_color(format!(" {} ", panel.title), color)
-                    .bold()
-                    .build(),
-                t.fg_border(
-                    "\u{2500}".repeat(
-                        panel_areas[i]
-                            .width
-                            .saturating_sub(panel.title.len() as u16 + 3)
-                            as usize,
-                    ),
-                )
-                .build(),
-            ]);
-
-            let mut lines: Vec<Line<'_>> = vec![separator];
-
-            if !panel.items.is_empty() {
-                for item in &panel.items {
-                    render_panel_item(item, color, t, &mut lines);
-                }
-            } else {
-                for s in &panel.lines {
-                    lines.push(style_sidebar_line(s, color, t));
-                }
-            }
-
-            frame.render_widget(Paragraph::new(lines), panel_areas[i]);
-        }
-    }
-
-    /// Renders the metrics bar.
+    /// Renders the metrics bar — only when there's meaningful data.
     fn render_metrics(&mut self, frame: &mut Frame<'_>, area: Rect) {
         let t = self.theme.as_ref();
 
         if !self.indicator_panel.is_empty() {
             let indicator_bar = self.indicator_panel.render_bar(t);
             frame.render_widget(Paragraph::new(indicator_bar), area);
-        } else {
+        } else if self.tool_count > 0 || !self.feed.is_empty() {
             let metrics = t
                 .status_line()
                 .kv(&self.labels.tools_label, format!("{}", self.tool_count))
                 .kv(
                     &self.labels.lines_label,
-                    format!("{}", self.activity_lines.len()),
+                    format!("{}", self.feed.total_visible_lines()),
                 )
                 .kv(&self.labels.progress_label, format!("{}%", self.progress))
                 .separator(" │ ")
                 .build();
             frame.render_widget(Paragraph::new(metrics), area);
         }
+        // When idle with no data, metrics bar is empty (just themed background)
     }
 
-    /// Renders the tab bar (Standard + Wide tiers) with item counts.
+    // ── Tabs ────────────────────────────────────────────────────
+
+    /// Renders the tab bar with item counts.
     fn render_tab_bar(&mut self, frame: &mut Frame<'_>, area: Rect) {
         self.tab_bar_area = area;
         let t = self.theme();
@@ -540,7 +537,9 @@ impl TuiShell {
         }
     }
 
-    /// Renders the Files tab — tools used this session with icons by type.
+    // ── Tab content ─────────────────────────────────────────────
+
+    /// Files tab — tools used with type icons.
     fn render_files_tab(&self, frame: &mut Frame<'_>, area: Rect) {
         let t = self.theme();
 
@@ -551,8 +550,6 @@ impl TuiShell {
         }
 
         let mut lines: Vec<Line<'_>> = Vec::new();
-
-        // Count by type for summary
         let total = self.touched_files.len();
         lines.push(
             t.line()
@@ -570,7 +567,7 @@ impl TuiShell {
                 _ => ("○", t.text_dim()),
             };
             lines.push(Line::from(vec![
-                ratatui_themekit::builders::ThemedSpan::with_color(format!("  {icon} "), color)
+                ThemedSpan::with_color(format!("  {icon} "), color)
                     .bold()
                     .build(),
                 t.fg_text(path.as_str()).build(),
@@ -580,7 +577,7 @@ impl TuiShell {
         frame.render_widget(Paragraph::new(lines), area);
     }
 
-    /// Renders the Log tab — raw agent output lines with tail scroll.
+    /// Log tab — raw agent output with line numbers.
     fn render_log_tab(&self, frame: &mut Frame<'_>, area: Rect) {
         let t = self.theme();
 
@@ -595,8 +592,6 @@ impl TuiShell {
         let start = total.saturating_sub(visible.saturating_sub(1));
 
         let mut lines: Vec<Line<'_>> = Vec::with_capacity(visible);
-
-        // Line count indicator
         lines.push(t.line().dim(format!("  {total} lines")).build());
 
         for (i, line) in self.log_lines[start..].iter().enumerate() {
@@ -623,12 +618,14 @@ impl TuiShell {
         frame.render_widget(Paragraph::new(lines), area);
     }
 
-    /// Renders the Config tab — grouped configuration overview.
+    /// Config tab — full plugin detail view (Level 2 disclosure).
+    ///
+    /// Shows ALL data from ALL plugins — Pairs, Text, Indicators, everything.
+    /// This is where Mode, Model, Transport, Router rules, TDD policy live.
     fn render_config_tab(&self, frame: &mut Frame<'_>, area: Rect) {
         let t = self.theme();
 
         let mut lines = vec![
-            // Session section
             t.line()
                 .colored(" Session ", t.accent())
                 .border("\u{2500}".repeat(20))
@@ -644,17 +641,31 @@ impl TuiShell {
             t.line().dim("  Theme:  ").bright(self.theme.id()).build(),
         ];
 
-        // Sidebar panels section
+        // Full plugin details — show ALL items from every plugin
         if !self.sidebar_panels.is_empty() {
             lines.push(Line::raw(""));
+            let plugin_count = self.sidebar_panels.len();
             lines.push(
                 t.line()
-                    .colored(" Plugins ", t.info())
-                    .border("\u{2500}".repeat(20))
+                    .colored(format!(" Plugins ({plugin_count}) "), t.info())
+                    .border("\u{2500}".repeat(16))
                     .build(),
             );
+
             for panel in &self.sidebar_panels {
-                lines.push(t.line().dim("  ● ").text(panel.plugin_id.as_str()).build());
+                // Plugin header with status dot
+                let (status_icon, icon_color) = self.plugin_status_icon(panel);
+                lines.push(Line::from(vec![
+                    ThemedSpan::with_color(format!("  {status_icon} "), icon_color)
+                        .bold()
+                        .build(),
+                    t.fg_bright(panel.plugin_id.as_str()).bold().build(),
+                ]));
+
+                // Render ALL items — no filtering here (this is Level 2)
+                for item in &panel.items {
+                    super::style::render_panel_item(item, icon_color, t, &mut lines);
+                }
             }
         }
 
@@ -678,5 +689,47 @@ impl TuiShell {
         }
 
         frame.render_widget(Paragraph::new(lines), area);
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────
+
+    /// Extracts the primary agent's status from sidebar panels.
+    fn primary_agent_status(&self) -> Option<(String, String, PanelSeverity)> {
+        for panel in &self.sidebar_panels {
+            let is_agent = matches!(
+                panel.plugin_id.as_str(),
+                "official.claude" | "official.claudebox" | "official.codex"
+            );
+            if !is_agent {
+                continue;
+            }
+            for item in &panel.items {
+                if item.hint == PanelHint::Indicator {
+                    let name = panel.title.to_lowercase();
+                    let status = item.value.as_deref().unwrap_or("—").to_lowercase();
+                    return Some((name, status, item.severity));
+                }
+            }
+        }
+        None
+    }
+
+    /// Returns a status icon and color for a plugin panel.
+    pub(super) fn plugin_status_icon(
+        &self,
+        panel: &super::types::SidebarPanel,
+    ) -> (&'static str, ratatui::style::Color) {
+        let t = self.theme();
+        for item in &panel.items {
+            if item.hint == PanelHint::Indicator {
+                return match item.severity {
+                    PanelSeverity::Success => ("●", t.success()),
+                    PanelSeverity::Error => ("✗", t.error()),
+                    PanelSeverity::Warning => ("◆", t.warning()),
+                    PanelSeverity::Neutral => ("○", t.text_dim()),
+                };
+            }
+        }
+        ("○", t.text_dim())
     }
 }
