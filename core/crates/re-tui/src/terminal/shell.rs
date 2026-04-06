@@ -753,18 +753,17 @@ impl TuiShell {
         let input_focused = self.input_enabled && self.focus == FocusTarget::Input;
 
         if input_focused {
-            // Esc: exit input focus → back to Activity
-            if code == KeyCode::Esc {
-                self.focus = FocusTarget::Activity;
-                self.text_input_buffer.clear();
-                self.autocomplete.visible = false;
-                return PluginKeyAction::Handled;
-            }
-
+            // Buffer has content → typing mode (Esc clears buffer)
             if !self.text_input_buffer.is_empty() {
                 return self.handle_typing_key(code, modifiers);
             }
-            // Empty buffer: any printable char starts typing
+            // Empty buffer + Esc → exit input focus
+            if code == KeyCode::Esc {
+                self.focus = FocusTarget::Activity;
+                self.autocomplete.visible = false;
+                return PluginKeyAction::Handled;
+            }
+            // Empty buffer + printable char → start typing
             if let KeyCode::Char(c) = code {
                 self.text_input_buffer.push(c);
                 self.autocomplete.update_filter(&self.text_input_buffer);

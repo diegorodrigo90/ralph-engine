@@ -234,15 +234,19 @@ fn chat_input_type_and_send() {
 }
 
 #[test]
-fn chat_input_esc_clears() {
+fn chat_input_esc_exits_focus_preserves_buffer() {
     let mut shell = interactive_shell();
     shell.handle_key(KeyCode::Char('a'));
     shell.handle_key(KeyCode::Char('b'));
     assert_eq!(shell.text_input_buffer(), "ab");
 
+    // First Esc clears buffer (handle_typing_key path)
     shell.handle_key(KeyCode::Esc);
     assert!(shell.text_input_buffer().is_empty());
-    assert!(shell.take_text_input().is_none());
+
+    // Second Esc exits input focus (empty buffer path)
+    shell.handle_key(KeyCode::Esc);
+    assert_eq!(shell.focus, super::types::FocusTarget::Activity);
 }
 
 #[test]
