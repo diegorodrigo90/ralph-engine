@@ -2116,7 +2116,7 @@ dependencies = [
 [[package]]
 name = "ratatui-themekit"
 version = "0.1.0"
-source = "git+https://github.com/diegorodrigo90/ratatui-themekit.git?branch=main#6869288af89baba2033829e635a6786f457a17e7"
+source = "git+https://github.com/diegorodrigo90/ratatui-themekit.git?branch=main#e0ff95a9ddcad988874665eb8330349145f2cc07"
 dependencies = [
  "ratatui",
 ]
