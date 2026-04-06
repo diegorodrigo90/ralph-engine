@@ -1,4 +1,8 @@
 //! Sidebar and control panel rendering.
+//!
+//! The sidebar groups plugin panels into semantic domains (Agents,
+//! Sprint, Tools, Findings) instead of showing one panel per plugin.
+//! This keeps the sidebar scannable even with many active plugins.
 
 use ratatui::Frame;
 use ratatui::layout::Rect;
@@ -9,10 +13,14 @@ use ratatui::widgets::{Borders, Paragraph};
 use crate::theme::ThemeExt;
 
 use super::shell::TuiShell;
-use super::style::{render_panel_item, style_sidebar_line};
+use super::sidebar_groups::group_panels;
+use super::style::render_panel_item;
 
 impl TuiShell {
-    /// Renders the sidebar zone with auto-discovered plugin panels.
+    /// Renders the sidebar zone with grouped plugin panels.
+    ///
+    /// Panels are grouped by domain: Agents, Sprint, Tools, Findings.
+    /// Each group gets a heading and condensed item rendering.
     pub(super) fn render_sidebar(&self, frame: &mut Frame<'_>, area: Rect) {
         let t = self.theme();
 
@@ -25,44 +33,45 @@ impl TuiShell {
             return;
         }
 
-        let panel_colors = [t.info(), t.accent(), t.success(), t.warning()];
+        let groups = group_panels(&self.sidebar_panels);
+        if groups.is_empty() {
+            return;
+        }
 
-        let panel_count = self.sidebar_panels.len();
-        let constraints: Vec<Constraint> = (0..panel_count)
+        let group_colors = [t.accent(), t.info(), t.success(), t.warning()];
+
+        let group_count = groups.len();
+        let constraints: Vec<Constraint> = (0..group_count)
             .map(|i| {
-                if i < panel_count - 1 {
-                    Constraint::Ratio(1, panel_count as u32)
+                if i < group_count - 1 {
+                    Constraint::Ratio(1, group_count as u32)
                 } else {
                     Constraint::Fill(1)
                 }
             })
             .collect();
 
-        let panel_areas = Layout::vertical(constraints).split(inner);
+        let group_areas = Layout::vertical(constraints).split(inner);
 
-        for (i, panel) in self.sidebar_panels.iter().enumerate() {
-            let color = panel_colors[i % panel_colors.len()];
-            let border_len = panel_areas[i]
-                .width
-                .saturating_sub(panel.title.len() as u16 + 3) as usize;
-            let separator = t
-                .line()
-                .colored(format!(" {} ", panel.title), color)
-                .border("\u{2500}".repeat(border_len))
-                .build();
+        for (i, group) in groups.iter().enumerate() {
+            let color = group_colors[i % group_colors.len()];
+            let heading = render_group_heading(group.title, group_areas[i].width, color, t);
 
-            let mut lines: Vec<Line<'_>> = vec![separator];
+            let mut lines: Vec<Line<'_>> = vec![heading];
 
-            if !panel.items.is_empty() {
-                for item in &panel.items {
-                    render_panel_item(item, color, t, &mut lines);
-                }
-            } else {
-                for s in &panel.lines {
-                    lines.push(style_sidebar_line(s, color, t));
+            for panel in &group.panels {
+                if !panel.items.is_empty() {
+                    for item in &panel.items {
+                        render_panel_item(item, color, t, &mut lines);
+                    }
+                } else {
+                    for s in &panel.lines {
+                        lines.push(super::style::style_sidebar_line(s, color, t));
+                    }
                 }
             }
-            frame.render_widget(Paragraph::new(lines), panel_areas[i]);
+
+            frame.render_widget(Paragraph::new(lines), group_areas[i]);
         }
     }
 
@@ -97,4 +106,20 @@ impl TuiShell {
         ];
         frame.render_widget(Paragraph::new(lines), inner);
     }
+}
+
+/// Renders a group heading with a colored title and border line.
+fn render_group_heading<'a>(
+    title: &str,
+    width: u16,
+    color: ratatui::style::Color,
+    theme: &dyn crate::theme::Theme,
+) -> Line<'a> {
+    let border_len = width.saturating_sub(title.len() as u16 + 3) as usize;
+    Line::from(vec![
+        ratatui_themekit::builders::ThemedSpan::with_color(format!(" {title} "), color)
+            .bold()
+            .build(),
+        theme.fg_border("\u{2500}".repeat(border_len)).build(),
+    ])
 }

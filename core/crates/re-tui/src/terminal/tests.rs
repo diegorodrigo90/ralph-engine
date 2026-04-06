@@ -324,7 +324,8 @@ fn render_standard_shows_sidebar() {
         plugin_id: "test.plugin".to_owned(),
     }]);
     let output = render_to_buffer(&mut shell, 140, 40);
-    assert!(output.contains("TestPanel"));
+    // Grouped sidebar: "test.plugin" → Tools group
+    assert!(output.contains("Tools"));
     assert!(output.contains("standard"));
 }
 
@@ -446,21 +447,29 @@ fn render_standard_with_plugin_panels() {
     let mut shell = test_shell();
     shell.set_sidebar_panels(vec![
         SidebarPanel {
-            title: "Findings".to_owned(),
-            lines: vec!["3 issues found".to_owned(), "2 warnings".to_owned()],
+            title: "Claude".to_owned(),
+            lines: vec!["Available".to_owned()],
             items: Vec::new(),
-            plugin_id: "test.plugin-a".to_owned(),
+            plugin_id: "official.claude".to_owned(),
         },
         SidebarPanel {
-            title: "Sprint".to_owned(),
+            title: "Sprint Status".to_owned(),
             lines: vec!["Story 5.3: in-progress".to_owned()],
             items: Vec::new(),
-            plugin_id: "test.plugin-b".to_owned(),
+            plugin_id: "official.bmad".to_owned(),
+        },
+        SidebarPanel {
+            title: "Findings".to_owned(),
+            lines: vec!["3 issues found".to_owned()],
+            items: Vec::new(),
+            plugin_id: "official.findings".to_owned(),
         },
     ]);
     let output = render_to_buffer(&mut shell, 140, 40);
-    assert!(output.contains("Findings"));
+    // Grouped sidebar: Agents, Sprint, Findings
+    assert!(output.contains("Agents"));
     assert!(output.contains("Sprint"));
+    assert!(output.contains("Findings"));
     assert!(output.contains("3 issues"));
 }
 

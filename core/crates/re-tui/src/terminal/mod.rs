@@ -16,6 +16,7 @@ mod render_input;
 mod render_modals;
 mod render_panels;
 mod shell;
+mod sidebar_groups;
 mod style;
 mod types;
 
