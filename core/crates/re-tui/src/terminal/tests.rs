@@ -353,6 +353,40 @@ fn mouse_click_outside_input_area_sets_activity_focus() {
     assert_eq!(shell.focus, super::types::FocusTarget::Activity);
 }
 
+#[test]
+fn paste_small_appends_directly() {
+    let mut shell = interactive_shell();
+    shell.handle_paste("hello world");
+    assert_eq!(shell.text_input_buffer(), "hello world");
+    assert!(shell.collapsed_pastes.is_empty());
+}
+
+#[test]
+fn paste_large_collapses_into_indicator() {
+    let mut shell = interactive_shell();
+    let large_text = "line1\nline2\nline3\nline4\nline5\nline6\nline7";
+    shell.handle_paste(large_text);
+
+    // Buffer should contain the collapsed indicator, not the raw text
+    let buf = shell.text_input_buffer().to_owned();
+    assert!(buf.contains("[Pasted text #1 +7 lines]"), "got: {buf}");
+    assert_eq!(shell.collapsed_pastes.len(), 1);
+    assert_eq!(shell.collapsed_pastes[0].content, large_text);
+}
+
+#[test]
+fn paste_counter_increments() {
+    let mut shell = interactive_shell();
+    let text6 = "a\nb\nc\nd\ne\nf\ng";
+    shell.handle_paste(text6);
+    shell.handle_paste(text6);
+
+    let buf = shell.text_input_buffer().to_owned();
+    assert!(buf.contains("#1"), "got: {buf}");
+    assert!(buf.contains("#2"), "got: {buf}");
+    assert_eq!(shell.collapsed_pastes.len(), 2);
+}
+
 // ── Rendering snapshot tests ────────────────────────────────
 
 #[test]

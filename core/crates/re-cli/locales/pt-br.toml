@@ -186,6 +186,9 @@ tui_already_initialized = "Projeto já inicializado. Apague .ralph-engine/ para 
 tui_project_initialized = "Projeto inicializado. Digite /doctor para verificar."
 tui_enabled_plugins = "plugins adicionais habilitados"
 tui_init_auto_label = "Habilitado"
+tui_pasted_text = "Texto colado"
+tui_paste_lines = "linhas"
+tui_file_label = "Arquivo"
 
 # ── Demo (apenas debug) ─────────────────────────────────────────
 demo_story_title = "Story 5.3 — Migrar busca para paginação por cursor"

@@ -200,6 +200,9 @@ pub(super) struct CliLocaleCatalog {
     pub tui_project_initialized: &'static str,
     pub tui_enabled_plugins: &'static str,
     pub tui_init_auto_label: &'static str,
+    pub tui_pasted_text: &'static str,
+    pub tui_paste_lines: &'static str,
+    pub tui_file_label: &'static str,
 
     // ── Demo (debug only) ───────────────────────────────────────
     pub demo_story_title: &'static str,

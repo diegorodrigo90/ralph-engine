@@ -9,8 +9,9 @@ use tui_scrollview::ScrollViewState;
 
 use super::autocomplete::AutocompleteState;
 use super::types::{
-    AgentPid, CommandEntry, FocusTarget, PluginKeyAction, RegisteredKeybinding, SidebarPanel,
-    TOAST_DEFAULT_TICKS, Toast, ToastLevel, TuiConfig, TuiError, TuiLabels, TuiState, TuiTab,
+    AgentPid, CollapsedPaste, CommandEntry, FocusTarget, PluginKeyAction, RegisteredKeybinding,
+    SidebarPanel, TOAST_DEFAULT_TICKS, Toast, ToastLevel, TuiConfig, TuiError, TuiLabels, TuiState,
+    TuiTab,
 };
 
 /// The TUI shell — manages terminal lifecycle and render loop.
@@ -47,6 +48,8 @@ pub struct TuiShell {
     pub(super) input_enabled: bool,
     pub(super) text_input_buffer: String,
     pub(super) input_undo_stack: Vec<String>,
+    pub(super) paste_counter: usize,
+    pub(super) collapsed_pastes: Vec<CollapsedPaste>,
     pub(super) pending_text_input: Option<String>,
     pub(super) autocomplete: AutocompleteState,
     pub(super) input_area: ratatui::layout::Rect,
@@ -99,6 +102,8 @@ impl TuiShell {
             input_enabled: false,
             text_input_buffer: String::new(),
             input_undo_stack: Vec::new(),
+            paste_counter: 0,
+            collapsed_pastes: Vec::new(),
             pending_text_input: None,
             autocomplete: AutocompleteState::new(Vec::new(), "/".to_owned()),
             input_area: ratatui::layout::Rect::default(),
@@ -831,10 +836,10 @@ impl TuiShell {
                 self.save_undo_snapshot();
                 self.text_input_buffer.push('\n');
             }
-            // Enter → submit text
+            // Enter → submit text (expand collapsed pastes before sending)
             KeyCode::Enter => {
                 if !self.text_input_buffer.trim().is_empty() {
-                    let text = self.text_input_buffer.trim().to_owned();
+                    let mut text = self.text_input_buffer.trim().to_owned();
                     // Built-in TUI commands
                     if text == "/theme" {
                         self.open_theme_selector();
@@ -843,12 +848,22 @@ impl TuiShell {
                         self.input_undo_stack.clear();
                         return PluginKeyAction::Handled;
                     }
+                    // Expand collapsed pastes inline
+                    for paste in &self.collapsed_pastes {
+                        let label = &self.labels.pasted_text_label;
+                        let suffix = &self.labels.paste_lines_suffix;
+                        let indicator =
+                            format!("[{label} #{} +{} {suffix}]", paste.number, paste.line_count);
+                        text = text.replace(&indicator, &paste.content);
+                    }
                     self.push_activity(format!(">> You: {text}"));
                     self.pending_text_input = Some(text);
                 }
                 self.text_input_buffer.clear();
                 self.autocomplete.visible = false;
                 self.input_undo_stack.clear();
+                self.collapsed_pastes.clear();
+                self.paste_counter = 0;
             }
             // Esc → exit input focus (buffer is PRESERVED)
             KeyCode::Esc => {

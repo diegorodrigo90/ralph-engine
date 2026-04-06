@@ -226,6 +226,13 @@ pub struct TuiLabels {
     pub no_agent_message: String,
     /// Header: extra usage warning label (e.g. "extra", "uso extra").
     pub extra_usage_label: String,
+    // ── Paste ───────────────────────────────────────────────────
+    /// Paste indicator prefix (e.g., "Pasted text" / "Texto colado").
+    pub pasted_text_label: String,
+    /// Paste lines suffix (e.g., "lines" / "linhas").
+    pub paste_lines_suffix: String,
+    /// File attachment indicator (e.g., "File" / "Arquivo").
+    pub file_label: String,
 }
 
 impl Default for TuiLabels {
@@ -278,8 +285,26 @@ impl Default for TuiLabels {
             you_label: "You".to_owned(),
             no_agent_message: "No agent connected. Use /run to start orchestration.".to_owned(),
             extra_usage_label: "extra usage".to_owned(),
+            pasted_text_label: "Pasted text".to_owned(),
+            paste_lines_suffix: "lines".to_owned(),
+            file_label: "File".to_owned(),
         }
     }
+}
+
+/// A collapsed paste — large pasted text stored separately from the visible input.
+///
+/// When a paste exceeds `PASTE_COLLAPSE_THRESHOLD` lines, the visible input shows
+/// a compact indicator like `[Pasted text #1 +18 lines]` while the full content
+/// is stored here and sent to the agent on submit.
+#[derive(Debug, Clone)]
+pub struct CollapsedPaste {
+    /// Sequential paste number in this session.
+    pub number: usize,
+    /// Full pasted text content.
+    pub content: String,
+    /// Number of lines in the paste.
+    pub line_count: usize,
 }
 
 /// A sidebar panel provided by a plugin, ready to render.

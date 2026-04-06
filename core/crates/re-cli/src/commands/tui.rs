@@ -492,6 +492,21 @@ fn build_labels(locale: &str) -> re_tui::TuiLabels {
         } else {
             "extra usage".to_owned()
         },
+        pasted_text_label: if locale == "pt-br" {
+            "Texto colado".to_owned()
+        } else {
+            "Pasted text".to_owned()
+        },
+        paste_lines_suffix: if locale == "pt-br" {
+            "linhas".to_owned()
+        } else {
+            "lines".to_owned()
+        },
+        file_label: if locale == "pt-br" {
+            "Arquivo".to_owned()
+        } else {
+            "File".to_owned()
+        },
     }
 }
 

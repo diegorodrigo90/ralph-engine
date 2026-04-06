@@ -186,6 +186,9 @@ tui_already_initialized = "Project already initialized. Delete .ralph-engine/ to
 tui_project_initialized = "Project initialized. Type /doctor to check health."
 tui_enabled_plugins = "additional plugins enabled"
 tui_init_auto_label = "Enabled"
+tui_pasted_text = "Pasted text"
+tui_paste_lines = "lines"
+tui_file_label = "File"
 
 # ── Demo (debug only) ────────────────────────────────────────────
 demo_story_title = "Story 5.3 — Migrate search to cursor pagination"

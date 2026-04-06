@@ -14,6 +14,9 @@ use super::shell::TuiShell;
 /// Maximum characters stored in input buffer (safety limit).
 const MAX_INPUT_CHARS: usize = 50_000;
 
+/// Pastes with more lines than this are collapsed into a compact indicator.
+const PASTE_COLLAPSE_LINES: usize = 5;
+
 impl TuiShell {
     /// Renders the chat input bar with scroll support and visual focus.
     ///
@@ -136,19 +139,53 @@ impl TuiShell {
         lines
     }
 
-    /// Handles paste — appends text with size limit and undo snapshot.
+    /// Handles paste — collapses large pastes into a compact indicator.
+    ///
+    /// Pastes with more than `PASTE_COLLAPSE_LINES` lines are stored separately
+    /// and shown as `[Pasted text #N +M lines]` in the input. The full content
+    /// is included when the user submits.
     pub fn handle_paste_with_limit(&mut self, text: &str) {
-        if !self.input_enabled {
+        if !self.input_enabled || text.is_empty() {
             return;
         }
         self.save_undo_snapshot();
-        let remaining = MAX_INPUT_CHARS.saturating_sub(self.text_input_buffer.len());
-        if remaining == 0 {
-            return;
+
+        let line_count = text.lines().count();
+
+        if line_count > PASTE_COLLAPSE_LINES {
+            // Collapse: store full content, show compact indicator
+            self.paste_counter += 1;
+            let number = self.paste_counter;
+            let label = &self.labels.pasted_text_label;
+            let suffix = &self.labels.paste_lines_suffix;
+            let indicator = format!("[{label} #{number} +{line_count} {suffix}]");
+
+            self.collapsed_pastes.push(super::types::CollapsedPaste {
+                number,
+                content: text[..text.len().min(MAX_INPUT_CHARS)].to_owned(),
+                line_count,
+            });
+
+            // Append indicator to input buffer
+            if !self.text_input_buffer.is_empty() {
+                self.text_input_buffer.push(' ');
+            }
+            self.text_input_buffer.push_str(&indicator);
+        } else {
+            // Small paste — append directly
+            let remaining = MAX_INPUT_CHARS.saturating_sub(self.text_input_buffer.len());
+            if remaining == 0 {
+                return;
+            }
+            let truncated = &text[..text.len().min(remaining)];
+            self.text_input_buffer.push_str(truncated);
         }
-        let truncated = &text[..text.len().min(remaining)];
-        self.text_input_buffer.push_str(truncated);
         self.autocomplete.update_filter(&self.text_input_buffer);
+    }
+
+    /// Returns all collapsed paste contents for submission, consuming them.
+    pub fn take_collapsed_pastes(&mut self) -> Vec<String> {
+        self.collapsed_pastes.drain(..).map(|p| p.content).collect()
     }
 
     /// Renders the autocomplete popup above the input bar.
