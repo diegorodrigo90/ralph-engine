@@ -1,17 +1,17 @@
 [workspace]
+# release-plz creates PR → merge → tag → GitHub Release.
+# Publishing is NOT done by release-plz (publish = false).
+# The manual release.yml workflow handles npm/Homebrew/binary publishing.
+git_tag_enable = true
 git_release_enable = true
 git_release_draft = false
 git_release_latest = true
-git_only = true
 publish = false
-release_always = false
-release = false
 semver_check = false
 pr_labels = ["release"]
 
 [[package]]
 name = "re-cli"
-release = true
 git_tag_name = "v{{ version }}"
 git_release_name = "v{{ version }}"
 changelog_path = "CHANGELOG.md"

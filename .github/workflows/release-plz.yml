@@ -28,7 +28,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           fetch-depth: 0
-          persist-credentials: false
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
       - name: Install pinned Rust toolchain
         shell: bash
         run: |
@@ -38,6 +38,12 @@ jobs:
         uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
         with:
           shared-key: release-plz-ubuntu-latest
+      - name: Configure git credentials
+        shell: bash
+        run: |
+          git config --global credential.helper store
+          TOKEN="${{ secrets.RELEASE_TOKEN || github.token }}"
+          echo "https://x-access-token:${TOKEN}@github.com" > ~/.git-credentials
       - name: Refresh release-plz release PR
         uses: release-plz/action@1528104d2ca23787631a1c1f022abb64b34c1e11
         with:
@@ -45,4 +51,51 @@ jobs:
           config: release-plz.toml
           version: "0.3.157"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
+
+  # Only tag + release AFTER a release-plz PR is merged.
+  # Guard: commit message must contain release-plz markers.
+  # The release-plz `release` command is idempotent — if the version
+  # is already tagged, it does nothing.
+  release:
+    name: Tag + GitHub Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # NOTE: github.event.head_commit.message is used ONLY in this `if:`
+    # condition (evaluated by GitHub Actions, not a shell). This is safe.
+    if: contains(github.event.head_commit.message, 'chore(release)') || contains(github.event.head_commit.message, 'release-plz')
+    permissions:
+      contents: write
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        with:
+          egress-policy: audit
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+      - name: Install pinned Rust toolchain
+        shell: bash
+        run: |
+          rustup toolchain install 1.91.1 --profile minimal --component rustfmt --component clippy
+          rustup default 1.91.1
+      - name: Restore Rust cache
+        uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32
+        with:
+          shared-key: release-plz-ubuntu-latest
+      - name: Configure git credentials
+        shell: bash
+        run: |
+          git config --global credential.helper store
+          TOKEN="${{ secrets.RELEASE_TOKEN || github.token }}"
+          echo "https://x-access-token:${TOKEN}@github.com" > ~/.git-credentials
+      - name: Create tag + GitHub Release (no publish)
+        uses: release-plz/action@1528104d2ca23787631a1c1f022abb64b34c1e11
+        with:
+          command: release
+          config: release-plz.toml
+          version: "0.3.157"
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
