@@ -261,7 +261,11 @@ fn run_plan(work_item_id: Option<&str>, locale: &str, verbose: bool) -> Result<S
     let ready_label = i18n::run_agent_ready_label(locale);
 
     let ready = agent_status.as_ref().is_ok_and(|r| r.ready);
-    let ready_display = if ready { "[OK]" } else { "[NOT READY]" };
+    let ready_display = if ready {
+        super::status_ok()
+    } else {
+        super::status_not_ready()
+    };
 
     let mut lines = vec![
         format!(
@@ -535,6 +539,7 @@ fn run_with_tui(
     };
 
     let mut shell = re_tui::TuiShell::new(tui_config);
+    shell.load_theme_preference();
     shell.set_agent_pid(spawned.pid);
 
     // Auto-discover: input bar from plugins

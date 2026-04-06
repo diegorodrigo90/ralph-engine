@@ -259,7 +259,7 @@ elif contains_requested_check clippy; then
 fi
 
 if should_run_check test; then
-  run_check test cargo test --workspace --all-targets --all-features
+  RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }-Dwarnings" run_check test cargo test --workspace --all-targets --all-features
 elif contains_requested_check test; then
   skip_check test "public-only change set"
 fi

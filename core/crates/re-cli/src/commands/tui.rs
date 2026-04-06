@@ -8,7 +8,7 @@
 //! bar are dispatched to the real CLI command handlers. `/run` starts
 //! orchestration, `/doctor` checks health, `/plugins` lists plugins, etc.
 
-use ratatui::crossterm::event::{self, Event, KeyEventKind, MouseEvent};
+use ratatui::crossterm::event::{self, Event, KeyEventKind};
 
 use crate::CliError;
 use crate::catalog;
@@ -47,6 +47,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     };
 
     let mut shell = re_tui::TuiShell::new(config);
+    shell.load_theme_preference();
     shell.set_labels(build_labels(locale));
     // Dashboard starts idle (no agent running)
     shell.set_state(re_tui::TuiState::Complete);
@@ -195,8 +196,8 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
                             handle_agent_switch(&mut shell, &target_agent, locale);
                         }
                     }
-                    Event::Mouse(MouseEvent { kind, .. }) => {
-                        shell.handle_mouse(kind);
+                    Event::Mouse(mouse) => {
+                        shell.handle_mouse(mouse);
                     }
                     Event::Paste(text) => {
                         shell.handle_paste(&text);

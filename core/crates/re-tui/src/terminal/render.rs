@@ -3,7 +3,7 @@
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Position, Rect, Size};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::Paragraph;
+use ratatui::widgets::{Paragraph, Tabs};
 use ratatui_themekit::builders::ThemedSpan;
 use tui_scrollview::ScrollView;
 
@@ -29,6 +29,13 @@ impl TuiShell {
         self.tick = self.tick.wrapping_add(1);
         self.drain_pending_block();
 
+        // Paint the full-area canvas with the theme background + default text.
+        // All subsequent widgets inherit this bg automatically (ratatui's
+        // style system is patch-based). Plugins can override bg on their
+        // own widgets by setting `.style(Style::default().bg(custom))`.
+        let canvas = ratatui::widgets::Block::default().style(self.theme().style_base());
+        frame.render_widget(canvas, area);
+
         if crate::layout::is_terminal_too_small(area) {
             let msg = format!(
                 "Terminal too small ({}x{}). Minimum: {}x{}.",
@@ -44,7 +51,12 @@ impl TuiShell {
         let zones = crate::layout::compute_zones(area, self.input_enabled);
 
         self.render_header(frame, zones.header);
-        self.render_activity(frame, zones.activity);
+
+        if let Some(tab_area) = zones.tab_bar {
+            self.render_tab_bar(frame, tab_area);
+        }
+
+        self.render_active_tab(frame, zones.activity);
         self.render_metrics(frame, zones.metrics);
         self.render_help(frame, &zones);
 
@@ -77,6 +89,9 @@ impl TuiShell {
         }
         if self.help_modal_visible {
             self.render_help_modal(frame, area);
+        }
+        if self.theme_selector_visible {
+            self.render_theme_selector(frame, area);
         }
     }
 
@@ -380,16 +395,18 @@ impl TuiShell {
                 Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(area);
             frame.render_widget(Paragraph::new(indicator), indicator_area);
 
+            let base = self.theme().style_base();
             let mut scroll_view = ScrollView::new(Size::new(content_width, content_height));
             scroll_view.render_widget(
-                Paragraph::new(all_lines),
+                Paragraph::new(all_lines).style(base),
                 Rect::new(0, 0, content_width, content_height),
             );
             frame.render_stateful_widget(scroll_view, feed_area, &mut self.feed_scroll);
         } else {
+            let base = self.theme().style_base();
             let mut scroll_view = ScrollView::new(Size::new(content_width, content_height));
             scroll_view.render_widget(
-                Paragraph::new(all_lines),
+                Paragraph::new(all_lines).style(base),
                 Rect::new(0, 0, content_width, content_height),
             );
             frame.render_stateful_widget(scroll_view, area, &mut self.feed_scroll);
@@ -474,5 +491,121 @@ impl TuiShell {
                 .build();
             frame.render_widget(Paragraph::new(metrics), area);
         }
+    }
+
+    /// Renders the tab bar (Standard + Wide tiers).
+    fn render_tab_bar(&mut self, frame: &mut Frame<'_>, area: Rect) {
+        self.tab_bar_area = area;
+        let t = self.theme();
+        let ts = t.tab_styles();
+        let active_index = super::types::TuiTab::ALL
+            .iter()
+            .position(|tab| *tab == self.active_tab)
+            .unwrap_or(0);
+
+        let tab_labels: Vec<&str> = super::types::TuiTab::ALL
+            .iter()
+            .map(|tab| tab.label())
+            .collect();
+
+        let tabs = Tabs::new(tab_labels)
+            .style(ts.inactive)
+            .highlight_style(ts.active)
+            .select(active_index)
+            .divider(t.fg_border(" │ ").build());
+
+        frame.render_widget(tabs, area);
+    }
+
+    /// Routes body rendering to the active tab's content.
+    fn render_active_tab(&mut self, frame: &mut Frame<'_>, area: Rect) {
+        match self.active_tab {
+            super::types::TuiTab::Feed => self.render_activity(frame, area),
+            super::types::TuiTab::Files => self.render_files_tab(frame, area),
+            super::types::TuiTab::Log => self.render_log_tab(frame, area),
+            super::types::TuiTab::Config => self.render_config_tab(frame, area),
+        }
+    }
+
+    /// Renders the Files tab — list of files touched this session.
+    fn render_files_tab(&self, frame: &mut Frame<'_>, area: Rect) {
+        let t = self.theme();
+
+        if self.touched_files.is_empty() {
+            let msg = t.line().dim("  No files touched yet.").build();
+            frame.render_widget(Paragraph::new(msg), area);
+            return;
+        }
+
+        let lines: Vec<Line<'_>> = self
+            .touched_files
+            .iter()
+            .map(|path| {
+                let icon = if path.contains("edit") || path.contains("write") {
+                    "←"
+                } else {
+                    "→"
+                };
+                t.line()
+                    .dim(format!("  {icon} "))
+                    .text(path.as_str())
+                    .build()
+            })
+            .collect();
+
+        frame.render_widget(Paragraph::new(lines), area);
+    }
+
+    /// Renders the Log tab — raw agent output lines.
+    fn render_log_tab(&self, frame: &mut Frame<'_>, area: Rect) {
+        let t = self.theme();
+
+        if self.log_lines.is_empty() {
+            let msg = t.line().dim("  No log output yet.").build();
+            frame.render_widget(Paragraph::new(msg), area);
+            return;
+        }
+
+        let visible = area.height as usize;
+        let start = self.log_lines.len().saturating_sub(visible);
+        let lines: Vec<Line<'_>> = self.log_lines[start..]
+            .iter()
+            .map(|line| Line::from(t.fg_dim(format!("  {line}")).build()))
+            .collect();
+
+        frame.render_widget(Paragraph::new(lines), area);
+    }
+
+    /// Renders the Config tab — active plugins, hooks, agent flags.
+    fn render_config_tab(&self, frame: &mut Frame<'_>, area: Rect) {
+        let t = self.theme();
+
+        let mut lines = vec![
+            t.line()
+                .accent_bold("  Agent: ")
+                .text(self.config.agent_id.as_str())
+                .build(),
+            t.line()
+                .accent_bold("  Locale: ")
+                .text(self.config.locale.as_str())
+                .build(),
+            t.line()
+                .accent_bold("  Theme: ")
+                .text(self.theme.id())
+                .build(),
+            Line::raw(""),
+            t.line().bright("  Keybindings:").build(),
+        ];
+
+        for binding in &self.plugin_keybindings {
+            lines.push(
+                t.line()
+                    .accent(format!("    [{:>4}] ", binding.key))
+                    .dim(binding.description.as_str())
+                    .build(),
+            );
+        }
+
+        frame.render_widget(Paragraph::new(lines), area);
     }
 }

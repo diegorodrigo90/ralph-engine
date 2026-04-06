@@ -54,6 +54,88 @@ impl TuiState {
     }
 }
 
+/// Active tab in the TUI dashboard.
+///
+/// Tabs route the main content area to different views.
+/// Plugins register which tabs are available — core renders.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TuiTab {
+    /// Activity feed — block-based agent output stream (default).
+    Feed,
+    /// Files touched this session — tree view of reads/edits/creates.
+    Files,
+    /// Raw agent log — filterable, scrollable text output.
+    Log,
+    /// Active configuration — plugins, hooks, agent flags (read-only).
+    Config,
+}
+
+impl TuiTab {
+    /// All tabs in display order.
+    pub const ALL: &[Self] = &[Self::Feed, Self::Files, Self::Log, Self::Config];
+
+    /// Display label for this tab.
+    #[must_use]
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Feed => "Feed",
+            Self::Files => "Files",
+            Self::Log => "Log",
+            Self::Config => "Config",
+        }
+    }
+
+    /// Next tab (wraps around).
+    #[must_use]
+    pub fn next(self) -> Self {
+        match self {
+            Self::Feed => Self::Files,
+            Self::Files => Self::Log,
+            Self::Log => Self::Config,
+            Self::Config => Self::Feed,
+        }
+    }
+
+    /// Previous tab (wraps around).
+    #[must_use]
+    pub fn prev(self) -> Self {
+        match self {
+            Self::Feed => Self::Config,
+            Self::Files => Self::Feed,
+            Self::Log => Self::Files,
+            Self::Config => Self::Log,
+        }
+    }
+}
+
+/// Which panel currently owns keyboard focus.
+///
+/// Tab key cycles through these in order. The focused panel
+/// gets an accent border and the help bar shows its keybindings.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FocusTarget {
+    /// Main content area (Feed, Files, Log, Config tab content).
+    Activity,
+    /// Sidebar panels (Standard + Wide tiers).
+    Sidebar,
+    /// Text input bar (when input is enabled).
+    Input,
+}
+
+impl FocusTarget {
+    /// Next focus target (wraps, skips unavailable targets).
+    #[must_use]
+    pub fn next(self, has_sidebar: bool, has_input: bool) -> Self {
+        match self {
+            Self::Activity if has_sidebar => Self::Sidebar,
+            Self::Activity if has_input => Self::Input,
+            Self::Sidebar if has_input => Self::Input,
+            Self::Input | Self::Sidebar => Self::Activity,
+            _ => Self::Activity,
+        }
+    }
+}
+
 /// Configuration for the TUI shell.
 #[derive(Debug, Clone)]
 pub struct TuiConfig {
@@ -449,5 +531,86 @@ mod tests {
             remaining_ticks: TOAST_DEFAULT_TICKS,
         };
         assert_eq!(t.remaining_ticks, 60);
+    }
+
+    // ── TuiTab ─────────────────────────────────────────────────
+
+    #[test]
+    fn tab_all_has_four_entries() {
+        assert_eq!(TuiTab::ALL.len(), 4);
+    }
+
+    #[test]
+    fn tab_labels_are_distinct() {
+        let labels: Vec<&str> = TuiTab::ALL.iter().map(|t| t.label()).collect();
+        for (i, a) in labels.iter().enumerate() {
+            for b in &labels[i + 1..] {
+                assert_ne!(a, b, "duplicate tab label");
+            }
+        }
+    }
+
+    #[test]
+    fn tab_next_cycles() {
+        let mut tab = TuiTab::Feed;
+        for _ in 0..TuiTab::ALL.len() {
+            tab = tab.next();
+        }
+        assert_eq!(tab, TuiTab::Feed, "next should cycle back to Feed");
+    }
+
+    #[test]
+    fn tab_prev_cycles() {
+        let mut tab = TuiTab::Feed;
+        for _ in 0..TuiTab::ALL.len() {
+            tab = tab.prev();
+        }
+        assert_eq!(tab, TuiTab::Feed, "prev should cycle back to Feed");
+    }
+
+    #[test]
+    fn tab_next_prev_inverse() {
+        for tab in TuiTab::ALL {
+            assert_eq!(tab.next().prev(), *tab);
+            assert_eq!(tab.prev().next(), *tab);
+        }
+    }
+
+    #[test]
+    fn tab_default_is_feed() {
+        assert_eq!(TuiTab::Feed.label(), "Feed");
+    }
+
+    // ── FocusTarget ────────────────────────────────────────────
+
+    #[test]
+    fn focus_next_with_sidebar_and_input() {
+        let focus = FocusTarget::Activity;
+        assert_eq!(focus.next(true, true), FocusTarget::Sidebar);
+        assert_eq!(FocusTarget::Sidebar.next(true, true), FocusTarget::Input);
+        assert_eq!(FocusTarget::Input.next(true, true), FocusTarget::Activity);
+    }
+
+    #[test]
+    fn focus_next_without_sidebar() {
+        let focus = FocusTarget::Activity;
+        assert_eq!(focus.next(false, true), FocusTarget::Input);
+        assert_eq!(FocusTarget::Input.next(false, true), FocusTarget::Activity);
+    }
+
+    #[test]
+    fn focus_next_without_input() {
+        let focus = FocusTarget::Activity;
+        assert_eq!(focus.next(true, false), FocusTarget::Sidebar);
+        assert_eq!(
+            FocusTarget::Sidebar.next(true, false),
+            FocusTarget::Activity
+        );
+    }
+
+    #[test]
+    fn focus_next_activity_only() {
+        let focus = FocusTarget::Activity;
+        assert_eq!(focus.next(false, false), FocusTarget::Activity);
     }
 }

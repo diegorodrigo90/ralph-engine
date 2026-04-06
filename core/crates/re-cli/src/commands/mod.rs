@@ -1,15 +1,23 @@
 //! Modular CLI command routing.
 
-use crate::{CliError, catalog, i18n};
+use crate::{CliError, catalog, cli_style, i18n};
 
 // All locale strings are now in TOML catalogs (locales/*.toml).
 // The locale_str! macro has been removed — use i18n::* accessors instead.
 
-/// Standard status markers used in command output.
-const STATUS_OK: &str = "[OK]";
-const STATUS_NOT_READY: &str = "[NOT READY]";
-const STATUS_MISSING: &str = "[MISSING]";
-const STATUS_UNSUPPORTED: &str = "[UNSUPPORTED]";
+/// Standard status markers used in command output (styled with ANSI colors).
+fn status_ok() -> String {
+    cli_style::success("[OK]")
+}
+fn status_not_ready() -> String {
+    cli_style::warning("[NOT READY]")
+}
+fn status_missing() -> String {
+    cli_style::error("[MISSING]")
+}
+fn status_unsupported() -> String {
+    cli_style::warning("[UNSUPPORTED]")
+}
 
 mod agents;
 mod capabilities;
@@ -236,12 +244,18 @@ fn dispatch_default(locale: &str) -> Result<String, CliError> {
 }
 
 fn render_help(locale: &str) -> String {
+    let name = cli_style::brand(re_core::PRODUCT_NAME);
+    let tagline = cli_style::dim(i18n::product_tagline(locale));
+    let usage = cli_style::heading(i18n::usage_help(locale));
+    let cmds_heading = cli_style::heading(i18n::commands_heading(locale));
+
     let mut lines = vec![
-        re_core::banner_with_tagline(i18n::product_tagline(locale)),
+        name,
+        tagline,
         String::new(),
-        i18n::usage_help(locale).to_owned(),
+        usage,
         String::new(),
-        i18n::commands_heading(locale).to_owned(),
+        cmds_heading,
     ];
 
     // Find max command name length for alignment
@@ -249,37 +263,43 @@ fn render_help(locale: &str) -> String {
 
     for command in COMMANDS {
         let padding = " ".repeat(max_len - command.name.len() + 2);
-        let desc = resolve_command_description(command.description_key, locale);
-        lines.push(format!("  {}{}{desc}", command.name, padding));
+        let name = cli_style::command(command.name);
+        let desc = cli_style::dim(resolve_command_description(command.description_key, locale));
+        lines.push(format!("  {name}{padding}{desc}"));
     }
 
     // Plugin-contributed commands (auto-discovered)
     let plugin_cmds = catalog::collect_cli_contributions_from_plugins();
     if !plugin_cmds.is_empty() {
         lines.push(String::new());
-        lines.push(format!("  {} (plugins):", i18n::commands_heading(locale)));
+        lines.push(format!(
+            "  {} (plugins):",
+            cli_style::heading(i18n::commands_heading(locale))
+        ));
         for (_plugin_id, contrib) in &plugin_cmds {
             let padding = " ".repeat(max_len.saturating_sub(contrib.name.len()) + 2);
-            lines.push(format!(
-                "  {}{}{}",
-                contrib.name, padding, contrib.description
-            ));
+            let name = cli_style::command(&contrib.name);
+            let desc = cli_style::dim(&contrib.description);
+            lines.push(format!("  {name}{padding}{desc}"));
         }
     }
 
     lines.push(String::new());
-    lines.push(i18n::flags_heading(locale).to_owned());
+    lines.push(cli_style::heading(i18n::flags_heading(locale)));
     lines.push(format!(
-        "  --locale <id>, -L <id>   {}",
-        i18n::set_locale_help(locale)
+        "  {}   {}",
+        cli_style::arg("--locale <id>, -L <id>"),
+        cli_style::dim(i18n::set_locale_help(locale))
     ));
     lines.push(format!(
-        "  --version, -V            {}",
-        i18n::show_version_help(locale)
+        "  {}            {}",
+        cli_style::arg("--version, -V"),
+        cli_style::dim(i18n::show_version_help(locale))
     ));
     lines.push(format!(
-        "  --help, -h               {}",
-        i18n::show_help_help(locale)
+        "  {}               {}",
+        cli_style::arg("--help, -h"),
+        cli_style::dim(i18n::show_help_help(locale))
     ));
 
     lines.join("\n")
@@ -322,17 +342,17 @@ fn render_command_help(command: &CommandDescriptor, locale: &str) -> String {
     let subs_label = i18n::subcommands_heading(locale);
     let usage_prefix = i18n::usage_label(locale);
 
+    let cmd_name = cli_style::command(command.name);
+    let sub_arg = cli_style::arg(&format!("<{sub_label}>"));
+
     let mut lines = vec![
-        format!(
-            "{usage_prefix}: ralph-engine {} <{sub_label}> [arguments]",
-            command.name
-        ),
+        format!("{usage_prefix}: ralph-engine {cmd_name} {sub_arg} [arguments]"),
         String::new(),
-        subs_label.to_owned(),
+        cli_style::heading(subs_label),
     ];
 
     for sub in command.subcommands {
-        lines.push(format!("  {sub}"));
+        lines.push(format!("  {}", cli_style::command(sub)));
     }
 
     lines.join("\n")

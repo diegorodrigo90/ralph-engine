@@ -3,6 +3,8 @@
 //! Provides consistent table and detail formatting for all subcommands.
 //! Follows kubectl table pattern: CAPS header, space-padded columns.
 
+use crate::cli_style;
+
 /// Renders a table with CAPS header row and space-padded columns.
 ///
 /// Each row is a `Vec<String>` with values for each column.
@@ -26,11 +28,14 @@ pub fn render_table(headers: &[&str], rows: &[Vec<String>]) -> String {
 
     let mut lines = Vec::new();
 
-    // Header row (CAPS)
+    // Header row (CAPS, styled)
     let header_line: Vec<String> = headers
         .iter()
         .enumerate()
-        .map(|(i, h)| format!("{:<width$}", h.to_uppercase(), width = widths[i]))
+        .map(|(i, h)| {
+            let padded = format!("{:<width$}", h.to_uppercase(), width = widths[i]);
+            cli_style::table_header(&padded)
+        })
         .collect();
     lines.push(header_line.join("  "));
 
@@ -72,7 +77,8 @@ pub fn render_detail(pairs: &[(&str, String)]) -> String {
         if key.is_empty() {
             lines.push(String::new());
         } else {
-            lines.push(format!("{key:<max_key$}  {value}"));
+            let styled_key = cli_style::detail_key(&format!("{key:<max_key$}"));
+            lines.push(format!("{styled_key}  {value}"));
         }
     }
 
@@ -81,7 +87,7 @@ pub fn render_detail(pairs: &[(&str, String)]) -> String {
 
 /// Renders a count heading like "Plugins (13)" or "Plugins oficiais (13)".
 pub fn render_count_heading(label: &str, count: usize) -> String {
-    format!("{label} ({count})")
+    cli_style::heading(&format!("{label} ({count})"))
 }
 
 #[cfg(test)]

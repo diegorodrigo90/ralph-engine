@@ -262,6 +262,24 @@ pub(super) fn style_content_line<'a>(
         BlockKind::Thinking => vec![theme.fg_dim(line).italic().build()],
         BlockKind::GateFail => vec![theme.fg_error(line).build()],
         BlockKind::GatePass => vec![theme.fg_success(line).build()],
-        _ => vec![theme.fg_text(line).build()],
+        // AgentText, FileRead, System — parse ANSI if present, else theme text
+        _ => parse_ansi_or_theme(line, theme),
     }
+}
+
+/// Parses ANSI escape codes in agent output, falling back to themed text.
+///
+/// This enables any agent (Claude, Codex, Gemini, Aider) to emit colored
+/// output that renders correctly in the TUI — agent-agnostic by design.
+fn parse_ansi_or_theme<'a>(line: &'a str, theme: &dyn crate::theme::Theme) -> Vec<Span<'a>> {
+    // Only attempt ANSI parsing if the line contains escape codes
+    if line.contains('\x1b')
+        && let Ok(text) = ansi_to_tui::IntoText::into_text(&line)
+    {
+        let spans: Vec<Span<'static>> = text.lines.into_iter().flat_map(|l| l.spans).collect();
+        if !spans.is_empty() {
+            return spans;
+        }
+    }
+    vec![theme.fg_text(line).build()]
 }

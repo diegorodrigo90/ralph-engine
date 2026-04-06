@@ -2,7 +2,7 @@
 
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::text::{Line, Span};
+use ratatui::text::Line;
 use ratatui::widgets::{Borders, Clear, List, ListItem, ListState, Paragraph};
 
 use crate::theme::ThemeExt;
@@ -64,9 +64,64 @@ impl TuiShell {
             return;
         }
 
-        let state_label = format!("{:?}", self.state);
-        let mut spans: Vec<Span<'_>> = Vec::new();
+        // Contextual help bar — changes based on focused panel
+        use super::types::FocusTarget;
 
+        let is_compact = zones.tier == crate::layout::LayoutTier::Compact;
+        let line = match self.focus {
+            FocusTarget::Activity if is_compact => t
+                .line()
+                .dim(" [j/k]")
+                .dim(" scroll ")
+                .dim(" [p]")
+                .dim(format!(" {} ", self.labels.pause_label))
+                .dim(" [?]")
+                .dim(format!(" {} ", self.labels.help_label))
+                .dim(" [q]")
+                .dim(format!(" {} ", self.labels.quit_label))
+                .build(),
+            FocusTarget::Activity => t
+                .line()
+                .dim(" [j/k]")
+                .dim(" scroll ")
+                .dim(" [Enter]")
+                .dim(" expand ")
+                .dim(" [Tab]")
+                .dim(" focus ")
+                .dim(" []/[]")
+                .dim(" tabs ")
+                .dim(" [p]")
+                .dim(format!(" {} ", self.labels.pause_label))
+                .dim(" [q]")
+                .dim(format!(" {} ", self.labels.quit_label))
+                .build(),
+            FocusTarget::Sidebar => t
+                .line()
+                .dim(" [j/k]")
+                .dim(" scroll ")
+                .dim(" [Tab]")
+                .dim(" back ")
+                .dim(" [F2]")
+                .dim(" toggle ")
+                .dim(" [q]")
+                .dim(format!(" {} ", self.labels.quit_label))
+                .build(),
+            FocusTarget::Input => t
+                .line()
+                .dim(" [Enter]")
+                .dim(" send ")
+                .dim(" [Alt+Enter]")
+                .dim(" newline ")
+                .dim(" [Esc]")
+                .dim(" cancel ")
+                .dim(" [Tab]")
+                .dim(" back ")
+                .build(),
+        };
+
+        // Append plugin keybindings + tier label
+        let mut spans = line.spans;
+        let state_label = format!("{:?}", self.state);
         for binding in &self.plugin_keybindings {
             if binding.active_states.is_empty()
                 || binding.active_states.iter().any(|s| s == &state_label)
@@ -75,13 +130,6 @@ impl TuiShell {
                 spans.push(t.fg_dim(format!(" {} ", binding.description)).build());
             }
         }
-
-        spans.push(t.fg_dim(" [p]").build());
-        spans.push(t.fg_dim(format!(" {} ", self.labels.pause_label)).build());
-        spans.push(t.fg_dim(" [?]").build());
-        spans.push(t.fg_dim(format!(" {} ", self.labels.help_label)).build());
-        spans.push(t.fg_dim(" [q]").build());
-        spans.push(t.fg_dim(format!(" {} ", self.labels.quit_label)).build());
 
         let tier_label = match zones.tier {
             crate::layout::LayoutTier::Compact => "compact",
@@ -372,5 +420,59 @@ impl TuiShell {
 
         frame.render_widget(Clear, popup);
         frame.render_widget(Paragraph::new(lines).block(block), popup);
+    }
+
+    /// Renders the theme selector modal with live preview.
+    pub(super) fn render_theme_selector(&self, frame: &mut Frame<'_>, area: Rect) {
+        let t = self.theme();
+        let ids = crate::theme::available_theme_ids();
+
+        let themes = crate::theme::builtin_themes();
+        let items: Vec<ListItem<'_>> = ids
+            .iter()
+            .enumerate()
+            .map(|(i, id)| {
+                let name = themes
+                    .iter()
+                    .find(|td| td.id() == *id)
+                    .map_or(*id, |td| td.name());
+                let marker = if Some(id.to_string()) == self.theme_selector_previous
+                    || (self.theme_selector_previous.is_none() && i == 0)
+                {
+                    " ●"
+                } else {
+                    "  "
+                };
+                ListItem::new(
+                    t.line()
+                        .dim(marker.to_owned())
+                        .text(format!(" {name}"))
+                        .dim(format!("  ({id})"))
+                        .build(),
+                )
+            })
+            .collect();
+
+        let popup_h = (items.len() as u16 + 2).min(area.height.saturating_sub(4));
+        let popup_w = 44u16.min(area.width.saturating_sub(4));
+        let popup = Rect {
+            x: area.x + (area.width.saturating_sub(popup_w)) / 2,
+            y: area.y + (area.height.saturating_sub(popup_h)) / 2,
+            width: popup_w,
+            height: popup_h,
+        };
+
+        let ls = t.list_styles();
+        let list = List::new(items)
+            .block(t.block(" Theme ").focused(true).build())
+            .highlight_style(ls.highlight)
+            .highlight_symbol(ls.symbol);
+
+        frame.render_widget(Clear, popup);
+        frame.render_stateful_widget(
+            list,
+            popup,
+            &mut ListState::default().with_selected(Some(self.theme_selector_selected)),
+        );
     }
 }

@@ -1,6 +1,7 @@
 //! CLI command execution for Ralph Engine.
 
 mod catalog;
+pub(crate) mod cli_style;
 mod commands;
 mod error;
 mod i18n;

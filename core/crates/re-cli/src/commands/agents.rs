@@ -101,13 +101,13 @@ fn probe_agent_launch(agent_id: Option<&str>, locale: &str) -> Result<String, Cl
     if agent.bootstrap_hook_registered {
         lines.push(format!(
             "{} {}",
-            super::STATUS_OK,
+            super::status_ok(),
             i18n::agents_bootstrap_registered(locale)
         ));
     } else {
         lines.push(format!(
             "{} {}",
-            super::STATUS_MISSING,
+            super::status_missing(),
             i18n::agents_bootstrap_not_registered(locale)
         ));
     }
@@ -116,14 +116,14 @@ fn probe_agent_launch(agent_id: Option<&str>, locale: &str) -> Result<String, Cl
         Some(runtime) => match runtime.bootstrap_agent(agent.descriptor.id) {
             Ok(result) => {
                 let status = if result.ready {
-                    super::STATUS_OK
+                    super::status_ok()
                 } else {
-                    super::STATUS_NOT_READY
+                    super::status_not_ready()
                 };
                 lines.push(format!("{status} {}", result.message));
             }
             Err(err) => {
-                lines.push(format!("{} {err}", super::STATUS_UNSUPPORTED));
+                lines.push(format!("{} {err}", super::status_unsupported()));
             }
         },
         None => {

@@ -145,4 +145,41 @@ mod tests {
         assert_eq!(INDENT_WIDTH, 2);
         assert_eq!(MAX_COLLAPSED_LINES, 20);
     }
+
+    #[test]
+    fn palette_themes_have_real_background() {
+        let palette_themes = [
+            CatppuccinMocha,
+            Dracula,
+            Nord,
+            GruvboxDark,
+            OneDark,
+            SolarizedDark,
+            TailwindDark,
+            TokyoNight,
+            RosePine,
+        ];
+        for theme in &palette_themes {
+            assert_ne!(
+                theme.background(),
+                ratatui::style::Color::Reset,
+                "{} should have a real background color",
+                theme.id()
+            );
+        }
+    }
+
+    #[test]
+    fn terminal_native_and_no_color_use_reset_background() {
+        assert_eq!(TerminalNative.background(), ratatui::style::Color::Reset);
+        assert_eq!(NoColor.background(), ratatui::style::Color::Reset);
+    }
+
+    #[test]
+    fn style_base_has_bg_and_fg() {
+        let t = CatppuccinMocha;
+        let base = t.style_base();
+        assert_eq!(base.bg, Some(t.background()));
+        assert_eq!(base.fg, Some(t.text()));
+    }
 }

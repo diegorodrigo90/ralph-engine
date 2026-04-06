@@ -340,6 +340,8 @@ function assertNoRawRatatuiStyles() {
     { pattern: /Style::default\(\)/, label: "Style::default()" },
     { pattern: /Style::new\(\)/, label: "Style::new()" },
     { pattern: /Color::Rgb\(/, label: "Color::Rgb(...)" },
+    { pattern: /Span::raw\("[^"]+"\)/, label: 'Span::raw("...") with visible content' },
+    { pattern: /Line::raw\("[^"]+"\)/, label: 'Line::raw("...") with visible content' },
   ];
 
   const pluginDirs = fs.readdirSync(OFFICIAL_PLUGIN_DIR, { withFileTypes: true })
@@ -370,6 +372,35 @@ function assertNoRawRatatuiStyles() {
             `official plugin ${pluginName} uses raw ratatui style (${label}) in ${path.basename(rsFile)}. Use ratatui-themekit instead. See AGENTS.md Rule 48-50.`,
           );
         }
+      }
+    }
+  }
+}
+
+function assertNoRawRatatuiStylesInCore() {
+  const CORE_FORBIDDEN = [
+    { pattern: /Span::raw\("[^"]+"\)/, label: 'Span::raw("...") with visible content' },
+    { pattern: /Line::raw\("[^"]+"\)/, label: 'Line::raw("...") with visible content' },
+  ];
+
+  const coreTuiDir = path.join(ROOT_DIR, "core", "crates", "re-tui", "src");
+  if (!fs.existsSync(coreTuiDir)) {
+    return;
+  }
+
+  const rsFiles = fs.readdirSync(coreTuiDir, { recursive: true })
+    .filter((f) => f.endsWith(".rs"))
+    .map((f) => path.join(coreTuiDir, f));
+
+  for (const rsFile of rsFiles) {
+    const source = readUtf8(rsFile);
+    const prodSource = source.replace(/#\[cfg\(test\)\][\s\S]*?^}/gm, "");
+
+    for (const { pattern, label } of CORE_FORBIDDEN) {
+      if (pattern.test(prodSource)) {
+        fail(
+          `core re-tui uses raw ratatui pattern (${label}) in ${path.relative(ROOT_DIR, rsFile)}. Use ratatui-themekit instead.`,
+        );
       }
     }
   }
@@ -511,5 +542,6 @@ assertOfficialManifestContributionLocalization(
 assertOfficialPluginLocaleModules(rustSupportedLocales);
 assertOfficialPluginOwnedTests();
 assertNoRawRatatuiStyles();
+assertNoRawRatatuiStylesInCore();
 
 process.stdout.write("Plugin contracts verified.\n");

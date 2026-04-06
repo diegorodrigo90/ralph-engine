@@ -9,8 +9,8 @@ use tui_scrollview::ScrollViewState;
 
 use super::autocomplete::AutocompleteState;
 use super::types::{
-    AgentPid, CommandEntry, PluginKeyAction, RegisteredKeybinding, SidebarPanel,
-    TOAST_DEFAULT_TICKS, Toast, ToastLevel, TuiConfig, TuiError, TuiLabels, TuiState,
+    AgentPid, CommandEntry, FocusTarget, PluginKeyAction, RegisteredKeybinding, SidebarPanel,
+    TOAST_DEFAULT_TICKS, Toast, ToastLevel, TuiConfig, TuiError, TuiLabels, TuiState, TuiTab,
 };
 
 /// The TUI shell — manages terminal lifecycle and render loop.
@@ -54,6 +54,14 @@ pub struct TuiShell {
     pub(super) pending_blocks: std::collections::VecDeque<crate::feed::FeedBlock>,
     pub(super) pending_total: usize,
     pub(super) drip_counter: usize,
+    pub(super) theme_selector_visible: bool,
+    pub(super) theme_selector_selected: usize,
+    pub(super) theme_selector_previous: Option<String>,
+    pub(super) active_tab: TuiTab,
+    pub(super) focus: FocusTarget,
+    pub(super) tab_bar_area: ratatui::layout::Rect,
+    pub(super) log_lines: Vec<String>,
+    pub(super) touched_files: Vec<String>,
 }
 
 impl TuiShell {
@@ -97,6 +105,14 @@ impl TuiShell {
             pending_blocks: std::collections::VecDeque::new(),
             pending_total: 0,
             drip_counter: 0,
+            theme_selector_visible: false,
+            theme_selector_selected: 0,
+            theme_selector_previous: None,
+            active_tab: TuiTab::Feed,
+            focus: FocusTarget::Activity,
+            tab_bar_area: ratatui::layout::Rect::default(),
+            log_lines: Vec::new(),
+            touched_files: Vec::new(),
         }
     }
 
@@ -193,6 +209,24 @@ impl TuiShell {
         &mut self.indicator_panel
     }
 
+    /// Returns the active tab.
+    #[must_use]
+    pub fn active_tab(&self) -> TuiTab {
+        self.active_tab
+    }
+
+    /// Appends a raw log line (for the Log tab).
+    pub fn push_log(&mut self, line: String) {
+        self.log_lines.push(line);
+    }
+
+    /// Records a file as touched (for the Files tab).
+    pub fn touch_file(&mut self, path: String) {
+        if !self.touched_files.contains(&path) {
+            self.touched_files.push(path);
+        }
+    }
+
     // ── Setters ─────────────────────────────────────────────────
 
     /// Sets the TUI state.
@@ -261,8 +295,14 @@ impl TuiShell {
         self.agent_pid = Some(pid);
     }
 
-    /// Sets agent commands.
-    pub fn set_agent_commands(&mut self, commands: Vec<CommandEntry>, prefix: String) {
+    /// Sets agent commands, plus built-in TUI commands.
+    pub fn set_agent_commands(&mut self, mut commands: Vec<CommandEntry>, prefix: String) {
+        commands.push(CommandEntry {
+            name: "theme".to_owned(),
+            description: "Switch theme".to_owned(),
+            source: super::types::CommandSource::Plugin,
+            source_name: "RE".to_owned(),
+        });
         self.autocomplete = AutocompleteState::new(commands, prefix);
     }
 
@@ -453,6 +493,17 @@ impl TuiShell {
 
         crate::feed::process_agent_event(&mut self.feed, event);
 
+        // Track raw log lines for Log tab
+        let activity = event.activity_line();
+        if !activity.is_empty() {
+            self.log_lines.push(activity.clone());
+        }
+
+        // Track file paths for Files tab
+        if let AgentEvent::ToolUse { name } = event {
+            self.touch_file(name.clone());
+        }
+
         match event {
             AgentEvent::TextDelta(_) => {
                 self.push_activity(event.activity_line());
@@ -612,16 +663,39 @@ impl TuiShell {
         self.autocomplete.update_filter(&self.text_input_buffer);
     }
 
-    /// Handles mouse.
-    pub fn handle_mouse(&mut self, kind: ratatui::crossterm::event::MouseEventKind) {
+    /// Handles mouse event with position.
+    pub fn handle_mouse(&mut self, event: ratatui::crossterm::event::MouseEvent) {
         use ratatui::crossterm::event::MouseEventKind;
-        match kind {
+        let pos = ratatui::layout::Position::new(event.column, event.row);
+
+        match event.kind {
             MouseEventKind::ScrollUp => self.scroll_feed_up(),
             MouseEventKind::ScrollDown => self.scroll_feed_down(),
             MouseEventKind::Down(_) => {
+                // Tab bar click — switch tabs
+                if self.tab_bar_area.contains(pos) {
+                    self.handle_tab_bar_click(pos.x);
+                    return;
+                }
                 self.focus_next_block();
             }
             _ => {}
+        }
+    }
+
+    /// Handles click on the tab bar — maps x position to tab index.
+    fn handle_tab_bar_click(&mut self, click_x: u16) {
+        let mut x_offset = self.tab_bar_area.x;
+        for (i, tab) in TuiTab::ALL.iter().enumerate() {
+            let label_len = u16::try_from(tab.label().len()).unwrap_or(6);
+            // Tab label width + divider " │ " (3 chars), no divider after last
+            let is_last = i == TuiTab::ALL.len() - 1;
+            let tab_width = label_len + if is_last { 0 } else { 3 };
+            if click_x >= x_offset && click_x < x_offset + tab_width {
+                self.active_tab = *tab;
+                return;
+            }
+            x_offset += tab_width;
         }
     }
 
@@ -639,6 +713,10 @@ impl TuiShell {
         if self.help_modal_visible {
             self.help_modal_visible = false;
             return PluginKeyAction::Handled;
+        }
+
+        if self.theme_selector_visible {
+            return self.handle_theme_selector_key(code);
         }
 
         if self.quit_pending {
@@ -723,6 +801,13 @@ impl TuiShell {
             KeyCode::Enter => {
                 if !self.text_input_buffer.trim().is_empty() {
                     let text = self.text_input_buffer.trim().to_owned();
+                    // Built-in TUI commands
+                    if text == "/theme" {
+                        self.open_theme_selector();
+                        self.text_input_buffer.clear();
+                        self.autocomplete.visible = false;
+                        return PluginKeyAction::Handled;
+                    }
                     self.push_activity(format!(">> You: {text}"));
                     self.pending_text_input = Some(text);
                 }
@@ -814,6 +899,19 @@ impl TuiShell {
                 self.scroll_feed_to_bottom();
                 Some(PluginKeyAction::Handled)
             }
+            KeyCode::Tab => {
+                let has_sidebar = self.sidebar_visible && !self.sidebar_panels.is_empty();
+                self.focus = self.focus.next(has_sidebar, self.input_enabled);
+                Some(PluginKeyAction::Handled)
+            }
+            KeyCode::Char(']') => {
+                self.active_tab = self.active_tab.next();
+                Some(PluginKeyAction::Handled)
+            }
+            KeyCode::Char('[') => {
+                self.active_tab = self.active_tab.prev();
+                Some(PluginKeyAction::Handled)
+            }
             KeyCode::F(2) => {
                 self.sidebar_visible = !self.sidebar_visible;
                 Some(PluginKeyAction::Handled)
@@ -866,6 +964,87 @@ impl TuiShell {
         }
     }
 
+    // ── Theme selector ──────────────────────────────────────────
+
+    /// Opens the theme selector modal with live preview.
+    fn open_theme_selector(&mut self) {
+        let current_id = self.theme.id().to_owned();
+        self.theme_selector_previous = Some(current_id.clone());
+
+        // Find current theme index in builtin list
+        let ids = crate::theme::available_theme_ids();
+        self.theme_selector_selected = ids.iter().position(|id| *id == current_id).unwrap_or(0);
+        self.theme_selector_visible = true;
+    }
+
+    /// Handles keys while the theme selector modal is open.
+    fn handle_theme_selector_key(&mut self, code: KeyCode) -> PluginKeyAction {
+        let ids = crate::theme::available_theme_ids();
+        let count = ids.len();
+
+        match code {
+            KeyCode::Up | KeyCode::Char('k') => {
+                self.theme_selector_selected = self.theme_selector_selected.saturating_sub(1);
+                self.apply_theme_preview(&ids);
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                self.theme_selector_selected =
+                    (self.theme_selector_selected + 1).min(count.saturating_sub(1));
+                self.apply_theme_preview(&ids);
+            }
+            KeyCode::Enter => {
+                // Confirm: save and close
+                let selected_id = ids[self.theme_selector_selected];
+                self.save_theme_preference(selected_id);
+                self.toast_success(format!("Theme: {selected_id}"));
+                self.theme_selector_visible = false;
+                self.theme_selector_previous = None;
+            }
+            KeyCode::Esc => {
+                // Revert to previous theme
+                if let Some(prev_id) = self.theme_selector_previous.take() {
+                    self.theme = crate::theme::resolve_theme(&prev_id);
+                }
+                self.theme_selector_visible = false;
+            }
+            _ => {}
+        }
+        PluginKeyAction::Handled
+    }
+
+    /// Applies live theme preview while navigating the selector.
+    fn apply_theme_preview(&mut self, ids: &[&str]) {
+        if let Some(id) = ids.get(self.theme_selector_selected) {
+            self.theme = crate::theme::resolve_theme(id);
+        }
+    }
+
+    /// Saves theme preference to the user config directory.
+    fn save_theme_preference(&self, theme_id: &str) {
+        let config_dir = std::path::Path::new(".ralph-engine");
+        if config_dir.exists() {
+            let theme_file = config_dir.join("theme");
+            if let Err(e) = std::fs::write(&theme_file, theme_id) {
+                tracing::warn!("failed to save theme preference: {e}");
+            }
+        } else {
+            tracing::debug!(
+                "skipping theme save: .ralph-engine/ not found (run `ralph-engine init` first)"
+            );
+        }
+    }
+
+    /// Loads the saved theme preference if it exists.
+    pub fn load_theme_preference(&mut self) {
+        let theme_file = std::path::Path::new(".ralph-engine/theme");
+        if let Ok(id) = std::fs::read_to_string(theme_file) {
+            let id = id.trim();
+            if !id.is_empty() {
+                self.theme = crate::theme::resolve_theme(id);
+            }
+        }
+    }
+
     /// Finds an active plugin keybinding for the given key and state.
     #[must_use]
     pub fn find_active_binding(
@@ -910,7 +1089,7 @@ impl TuiShell {
                             self.handle_key(key.code);
                         }
                         Event::Mouse(mouse) => {
-                            self.handle_mouse(mouse.kind);
+                            self.handle_mouse(mouse);
                         }
                         _ => {}
                     }
@@ -938,4 +1117,186 @@ fn init_terminal() -> ratatui::DefaultTerminal {
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn restore_terminal() {
     ratatui::restore();
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+
+    fn test_shell() -> TuiShell {
+        TuiShell::new(TuiConfig {
+            title: "test".to_owned(),
+            agent_id: "test.agent".to_owned(),
+            locale: "en".to_owned(),
+        })
+    }
+
+    #[test]
+    fn open_theme_selector_sets_previous() {
+        let mut shell = test_shell();
+        let original_id = shell.theme.id().to_owned();
+        shell.open_theme_selector();
+        assert!(shell.theme_selector_visible);
+        assert_eq!(shell.theme_selector_previous, Some(original_id));
+    }
+
+    #[test]
+    fn theme_selector_navigate_changes_theme() {
+        let mut shell = test_shell();
+        shell.open_theme_selector();
+        let initial_id = shell.theme.id().to_owned();
+
+        // Navigate down
+        shell.handle_theme_selector_key(KeyCode::Down);
+        let new_id = shell.theme.id().to_owned();
+        assert_ne!(initial_id, new_id, "theme should change on navigate");
+    }
+
+    #[test]
+    fn theme_selector_esc_reverts() {
+        let mut shell = test_shell();
+        let original_id = shell.theme.id().to_owned();
+        shell.open_theme_selector();
+
+        // Navigate to a different theme
+        shell.handle_theme_selector_key(KeyCode::Down);
+        assert_ne!(shell.theme.id(), original_id);
+
+        // Esc reverts
+        shell.handle_theme_selector_key(KeyCode::Esc);
+        assert!(!shell.theme_selector_visible);
+        assert_eq!(shell.theme.id(), original_id);
+    }
+
+    #[test]
+    fn theme_selector_enter_confirms() {
+        let mut shell = test_shell();
+        shell.open_theme_selector();
+        shell.handle_theme_selector_key(KeyCode::Down);
+        let selected_id = shell.theme.id().to_owned();
+
+        shell.handle_theme_selector_key(KeyCode::Enter);
+        assert!(!shell.theme_selector_visible);
+        assert_eq!(shell.theme.id(), selected_id);
+        // Previous should be cleared after confirm
+        assert!(shell.theme_selector_previous.is_none());
+    }
+
+    #[test]
+    fn theme_selector_shows_toast_on_confirm() {
+        let mut shell = test_shell();
+        shell.open_theme_selector();
+        shell.handle_theme_selector_key(KeyCode::Enter);
+        assert_eq!(shell.toasts.len(), 1);
+        assert!(shell.toasts[0].message.contains("Theme:"));
+    }
+
+    #[test]
+    fn theme_selector_navigate_up_at_top_stays() {
+        let mut shell = test_shell();
+        shell.open_theme_selector();
+        shell.theme_selector_selected = 0;
+        shell.handle_theme_selector_key(KeyCode::Up);
+        assert_eq!(shell.theme_selector_selected, 0);
+    }
+
+    #[test]
+    fn theme_selector_navigate_down_at_bottom_stays() {
+        let mut shell = test_shell();
+        shell.open_theme_selector();
+        let ids = crate::theme::available_theme_ids();
+        shell.theme_selector_selected = ids.len() - 1;
+        shell.handle_theme_selector_key(KeyCode::Down);
+        assert_eq!(shell.theme_selector_selected, ids.len() - 1);
+    }
+
+    #[test]
+    fn theme_selector_j_k_navigation() {
+        let mut shell = test_shell();
+        shell.open_theme_selector();
+        shell.handle_theme_selector_key(KeyCode::Char('j'));
+        assert_eq!(shell.theme_selector_selected, 1);
+        shell.handle_theme_selector_key(KeyCode::Char('k'));
+        assert_eq!(shell.theme_selector_selected, 0);
+    }
+
+    #[test]
+    fn load_theme_preference_no_file() {
+        let mut shell = test_shell();
+        let original = shell.theme.id().to_owned();
+        shell.load_theme_preference(); // No file exists, should not change
+        assert_eq!(shell.theme.id(), original);
+    }
+
+    #[test]
+    fn slash_theme_opens_selector() {
+        let mut shell = test_shell();
+        shell.input_enabled = true;
+        shell.text_input_buffer = "/theme".to_owned();
+        shell.handle_typing_key(KeyCode::Enter, KeyModifiers::NONE);
+        assert!(shell.theme_selector_visible);
+        assert!(shell.text_input_buffer.is_empty());
+    }
+
+    // ── Tab switching ──────────────────────────────────────────
+
+    #[test]
+    fn default_tab_is_feed() {
+        let shell = test_shell();
+        assert_eq!(shell.active_tab, TuiTab::Feed);
+    }
+
+    #[test]
+    fn bracket_right_switches_tab() {
+        let mut shell = test_shell();
+        shell.handle_key(KeyCode::Char(']'));
+        assert_eq!(shell.active_tab, TuiTab::Files);
+        shell.handle_key(KeyCode::Char(']'));
+        assert_eq!(shell.active_tab, TuiTab::Log);
+    }
+
+    #[test]
+    fn bracket_left_switches_tab() {
+        let mut shell = test_shell();
+        shell.handle_key(KeyCode::Char('['));
+        assert_eq!(shell.active_tab, TuiTab::Config);
+        shell.handle_key(KeyCode::Char('['));
+        assert_eq!(shell.active_tab, TuiTab::Log);
+    }
+
+    #[test]
+    fn tab_cycling_wraps_around() {
+        let mut shell = test_shell();
+        for _ in 0..4 {
+            shell.handle_key(KeyCode::Char(']'));
+        }
+        assert_eq!(shell.active_tab, TuiTab::Feed);
+    }
+
+    // ── Log + Files tracking ───────────────────────────────────
+
+    #[test]
+    fn process_event_tracks_log_lines() {
+        let mut shell = test_shell();
+        shell.process_event(&crate::events::AgentEvent::System("init".to_owned()));
+        assert!(!shell.log_lines.is_empty());
+    }
+
+    #[test]
+    fn process_event_tracks_touched_files() {
+        let mut shell = test_shell();
+        shell.process_event(&crate::events::AgentEvent::ToolUse {
+            name: "src/main.rs".to_owned(),
+        });
+        assert!(shell.touched_files.contains(&"src/main.rs".to_owned()));
+    }
+
+    #[test]
+    fn touch_file_deduplicates() {
+        let mut shell = test_shell();
+        shell.touch_file("a.rs".to_owned());
+        shell.touch_file("a.rs".to_owned());
+        assert_eq!(shell.touched_files.len(), 1);
+    }
 }

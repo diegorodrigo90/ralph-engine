@@ -48,7 +48,13 @@ fn main() -> ExitCode {
         }
         Err(error) => {
             sentry::capture_message(&error.to_string(), sentry::Level::Error);
-            eprintln!("{error}");
+            use owo_colors::OwoColorize as _;
+            use owo_colors::Stream::Stderr;
+            let styled = error
+                .to_string()
+                .if_supports_color(Stderr, |t| t.red())
+                .to_string();
+            eprintln!("{styled}");
             ExitCode::from(error.exit_code)
         }
     }

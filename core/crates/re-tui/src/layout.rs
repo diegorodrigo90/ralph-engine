@@ -58,6 +58,8 @@ impl LayoutTier {
 pub struct LayoutZones {
     /// Header bar (always visible, 1 line).
     pub header: Rect,
+    /// Tab bar (Standard + Wide tiers, 1 line). Hidden in Compact.
+    pub tab_bar: Option<Rect>,
     /// Main activity stream (always visible, fills remaining space).
     pub activity: Rect,
     /// Metrics bar (always visible, 1 line).
@@ -85,25 +87,60 @@ pub struct LayoutZones {
 pub fn compute_zones(area: Rect, has_input_bar: bool) -> LayoutZones {
     let tier = LayoutTier::from_size(area.width, area.height);
 
-    let (header, body, metrics, input, help) = if has_input_bar {
-        let rows = Layout::vertical([
-            Constraint::Length(1), // header
-            Constraint::Fill(1),   // body
-            Constraint::Length(1), // metrics
-            Constraint::Length(4), // input (separator + 3 lines)
-            Constraint::Length(1), // help
-        ])
-        .split(area);
-        (rows[0], rows[1], rows[2], Some(rows[3]), rows[4])
-    } else {
-        let rows = Layout::vertical([
-            Constraint::Length(1), // header
-            Constraint::Fill(1),   // body
-            Constraint::Length(1), // metrics
-            Constraint::Length(1), // help
-        ])
-        .split(area);
-        (rows[0], rows[1], rows[2], None, rows[3])
+    let has_tabs = tier.has_sidebar(); // Standard + Wide get tab bar
+
+    let (header, tab_bar, body, metrics, input, help) = match (has_tabs, has_input_bar) {
+        (true, true) => {
+            let rows = Layout::vertical([
+                Constraint::Length(1), // header
+                Constraint::Length(1), // tab bar
+                Constraint::Fill(1),   // body
+                Constraint::Length(1), // metrics
+                Constraint::Length(4), // input
+                Constraint::Length(1), // help
+            ])
+            .split(area);
+            (
+                rows[0],
+                Some(rows[1]),
+                rows[2],
+                rows[3],
+                Some(rows[4]),
+                rows[5],
+            )
+        }
+        (true, false) => {
+            let rows = Layout::vertical([
+                Constraint::Length(1), // header
+                Constraint::Length(1), // tab bar
+                Constraint::Fill(1),   // body
+                Constraint::Length(1), // metrics
+                Constraint::Length(1), // help
+            ])
+            .split(area);
+            (rows[0], Some(rows[1]), rows[2], rows[3], None, rows[4])
+        }
+        (false, true) => {
+            let rows = Layout::vertical([
+                Constraint::Length(1), // header
+                Constraint::Fill(1),   // body
+                Constraint::Length(1), // metrics
+                Constraint::Length(4), // input
+                Constraint::Length(1), // help
+            ])
+            .split(area);
+            (rows[0], None, rows[1], rows[2], Some(rows[3]), rows[4])
+        }
+        (false, false) => {
+            let rows = Layout::vertical([
+                Constraint::Length(1), // header
+                Constraint::Fill(1),   // body
+                Constraint::Length(1), // metrics
+                Constraint::Length(1), // help
+            ])
+            .split(area);
+            (rows[0], None, rows[1], rows[2], None, rows[3])
+        }
     };
 
     // Horizontal split of the body depends on tier
@@ -111,6 +148,7 @@ pub fn compute_zones(area: Rect, has_input_bar: bool) -> LayoutZones {
 
     LayoutZones {
         header,
+        tab_bar,
         activity,
         metrics,
         input,

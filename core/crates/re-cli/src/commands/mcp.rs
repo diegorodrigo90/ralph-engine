@@ -173,14 +173,14 @@ fn launch_plugin_runtime_server(
         Some(runtime) => match runtime.register_mcp_server(server.id) {
             Ok(result) => {
                 let status = if result.ready {
-                    super::STATUS_OK
+                    super::status_ok()
                 } else {
-                    super::STATUS_NOT_READY
+                    super::status_not_ready()
                 };
                 lines.push(format!("{status} {}", result.message));
             }
             Err(err) => {
-                lines.push(format!("{} {err}", super::STATUS_UNSUPPORTED));
+                lines.push(format!("{} {err}", super::status_unsupported()));
             }
         },
         None => {
@@ -203,7 +203,7 @@ fn launch_spawn_process_server(
         Some(path) => {
             lines.push(format!(
                 "{} {}: {path}",
-                super::STATUS_OK,
+                super::status_ok(),
                 i18n::mcp_binary_found(locale)
             ));
 
@@ -241,7 +241,7 @@ fn launch_spawn_process_server(
         None => {
             lines.push(format!(
                 "{} {}: {}",
-                super::STATUS_MISSING,
+                super::status_missing(),
                 i18n::mcp_binary_not_found(locale),
                 command.program
             ));

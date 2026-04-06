@@ -607,9 +607,14 @@ fn focus_keys_handled_in_key_handler() {
 
 #[test]
 fn mouse_scroll_disables_follow() {
-    use ratatui::crossterm::event::MouseEventKind;
+    use ratatui::crossterm::event::{MouseEvent, MouseEventKind};
     let mut shell = test_shell();
-    shell.handle_mouse(MouseEventKind::ScrollUp);
+    shell.handle_mouse(MouseEvent {
+        kind: MouseEventKind::ScrollUp,
+        column: 0,
+        row: 0,
+        modifiers: ratatui::crossterm::event::KeyModifiers::NONE,
+    });
     assert!(!shell.is_follow_mode());
 }
 
