@@ -1164,12 +1164,21 @@ impl TuiShell {
 /// Initializes the terminal with ratatui defaults.
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn init_terminal() -> ratatui::DefaultTerminal {
-    ratatui::init()
+    let terminal = ratatui::init();
+    let _ = ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::event::EnableMouseCapture
+    );
+    terminal
 }
 
 /// Restores terminal to normal mode.
 #[cfg_attr(coverage_nightly, coverage(off))]
 fn restore_terminal() {
+    let _ = ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::event::DisableMouseCapture
+    );
     ratatui::restore();
 }
 

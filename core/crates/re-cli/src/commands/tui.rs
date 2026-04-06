@@ -141,6 +141,12 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 
     let mut terminal = ratatui::init();
 
+    // Enable mouse capture for click-to-focus and scroll support
+    let _ = ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::event::EnableMouseCapture
+    );
+
     // Enable bracketed paste so multi-line pastes arrive as a single Event::Paste
     let _ = ratatui::crossterm::execute!(
         std::io::stdout(),
@@ -205,7 +211,8 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
 
     let _ = ratatui::crossterm::execute!(
         std::io::stdout(),
-        ratatui::crossterm::event::DisableBracketedPaste
+        ratatui::crossterm::event::DisableBracketedPaste,
+        ratatui::crossterm::event::DisableMouseCapture
     );
     ratatui::restore();
     result.map_err(CliError::new)?;

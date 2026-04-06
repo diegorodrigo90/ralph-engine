@@ -593,6 +593,10 @@ fn run_with_tui(
 
     // TUI render loop
     let mut terminal = ratatui::init();
+    let _ = ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::event::EnableMouseCapture
+    );
     let mut prev_state = re_tui::TuiState::Running;
     let result: Result<(), String> = (|| {
         loop {
@@ -611,36 +615,46 @@ fn run_with_tui(
 
             if event::poll(std::time::Duration::from_millis(50))
                 .map_err(|e| format!("poll: {e}"))?
-                && let Event::Key(key) = event::read().map_err(|e| format!("read: {e}"))?
-                && key.kind == KeyEventKind::Press
             {
-                shell.handle_key_with_modifiers(key.code, key.modifiers);
+                match event::read().map_err(|e| format!("read: {e}"))? {
+                    Event::Key(key) if key.kind == KeyEventKind::Press => {
+                        shell.handle_key_with_modifiers(key.code, key.modifiers);
 
-                // Dispatch text input to agent plugin (feedback injection)
-                if let Some(text) = shell.take_text_input() {
-                    match agent_runtime.inject_feedback(&text, cwd) {
-                        Ok(_) => {
-                            shell.push_activity(">> Feedback saved.".to_owned());
+                        // Dispatch text input to agent plugin (feedback injection)
+                        if let Some(text) = shell.take_text_input() {
+                            match agent_runtime.inject_feedback(&text, cwd) {
+                                Ok(_) => {
+                                    shell.push_activity(">> Feedback saved.".to_owned());
+                                }
+                                Err(e) => {
+                                    shell
+                                        .push_activity(format!(">> Feedback error: {}", e.message));
+                                }
+                            }
                         }
-                        Err(e) => {
-                            shell.push_activity(format!(">> Feedback error: {}", e.message));
+
+                        // Handle pause/resume state transitions via agent plugin
+                        let curr_state = shell.state();
+                        if curr_state != prev_state {
+                            if let Some(pid) = shell.agent_pid() {
+                                if curr_state == re_tui::TuiState::Paused {
+                                    let _ = agent_runtime.pause_agent(pid);
+                                } else if prev_state == re_tui::TuiState::Paused
+                                    && curr_state == re_tui::TuiState::Running
+                                {
+                                    let _ = agent_runtime.resume_agent(pid);
+                                }
+                            }
+                            prev_state = curr_state;
                         }
                     }
-                }
-
-                // Handle pause/resume state transitions via agent plugin
-                let curr_state = shell.state();
-                if curr_state != prev_state {
-                    if let Some(pid) = shell.agent_pid() {
-                        if curr_state == re_tui::TuiState::Paused {
-                            let _ = agent_runtime.pause_agent(pid);
-                        } else if prev_state == re_tui::TuiState::Paused
-                            && curr_state == re_tui::TuiState::Running
-                        {
-                            let _ = agent_runtime.resume_agent(pid);
-                        }
+                    Event::Mouse(mouse) => {
+                        shell.handle_mouse(mouse);
                     }
-                    prev_state = curr_state;
+                    Event::Paste(text) => {
+                        shell.handle_paste(&text);
+                    }
+                    _ => {}
                 }
             }
 
@@ -665,6 +679,10 @@ fn run_with_tui(
         Ok(())
     })();
 
+    let _ = ratatui::crossterm::execute!(
+        std::io::stdout(),
+        ratatui::crossterm::event::DisableMouseCapture
+    );
     ratatui::restore();
     result.map_err(CliError::new)?;
 
