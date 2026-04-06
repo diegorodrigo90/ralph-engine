@@ -14,10 +14,11 @@ fn empty_shell() -> TuiShell {
     })
 }
 
-/// Shell with input enabled (simulates guided plugin active).
+/// Shell with input enabled and focused (simulates guided plugin active).
 fn interactive_shell() -> TuiShell {
     let mut shell = empty_shell();
     shell.enable_input();
+    shell.focus = super::types::FocusTarget::Input;
     shell
 }
 

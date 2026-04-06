@@ -748,13 +748,23 @@ impl TuiShell {
             return PluginKeyAction::Handled;
         }
 
-        // When input is enabled and user types a printable character,
-        // ALWAYS route to the input buffer — never trigger core keys like q/?.
-        if self.input_enabled {
+        // Input handling: when focus is on input, capture keys there.
+        // Esc exits input focus → core keys (q, ?, etc.) become available.
+        let input_focused = self.input_enabled && self.focus == FocusTarget::Input;
+
+        if input_focused {
+            // Esc: exit input focus → back to Activity
+            if code == KeyCode::Esc {
+                self.focus = FocusTarget::Activity;
+                self.text_input_buffer.clear();
+                self.autocomplete.visible = false;
+                return PluginKeyAction::Handled;
+            }
+
             if !self.text_input_buffer.is_empty() {
                 return self.handle_typing_key(code, modifiers);
             }
-            // Empty buffer: slash starts command, other chars start typing
+            // Empty buffer: any printable char starts typing
             if let KeyCode::Char(c) = code {
                 self.text_input_buffer.push(c);
                 self.autocomplete.update_filter(&self.text_input_buffer);
