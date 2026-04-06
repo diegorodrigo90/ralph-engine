@@ -16,14 +16,13 @@ use crate::i18n;
 
 /// Built-in slash commands available in the dashboard.
 const DASHBOARD_COMMANDS: &[(&str, &str)] = &[
-    ("run", "Start orchestration with TUI"),
-    ("doctor", "Check project health"),
-    ("plugins", "List installed plugins"),
-    ("agents", "List available agents"),
-    ("init", "Initialize project"),
+    ("list", "Available work items"),
+    ("run", "Start autonomous loop"),
+    ("status", "Runtime health check"),
+    ("theme", "Change theme"),
     ("config", "Show configuration"),
-    ("runtime", "Inspect runtime state"),
-    ("help", "Show available commands"),
+    ("plugins", "Active plugins"),
+    ("help", "All commands"),
 ];
 
 /// Executes the TUI dashboard.
@@ -246,54 +245,79 @@ fn handle_dashboard_command(shell: &mut re_tui::TuiShell, input: &str, locale: &
     shell.push_activity(format!(">> /{command_text}"));
 
     match *cmd_name {
+        // ── Commands that produce visible output ────────────────
         "help" => {
-            shell.push_activity(format!("── {} ──", i18n::tui_available_commands(locale)));
+            let mut block = re_tui::FeedBlock::completed(
+                re_tui::BlockKind::System,
+                i18n::tui_available_commands(locale).to_owned(),
+            );
             for (name, desc) in DASHBOARD_COMMANDS {
-                shell.push_activity(format!("  /{name:<12} {desc}"));
+                block.push_content(format!("/{name:<12} {desc}"));
             }
+            shell.feed_mut().push_block(block);
+        }
+        "list" => {
+            dispatch_to_feed(shell, "run", &["--list".to_owned()], locale);
+        }
+        "status" => {
+            dispatch_to_feed(shell, "doctor", &[], locale);
+        }
+        "plugins" => {
+            dispatch_to_feed(shell, "plugins", &[], locale);
+        }
+        "config" => {
+            shell.set_active_tab(re_tui::TuiTab::Config);
+            shell.toast_info("Config".to_owned());
+        }
+        "theme" => {
+            shell.open_theme_selector();
+        }
+        // ── Commands that launch processes ──────────────────────
+        "run" => {
+            let args: Vec<String> = parts[1..].iter().map(|s| (*s).to_owned()).collect();
+            dispatch_to_feed(shell, "run", &args, locale);
         }
         "init" => {
-            // Use --auto for non-interactive TUI init
             let mut args = vec!["--auto".to_owned()];
             args.extend(parts[1..].iter().map(|s| (*s).to_owned()));
-            match super::dispatch_command("init", &args, locale) {
-                Ok(output) => {
-                    for line in output.lines() {
-                        shell.push_activity(format!("  {line}"));
-                    }
-                }
-                Err(e) => {
-                    shell.push_activity(format!("  Error: {e}"));
-                }
-            }
+            dispatch_to_feed(shell, "init", &args, locale);
         }
+        // ── Debug ──────────────────────────────────────────────
         #[cfg(debug_assertions)]
         "demo" => {
             populate_demo_feed(shell, locale);
         }
-        "run" | "doctor" | "plugins" | "agents" | "config" | "runtime" | "checks" | "templates"
-        | "prompts" | "hooks" | "mcp" | "capabilities" | "providers" | "locales" => {
-            // Build args for the command handler
+        // ── Passthrough to CLI ─────────────────────────────────
+        "doctor" | "agents" | "runtime" | "checks" | "templates" | "prompts" | "hooks" | "mcp"
+        | "capabilities" | "providers" | "locales" => {
             let args: Vec<String> = parts[1..].iter().map(|s| (*s).to_owned()).collect();
-
-            // Dispatch to the real command handler
-            match super::dispatch_command(cmd_name, &args, locale) {
-                Ok(output) => {
-                    for line in output.lines() {
-                        shell.push_activity(format!("  {line}"));
-                    }
-                }
-                Err(e) => {
-                    shell.push_activity(format!("  Error: {e}"));
-                }
-            }
+            dispatch_to_feed(shell, cmd_name, &args, locale);
         }
         other => {
-            shell.push_activity(format!(
-                "  {}: /{other}. {}",
+            shell.show_error_modal(
                 i18n::tui_unknown_command(locale),
-                i18n::tui_type_help_hint(locale)
-            ));
+                &format!("/{other}. {}", i18n::tui_type_help_hint(locale)),
+            );
+        }
+    }
+}
+
+/// Dispatches a CLI command and shows the output as a feed block.
+///
+/// This makes command results visible in the TUI — the feed block
+/// triggers active layout so the user sees the output immediately.
+fn dispatch_to_feed(shell: &mut re_tui::TuiShell, cmd: &str, args: &[String], locale: &str) {
+    match super::dispatch_command(cmd, args, locale) {
+        Ok(output) => {
+            let mut block =
+                re_tui::FeedBlock::completed(re_tui::BlockKind::System, format!("/{cmd}"));
+            for line in output.lines() {
+                block.push_content(line.to_owned());
+            }
+            shell.feed_mut().push_block(block);
+        }
+        Err(e) => {
+            shell.show_error_modal(cmd, &e.to_string());
         }
     }
 }

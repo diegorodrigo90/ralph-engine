@@ -161,8 +161,8 @@ policies_missing_label = "FALTANDO"
 hooks_plan_heading = "Plano de hook de runtime"
 
 # ── TUI Dashboard ────────────────────────────────────────────────
-tui_dashboard_title = "Painel"
-tui_no_project_title = "Sem projeto — digite /init"
+tui_dashboard_title = "Ralph Engine"
+tui_no_project_title = "Ralph Engine — digite /init"
 tui_no_project_label = "sem projeto"
 tui_no_agent_label = "sem agente"
 tui_project_configured = "Projeto configurado"

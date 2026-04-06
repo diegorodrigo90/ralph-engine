@@ -148,7 +148,11 @@ impl TuiShell {
         // Find primary agent status from sidebar panels
         let agent_status = self.primary_agent_status();
 
-        let mut spans = vec![t.fg_accent(format!(" ◎ RE v{version}")).bold().build()];
+        let mut spans = vec![
+            t.fg_accent(format!(" ◎ Ralph Engine v{version}"))
+                .bold()
+                .build(),
+        ];
 
         if let Some((name, status, sev)) = agent_status {
             let (icon, color) = match sev {
@@ -178,7 +182,9 @@ impl TuiShell {
         let sep = t.fg_border(" │ ").build();
 
         let spans = vec![
-            t.fg_accent(format!(" ◎ RE v{version}")).bold().build(),
+            t.fg_accent(format!(" ◎ Ralph Engine v{version}"))
+                .bold()
+                .build(),
             sep.clone(),
             t.fg_bright(self.config.agent_id.as_str()).build(),
             sep.clone(),

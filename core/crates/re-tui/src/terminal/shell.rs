@@ -213,6 +213,11 @@ impl TuiShell {
         self.active_tab
     }
 
+    /// Sets the active tab.
+    pub fn set_active_tab(&mut self, tab: TuiTab) {
+        self.active_tab = tab;
+    }
+
     /// Returns a reference to the zone registry.
     #[must_use]
     pub fn zone_registry(&self) -> &ratatui_zonekit::ZoneRegistry {
@@ -978,7 +983,7 @@ impl TuiShell {
     // ── Theme selector ──────────────────────────────────────────
 
     /// Opens the theme selector modal with live preview.
-    fn open_theme_selector(&mut self) {
+    pub fn open_theme_selector(&mut self) {
         let current_id = self.theme.id().to_owned();
         self.theme_selector_previous = Some(current_id.clone());
 

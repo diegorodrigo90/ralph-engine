@@ -1,11 +1,11 @@
-//! Sidebar and control panel rendering.
+//! Sidebar rendering — polished groups using `ThemeKit` builders.
 //!
-//! The sidebar groups plugin panels into semantic domains (Agents,
-//! Sprint, Tools, Findings) instead of showing one panel per plugin.
-//! Each group has a distinct rendering style optimized for its content.
+//! Each group is a titled block with consistent visual treatment.
+//! Agents show badge-style status, Sprint shows progress, Findings show bullets.
 
 use ratatui::Frame;
 use ratatui::layout::Rect;
+use ratatui::layout::{Constraint, Layout};
 use ratatui::text::Line;
 use ratatui::widgets::{Borders, Paragraph};
 use ratatui_themekit::builders::ThemedSpan;
@@ -17,16 +17,16 @@ use super::sidebar_groups::group_panels;
 use super::types::{PanelHint, PanelSeverity, SidebarPanel};
 
 impl TuiShell {
-    /// Renders the sidebar zone with grouped plugin panels.
+    /// Renders the sidebar with polished grouped panels.
     pub(super) fn render_sidebar(&self, frame: &mut Frame<'_>, area: Rect) {
         let t = self.theme();
 
+        // Outer border separating sidebar from main content
         let outer = t.block_plain().borders(Borders::LEFT).build();
         let inner = outer.inner(area);
         frame.render_widget(outer, area);
 
         if self.sidebar_panels.is_empty() {
-            frame.render_widget(Paragraph::new(t.line().dim(" (no panels)").build()), inner);
             return;
         }
 
@@ -35,41 +35,48 @@ impl TuiShell {
             return;
         }
 
-        let group_colors = [t.accent(), t.info(), t.success(), t.warning()];
-        let mut all_lines: Vec<Line<'_>> = Vec::new();
+        // Split vertical space between groups
+        let group_count = groups.len();
+        let constraints: Vec<Constraint> = (0..group_count)
+            .map(|i| {
+                if i < group_count - 1 {
+                    Constraint::Ratio(1, group_count as u32)
+                } else {
+                    Constraint::Fill(1)
+                }
+            })
+            .collect();
+
+        let group_areas = Layout::vertical(constraints).split(inner);
 
         for (i, group) in groups.iter().enumerate() {
-            let color = group_colors[i % group_colors.len()];
+            // Each group gets a themed block container with title
+            let group_block = t.block(format!(" {} ", group.title).leak()).build();
+            let group_inner = group_block.inner(group_areas[i]);
+            frame.render_widget(group_block, group_areas[i]);
 
-            if i > 0 {
-                all_lines.push(Line::raw(""));
-            }
-            all_lines.push(render_group_heading(group.title, inner.width, color, t));
+            let mut lines: Vec<Line<'_>> = Vec::new();
 
-            // Each group type has a condensed rendering style
             match group.title {
-                "Agents" => render_agent_group(group.panels.as_slice(), t, &mut all_lines),
-                "Sprint" => render_sprint_group(group.panels.as_slice(), color, t, &mut all_lines),
-                "Findings" => {
-                    render_findings_group(group.panels.as_slice(), color, t, &mut all_lines);
-                }
-                _ => render_tool_group(group.panels.as_slice(), t, &mut all_lines),
+                "Agents" => render_agents(&group.panels, t, &mut lines),
+                "Sprint" => render_sprint(&group.panels, t, &mut lines),
+                "Findings" => render_findings(&group.panels, t, &mut lines),
+                _ => {}
             }
-        }
 
-        frame.render_widget(Paragraph::new(all_lines), inner);
+            frame.render_widget(Paragraph::new(lines), group_inner);
+        }
     }
 
-    /// Renders the control panel zone (wide tier only).
+    /// Renders the control panel (wide tier, active mode only).
     pub(super) fn render_control_panel(&self, frame: &mut Frame<'_>, area: Rect) {
         let t = self.theme();
         let state_color = self.state.color(t);
+        let state_label = self.localized_state_label();
 
         let block = t.block_plain().borders(Borders::RIGHT).build();
         let inner = block.inner(area);
         frame.render_widget(block, area);
-
-        let state_label = self.localized_state_label();
 
         let lines = vec![
             Line::raw(""),
@@ -93,80 +100,52 @@ impl TuiShell {
     }
 }
 
-/// Renders a group heading.
-fn render_group_heading<'a>(
-    title: &str,
-    width: u16,
-    color: ratatui::style::Color,
-    theme: &dyn crate::theme::Theme,
-) -> Line<'a> {
-    let border_len = width.saturating_sub(title.len() as u16 + 3) as usize;
-    Line::from(vec![
-        ThemedSpan::with_color(format!(" {title} "), color)
-            .bold()
-            .build(),
-        theme.fg_border("\u{2500}".repeat(border_len)).build(),
-    ])
-}
-
-/// Agents group: one-line per agent with status dot.
+/// Agents: name + badge status, one line each.
 ///
 /// ```text
-///  ● claude         ready
-///  ○ claudebox      —
-///  ○ codex          —
+///  claude       [ready]
+///  claudebox    [ready]
+///  codex        [—]
 /// ```
-fn render_agent_group<'a>(
+fn render_agents<'a>(
     panels: &'a [&'a SidebarPanel],
     theme: &dyn crate::theme::Theme,
     lines: &mut Vec<Line<'a>>,
 ) {
     for panel in panels {
-        // Extract status from the first indicator block
-        let (status, severity) = extract_indicator_status(panel);
-        let (icon, icon_color) = match severity {
-            PanelSeverity::Success => ("●", theme.success()),
-            PanelSeverity::Error => ("✗", theme.error()),
-            PanelSeverity::Warning => ("◆", theme.warning()),
-            PanelSeverity::Neutral => ("○", theme.text_dim()),
+        let (status, severity) = extract_status(panel);
+        let badge_color = match severity {
+            PanelSeverity::Success => theme.success(),
+            PanelSeverity::Error => theme.error(),
+            PanelSeverity::Warning => theme.warning(),
+            PanelSeverity::Neutral => theme.text_dim(),
         };
 
-        // Short name from panel title (e.g., "Claude" → "claude")
         let name = panel.title.to_lowercase();
-        let padded = format!("{name:<14}");
+        let padded = format!(" {name:<13}");
 
         lines.push(Line::from(vec![
-            ThemedSpan::with_color(format!("  {icon} "), icon_color)
-                .bold()
-                .build(),
             theme.fg_text(padded).build(),
-            ThemedSpan::with_color(status, icon_color).build(),
+            theme.badge(format!(" {status} "), badge_color).build(),
         ]));
     }
 }
 
-/// Sprint group: progress bar + active stories.
-///
-/// ```text
-///  ████████░░ 72%  (36/50)
-///  → Story 5.3   doing
-///  → Story 5.4   todo
-/// ```
-fn render_sprint_group<'a>(
+/// Sprint: progress bar + top stories.
+fn render_sprint<'a>(
     panels: &'a [&'a SidebarPanel],
-    accent: ratatui::style::Color,
     theme: &dyn crate::theme::Theme,
     lines: &mut Vec<Line<'a>>,
 ) {
+    let accent = theme.info();
     for panel in panels {
-        // Progress bar first (most important)
+        // Progress bar
         for item in &panel.items {
             if item.hint == PanelHint::Bar {
-                super::style::render_panel_item(item, accent, theme, lines);
+                crate::terminal::style::render_panel_item(item, accent, theme, lines);
             }
         }
-
-        // Active stories (max 5 per list)
+        // Active stories (max 5)
         for item in &panel.items {
             if item.hint == PanelHint::List {
                 for story in item.items.iter().take(5) {
@@ -176,7 +155,7 @@ fn render_sprint_group<'a>(
                         _ => accent,
                     };
                     lines.push(Line::from(vec![
-                        ThemedSpan::with_color("  → ", sev_color).build(),
+                        ThemedSpan::with_color(" → ", sev_color).build(),
                         theme.fg_text(story.as_str()).build(),
                     ]));
                 }
@@ -184,7 +163,7 @@ fn render_sprint_group<'a>(
                 if remaining > 0 {
                     lines.push(
                         theme
-                            .fg_dim(format!("    +{remaining} more"))
+                            .fg_dim(format!("   +{remaining} more"))
                             .italic()
                             .build()
                             .into(),
@@ -192,82 +171,37 @@ fn render_sprint_group<'a>(
                 }
             }
         }
-        // Skip: Inline metrics (Done/Doing/Todo), Separator, Pairs, Text
     }
 }
 
-/// Tools group: one-line per tool with status dot.
-///
-/// ```text
-///  ● GitHub MCP     ready
-///  ● TDD Strict     active
-///  ● Router         3 rules
-/// ```
-fn render_tool_group<'a>(
+/// Findings: bullet list only.
+fn render_findings<'a>(
     panels: &'a [&'a SidebarPanel],
     theme: &dyn crate::theme::Theme,
     lines: &mut Vec<Line<'a>>,
 ) {
+    let accent = theme.warning();
     for panel in panels {
-        let (status, severity) = extract_indicator_status(panel);
-        let (icon, icon_color) = match severity {
-            PanelSeverity::Success => ("●", theme.success()),
-            PanelSeverity::Error => ("✗", theme.error()),
-            PanelSeverity::Warning => ("◆", theme.warning()),
-            PanelSeverity::Neutral => ("○", theme.text_dim()),
-        };
-
-        let name = &panel.title;
-        let padded = format!("{name:<14}");
-
-        lines.push(Line::from(vec![
-            ThemedSpan::with_color(format!("  {icon} "), icon_color)
-                .bold()
-                .build(),
-            theme.fg_text(padded).build(),
-            ThemedSpan::with_color(status, icon_color).build(),
-        ]));
-    }
-}
-
-/// Findings group: section count + headings list.
-///
-/// ```text
-///  3 sections
-///  • Bug in parser
-///  • Performance issue
-/// ```
-fn render_findings_group<'a>(
-    panels: &'a [&'a SidebarPanel],
-    accent: ratatui::style::Color,
-    theme: &dyn crate::theme::Theme,
-    lines: &mut Vec<Line<'a>>,
-) {
-    for panel in panels {
-        // Only section headings as bullets — skip metrics (Sections/Lines counts)
         for item in &panel.items {
             if item.hint == PanelHint::List {
                 for heading in &item.items {
                     lines.push(Line::from(vec![
-                        ThemedSpan::with_color("  • ", accent).build(),
+                        ThemedSpan::with_color(" • ", accent).build(),
                         theme.fg_text(heading.as_str()).build(),
                     ]));
                 }
             }
         }
-        // No legacy lines — all plugins use typed items
     }
 }
 
-/// Extracts the primary status text and severity from a panel.
-///
-/// Looks for the first Indicator item. Falls back to first line or "—".
-fn extract_indicator_status(panel: &SidebarPanel) -> (String, PanelSeverity) {
+/// Extracts primary status text and severity from a panel's Indicator item.
+fn extract_status(panel: &SidebarPanel) -> (String, PanelSeverity) {
     for item in &panel.items {
         if item.hint == PanelHint::Indicator {
             let status = item.value.as_deref().unwrap_or("\u{2014}").to_lowercase();
             return (status, item.severity);
         }
     }
-    ("\u{2014}".to_owned(), PanelSeverity::Neutral) // em dash
+    ("\u{2014}".to_owned(), PanelSeverity::Neutral)
 }

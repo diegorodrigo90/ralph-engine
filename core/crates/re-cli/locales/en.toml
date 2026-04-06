@@ -161,8 +161,8 @@ policies_missing_label = "MISSING"
 hooks_plan_heading = "Runtime hook plan"
 
 # ── TUI Dashboard ────────────────────────────────────────────────
-tui_dashboard_title = "Dashboard"
-tui_no_project_title = "No project — type /init"
+tui_dashboard_title = "Ralph Engine"
+tui_no_project_title = "Ralph Engine — type /init"
 tui_no_project_label = "no project"
 tui_no_agent_label = "no agent"
 tui_project_configured = "Project configured"
