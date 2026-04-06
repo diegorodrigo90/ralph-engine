@@ -135,7 +135,8 @@ impl TuiShell {
             first_line.to_owned()
         };
 
-        let indicator = format!("[{label} +{line_count} {suffix}, {char_count} chars]");
+        let chars_suffix = &self.labels.paste_chars_suffix;
+        let indicator = format!("[{label} +{line_count} {suffix}, {char_count} {chars_suffix}]");
 
         let lines = vec![
             Line::from(vec![
@@ -260,9 +261,10 @@ impl TuiShell {
         let line_count = truncated.lines().count();
         let char_count = truncated.chars().count();
         let label = &self.labels.pasted_text_label;
-        let suffix = &self.labels.paste_lines_suffix;
+        let lines_s = &self.labels.paste_lines_suffix;
+        let chars_s = &self.labels.paste_chars_suffix;
         self.toast_info(format!(
-            "{label}: {char_count} chars, {line_count} {suffix}"
+            "{label}: {char_count} {chars_s}, {line_count} {lines_s}"
         ));
     }
 

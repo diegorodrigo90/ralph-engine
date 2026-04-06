@@ -202,6 +202,7 @@ pub(super) struct CliLocaleCatalog {
     pub tui_init_auto_label: &'static str,
     pub tui_pasted_text: &'static str,
     pub tui_paste_lines: &'static str,
+    pub tui_paste_chars: &'static str,
     pub tui_file_label: &'static str,
 
     // ── Demo (debug only) ───────────────────────────────────────

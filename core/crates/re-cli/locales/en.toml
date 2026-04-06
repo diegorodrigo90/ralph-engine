@@ -188,6 +188,7 @@ tui_enabled_plugins = "additional plugins enabled"
 tui_init_auto_label = "Enabled"
 tui_pasted_text = "Pasted text"
 tui_paste_lines = "lines"
+tui_paste_chars = "chars"
 tui_file_label = "File"
 
 # ── Demo (debug only) ────────────────────────────────────────────

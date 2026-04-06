@@ -231,6 +231,8 @@ pub struct TuiLabels {
     pub pasted_text_label: String,
     /// Paste lines suffix (e.g., "lines" / "linhas").
     pub paste_lines_suffix: String,
+    /// Paste chars suffix (e.g., "chars" / "caracteres").
+    pub paste_chars_suffix: String,
     /// File attachment indicator (e.g., "File" / "Arquivo").
     pub file_label: String,
 }
@@ -287,6 +289,7 @@ impl Default for TuiLabels {
             extra_usage_label: "extra usage".to_owned(),
             pasted_text_label: "Pasted text".to_owned(),
             paste_lines_suffix: "lines".to_owned(),
+            paste_chars_suffix: "chars".to_owned(),
             file_label: "File".to_owned(),
         }
     }

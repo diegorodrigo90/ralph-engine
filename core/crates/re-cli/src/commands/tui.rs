@@ -502,6 +502,11 @@ fn build_labels(locale: &str) -> re_tui::TuiLabels {
         } else {
             "lines".to_owned()
         },
+        paste_chars_suffix: if locale == "pt-br" {
+            "caracteres".to_owned()
+        } else {
+            "chars".to_owned()
+        },
         file_label: if locale == "pt-br" {
             "Arquivo".to_owned()
         } else {
