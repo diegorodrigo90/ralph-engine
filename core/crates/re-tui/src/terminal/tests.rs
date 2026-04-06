@@ -383,6 +383,66 @@ fn paste_respects_max_limit() {
     assert_eq!(shell.text_input_buffer().len(), 50_000);
 }
 
+#[test]
+fn cursor_left_right_moves_position() {
+    let mut shell = interactive_shell();
+    shell.handle_key(KeyCode::Char('a'));
+    shell.handle_key(KeyCode::Char('b'));
+    shell.handle_key(KeyCode::Char('c'));
+    assert_eq!(shell.cursor_pos, 3);
+
+    shell.handle_key(KeyCode::Left);
+    assert_eq!(shell.cursor_pos, 2);
+
+    shell.handle_key(KeyCode::Left);
+    assert_eq!(shell.cursor_pos, 1);
+
+    // Type inserts at cursor
+    shell.handle_key(KeyCode::Char('X'));
+    assert_eq!(shell.text_input_buffer(), "aXbc");
+    assert_eq!(shell.cursor_pos, 2);
+
+    shell.handle_key(KeyCode::Right);
+    assert_eq!(shell.cursor_pos, 3);
+}
+
+#[test]
+fn cursor_home_end_line_boundaries() {
+    let mut shell = interactive_shell();
+    shell.handle_paste("hello");
+    assert_eq!(shell.cursor_pos, 5);
+
+    shell.handle_key(KeyCode::Home);
+    assert_eq!(shell.cursor_pos, 0);
+
+    shell.handle_key(KeyCode::End);
+    assert_eq!(shell.cursor_pos, 5);
+}
+
+#[test]
+fn backspace_at_cursor_removes_correct_char() {
+    let mut shell = interactive_shell();
+    shell.handle_key(KeyCode::Char('a'));
+    shell.handle_key(KeyCode::Char('b'));
+    shell.handle_key(KeyCode::Char('c'));
+    shell.handle_key(KeyCode::Left); // cursor at 2 (before 'c')
+    shell.handle_key(KeyCode::Backspace); // removes 'b'
+    assert_eq!(shell.text_input_buffer(), "ac");
+    assert_eq!(shell.cursor_pos, 1);
+}
+
+#[test]
+fn delete_at_cursor_removes_char_ahead() {
+    let mut shell = interactive_shell();
+    shell.handle_key(KeyCode::Char('a'));
+    shell.handle_key(KeyCode::Char('b'));
+    shell.handle_key(KeyCode::Char('c'));
+    shell.handle_key(KeyCode::Home); // cursor at 0
+    shell.handle_key(KeyCode::Delete); // removes 'a'
+    assert_eq!(shell.text_input_buffer(), "bc");
+    assert_eq!(shell.cursor_pos, 0);
+}
+
 // ── Rendering snapshot tests ────────────────────────────────
 
 #[test]

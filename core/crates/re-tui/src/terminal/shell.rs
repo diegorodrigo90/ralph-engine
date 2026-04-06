@@ -46,6 +46,7 @@ pub struct TuiShell {
     pub(super) plugin_keybindings: Vec<RegisteredKeybinding>,
     pub(super) input_enabled: bool,
     pub(super) text_input_buffer: String,
+    pub(super) cursor_pos: usize,
     pub(super) input_undo_stack: Vec<String>,
     pub(super) pending_text_input: Option<String>,
     pub(super) autocomplete: AutocompleteState,
@@ -98,6 +99,7 @@ impl TuiShell {
             plugin_keybindings: Vec::new(),
             input_enabled: false,
             text_input_buffer: String::new(),
+            cursor_pos: 0,
             input_undo_stack: Vec::new(),
             pending_text_input: None,
             autocomplete: AutocompleteState::new(Vec::new(), "/".to_owned()),
@@ -817,29 +819,31 @@ impl TuiShell {
             KeyCode::Char('c') if modifiers.contains(KeyModifiers::CONTROL) => {
                 self.save_undo_snapshot();
                 self.text_input_buffer.clear();
+                self.cursor_pos = 0;
                 self.autocomplete.visible = false;
             }
             // Ctrl+Z → undo last change
             KeyCode::Char('z') if modifiers.contains(KeyModifiers::CONTROL) => {
                 if let Some(prev) = self.input_undo_stack.pop() {
                     self.text_input_buffer = prev;
+                    self.cursor_pos = self.text_input_buffer.len();
                     self.autocomplete.update_filter(&self.text_input_buffer);
                 }
             }
-            // Alt+Enter → insert newline
+            // Alt+Enter → insert newline at cursor
             KeyCode::Enter if modifiers.contains(KeyModifiers::ALT) => {
                 self.save_undo_snapshot();
-                self.text_input_buffer.push('\n');
+                self.text_input_buffer.insert(self.cursor_pos, '\n');
+                self.cursor_pos += 1;
             }
-            // Enter → submit full buffer content (render may show collapsed,
-            // but the actual text is always complete in the buffer)
+            // Enter → submit full buffer
             KeyCode::Enter => {
                 if !self.text_input_buffer.trim().is_empty() {
                     let text = self.text_input_buffer.trim().to_owned();
-                    // Built-in TUI commands
                     if text == "/theme" {
                         self.open_theme_selector();
                         self.text_input_buffer.clear();
+                        self.cursor_pos = 0;
                         self.autocomplete.visible = false;
                         self.input_undo_stack.clear();
                         return PluginKeyAction::Handled;
@@ -848,6 +852,7 @@ impl TuiShell {
                     self.pending_text_input = Some(text);
                 }
                 self.text_input_buffer.clear();
+                self.cursor_pos = 0;
                 self.autocomplete.visible = false;
                 self.input_undo_stack.clear();
             }
@@ -861,14 +866,63 @@ impl TuiShell {
                 let has_sidebar = self.sidebar_visible && !self.sidebar_panels.is_empty();
                 self.focus = self.focus.next(has_sidebar, self.input_enabled);
             }
+            // ── Cursor movement ────────────────────────────────────
+            KeyCode::Left => {
+                if self.cursor_pos > 0 {
+                    // Move to previous char boundary (UTF-8 safe)
+                    self.cursor_pos -= 1;
+                    while !self.text_input_buffer.is_char_boundary(self.cursor_pos) {
+                        self.cursor_pos -= 1;
+                    }
+                }
+            }
+            KeyCode::Right => {
+                if self.cursor_pos < self.text_input_buffer.len() {
+                    self.cursor_pos += 1;
+                    while self.cursor_pos < self.text_input_buffer.len()
+                        && !self.text_input_buffer.is_char_boundary(self.cursor_pos)
+                    {
+                        self.cursor_pos += 1;
+                    }
+                }
+            }
+            KeyCode::Home => {
+                // Move to start of current line
+                self.cursor_pos = self.text_input_buffer[..self.cursor_pos]
+                    .rfind('\n')
+                    .map_or(0, |i| i + 1);
+            }
+            KeyCode::End => {
+                // Move to end of current line
+                self.cursor_pos = self.text_input_buffer[self.cursor_pos..]
+                    .find('\n')
+                    .map_or(self.text_input_buffer.len(), |i| self.cursor_pos + i);
+            }
+            // ── Text editing at cursor ─────────────────────────────
             KeyCode::Backspace => {
-                self.save_undo_snapshot();
-                self.text_input_buffer.pop();
-                self.autocomplete.update_filter(&self.text_input_buffer);
+                if self.cursor_pos > 0 {
+                    self.save_undo_snapshot();
+                    // Find previous char boundary
+                    let mut prev = self.cursor_pos - 1;
+                    while !self.text_input_buffer.is_char_boundary(prev) {
+                        prev -= 1;
+                    }
+                    self.text_input_buffer.remove(prev);
+                    self.cursor_pos = prev;
+                    self.autocomplete.update_filter(&self.text_input_buffer);
+                }
+            }
+            KeyCode::Delete => {
+                if self.cursor_pos < self.text_input_buffer.len() {
+                    self.save_undo_snapshot();
+                    self.text_input_buffer.remove(self.cursor_pos);
+                    self.autocomplete.update_filter(&self.text_input_buffer);
+                }
             }
             KeyCode::Char(c) => {
                 self.save_undo_snapshot();
-                self.text_input_buffer.push(c);
+                self.text_input_buffer.insert(self.cursor_pos, c);
+                self.cursor_pos += c.len_utf8();
                 self.autocomplete.update_filter(&self.text_input_buffer);
             }
             _ => {}

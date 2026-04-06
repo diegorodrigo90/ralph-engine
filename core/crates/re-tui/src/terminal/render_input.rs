@@ -74,7 +74,6 @@ impl TuiShell {
         // Scroll: always show the last lines (cursor at bottom)
         let start = total_lines.saturating_sub(visible);
         let shown: Vec<Line<'_>> = display_lines.into_iter().skip(start).collect();
-        let line_count = shown.len();
 
         // Render text content (leave 1 col for scrollbar when needed)
         let needs_scroll = total_lines > visible;
@@ -103,13 +102,13 @@ impl TuiShell {
             );
         }
 
-        // Cursor position
-        let last_text_line = self.text_input_buffer.rsplit('\n').next().unwrap_or("");
-        let cursor_col = (last_text_line.chars().count() % content_width) as u16;
-        let cursor_row = (line_count.saturating_sub(1)) as u16;
+        // Cursor position — resolve from cursor_pos byte offset
+        let (cursor_visual_row, cursor_visual_col) =
+            self.resolve_cursor_visual(content_width, prompt_width as usize);
+        let adjusted_row = cursor_visual_row.saturating_sub(start);
         frame.set_cursor_position((
-            text_rect.x + prompt_width + cursor_col,
-            text_rect.y + cursor_row.min(text_rect.height.saturating_sub(1)),
+            text_rect.x + cursor_visual_col as u16,
+            text_rect.y + (adjusted_row as u16).min(text_rect.height.saturating_sub(1)),
         ));
     }
 
@@ -152,6 +151,43 @@ impl TuiShell {
         frame.render_widget(Paragraph::new(lines), area);
         // Cursor at end of indicator
         frame.set_cursor_position((area.x + 3 + indicator.len() as u16, area.y + 1));
+    }
+
+    /// Resolves cursor byte position to visual (row, col) accounting for wrapping.
+    ///
+    /// Returns `(visual_row, visual_col)` in the display coordinate system.
+    fn resolve_cursor_visual(&self, content_width: usize, prompt_width: usize) -> (usize, usize) {
+        let mut visual_row = 0;
+        let mut byte_offset = 0;
+
+        for text_line in self.text_input_buffer.split('\n') {
+            let line_byte_len = text_line.len();
+
+            // Check if cursor is within this logical line
+            if byte_offset + line_byte_len >= self.cursor_pos
+                || byte_offset + line_byte_len == self.text_input_buffer.len()
+            {
+                let chars_into_line = self.text_input_buffer[byte_offset..self.cursor_pos]
+                    .chars()
+                    .count();
+                let wrap_row = chars_into_line / content_width;
+                let wrap_col = chars_into_line % content_width;
+                return (visual_row + wrap_row, prompt_width + wrap_col);
+            }
+
+            // Count wrapped rows for this line
+            let char_count = text_line.chars().count();
+            let wrap_rows = if char_count == 0 {
+                1
+            } else {
+                char_count.div_ceil(content_width)
+            };
+            visual_row += wrap_rows;
+            byte_offset += line_byte_len + 1; // +1 for '\n'
+        }
+
+        // Fallback: cursor at end
+        (visual_row, prompt_width)
     }
 
     /// Builds wrapped display lines from the input buffer.
@@ -205,7 +241,10 @@ impl TuiShell {
             return;
         }
         let truncated = &text[..text.len().min(remaining)];
-        self.text_input_buffer.push_str(truncated);
+        // Insert at cursor position (not just append)
+        self.text_input_buffer
+            .insert_str(self.cursor_pos, truncated);
+        self.cursor_pos += truncated.len();
         self.autocomplete.update_filter(&self.text_input_buffer);
     }
 
