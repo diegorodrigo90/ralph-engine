@@ -2,7 +2,6 @@
 
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Position, Rect, Size};
-use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::Paragraph;
 use ratatui_themekit::builders::ThemedSpan;
@@ -310,7 +309,7 @@ impl TuiShell {
 
             let mut header = Line::from(header_spans);
             if is_focused {
-                header = header.style(Style::default().bg(t.surface()));
+                header = header.style(t.style_surface());
             }
             all_lines.push(header);
 
@@ -326,7 +325,7 @@ impl TuiShell {
                     spans.extend(content_spans);
                     let mut bordered = Line::from(spans);
                     if is_focused {
-                        bordered = bordered.style(Style::default().bg(t.surface()));
+                        bordered = bordered.style(t.style_surface());
                     }
                     all_lines.push(bordered);
                 }

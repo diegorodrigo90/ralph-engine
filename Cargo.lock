@@ -2115,9 +2115,9 @@ dependencies = [
 
 [[package]]
 name = "ratatui-themekit"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f214d4868bd3104ae84c34ce3c06e0cc721121757ee4ebf4caf5097f642a7942"
+checksum = "a0ebc32204ebe15c9037c9b4f9ade8b5979446cea69765c13d8b33a4d4362b10"
 dependencies = [
  "ratatui",
 ]

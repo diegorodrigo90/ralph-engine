@@ -2,9 +2,8 @@
 
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::style::{Modifier, Style};
-use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph};
+use ratatui::text::Line;
+use ratatui::widgets::{Clear, List, ListItem, ListState, Paragraph};
 
 use crate::theme::ThemeExt;
 
@@ -19,12 +18,8 @@ impl TuiShell {
 
         let rows = Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).split(area);
 
-        frame.render_widget(
-            Paragraph::new(Line::from(vec![
-                t.fg_border("\u{2500}".repeat(area.width as usize)).build(),
-            ])),
-            rows[0],
-        );
+        // Separator line
+        frame.render_widget(Paragraph::new(t.separator_line(area.width)), rows[0]);
 
         let text_area = rows[1];
 
@@ -50,10 +45,12 @@ impl TuiShell {
                     let chunk = &text_line[pos..end];
                     let pfx = if first { prompt } else { "   " };
                     first = false;
-                    display_lines.push(Line::from(vec![
-                        t.fg_accent(pfx.to_owned()).bold().build(),
-                        t.fg_text(chunk.to_owned()).build(),
-                    ]));
+                    display_lines.push(
+                        t.line()
+                            .accent_bold(pfx.to_owned())
+                            .text(chunk.to_owned())
+                            .build(),
+                    );
                     pos = end;
                 }
             }
@@ -94,38 +91,30 @@ impl TuiShell {
         };
 
         let t = self.theme();
+        let ls = t.list_styles();
+
         let items: Vec<ListItem<'_>> = self
             .autocomplete
             .filtered
             .iter()
             .map(|&idx| {
                 let cmd = &self.autocomplete.commands[idx];
-                ListItem::new(Line::from(vec![
-                    t.fg_info(format!("{}{}", self.autocomplete.prefix, cmd.name))
-                        .bold()
+                ListItem::new(
+                    t.line()
+                        .info(format!("{}{}", self.autocomplete.prefix, cmd.name))
+                        .dim("  ")
+                        .dim(&cmd.description)
+                        .dim("  ")
+                        .dim(cmd.source.label())
                         .build(),
-                    Span::raw("  "),
-                    t.fg_dim(&cmd.description).build(),
-                    Span::raw("  "),
-                    t.fg_dim(cmd.source.label()).build(),
-                ]))
+                )
             })
             .collect();
 
         let list = List::new(items)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .border_style(t.style_border())
-                    .title(" Commands ")
-                    .title_style(t.style_accent()),
-            )
-            .highlight_style(
-                Style::default()
-                    .bg(t.surface())
-                    .add_modifier(Modifier::BOLD),
-            )
-            .highlight_symbol("> ");
+            .block(t.block(" Commands ").focused(true).build())
+            .highlight_style(ls.highlight)
+            .highlight_symbol(ls.symbol);
 
         frame.render_widget(Clear, popup_area);
         frame.render_stateful_widget(

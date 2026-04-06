@@ -11,17 +11,20 @@ pub use ratatui_themekit::{
     CatppuccinMocha,
     CustomTheme,
     Dracula,
+    // Widget style bundles
     GaugeStyles,
     GruvboxDark,
+    InputStyles,
     ListStyles,
     NoColor,
     Nord,
+    NotificationStyles,
     OneDark,
     RosePine,
+    ScrollbarStyles,
     SolarizedDark,
     StateStyles,
     TabStyles,
-    // Widget style bundles
     TableStyles,
     TailwindDark,
     TerminalNative,
@@ -29,8 +32,8 @@ pub use ratatui_themekit::{
     Theme,
     ThemeData,
     ThemeExt,
-    ThemedBar,
     // Builders
+    ThemedBar,
     ThemedBlock,
     ThemedLine,
     ThemedSpan,
@@ -42,6 +45,7 @@ pub use ratatui_themekit::{
     default_theme,
     no_color_active,
     resolve_theme,
+    // Utilities
     zebra_rows,
 };
 

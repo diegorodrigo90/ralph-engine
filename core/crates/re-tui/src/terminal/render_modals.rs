@@ -2,7 +2,6 @@
 
 use ratatui::Frame;
 use ratatui::layout::Rect;
-use ratatui::style::Style;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Borders, Clear, List, ListItem, ListState, Paragraph};
 
@@ -116,7 +115,7 @@ impl TuiShell {
         let list = List::new(items)
             .block(t.block(" Switch Agent (Ctrl+A) ").focused(true).build())
             .highlight_style(ls.highlight)
-            .highlight_symbol(ls.symbol.as_str());
+            .highlight_symbol(ls.symbol);
 
         frame.render_widget(Clear, popup_area);
         frame.render_stateful_widget(
@@ -220,25 +219,23 @@ impl TuiShell {
             let x = area.width.saturating_sub(toast_w + 1);
             let popup = Rect::new(x, y, toast_w, toast_h);
 
-            let color = match toast.level {
-                ToastLevel::Info => t.accent(),
-                ToastLevel::Success => t.success(),
-                ToastLevel::Warning => t.warning(),
-                ToastLevel::Error => t.error(),
+            let ns = t.notification_styles();
+            let border_style = match toast.level {
+                ToastLevel::Info => ns.info,
+                ToastLevel::Success => ns.success,
+                ToastLevel::Warning => ns.warning,
+                ToastLevel::Error => ns.error,
             };
 
             frame.render_widget(Clear, popup);
             let styled_block = ratatui::widgets::Block::new()
                 .borders(Borders::ALL)
-                .border_style(ratatui_themekit::builders::style_fg(color))
-                .style(Style::default().bg(t.surface()));
+                .border_style(border_style)
+                .style(ns.background);
             let inner = styled_block.inner(popup);
             frame.render_widget(styled_block, popup);
 
-            frame.render_widget(
-                Paragraph::new(toast.message.as_str()).style(t.style_bright()),
-                inner,
-            );
+            frame.render_widget(Paragraph::new(toast.message.as_str()).style(ns.body), inner);
         }
     }
 
