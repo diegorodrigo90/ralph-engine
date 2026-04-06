@@ -831,6 +831,18 @@ impl TuiShell {
                     | crate::feed::BlockKind::FileEdit
                     | crate::feed::BlockKind::Command
             );
+
+            // Process phase marker from workflow plugin (Model B)
+            if let Some(ref marker) = block.phase_marker {
+                if let Some(id) = marker.strip_prefix("start:") {
+                    self.indicator_panel.start(id);
+                } else if let Some(id) = marker.strip_prefix("pass:") {
+                    self.indicator_panel.pass(id);
+                } else if let Some(id) = marker.strip_prefix("fail:") {
+                    self.indicator_panel.fail(id, "");
+                }
+            }
+
             self.feed.push_block(block);
 
             if is_tool {

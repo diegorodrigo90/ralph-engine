@@ -83,6 +83,10 @@ pub struct FeedBlock {
     started_at: Option<Instant>,
     /// Elapsed time in milliseconds (set on finalization).
     elapsed_ms: Option<u64>,
+    /// Optional indicator phase to update when this block drips.
+    /// Format: `"start:phase_id"` or `"pass:phase_id"` or `"fail:phase_id"`.
+    /// The workflow plugin sets this — core just applies it.
+    pub phase_marker: Option<String>,
 }
 
 impl FeedBlock {
@@ -98,6 +102,7 @@ impl FeedBlock {
             success: None,
             started_at: Some(Instant::now()),
             elapsed_ms: None,
+            phase_marker: None,
         }
     }
 
@@ -113,6 +118,7 @@ impl FeedBlock {
             success: Some(true),
             started_at: None,
             elapsed_ms: None,
+            phase_marker: None,
         }
     }
 

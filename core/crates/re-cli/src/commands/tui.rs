@@ -535,17 +535,41 @@ fn load_previous_session(shell: &mut re_tui::TuiShell) {
 #[allow(clippy::too_many_lines)]
 fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     use re_tui::feed::{BlockKind, FeedBlock};
+    use re_tui::indicators::StatusIndicator;
 
     shell.set_state(re_tui::TuiState::Running);
+
+    // Pipeline phases — workflow plugin declares these, core just renders
+    let panel = shell.indicator_panel_mut();
+    panel.add(StatusIndicator::new("resolve", "Resolve"));
+    panel.add(StatusIndicator::new("prompt", "Prompt"));
+    panel.add(StatusIndicator::new("agent", "Agent"));
+    panel.add(StatusIndicator::new("review", "CR"));
+    panel.add(StatusIndicator::new("test", "Test"));
+    panel.add(StatusIndicator::new("build", "Build"));
+    panel.add(StatusIndicator::new("commit", "Commit"));
+
     let mut blocks: Vec<FeedBlock> = Vec::new();
 
-    // ── Phase 1: Start ──────────────────────────────────────────────
+    // ── Phase 1: Start — resolve + prompt done, agent starts ─────────
     let mut sys =
         FeedBlock::completed(BlockKind::System, i18n::demo_story_title(locale).to_owned());
     sys.collapsed = false;
     sys.push_content(i18n::demo_workflow_info(locale).to_owned());
     sys.push_content(i18n::demo_prompt_info(locale).to_owned());
+    sys.phase_marker = Some("pass:resolve".to_owned());
     blocks.push(sys);
+
+    // Mark prompt done + agent start
+    let mut prompt_done = FeedBlock::completed(BlockKind::System, String::new());
+    prompt_done.collapsed = true;
+    prompt_done.phase_marker = Some("pass:prompt".to_owned());
+    blocks.push(prompt_done);
+
+    let mut agent_start = FeedBlock::completed(BlockKind::System, String::new());
+    agent_start.collapsed = true;
+    agent_start.phase_marker = Some("start:agent".to_owned());
+    blocks.push(agent_start);
 
     let mut think1 = FeedBlock::completed(
         BlockKind::Thinking,
@@ -709,6 +733,22 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     e3.elapsed_ms_override(110);
     blocks.push(e3);
 
+    // Mark agent done, review start+pass, test start
+    {
+        let mut m = FeedBlock::completed(BlockKind::System, String::new());
+        m.collapsed = true;
+        m.phase_marker = Some("pass:agent".to_owned());
+        blocks.push(m);
+        let mut m = FeedBlock::completed(BlockKind::System, String::new());
+        m.collapsed = true;
+        m.phase_marker = Some("pass:review".to_owned());
+        blocks.push(m);
+        let mut m = FeedBlock::completed(BlockKind::System, String::new());
+        m.collapsed = true;
+        m.phase_marker = Some("start:test".to_owned());
+        blocks.push(m);
+    }
+
     // ── Phase 6: First test run — fails ─────────────────────────────
     let mut bash1 = FeedBlock::completed(
         BlockKind::Command,
@@ -774,10 +814,11 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     bash2.elapsed_ms_override(3100);
     blocks.push(bash2);
 
-    let pass1 = FeedBlock::completed(
+    let mut pass1 = FeedBlock::completed(
         BlockKind::GatePass,
         i18n::demo_gate_tests_pass(locale).to_owned(),
     );
+    pass1.phase_marker = Some("pass:test".to_owned());
     blocks.push(pass1);
 
     // ── Phase 9: Quality gates ──────────────────────────────────────
@@ -799,10 +840,11 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     bash4.elapsed_ms_override(35200);
     blocks.push(bash4);
 
-    let pass3 = FeedBlock::completed(
+    let mut pass3 = FeedBlock::completed(
         BlockKind::GatePass,
         i18n::demo_gate_build(locale).to_owned(),
     );
+    pass3.phase_marker = Some("pass:build".to_owned());
     blocks.push(pass3);
 
     // ── Phase 10: Commit ────────────────────────────────────────────
@@ -812,6 +854,7 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     );
     bash5.push_content(" 3 files changed, 42 insertions(+), 12 deletions(-)".to_owned());
     bash5.elapsed_ms_override(1200);
+    bash5.phase_marker = Some("pass:commit".to_owned());
     blocks.push(bash5);
 
     // ── Phase 11: Summary ───────────────────────────────────────────
