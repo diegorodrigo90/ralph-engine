@@ -1,6 +1,7 @@
 pre-commit:
   commands:
     validate:
+      interactive: true
       run: ./scripts/validate.sh --mode local --checks fmt,clippy,test
 commit-msg:
   commands:
