@@ -34,6 +34,18 @@ fn test_shell() -> TuiShell {
     shell
 }
 
+/// Shell with feed content — triggers active layout (tabs, sidebar, metrics).
+fn active_shell() -> TuiShell {
+    let mut shell = test_shell();
+    shell
+        .feed_mut()
+        .push_block(crate::feed::FeedBlock::completed(
+            crate::feed::BlockKind::System,
+            "test block".into(),
+        ));
+    shell
+}
+
 fn render_to_buffer(shell: &mut TuiShell, width: u16, height: u16) -> String {
     let backend = TestBackend::new(width, height);
     let mut terminal = Terminal::new(backend).unwrap();
@@ -278,7 +290,7 @@ fn explicit_enter_text_input_activates() {
 
 #[test]
 fn render_compact_shows_header_with_agent_id() {
-    let mut shell = test_shell();
+    let mut shell = active_shell();
     let output = render_to_buffer(&mut shell, 120, 24);
     assert!(output.contains("test.agent"));
     assert!(output.contains("RUNNING"));
@@ -294,7 +306,7 @@ fn render_compact_idle_shows_dashboard() {
 
 #[test]
 fn render_compact_shows_metrics() {
-    let mut shell = test_shell();
+    let mut shell = active_shell();
     let output = render_to_buffer(&mut shell, 80, 24);
     assert!(output.contains("Tools: 1"));
 }
@@ -377,7 +389,7 @@ fn render_paused_state_shows_in_header() {
 
 #[test]
 fn render_progress_gauge_shows_in_wide_header() {
-    let mut shell = test_shell();
+    let mut shell = active_shell();
     shell.set_progress(75);
     let output = render_to_buffer(&mut shell, 100, 24);
     assert!(output.contains("test.agent"));
@@ -489,10 +501,11 @@ fn render_standard_with_plugin_panels() {
 }
 
 #[test]
-fn render_standard_empty_panels_shows_placeholder() {
-    let mut shell = test_shell();
+fn render_standard_no_sidebar_when_no_panels() {
+    let mut shell = active_shell();
     let output = render_to_buffer(&mut shell, 140, 40);
-    assert!(output.contains("no panels"));
+    // No sidebar panels with actionable data → sidebar hidden
+    assert!(!output.contains("Agents"), "no Agents group when no panels");
 }
 
 #[test]
@@ -750,7 +763,7 @@ fn config_tab_shows_all_plugin_details() {
 
 #[test]
 fn tab_bar_shows_counts() {
-    let mut shell = test_shell();
+    let mut shell = active_shell();
     shell.touch_file("Read".to_owned());
     shell.touch_file("Edit".to_owned());
     shell.push_log("some log".to_owned());
@@ -764,7 +777,7 @@ fn tab_bar_shows_counts() {
 
 #[test]
 fn files_tab_shows_tool_icons() {
-    let mut shell = empty_shell();
+    let mut shell = active_shell();
     shell.touch_file("Edit".to_owned());
     shell.touch_file("Read".to_owned());
     shell.touch_file("Bash".to_owned());
@@ -778,17 +791,18 @@ fn files_tab_shows_tool_icons() {
 
 #[test]
 fn log_tab_shows_line_numbers() {
-    let mut shell = empty_shell();
+    let mut shell = active_shell();
     shell.push_log(">> Tool: Read".to_owned());
     shell.push_log("some output".to_owned());
     shell.active_tab = TuiTab::Log;
     let output = render_to_buffer(&mut shell, 140, 40);
-    assert!(output.contains("2 lines"), "Log tab should show line count");
+    // active_shell has 2 log lines + 2 we added = 4
+    assert!(output.contains("4 lines"), "Log tab should show line count");
 }
 
 #[test]
 fn config_tab_shows_grouped_sections() {
-    let mut shell = test_shell();
+    let mut shell = active_shell();
     shell.set_sidebar_panels(vec![SidebarPanel {
         title: "Test".to_owned(),
         items: Vec::new(),
@@ -855,7 +869,7 @@ fn sidebar_groups_all_agents_in_one_section() {
 
 #[test]
 fn files_tab_empty_shows_placeholder() {
-    let mut shell = empty_shell();
+    let mut shell = active_shell();
     shell.active_tab = TuiTab::Files;
     let output = render_to_buffer(&mut shell, 140, 40);
     assert!(output.contains("No files touched"));
@@ -864,6 +878,13 @@ fn files_tab_empty_shows_placeholder() {
 #[test]
 fn log_tab_empty_shows_placeholder() {
     let mut shell = empty_shell();
+    // Feed block triggers active layout but log_lines is empty
+    shell
+        .feed_mut()
+        .push_block(crate::feed::FeedBlock::completed(
+            crate::feed::BlockKind::System,
+            "x".into(),
+        ));
     shell.active_tab = TuiTab::Log;
     let output = render_to_buffer(&mut shell, 140, 40);
     assert!(output.contains("No log output"));

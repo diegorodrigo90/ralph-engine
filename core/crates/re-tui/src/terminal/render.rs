@@ -18,7 +18,7 @@ use crate::theme::ThemeExt;
 
 use super::shell::TuiShell;
 use super::style::style_content_line;
-use super::types::{PanelHint, PanelSeverity, TuiState};
+use super::types::{PanelHint, PanelSeverity};
 
 impl TuiShell {
     /// Renders the TUI frame with responsive zone-based layout.
@@ -32,12 +32,17 @@ impl TuiShell {
         self.render_in(frame, area);
     }
 
-    /// Whether the TUI has active content (feed blocks or running agent).
-    fn is_active(&self) -> bool {
-        !self.feed.is_empty() || self.state == TuiState::Running
+    /// Whether the TUI has active feed content (blocks streaming or completed).
+    fn has_feed_content(&self) -> bool {
+        !self.feed.is_empty()
     }
 
-    /// Internal render — routes to idle or active layout.
+    /// Whether sidebar has visible groups (agents, sprint, findings).
+    fn has_sidebar_content(&self) -> bool {
+        !super::sidebar_groups::group_panels(&self.sidebar_panels).is_empty()
+    }
+
+    /// Internal render — fluid layout that adapts to available content.
     fn render_in(&mut self, frame: &mut Frame<'_>, area: Rect) {
         self.tick = self.tick.wrapping_add(1);
         self.drain_pending_block();
@@ -57,13 +62,70 @@ impl TuiShell {
             return;
         }
 
-        if self.is_active() {
-            self.render_active_layout(frame, area);
+        // Fluid layout — adapts to content:
+        // - Feed content → full layout with tabs + metrics
+        // - No feed but sidebar data → idle dashboard + sidebar
+        // - No feed, no sidebar → clean idle screen
+        let zones = crate::layout::compute_zones(area, self.input_enabled);
+        let has_feed = self.has_feed_content();
+        let has_sidebar = self.has_sidebar_content();
+
+        // Header: idle style (clean) or active style (with metrics)
+        if has_feed {
+            self.render_header(frame, zones.header);
         } else {
-            self.render_idle_layout(frame, area);
+            self.render_header_idle(frame, zones.header);
         }
 
-        // Overlays render on top of any layout
+        // Tab bar: only when there's feed content
+        if has_feed && let Some(tab_area) = zones.tab_bar {
+            self.render_tab_bar(frame, tab_area);
+        }
+
+        // Main content: feed blocks or idle dashboard
+        if has_feed {
+            self.render_active_tab(frame, zones.activity);
+        } else {
+            self.render_idle_dashboard(frame, zones.activity);
+        }
+
+        // Metrics: only when there's meaningful data
+        if has_feed {
+            self.render_metrics(frame, zones.metrics);
+        }
+
+        // Help bar always visible
+        self.render_help(frame, &zones);
+
+        // Input bar when enabled
+        if let Some(input_area) = zones.input {
+            self.render_input_bar(frame, input_area);
+        }
+
+        // Sidebar: visible when there's content AND terminal is wide enough
+        if let Some(sidebar) = zones.sidebar
+            && self.sidebar_visible
+            && has_sidebar
+        {
+            self.render_sidebar(frame, sidebar);
+        }
+
+        // Control panel (wide tier)
+        if let Some(control) = zones.control {
+            self.render_control_panel(frame, control);
+        }
+
+        // Autocomplete overlay
+        if let Some(input_area) = zones.input {
+            self.render_autocomplete(frame, input_area);
+        }
+
+        // Agent switcher overlay
+        if self.agent_switcher_visible {
+            self.render_agent_switcher(frame, zones.activity);
+        }
+
+        // Modal overlays
         self.render_toasts(frame, area);
         if self.quit_pending {
             self.render_quit_modal(frame, area);
@@ -73,98 +135,6 @@ impl TuiShell {
         }
         if self.theme_selector_visible {
             self.render_theme_selector(frame, area);
-        }
-    }
-
-    /// Idle layout — logo, agent status, command hints. Clean and focused.
-    fn render_idle_layout(&mut self, frame: &mut Frame<'_>, area: Rect) {
-        // Simple vertical: header + content + input(optional) + help
-        let has_input = self.input_enabled;
-        let rows = if has_input {
-            Layout::vertical([
-                Constraint::Length(1), // header
-                Constraint::Fill(1),   // content
-                Constraint::Length(4), // input
-                Constraint::Length(1), // help
-            ])
-            .split(area)
-        } else {
-            Layout::vertical([
-                Constraint::Length(1), // header
-                Constraint::Fill(1),   // content
-                Constraint::Length(1), // help
-            ])
-            .split(area)
-        };
-
-        self.render_header_idle(frame, rows[0]);
-        self.render_idle_dashboard(frame, rows[1]);
-
-        if has_input {
-            self.render_input_bar(frame, rows[2]);
-            self.render_autocomplete(frame, rows[2]);
-            let zones = crate::layout::LayoutZones {
-                header: rows[0],
-                tab_bar: None,
-                activity: rows[1],
-                metrics: rows[0], // unused
-                input: Some(rows[2]),
-                help: rows[3],
-                sidebar: None,
-                control: None,
-                tier: crate::layout::LayoutTier::Compact,
-            };
-            self.render_help(frame, &zones);
-        } else {
-            let zones = crate::layout::LayoutZones {
-                header: rows[0],
-                tab_bar: None,
-                activity: rows[1],
-                metrics: rows[0], // unused
-                input: None,
-                help: rows[2],
-                sidebar: None,
-                control: None,
-                tier: crate::layout::LayoutTier::Compact,
-            };
-            self.render_help(frame, &zones);
-        }
-    }
-
-    /// Active layout — full dashboard with tabs, sidebar, metrics.
-    fn render_active_layout(&mut self, frame: &mut Frame<'_>, area: Rect) {
-        let zones = crate::layout::compute_zones(area, self.input_enabled);
-
-        self.render_header(frame, zones.header);
-
-        if let Some(tab_area) = zones.tab_bar {
-            self.render_tab_bar(frame, tab_area);
-        }
-
-        self.render_active_tab(frame, zones.activity);
-        self.render_metrics(frame, zones.metrics);
-        self.render_help(frame, &zones);
-
-        if let Some(input_area) = zones.input {
-            self.render_input_bar(frame, input_area);
-        }
-
-        if let Some(sidebar) = zones.sidebar
-            && self.sidebar_visible
-        {
-            self.render_sidebar(frame, sidebar);
-        }
-
-        if let Some(control) = zones.control {
-            self.render_control_panel(frame, control);
-        }
-
-        if let Some(input_area) = zones.input {
-            self.render_autocomplete(frame, input_area);
-        }
-
-        if self.agent_switcher_visible {
-            self.render_agent_switcher(frame, zones.activity);
         }
     }
 
