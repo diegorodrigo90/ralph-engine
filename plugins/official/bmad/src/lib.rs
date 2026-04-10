@@ -673,6 +673,50 @@ impl PluginRuntime for BmadRuntime {
         // Return empty for now — will be populated when workflow hooks fire.
         Vec::new()
     }
+
+    fn idle_hints(&self) -> Vec<re_plugin::IdleHint> {
+        let cwd = std::env::current_dir().unwrap_or_default();
+        let config_path = cwd.join(".ralph-engine/config.yaml");
+        let has_config = config_path.exists();
+
+        if !has_config {
+            return Vec::new();
+        }
+
+        let mut hints = vec![
+            re_plugin::IdleHint {
+                command: "/run".to_owned(),
+                description: "start autonomous loop".to_owned(),
+            },
+            re_plugin::IdleHint {
+                command: "/list".to_owned(),
+                description: "available work items".to_owned(),
+            },
+        ];
+
+        // Add example with first actionable story if available
+        let (tracker_file, _) = read_bmad_paths(&config_path);
+        let tracker_path = cwd.join(&tracker_file);
+        if let Ok(content) = std::fs::read_to_string(&tracker_path) {
+            let first_ready = content
+                .lines()
+                .find(|l| l.trim().ends_with("ready-for-dev"))
+                .and_then(|l| l.trim().split(':').next())
+                .map(|s| s.trim().to_owned());
+
+            if let Some(story_id) = first_ready {
+                hints.insert(
+                    1,
+                    re_plugin::IdleHint {
+                        command: format!("/run {story_id}"),
+                        description: format!("execute story {story_id}"),
+                    },
+                );
+            }
+        }
+
+        hints
+    }
 }
 
 // ── BMAD config helpers (plugin-owned sections) ──────────────────
@@ -1606,5 +1650,14 @@ mod tests {
             config_yaml.contains("run:"),
             "bmad template must have run section"
         );
+    }
+
+    #[test]
+    fn idle_hints_empty_without_config() {
+        // Without .ralph-engine/config.yaml, no hints
+        let runtime = super::BmadRuntime;
+        let hints = runtime.idle_hints();
+        // In test env, no config file exists → empty
+        assert!(hints.is_empty(), "no hints without config");
     }
 }

@@ -499,19 +499,42 @@ pub fn collect_cli_contributions_from_plugins() -> Vec<(String, re_plugin::CliCo
 /// that has the `tui_widgets` capability. Returns panels with
 /// their source plugin ID for attribution.
 #[must_use]
-pub fn collect_tui_panels_from_plugins() -> Vec<(String, re_plugin::TuiPanel)> {
+pub fn collect_tui_panels_from_plugins() -> Vec<(String, re_plugin::PluginKind, re_plugin::TuiPanel)>
+{
     let snapshot = official_runtime_snapshot();
     let mut panels = Vec::new();
 
     for plugin in &snapshot.plugins {
         if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
             for panel in runtime.tui_contributions() {
-                panels.push((plugin.descriptor.id.to_owned(), panel));
+                panels.push((
+                    plugin.descriptor.id.to_owned(),
+                    plugin.descriptor.kind,
+                    panel,
+                ));
             }
         }
     }
 
     panels
+}
+
+/// Collects idle hints from all enabled plugins for the TUI dashboard.
+///
+/// Workflow plugins contribute contextual command examples (e.g. `/run 5.3`).
+/// Core renders these without hardcoding plugin-specific syntax (Model B).
+#[must_use]
+pub fn collect_idle_hints_from_plugins() -> Vec<re_plugin::IdleHint> {
+    let snapshot = official_runtime_snapshot();
+    let mut hints = Vec::new();
+
+    for plugin in &snapshot.plugins {
+        if let Some(runtime) = re_official::official_plugin_runtime(plugin.descriptor.id) {
+            hints.extend(runtime.idle_hints());
+        }
+    }
+
+    hints
 }
 
 /// Collects feed contributions from all enabled plugins.

@@ -209,15 +209,11 @@ impl TuiShell {
         );
         lines.push(Line::raw(""));
 
-        // Inline agent status row — all agents on one line
+        // Inline agent status row — all agents on one line (Model B: uses is_agent flag)
         let mut agent_spans: Vec<ratatui::text::Span<'_>> = vec![t.fg_dim("  ").build()];
         let mut found_agents = false;
         for panel in &self.sidebar_panels {
-            let is_agent = matches!(
-                panel.plugin_id.as_str(),
-                "official.claude" | "official.claudebox" | "official.codex"
-            );
-            if !is_agent {
+            if !panel.is_agent {
                 continue;
             }
             found_agents = true;
@@ -246,28 +242,9 @@ impl TuiShell {
             lines.push(Line::raw(""));
         }
 
-        // Project status + command hints
-        let has_config = std::path::Path::new(".ralph-engine/config.yaml").exists();
-        if has_config {
-            lines.push(
-                t.line()
-                    .accent_bold("  /run")
-                    .dim("           start autonomous loop")
-                    .build(),
-            );
-            lines.push(
-                t.line()
-                    .accent_bold("  /run 5.3")
-                    .dim("       execute story 5.3")
-                    .build(),
-            );
-            lines.push(
-                t.line()
-                    .accent_bold("  /list")
-                    .dim("          available work items")
-                    .build(),
-            );
-        } else {
+        // Command hints — plugin-contributed (Model B) + core builtins
+        if self.idle_hints.is_empty() {
+            // No plugin hints → show no-project message + init
             lines.push(
                 t.line()
                     .warning("  ○ ")
@@ -280,7 +257,19 @@ impl TuiShell {
                     .dim("  set up project")
                     .build(),
             );
+        } else {
+            // Render plugin-contributed idle hints
+            for hint in &self.idle_hints {
+                let pad = 14usize.saturating_sub(hint.command.len());
+                lines.push(
+                    t.line()
+                        .accent_bold(format!("  {}", hint.command))
+                        .dim(format!("{:pad$}{}", "", hint.description))
+                        .build(),
+                );
+            }
         }
+        // Core builtins (always shown)
         lines.push(
             t.line()
                 .accent_bold("  /theme")

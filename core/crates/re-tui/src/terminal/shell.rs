@@ -64,6 +64,7 @@ pub struct TuiShell {
     pub(super) zone_registry: ratatui_zonekit::ZoneRegistry,
     pub(super) log_lines: Vec<String>,
     pub(super) touched_files: Vec<String>,
+    pub(super) idle_hints: Vec<super::types::IdleHint>,
 }
 
 impl TuiShell {
@@ -117,6 +118,7 @@ impl TuiShell {
             zone_registry: ratatui_zonekit::ZoneRegistry::new(),
             log_lines: Vec::new(),
             touched_files: Vec::new(),
+            idle_hints: Vec::new(),
         }
     }
 
@@ -318,6 +320,11 @@ impl TuiShell {
     /// Sets plugin keybindings.
     pub fn set_plugin_keybindings(&mut self, bindings: Vec<RegisteredKeybinding>) {
         self.plugin_keybindings = bindings;
+    }
+
+    /// Sets idle hints for the dashboard (Model B — from plugins, not hardcoded).
+    pub fn set_idle_hints(&mut self, hints: Vec<super::types::IdleHint>) {
+        self.idle_hints = hints;
     }
 
     /// Sets agent pid.

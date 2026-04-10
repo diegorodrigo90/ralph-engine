@@ -670,14 +670,10 @@ impl TuiShell {
 
     // ── Helpers ──────────────────────────────────────────────────
 
-    /// Extracts the primary agent's status from sidebar panels.
+    /// Extracts the primary agent's status from sidebar panels (Model B: uses `is_agent` flag).
     fn primary_agent_status(&self) -> Option<(String, String, PanelSeverity)> {
         for panel in &self.sidebar_panels {
-            let is_agent = matches!(
-                panel.plugin_id.as_str(),
-                "official.claude" | "official.claudebox" | "official.codex"
-            );
-            if !is_agent {
+            if !panel.is_agent {
                 continue;
             }
             for item in &panel.items {

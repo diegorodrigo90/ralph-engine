@@ -304,6 +304,25 @@ pub struct SidebarPanel {
     pub items: Vec<PanelItem>,
     /// Source plugin ID (for attribution).
     pub plugin_id: String,
+    /// Whether this panel belongs to an agent plugin (`AgentRuntime` kind).
+    ///
+    /// Set by the CLI layer based on `PluginKind`. Used by the idle
+    /// dashboard to identify agent status panels without hardcoding
+    /// specific plugin IDs (Model B compliance).
+    pub is_agent: bool,
+}
+
+/// A hint displayed on the idle dashboard (e.g. `/run — start loop`).
+///
+/// Plugins contribute idle hints via `idle_hints()` on the `PluginRuntime`
+/// trait. Core collects and renders them — never hardcoding plugin-specific
+/// command examples.
+#[derive(Debug, Clone)]
+pub struct IdleHint {
+    /// The command or action (e.g. `/run 5.3`).
+    pub command: String,
+    /// Short description (e.g. `execute story 5.3`).
+    pub description: String,
 }
 
 /// A typed content item for sidebar panels.

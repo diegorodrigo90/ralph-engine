@@ -33,9 +33,9 @@ pub use layout::{LayoutTier, LayoutZones, compute_zones, is_terminal_too_small};
 pub use logging::{LogConfig, init_logging};
 pub use process::{SessionState, StateEvent, StateListener};
 pub use terminal::{
-    CommandEntry, CommandSource, FocusTarget, PanelHint, PanelItem, PanelSeverity, PluginKeyAction,
-    RegisteredKeybinding, SidebarPanel, Toast, ToastLevel, TuiConfig, TuiLabels, TuiShell,
-    TuiState, TuiTab,
+    CommandEntry, CommandSource, FocusTarget, IdleHint, PanelHint, PanelItem, PanelSeverity,
+    PluginKeyAction, RegisteredKeybinding, SidebarPanel, Toast, ToastLevel, TuiConfig, TuiLabels,
+    TuiShell, TuiState, TuiTab,
 };
 // Re-export ratatui-zonekit for plugin zone management
 pub use ratatui_zonekit::{

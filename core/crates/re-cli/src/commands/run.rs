@@ -565,13 +565,14 @@ fn run_with_tui(
     let all_panels = catalog::collect_tui_panels_from_plugins();
     let sidebar_panels: Vec<re_tui::SidebarPanel> = all_panels
         .into_iter()
-        .map(|(plugin_id, panel)| re_tui::SidebarPanel {
+        .map(|(plugin_id, kind, panel)| re_tui::SidebarPanel {
             title: panel.title,
             items: panel
                 .blocks
                 .into_iter()
                 .map(super::tui::convert_tui_block)
                 .collect(),
+            is_agent: kind == re_plugin::PluginKind::AgentRuntime,
             plugin_id,
         })
         .collect();

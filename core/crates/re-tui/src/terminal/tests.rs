@@ -497,6 +497,7 @@ fn render_standard_shows_sidebar() {
             ..super::types::PanelItem::default()
         }],
         plugin_id: "official.claude".to_owned(),
+        is_agent: true,
     }]);
     // Need feed blocks to trigger active layout (sidebar only shows in active mode)
     shell
@@ -643,16 +644,19 @@ fn render_standard_with_plugin_panels() {
             title: "Claude".to_owned(),
             items: Vec::new(),
             plugin_id: "official.claude".to_owned(),
+            is_agent: true,
         },
         SidebarPanel {
             title: "Sprint Status".to_owned(),
             items: Vec::new(),
             plugin_id: "official.bmad".to_owned(),
+            is_agent: false,
         },
         SidebarPanel {
             title: "Findings".to_owned(),
             items: Vec::new(),
             plugin_id: "official.findings".to_owned(),
+            is_agent: false,
         },
     ]);
     let output = render_to_buffer(&mut shell, 140, 40);
@@ -678,6 +682,7 @@ fn set_sidebar_panels_replaces() {
         title: "A".to_owned(),
         items: Vec::new(),
         plugin_id: "test".to_owned(),
+        is_agent: false,
     }]);
     assert_eq!(shell.sidebar_panels.len(), 1);
     shell.set_sidebar_panels(vec![]);
@@ -868,12 +873,54 @@ fn render_idle_shows_dashboard() {
 }
 
 #[test]
+fn idle_hints_from_plugins_replace_hardcoded() {
+    use super::types::IdleHint;
+    let mut shell = empty_shell();
+    shell.set_idle_hints(vec![
+        IdleHint {
+            command: "/run".to_owned(),
+            description: "start autonomous loop".to_owned(),
+        },
+        IdleHint {
+            command: "/run 5.3".to_owned(),
+            description: "execute story 5.3".to_owned(),
+        },
+    ]);
+    let output = render_to_buffer(&mut shell, 120, 30);
+    assert!(
+        output.contains("/run"),
+        "idle should show plugin hint /run, got:\n{output}"
+    );
+    assert!(
+        output.contains("5.3"),
+        "idle should show plugin hint 5.3, got:\n{output}"
+    );
+    // Should NOT show "No project found" when hints are present
+    assert!(
+        !output.contains("No project found"),
+        "should not show no-project when hints exist"
+    );
+}
+
+#[test]
+fn idle_no_hints_shows_no_project() {
+    let mut shell = empty_shell();
+    // No idle hints set → shows no-project message
+    let output = render_to_buffer(&mut shell, 120, 30);
+    assert!(
+        output.contains("No project found"),
+        "idle with no hints should show no-project, got:\n{output}"
+    );
+}
+
+#[test]
 fn startup_banner_creates_feed_block() {
     let mut shell = empty_shell();
     shell.set_sidebar_panels(vec![SidebarPanel {
         title: "Side".to_owned(),
         items: Vec::new(),
         plugin_id: "a".to_owned(),
+        is_agent: false,
     }]);
     shell.push_startup_banner();
     assert!(
@@ -914,6 +961,7 @@ fn config_tab_shows_all_plugin_details() {
             },
         ],
         plugin_id: "official.claude".to_owned(),
+        is_agent: true,
     }]);
     shell.active_tab = TuiTab::Config;
     let output = render_to_buffer(&mut shell, 140, 40);
@@ -970,6 +1018,7 @@ fn config_tab_shows_grouped_sections() {
         title: "Test".to_owned(),
         items: Vec::new(),
         plugin_id: "official.claude".to_owned(),
+        is_agent: true,
     }]);
     shell.active_tab = TuiTab::Config;
     let output = render_to_buffer(&mut shell, 140, 40);
@@ -1008,6 +1057,7 @@ fn sidebar_groups_all_agents_in_one_section() {
                 ..super::types::PanelItem::default()
             }],
             plugin_id: "official.claude".to_owned(),
+            is_agent: true,
         },
         SidebarPanel {
             title: "Codex".to_owned(),
@@ -1019,6 +1069,7 @@ fn sidebar_groups_all_agents_in_one_section() {
                 ..super::types::PanelItem::default()
             }],
             plugin_id: "official.codex".to_owned(),
+            is_agent: true,
         },
     ]);
     let output = render_to_buffer(&mut shell, 140, 40);

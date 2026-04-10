@@ -23,8 +23,9 @@ mod types;
 // Re-export the public API
 pub use shell::TuiShell;
 pub use types::{
-    CommandEntry, CommandSource, FocusTarget, PanelHint, PanelItem, PanelSeverity, PluginKeyAction,
-    RegisteredKeybinding, SidebarPanel, Toast, ToastLevel, TuiConfig, TuiLabels, TuiState, TuiTab,
+    CommandEntry, CommandSource, FocusTarget, IdleHint, PanelHint, PanelItem, PanelSeverity,
+    PluginKeyAction, RegisteredKeybinding, SidebarPanel, Toast, ToastLevel, TuiConfig, TuiLabels,
+    TuiState, TuiTab,
 };
 
 #[cfg(test)]

@@ -111,17 +111,29 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         shell.set_agent_commands(commands, prefix);
     }
 
-    // Auto-discover panels from plugins
+    // Auto-discover panels from plugins (kind used for is_agent — Model B)
     let all_panels = catalog::collect_tui_panels_from_plugins();
     let sidebar_panels: Vec<re_tui::SidebarPanel> = all_panels
         .into_iter()
-        .map(|(plugin_id, panel)| re_tui::SidebarPanel {
+        .map(|(plugin_id, kind, panel)| re_tui::SidebarPanel {
             title: panel.title,
             items: panel.blocks.into_iter().map(convert_tui_block).collect(),
+            is_agent: kind == re_plugin::PluginKind::AgentRuntime,
             plugin_id,
         })
         .collect();
     shell.set_sidebar_panels(sidebar_panels);
+
+    // Auto-discover idle hints from plugins (Model B — no hardcoded commands)
+    let plugin_hints = catalog::collect_idle_hints_from_plugins();
+    let idle_hints: Vec<re_tui::IdleHint> = plugin_hints
+        .into_iter()
+        .map(|h| re_tui::IdleHint {
+            command: h.command,
+            description: h.description,
+        })
+        .collect();
+    shell.set_idle_hints(idle_hints);
 
     // Auto-discover keybindings from plugins
     let keybindings = catalog::collect_tui_keybindings_from_plugins();

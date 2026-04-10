@@ -1558,6 +1558,17 @@ pub trait PluginRuntime: Send + Sync {
         None
     }
 
+    /// Returns idle dashboard hints (command examples shown when no agent runs).
+    ///
+    /// Plugins contribute hints that core renders on the idle dashboard.
+    /// This replaces hardcoded `/run 5.3` examples — the workflow plugin
+    /// knows the right syntax, not core (Model B compliance).
+    ///
+    /// Default: empty (most plugins don't contribute idle hints).
+    fn idle_hints(&self) -> Vec<IdleHint> {
+        Vec::new()
+    }
+
     /// Discovers slash commands available from this agent.
     ///
     /// Agent plugins scan their command/skill directories and return
@@ -2167,6 +2178,19 @@ pub struct TuiKeybinding {
     /// TUI states where this keybinding is active.
     /// Empty means active in all states.
     pub active_states: Vec<String>,
+}
+
+/// A hint displayed on the TUI idle dashboard.
+///
+/// Plugins contribute these to show contextual command examples on
+/// the dashboard. Core renders them without knowing plugin-specific
+/// syntax — Model B compliance.
+#[derive(Debug, Clone)]
+pub struct IdleHint {
+    /// The command or action (e.g. `/run 5.3`).
+    pub command: String,
+    /// Short description (e.g. `execute story 5.3`).
+    pub description: String,
 }
 
 /// Result of a plugin handling a TUI key event or text input.

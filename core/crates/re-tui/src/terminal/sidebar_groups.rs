@@ -19,10 +19,10 @@ pub(super) struct SidebarGroup<'a> {
 /// Groups sidebar panels by semantic domain.
 ///
 /// Rules:
-/// - `official.claude`, `official.claudebox`, `official.codex` → "Agents"
-/// - `official.bmad` → "Sprint"
-/// - `official.findings` → "Findings"
-/// - Everything else → "Tools"
+/// - `panel.is_agent == true` → "Agents" (Model B — no hardcoded plugin IDs)
+/// - `official.bmad` → "Sprint" (presentation hint — not business logic)
+/// - `official.findings` → "Findings" (presentation hint)
+/// - Everything else → hidden (Config tab only)
 ///
 /// Empty groups are omitted.
 pub(super) fn group_panels(panels: &[SidebarPanel]) -> Vec<SidebarGroup<'_>> {
@@ -31,11 +31,14 @@ pub(super) fn group_panels(panels: &[SidebarPanel]) -> Vec<SidebarGroup<'_>> {
     let mut findings: Vec<&SidebarPanel> = Vec::new();
 
     for panel in panels {
-        match classify_plugin(&panel.plugin_id) {
-            Domain::Agent => agents.push(panel),
-            Domain::Sprint => sprint.push(panel),
-            Domain::Findings => findings.push(panel),
-            Domain::Hidden => {} // Goes to Config tab only
+        if panel.is_agent {
+            agents.push(panel);
+        } else {
+            match classify_non_agent(&panel.plugin_id) {
+                Domain::Sprint => sprint.push(panel),
+                Domain::Findings => findings.push(panel),
+                Domain::Hidden => {} // Goes to Config tab only
+            }
         }
     }
 
@@ -63,23 +66,22 @@ pub(super) fn group_panels(panels: &[SidebarPanel]) -> Vec<SidebarGroup<'_>> {
     groups
 }
 
-/// Semantic domain for sidebar grouping.
+/// Semantic domain for non-agent sidebar grouping.
 enum Domain {
-    Agent,
     Sprint,
     Findings,
     /// Hidden from sidebar — details go to Config tab only.
     Hidden,
 }
 
-/// Classifies a plugin into a semantic domain by its ID.
+/// Classifies a non-agent plugin into a presentation domain by its ID.
 ///
-/// Only plugins with actionable, frequently-needed data appear in the sidebar.
+/// Agent plugins are already classified via `panel.is_agent` (Model B).
+/// This classifies the remaining plugins into sidebar sections.
 /// Tool/infra plugins (github, tdd-strict, router, context, guided, ssh)
 /// are hidden — their details live in the Config tab (Level 2 disclosure).
-fn classify_plugin(plugin_id: &str) -> Domain {
+fn classify_non_agent(plugin_id: &str) -> Domain {
     match plugin_id {
-        "official.claude" | "official.claudebox" | "official.codex" => Domain::Agent,
         "official.bmad" => Domain::Sprint,
         "official.findings" => Domain::Findings,
         _ => Domain::Hidden,
@@ -92,10 +94,12 @@ mod tests {
     use super::*;
 
     fn panel(plugin_id: &str, title: &str) -> SidebarPanel {
+        let is_agent = plugin_id.contains("claude") || plugin_id.contains("codex");
         SidebarPanel {
             title: title.to_owned(),
             items: Vec::new(),
             plugin_id: plugin_id.to_owned(),
+            is_agent,
         }
     }
 
