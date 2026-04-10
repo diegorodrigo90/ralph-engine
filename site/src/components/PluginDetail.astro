@@ -278,45 +278,64 @@ const docSections = plugin.docs?.locales?.[lang] ?? plugin.docs?.default ?? [];
       {/* ── Sidebar (sticky on desktop, top on mobile) ── */}
       <aside class="detail-sidebar">
 
-        {/* Install tabs */}
+        {/* Install */}
         <div class="sidebar-section">
           <h2>{t(lang, 'plugin.install')}</h2>
-          <div class="tabs">
-            <input type="radio" name="install-pm" id="pm-npm" checked />
-            <input type="radio" name="install-pm" id="pm-brew" />
-            <input type="radio" name="install-pm" id="pm-cargo" />
-            <div class="tab-list" aria-label="Package managers">
-              <label for="pm-npm">npm</label>
-              <label for="pm-brew">Homebrew</label>
-              <label for="pm-cargo">Cargo</label>
-            </div>
-            <div class="tab-panel">
-              <div class="dark-cmd">
-                <code>npm install -g ralph-engine</code>
-                <button class="copy-btn copy-btn-dark" type="button" data-copy="npm install -g ralph-engine" aria-label={copyLabel} set:html={copySvg} />
+          {isOfficial(plugin) ? (
+            <>
+              <div class="tabs">
+                <input type="radio" name="install-pm" id="pm-npm" checked />
+                <input type="radio" name="install-pm" id="pm-brew" />
+                <input type="radio" name="install-pm" id="pm-cargo" />
+                <div class="tab-list" aria-label="Package managers">
+                  <label for="pm-npm">npm</label>
+                  <label for="pm-brew">Homebrew</label>
+                  <label for="pm-cargo">Cargo</label>
+                </div>
+                <div class="tab-panel">
+                  <div class="dark-cmd">
+                    <code>npm install -g ralph-engine</code>
+                    <button class="copy-btn copy-btn-dark" type="button" data-copy="npm install -g ralph-engine" aria-label={copyLabel} set:html={copySvg} />
+                  </div>
+                </div>
+                <div class="tab-panel">
+                  <div class="dark-cmd">
+                    <code>brew install ralph-engine</code>
+                    <button class="copy-btn copy-btn-dark" type="button" data-copy="brew install ralph-engine" aria-label={copyLabel} set:html={copySvg} />
+                  </div>
+                </div>
+                <div class="tab-panel">
+                  <div class="dark-cmd">
+                    <code>cargo install ralph-engine</code>
+                    <button class="copy-btn copy-btn-dark" type="button" data-copy="cargo install ralph-engine" aria-label={copyLabel} set:html={copySvg} />
+                  </div>
+                </div>
               </div>
-            </div>
-            <div class="tab-panel">
-              <div class="dark-cmd">
-                <code>brew install ralph-engine</code>
-                <button class="copy-btn copy-btn-dark" type="button" data-copy="brew install ralph-engine" aria-label={copyLabel} set:html={copySvg} />
+              <div class="install-callout">
+                <svg class="install-callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                <div>
+                  <p>{lang === 'pt-br'
+                    ? 'Todos os plugins oficiais são compilados no binário.'
+                    : 'All official plugins are compiled into the binary.'}</p>
+                </div>
               </div>
-            </div>
-            <div class="tab-panel">
+            </>
+          ) : (
+            <>
               <div class="dark-cmd">
-                <code>cargo install ralph-engine</code>
-                <button class="copy-btn copy-btn-dark" type="button" data-copy="cargo install ralph-engine" aria-label={copyLabel} set:html={copySvg} />
+                <code>ralph-engine install {plugin.publisher}/{plugin.id.split('.').pop()}</code>
+                <button class="copy-btn copy-btn-dark" type="button" data-copy={`ralph-engine install ${plugin.publisher}/${plugin.id.split('.').pop()}`} aria-label={copyLabel} set:html={copySvg} />
               </div>
-            </div>
-          </div>
-          <div class="install-callout">
-            <svg class="install-callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-            <div>
-              <p>{lang === 'pt-br'
-                ? 'Todos os plugins oficiais são compilados no binário.'
-                : 'All official plugins are compiled into the binary.'}</p>
-            </div>
-          </div>
+              <div class="install-callout">
+                <svg class="install-callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                <div>
+                  <p>{lang === 'pt-br'
+                    ? 'Plugin da comunidade — instalado separadamente.'
+                    : 'Community plugin — installed separately.'}</p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Quick commands */}
