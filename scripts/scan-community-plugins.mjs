@@ -9,6 +9,14 @@
  * - Repo name: "ralph-engine-plugin-{name}" (recommended, not required)
  * - Must have manifest.yaml at repo root
  *
+ * Security:
+ * - Community manifest data is untrusted. All fields are sanitized.
+ * - Plugin IDs are validated against confusable patterns.
+ * - Only whitelisted fields are included in the catalog output.
+ * - HTML content (docs) is stripped — never passed through.
+ * - Max 50 community plugins to prevent catalog flooding.
+ * - Duplicate IDs are rejected (first-seen wins).
+ *
  * Cost: zero — uses GitHub API (5000 req/hr free for authenticated),
  * GitHub Actions (unlimited for public repos), static JSON on Cloudflare.
  */
@@ -25,8 +33,87 @@ const TOPIC = "ralph-engine-plugin";
 const GITHUB_API = "https://api.github.com";
 const MANIFEST_FILE = "manifest.yaml";
 
+// Hard limit on community plugins to prevent catalog flooding.
+const MAX_COMMUNITY_PLUGINS = 50;
+
 // GitHub token from environment (set by Actions or local dev)
 const TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN || "";
+
+// ── Security: sanitization helpers ──────────────────────────
+
+/** Strip HTML tags and entities from a string. */
+function stripHtml(str) {
+  if (typeof str !== "string") return "";
+  return str
+    .replace(/<[^>]*>/g, "")
+    .replace(/&[a-z]+;/gi, " ")
+    .replace(/&#\d+;/g, " ")
+    .trim();
+}
+
+/** Enforce max length and strip control chars. */
+function sanitizeText(str, maxLen = 500) {
+  if (typeof str !== "string") return "";
+  return str
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "")
+    .slice(0, maxLen)
+    .trim();
+}
+
+/** Sanitize a plugin ID: lowercase alphanumeric + dots + hyphens only. */
+function sanitizeId(str) {
+  if (typeof str !== "string") return "";
+  return str.toLowerCase().replace(/[^a-z0-9.\-]/g, "").slice(0, 100);
+}
+
+/**
+ * Reserved ID prefixes that community plugins cannot use.
+ * Prevents spoofing of official plugins or confusable names.
+ */
+const RESERVED_PREFIXES = [
+  "official.",
+  "0fficial.",    // zero instead of O
+  "officia1.",    // one instead of l
+  "0fficia1.",    // both
+  "officlal.",    // l instead of i
+  "offical.",     // typosquat
+  "oficlal.",     // typosquat
+  "ralph-engine.",
+  "ralph.",
+  "core.",
+  "builtin.",
+  "internal.",
+  "system.",
+];
+
+/** Check if a plugin ID uses a reserved or confusable prefix. */
+function hasReservedPrefix(id) {
+  const lower = id.toLowerCase();
+  return RESERVED_PREFIXES.some((prefix) => lower.startsWith(prefix));
+}
+
+/**
+ * Whitelist of fields allowed in the catalog output.
+ * Any field not in this list is stripped from community plugins.
+ */
+const ALLOWED_FIELDS = new Set([
+  "id", "kind", "display_name", "summary", "publisher",
+  "plugin_version", "stability", "prerelease", "trust_level",
+  "source", "repository", "capabilities", "updated_at",
+]);
+
+/** Strip unknown fields from a plugin entry. */
+function stripUnknownFields(entry) {
+  const clean = {};
+  for (const key of Object.keys(entry)) {
+    if (ALLOWED_FIELDS.has(key)) {
+      clean[key] = entry[key];
+    }
+  }
+  return clean;
+}
+
+// ── GitHub API ──────────────────────────────────────────────
 
 async function githubFetch(url) {
   const headers = {
@@ -75,6 +162,8 @@ async function discoverCommunityRepos() {
 
     if ((data.items || []).length < perPage) break;
     page++;
+    // Safety: max 5 pages (500 repos) to prevent runaway API calls
+    if (page > 5) break;
   }
 
   return repos;
@@ -89,13 +178,18 @@ async function fetchManifest(repo) {
     const url = `${GITHUB_API}/repos/${repo.full_name}/contents/${MANIFEST_FILE}?ref=${repo.default_branch}`;
     const data = await githubFetch(url);
     if (data.encoding === "base64" && data.content) {
-      return Buffer.from(data.content, "base64").toString("utf-8");
+      const raw = Buffer.from(data.content, "base64").toString("utf-8");
+      // Limit manifest size to 10KB to prevent abuse
+      if (raw.length > 10_000) return null;
+      return raw;
     }
     return null;
   } catch {
     return null;
   }
 }
+
+// ── Manifest parsing ────────────────────────────────────────
 
 /**
  * Parse manifest YAML (simple key: value extraction, no dependency).
@@ -125,7 +219,8 @@ function parseManifestSimple(yaml) {
     result.capabilities = capsMatch[1]
       .split("\n")
       .map((l) => l.replace(/^\s*-\s*/, "").trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .slice(0, 20); // Max 20 capabilities
   }
 
   return result;
@@ -134,7 +229,6 @@ function parseManifestSimple(yaml) {
 /**
  * Detects if a version string is a prerelease (alpha, beta, rc).
  * SemVer: prerelease identifiers follow a hyphen after the patch.
- * Examples: "1.0.0-alpha.1", "2.0.0-beta", "3.0.0-rc.2"
  */
 function isPrerelease(version) {
   if (!version) return false;
@@ -152,24 +246,60 @@ function stabilityLevel(version) {
   return "stable";
 }
 
-/**
- * Validate that a parsed manifest has minimum required fields.
- */
-function isValidManifest(manifest) {
-  return (
-    typeof manifest.id === "string" &&
-    manifest.id.length > 0 &&
-    typeof manifest.kind === "string" &&
-    typeof manifest.display_name === "string" &&
-    typeof manifest.summary === "string" &&
-    // Must NOT be an official plugin
-    !manifest.id.startsWith("official.")
-  );
-}
+// ── Validation ──────────────────────────────────────────────
+
+/** Valid plugin kinds (must match re-plugin PluginKind enum). */
+const VALID_KINDS = new Set([
+  "template", "agent_runtime", "mcp_contribution",
+  "policy", "remote_control",
+]);
 
 /**
- * Check if a previously known repo still exists.
+ * Validate that a parsed manifest has minimum required fields
+ * and passes all security checks.
  */
+function validateManifest(manifest, repoFullName) {
+  const issues = [];
+
+  // Required fields
+  if (typeof manifest.id !== "string" || manifest.id.length === 0) {
+    issues.push("missing id");
+  }
+  if (typeof manifest.kind !== "string") {
+    issues.push("missing kind");
+  }
+  if (typeof manifest.display_name !== "string") {
+    issues.push("missing display_name");
+  }
+  if (typeof manifest.summary !== "string") {
+    issues.push("missing summary");
+  }
+
+  if (issues.length > 0) return { valid: false, issues };
+
+  const id = sanitizeId(manifest.id);
+
+  // Reserved prefix check
+  if (hasReservedPrefix(id)) {
+    issues.push(`reserved prefix in id "${id}"`);
+  }
+
+  // Kind must be a known value
+  if (!VALID_KINDS.has(manifest.kind)) {
+    issues.push(`unknown kind "${manifest.kind}"`);
+  }
+
+  // Version format (loose semver)
+  const version = manifest.plugin_version || "";
+  if (version && !/^\d+\.\d+\.\d+/.test(version)) {
+    issues.push(`invalid version "${version}"`);
+  }
+
+  return { valid: issues.length === 0, issues };
+}
+
+// ── Repo existence check ────────────────────────────────────
+
 async function repoExists(fullName) {
   try {
     const headers = {
@@ -187,6 +317,8 @@ async function repoExists(fullName) {
     return false;
   }
 }
+
+// ── Main ────────────────────────────────────────────────────
 
 async function main() {
   console.log("Ralph Engine Community Plugin Catalog Scan");
@@ -229,6 +361,9 @@ async function main() {
   }
   console.log(`Found ${repos.length} candidate repos\n`);
 
+  // Track seen IDs to prevent duplicates (first-seen wins)
+  const seenIds = new Set(officialPlugins.map((p) => p.id));
+
   // Fetch and validate manifests
   const communityPlugins = [];
   for (const repo of repos) {
@@ -237,36 +372,54 @@ async function main() {
       continue;
     }
 
+    if (communityPlugins.length >= MAX_COMMUNITY_PLUGINS) {
+      console.log(`  SKIP ${repo.full_name} (max ${MAX_COMMUNITY_PLUGINS} community plugins reached)`);
+      continue;
+    }
+
     const yaml = await fetchManifest(repo);
     if (!yaml) {
-      console.log(`  SKIP ${repo.full_name} (no manifest.yaml)`);
+      console.log(`  SKIP ${repo.full_name} (no manifest.yaml or too large)`);
       continue;
     }
 
     const manifest = parseManifestSimple(yaml);
-    if (!isValidManifest(manifest)) {
-      console.log(`  SKIP ${repo.full_name} (invalid manifest)`);
+    const { valid, issues } = validateManifest(manifest, repo.full_name);
+    if (!valid) {
+      console.log(`  REJECT ${repo.full_name} (${issues.join(", ")})`);
       continue;
     }
 
-    console.log(`  OK   ${repo.full_name} → ${manifest.id}`);
+    const id = sanitizeId(manifest.id);
 
-    const version = manifest.plugin_version || "0.0.0";
-    communityPlugins.push({
-      id: manifest.id,
-      kind: manifest.kind,
-      display_name: manifest.display_name,
-      summary: manifest.summary,
-      publisher: manifest.publisher || repo.owner,
+    // Duplicate ID check
+    if (seenIds.has(id)) {
+      console.log(`  REJECT ${repo.full_name} (duplicate id "${id}")`);
+      continue;
+    }
+    seenIds.add(id);
+
+    console.log(`  OK   ${repo.full_name} → ${id}`);
+
+    const version = sanitizeText(manifest.plugin_version || "0.0.0", 30);
+    const entry = stripUnknownFields({
+      id,
+      kind: sanitizeText(manifest.kind, 30),
+      display_name: sanitizeText(stripHtml(manifest.display_name), 100),
+      summary: sanitizeText(stripHtml(manifest.summary), 300),
+      publisher: sanitizeText(stripHtml(manifest.publisher || repo.owner), 100),
       plugin_version: version,
       stability: stabilityLevel(version),
       prerelease: isPrerelease(version),
       trust_level: "community",
       source: "community",
       repository: repo.html_url,
-      capabilities: manifest.capabilities || [],
+      capabilities: (manifest.capabilities || [])
+        .map((c) => sanitizeText(c, 50))
+        .filter(Boolean),
       updated_at: repo.updated_at,
     });
+    communityPlugins.push(entry);
   }
 
   // Check for removed repos (were in catalog but not found in scan)
@@ -281,7 +434,9 @@ async function main() {
       } else {
         // Repo exists but topic was removed — keep for one more cycle
         console.log(`  KEEP ${existing.id} (repo exists but topic missing)`);
-        communityPlugins.push(existing);
+        if (communityPlugins.length < MAX_COMMUNITY_PLUGINS) {
+          communityPlugins.push(stripUnknownFields(existing));
+        }
       }
     }
   }

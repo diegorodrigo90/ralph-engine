@@ -6,6 +6,8 @@ on:
     - cron: '0 6 * * *'
   workflow_dispatch: {}
 
+# Minimum permissions: read repo to scan, write to create branch + PR.
+# GITHUB_TOKEN is scoped to this repo only and expires after the job.
 permissions:
   contents: write
   pull-requests: write
@@ -44,6 +46,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BRANCH="chore/catalog-update-$(date +%Y%m%d)"
+          DIFF_SUMMARY=$(git diff --stat site/src/data/plugins.json site/public/plugins/index.json | tail -1)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b "$BRANCH"
@@ -52,6 +55,10 @@ jobs:
           git push -u origin "$BRANCH"
           gh pr create \
             --title "chore(catalog): update community plugin index" \
-            --body "Automated daily scan found new or updated community plugins." \
+            --body "Automated daily scan. Review community plugin changes before merging.
+
+          Changes: ${DIFF_SUMMARY}
+
+          **Security note:** All community data is sanitized (HTML stripped, IDs validated, fields whitelisted). Review the diff for unexpected entries." \
             --base main \
             --head "$BRANCH"
