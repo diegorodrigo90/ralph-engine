@@ -78,12 +78,12 @@ require_file "${ASSET_DIR}/source.tar.gz"
 verify_checksum_file "${ASSET_DIR}/source.tar.gz.sha256"
 require_file "${ASSET_DIR}/sha256.sum"
 
-if ! find "${ASSET_DIR}" -maxdepth 1 -type f \( -name 're-cli-installer.sh' -o -name 're-cli-installer.ps1' \) | grep -q .; then
+if ! find "${ASSET_DIR}" -maxdepth 1 -type f \( -name 'ralph-engine-installer.sh' -o -name 'ralph-engine-installer.ps1' \) | grep -q .; then
   echo "verify-release-assets: expected at least one installer script in '${ASSET_DIR}'" >&2
   exit 1
 fi
 
-mapfile -t binary_checksum_files < <(find "${ASSET_DIR}" -maxdepth 1 -type f -name 're-cli-*.sha256' ! -name 'source.tar.gz.sha256' | sort)
+mapfile -t binary_checksum_files < <(find "${ASSET_DIR}" -maxdepth 1 -type f -name 'ralph-engine-*.sha256' ! -name 'source.tar.gz.sha256' | sort)
 
 if [[ "${#binary_checksum_files[@]}" -eq 0 ]]; then
   echo "verify-release-assets: expected at least one binary checksum file in '${ASSET_DIR}'" >&2
@@ -96,7 +96,7 @@ done
 
 if [[ "${REQUIRE_ALL_TARGETS}" == "true" ]]; then
   for target in "${REQUIRED_TARGETS[@]}"; do
-    mapfile -t checksum_candidates < <(find "${ASSET_DIR}" -maxdepth 1 -type f -name "re-cli-${target}.*.sha256" | sort)
+    mapfile -t checksum_candidates < <(find "${ASSET_DIR}" -maxdepth 1 -type f -name "ralph-engine-${target}.*.sha256" | sort)
 
     if [[ "${#checksum_candidates[@]}" -eq 0 ]]; then
       echo "verify-release-assets: missing checksum for target '${target}' in '${ASSET_DIR}'" >&2
