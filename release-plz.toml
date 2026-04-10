@@ -5,7 +5,7 @@ git_tag_enable = true
 git_release_enable = true
 git_release_draft = false
 git_release_latest = true
-publish = true
+publish = false
 semver_check = false
 pr_labels = ["release"]
 

@@ -2059,6 +2059,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
 
 [[package]]
+name = "ralph-engine"
+version = "0.2.0-alpha.1"
+dependencies = [
+ "owo-colors",
+ "ratatui",
+ "re-build-utils",
+ "re-config",
+ "re-core",
+ "re-mcp",
+ "re-official",
+ "re-plugin",
+ "re-tui",
+ "sentry",
+]
+
+[[package]]
 name = "rand"
 version = "0.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2210,22 +2226,6 @@ name = "re-build-utils"
 version = "0.2.0-alpha.1"
 dependencies = [
  "toml",
-]
-
-[[package]]
-name = "re-cli"
-version = "0.2.0-alpha.1"
-dependencies = [
- "owo-colors",
- "ratatui",
- "re-build-utils",
- "re-config",
- "re-core",
- "re-mcp",
- "re-official",
- "re-plugin",
- "re-tui",
- "sentry",
 ]
 
 [[package]]
