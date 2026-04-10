@@ -254,6 +254,27 @@ const plugins = pluginDirs.map((name) => {
   return { ...sanitized, iconUrl, description, description_locales, docs };
 });
 
+// Write directories (declared early — needed for community plugin preservation).
+const dataDir = join(siteRoot, 'src', 'data');
+mkdirSync(dataDir, { recursive: true });
+
+// Preserve community plugins from previous scan (scan-community-plugins.mjs adds them).
+// This prebuild script only regenerates official plugin data from local manifests.
+const dataPath = join(dataDir, 'plugins.json');
+let existingCommunity = [];
+let lastScan = null;
+if (existsSync(dataPath)) {
+  try {
+    const existing = JSON.parse(readFileSync(dataPath, 'utf8'));
+    existingCommunity = (existing.plugins || []).filter(
+      p => p.source === 'community' && !p.id.startsWith('official.')
+    );
+    lastScan = existing.last_scan || null;
+  } catch { /* first build — no existing data */ }
+}
+
+const allPlugins = [...plugins, ...existingCommunity];
+
 // Single source of truth: standardized catalog format.
 // Both Astro (build-time import) and public API (static JSON) read from here.
 // Community plugins are merged by scripts/scan-community-plugins.mjs.
@@ -263,20 +284,18 @@ const plugins = pluginDirs.map((name) => {
 const catalog = {
   schema_version: 1,
   generated_at: new Date().toISOString(),
-  count: plugins.length,
-  community_count: 0,
-  last_scan: null,
+  count: allPlugins.length,
+  community_count: existingCommunity.length,
+  last_scan: lastScan,
   icon_contract: {
     discovery: 'Auto — place icon.svg (preferred), icon.png, icon.jpg, or icon.webp in plugin root',
     svg: { viewbox: '0 0 24 24', style: 'stroke-based, stroke-width 2', security: 'Sanitized at build time' },
     png: { min_size: '128x128', background: 'transparent' },
   },
-  plugins,
+  plugins: allPlugins,
 };
 
 // Write single source — used by both Astro build and public API.
-const dataDir = join(siteRoot, 'src', 'data');
-mkdirSync(dataDir, { recursive: true });
 writeFileSync(join(dataDir, 'plugins.json'), JSON.stringify(catalog, null, 2));
 
 // Copy to public for static API access (ralphengine.com/plugins/index.json).
@@ -285,4 +304,4 @@ mkdirSync(publicPluginsDir, { recursive: true });
 writeFileSync(join(publicPluginsDir, 'index.json'), JSON.stringify(catalog, null, 2));
 
 const withIcons = plugins.filter(p => p.iconUrl).length;
-console.log(`Generated plugin data: ${plugins.length} plugins, ${withIcons} with icons.`);
+console.log(`Generated plugin data: ${plugins.length} official, ${existingCommunity.length} community, ${withIcons} with icons.`);

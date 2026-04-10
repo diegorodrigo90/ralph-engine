@@ -2,8 +2,11 @@
 import PluginIcon from './PluginIcon.astro';
 import type { Locale } from '../i18n/utils';
 import { t, localePath } from '../i18n/utils';
+import { pluginSlug, isOfficial } from '../lib/plugin-utils';
 import catalog from '../data/plugins.json';
 const plugins = catalog.plugins;
+const officialPlugins = plugins.filter((p: any) => isOfficial(p));
+const communityPlugins = plugins.filter((p: any) => !isOfficial(p));
 
 interface Props {
   lang: Locale;
@@ -55,10 +58,19 @@ const officialLabel = lang === 'pt-br' ? 'Oficial' : 'Official';
         <div class="terminal-body">
           <div class="terminal-prompt">ralph-engine plugins list</div>
           <div class="terminal-output">
-            <div>{lang === 'pt-br' ? 'Plugins oficiais' : 'Official plugins'} ({plugins.length})</div>
-            {plugins.map((p: any) => (
+            <div>{lang === 'pt-br' ? 'Plugins oficiais' : 'Official plugins'} ({officialPlugins.length})</div>
+            {officialPlugins.map((p: any) => (
               <div>- {p.id.padEnd(22)} | {(kindLabels[p.kind] ?? p.kind).padEnd(18)} | {lang === 'pt-br' ? 'ativo' : 'enabled'}</div>
             ))}
+            {communityPlugins.length > 0 && (
+              <>
+                <div></div>
+                <div>{lang === 'pt-br' ? 'Plugins da comunidade' : 'Community plugins'} ({communityPlugins.length})</div>
+                {communityPlugins.map((p: any) => (
+                  <div>- {p.id.padEnd(22)} | {(kindLabels[p.kind] ?? p.kind).padEnd(18)} | community</div>
+                ))}
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -83,7 +95,7 @@ const officialLabel = lang === 'pt-br' ? 'Oficial' : 'Official';
     <div class="plugin-grid" id="plugin-grid">
       {plugins.map((plugin: any) => (
         <a
-          href={localePath(lang, `/plugins/${plugin.id.replace('official.', '')}/`)}
+          href={localePath(lang, `/plugins/${pluginSlug(plugin)}/`)}
           class={`plugin-card kind-${plugin.kind}`}
           data-kind={plugin.kind}
         >
@@ -103,7 +115,8 @@ const officialLabel = lang === 'pt-br' ? 'Oficial' : 'Official';
 
             <div class="card-footer">
               <div class="card-badges">
-                {plugin.trust_level === 'official' && <span class="badge badge-official">{officialLabel}</span>}
+                {isOfficial(plugin) && <span class="badge badge-official">{officialLabel}</span>}
+                {!isOfficial(plugin) && <span class="badge badge-community">Community</span>}
                 <span class={`badge badge-${plugin.kind}`}>{kindLabels[plugin.kind] ?? plugin.kind}</span>
                 {plugin.capabilities?.length > 1 && plugin.capabilities
                   .filter((c: string) => c !== plugin.kind)
@@ -322,6 +335,7 @@ const officialLabel = lang === 'pt-br' ? 'Oficial' : 'Official';
   }
 
   .badge-official { background: var(--re-brand-50); color: var(--re-brand-600); }
+  .badge-community { background: var(--re-bg-soft); color: var(--re-text-muted); }
   .badge-template { background: var(--re-kind-template-soft); color: var(--re-kind-template); }
   .badge-agent_runtime { background: var(--re-kind-agent-soft); color: var(--re-kind-agent); }
   .badge-mcp_contribution { background: var(--re-kind-mcp-soft); color: var(--re-kind-mcp); }

@@ -2,6 +2,7 @@
 import PluginIcon from './PluginIcon.astro';
 import type { Locale } from '../i18n/utils';
 import { t, localePath } from '../i18n/utils';
+import { isOfficial } from '../lib/plugin-utils';
 
 interface Props {
   lang: Locale;
@@ -109,7 +110,8 @@ const docSections = plugin.docs?.locales?.[lang] ?? plugin.docs?.default ?? [];
     {/* Tags */}
     <div class="detail-tags">
       <span class={`pill pill-${plugin.kind}`}>{kindLabels[plugin.kind] ?? plugin.kind}</span>
-      {plugin.trust_level === 'official' && <span class="pill pill-brand">{lang === 'pt-br' ? 'Oficial' : 'Official'}</span>}
+      {isOfficial(plugin) && <span class="pill pill-brand">{lang === 'pt-br' ? 'Oficial' : 'Official'}</span>}
+      {!isOfficial(plugin) && <span class="pill pill-community">Community</span>}
       {capTags.map((tag: string) => <span class="pill">{tag}</span>)}
       <span class="pill">v{plugin.plugin_version}</span>
     </div>
@@ -128,13 +130,16 @@ const docSections = plugin.docs?.locales?.[lang] ?? plugin.docs?.default ?? [];
           <p class="detail-ships">{buildDescription(plugin)}</p>
         )}
 
-        {/* README docs sections — text only, never raw HTML (XSS prevention) */}
+        {/* README docs sections */}
         {docSections.length > 0 && (
           <div class="plugin-docs">
             {docSections.map((section: any) => (
               <div class="plugin-docs-section">
                 <h3>{section.heading}</h3>
-                <p class="plugin-prose">{section.body}</p>
+                {isOfficial(plugin)
+                  ? <div class="plugin-prose" set:html={section.body} />
+                  : <p class="plugin-prose">{section.body}</p>
+                }
               </div>
             ))}
           </div>
@@ -249,7 +254,10 @@ const docSections = plugin.docs?.locales?.[lang] ?? plugin.docs?.default ?? [];
           <div class="terminal">
             <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span></div>
             <div class="terminal-body">
-              <div class="terminal-prompt">cat plugins/official/{plugin.id.replace('official.', '')}/manifest.yaml</div>
+              <div class="terminal-prompt">{isOfficial(plugin)
+                ? `cat plugins/official/${plugin.id.replace('official.', '')}/manifest.yaml`
+                : `cat .ralph-engine/plugins/${plugin.id}/manifest.yaml`
+              }</div>
               <div class="terminal-output">
                 <div>id: {plugin.id}</div>
                 <div>kind: {plugin.kind}</div>
@@ -338,10 +346,14 @@ const docSections = plugin.docs?.locales?.[lang] ?? plugin.docs?.default ?? [];
 
         {/* Links */}
         <div class="sidebar-section sidebar-links">
-          <a
-            href={`https://github.com/diegorodrigo90/ralph-engine/tree/main/plugins/official/${plugin.id.replace('official.', '')}`}
-            target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm"
-          >{t(lang, 'plugin.source')} &rarr;</a>
+          {(isOfficial(plugin) || plugin.repository) && (
+            <a
+              href={isOfficial(plugin)
+                ? `https://github.com/diegorodrigo90/ralph-engine/tree/main/plugins/official/${plugin.id.replace('official.', '')}`
+                : plugin.repository}
+              target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-sm"
+            >{t(lang, 'plugin.source')} &rarr;</a>
+          )}
           <a href={localePath(lang, '/getting-started/installation/')} class="btn btn-secondary btn-sm">{t(lang, 'plugin.docs')}</a>
           <a href={localePath(lang, '/plugins/')} class="btn btn-secondary btn-sm">{t(lang, 'plugin.all')}</a>
         </div>
@@ -585,11 +597,55 @@ const docSections = plugin.docs?.locales?.[lang] ?? plugin.docs?.default ?? [];
 </style>
 
 <style is:global>
-  /* Plugin docs rendered as safe text (no raw HTML — XSS prevention). */
+  /* Plugin docs prose — official plugins use set:html (generator sanitizes),
+     community plugins use text interpolation (Astro auto-escapes). */
   .plugin-prose {
     font-size: 0.9375rem;
     color: var(--sl-color-gray-2);
     line-height: 1.7;
+  }
+
+  .plugin-prose :not(a, strong, em, del, span, code, br) +
+  :not(a, strong, em, del, span, code, br) {
+    margin-top: 1rem;
+  }
+
+  .plugin-prose a {
+    color: var(--sl-color-accent);
+    text-decoration: underline;
+  }
+
+  .plugin-prose strong { color: var(--sl-color-white); }
+
+  .plugin-prose ul, .plugin-prose ol { padding-inline-start: 1.5rem; }
+  .plugin-prose li + li { margin-top: 0.25rem; }
+
+  .plugin-prose code {
+    font-family: var(--sl-font-mono);
+    font-size: 0.85em;
+    padding: 0.15em 0.35em;
+    background: var(--sl-color-gray-6);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.25rem;
+    color: var(--sl-color-white);
+  }
+
+  .plugin-prose pre {
+    padding: 1rem;
+    background: var(--sl-color-gray-6);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+    overflow-x: auto;
+  }
+
+  .plugin-prose pre code {
+    padding: 0;
+    background: none;
+    border: none;
+  }
+
+  /* Community plugin docs: plain text with preserved whitespace */
+  p.plugin-prose {
     white-space: pre-wrap;
   }
 </style>

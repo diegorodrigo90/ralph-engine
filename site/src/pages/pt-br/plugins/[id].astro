@@ -2,13 +2,13 @@
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 import PluginDetail from '../../../components/PluginDetail.astro';
 import catalog from '../../../data/plugins.json';
+import { pluginSlug } from '../../../lib/plugin-utils';
 
 const lang = 'pt-br' as const;
-const plugins = catalog.plugins;
 
 export function getStaticPaths() {
   return catalog.plugins.map((plugin: any) => ({
-    params: { id: plugin.id.replace('official.', '') },
+    params: { id: pluginSlug(plugin) },
     props: { plugin },
   }));
 }
