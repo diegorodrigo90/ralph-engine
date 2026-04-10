@@ -1,5 +1,5 @@
 [package]
-name = "re-cli"
+name = "ralph-engine"
 description = "Plugin-first CLI for agentic coding workflows"
 version.workspace = true
 edition.workspace = true
@@ -8,6 +8,10 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 authors.workspace = true
+
+[lib]
+name = "re_cli"
+path = "src/lib.rs"
 
 [[bin]]
 name = "ralph-engine"
