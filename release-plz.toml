@@ -1,12 +1,11 @@
 [workspace]
-# release-plz creates PR → merge → tag → GitHub Release.
-# Publishing is NOT done by release-plz (publish = false).
-# The manual release.yml workflow handles npm/Homebrew/binary publishing.
+# release-plz creates PR → merge → tag → GitHub Release → publish crates.
+# npm and Homebrew are published by the manual release.yml workflow.
 git_tag_enable = true
 git_release_enable = true
 git_release_draft = false
 git_release_latest = true
-publish = false
+publish = true
 semver_check = false
 pr_labels = ["release"]
 

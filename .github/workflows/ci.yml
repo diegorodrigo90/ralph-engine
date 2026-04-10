@@ -79,10 +79,12 @@ jobs:
         with:
           shared-key: quality-${{ matrix.os }}
       - name: Install repository Node dependencies
+        shell: bash
         run: |
           corepack disable 2>/dev/null || true
           npm ci
       - name: Install site Node dependencies
+        shell: bash
         working-directory: site
         run: npm ci
       - name: Restore pinned coverage tool cache
