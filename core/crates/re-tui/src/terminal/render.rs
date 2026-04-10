@@ -10,7 +10,7 @@
 use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Position, Rect, Size};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Paragraph, Tabs};
+use ratatui::widgets::{Borders, Paragraph, Tabs};
 use ratatui_themekit::builders::ThemedSpan;
 use tui_scrollview::ScrollView;
 
@@ -18,6 +18,7 @@ use crate::theme::ThemeExt;
 
 use super::shell::TuiShell;
 use super::style::style_content_line;
+use super::types::FocusTarget;
 use super::types::{PanelHint, PanelSeverity};
 
 impl TuiShell {
@@ -84,7 +85,20 @@ impl TuiShell {
 
         // Main content: feed blocks or idle dashboard
         if has_feed {
-            self.render_active_tab(frame, zones.activity);
+            // Focus indicator — accent left border when Activity is focused
+            if self.focus == FocusTarget::Activity {
+                let border = self
+                    .theme()
+                    .block_plain()
+                    .borders(Borders::LEFT)
+                    .focused(true)
+                    .build();
+                let inner = border.inner(zones.activity);
+                frame.render_widget(border, zones.activity);
+                self.render_active_tab(frame, inner);
+            } else {
+                self.render_active_tab(frame, zones.activity);
+            }
         } else {
             self.render_idle_dashboard(frame, zones.activity);
         }
@@ -155,6 +169,12 @@ impl TuiShell {
                 .build(),
         ];
 
+        // Project name
+        if !self.config.project_name.is_empty() {
+            spans.push(t.fg_border("  │  ").build());
+            spans.push(t.fg_bright(&self.config.project_name).build());
+        }
+
         if let Some((name, status, sev)) = agent_status {
             let (icon, color) = match sev {
                 PanelSeverity::Success => ("●", t.success()),
@@ -182,15 +202,22 @@ impl TuiShell {
 
         let sep = t.fg_border(" │ ").build();
 
-        let spans = vec![
+        let mut spans = vec![
             t.fg_accent(format!(" ◎ Ralph Engine v{version}"))
                 .bold()
                 .build(),
-            sep.clone(),
-            t.fg_bright(self.config.agent_id.as_str()).build(),
-            sep.clone(),
-            t.badge(format!(" {state_label} "), state_color).build(),
         ];
+
+        // Project name
+        if !self.config.project_name.is_empty() {
+            spans.push(sep.clone());
+            spans.push(t.fg_bright(&self.config.project_name).build());
+        }
+
+        spans.push(sep.clone());
+        spans.push(t.fg_bright(self.config.agent_id.as_str()).build());
+        spans.push(sep.clone());
+        spans.push(t.badge(format!(" {state_label} "), state_color).build());
 
         let mut right_spans: Vec<Span<'_>> = Vec::new();
 

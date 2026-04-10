@@ -1266,6 +1266,7 @@ mod tests {
             title: "test".to_owned(),
             agent_id: "test.agent".to_owned(),
             locale: "en".to_owned(),
+            project_name: String::new(),
         })
     }
 

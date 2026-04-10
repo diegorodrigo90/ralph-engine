@@ -35,6 +35,11 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     let _ = args;
     let has_config = std::path::Path::new(".ralph-engine/config.yaml").exists();
 
+    let project_name = std::env::current_dir()
+        .ok()
+        .and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
+        .unwrap_or_default();
+
     let config = re_tui::TuiConfig {
         title: if has_config {
             i18n::tui_dashboard_title(locale).to_owned()
@@ -43,6 +48,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         },
         agent_id: detect_agent_id(locale),
         locale: locale.to_owned(),
+        project_name,
     };
 
     let mut shell = re_tui::TuiShell::new(config);

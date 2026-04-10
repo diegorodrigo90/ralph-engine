@@ -145,6 +145,8 @@ pub struct TuiConfig {
     pub agent_id: String,
     /// Resolved locale for i18n (e.g. `"en"`, `"pt-br"`).
     pub locale: String,
+    /// Project directory name shown in header (e.g. `"my-project"`).
+    pub project_name: String,
 }
 
 /// Localized labels for TUI rendering.

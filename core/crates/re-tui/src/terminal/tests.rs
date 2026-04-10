@@ -11,6 +11,7 @@ fn empty_shell() -> TuiShell {
         title: "Test".to_owned(),
         agent_id: "test.agent".to_owned(),
         locale: "en".to_owned(),
+        project_name: String::new(),
     })
 }
 
@@ -27,6 +28,7 @@ fn test_shell() -> TuiShell {
         title: "Test Task".to_owned(),
         agent_id: "test.agent".to_owned(),
         locale: "en".to_owned(),
+        project_name: String::new(),
     });
     shell.push_activity(">> Tool Call: search".to_owned());
     shell.push_activity(">> Result: found 3 items".to_owned());
@@ -71,6 +73,7 @@ fn tui_shell_new_has_correct_defaults() {
         title: "Test".to_owned(),
         agent_id: "test.agent".to_owned(),
         locale: "en".to_owned(),
+        project_name: String::new(),
     });
     assert_eq!(shell.state(), TuiState::Running);
     assert_eq!(shell.progress, 0);
@@ -516,6 +519,7 @@ fn render_wide_shows_control_panel_when_active() {
         title: "Fix Bug".to_owned(),
         agent_id: "test.agent".to_owned(),
         locale: "en".to_owned(),
+        project_name: String::new(),
     });
     // Control panel only shows when feed has content (active mode)
     shell
@@ -870,6 +874,22 @@ fn render_idle_shows_dashboard() {
     let mut shell = empty_shell();
     let output = render_to_buffer(&mut shell, 120, 30);
     assert!(output.contains("Ralph"), "idle should show logo");
+}
+
+#[test]
+fn header_shows_project_name() {
+    let mut shell = TuiShell::new(TuiConfig {
+        title: "Test".to_owned(),
+        agent_id: "test.agent".to_owned(),
+        locale: "en".to_owned(),
+        project_name: "my-cool-project".to_owned(),
+    });
+    shell.set_state(TuiState::Complete);
+    let output = render_to_buffer(&mut shell, 120, 30);
+    assert!(
+        output.contains("my-cool-project"),
+        "header should show project name, got:\n{output}"
+    );
 }
 
 #[test]

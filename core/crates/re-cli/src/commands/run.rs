@@ -532,10 +532,16 @@ fn run_with_tui(
         .map_err(|err| CliError::new(err.to_string()))?;
 
     // Set up TUI
+    let project_name = std::env::current_dir()
+        .ok()
+        .and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
+        .unwrap_or_default();
+
     let tui_config = re_tui::TuiConfig {
         title: format!("{} — {}", resolution.canonical_id, resolution.title),
         agent_id: agent_id.to_owned(),
         locale: locale.to_owned(),
+        project_name,
     };
 
     let mut shell = re_tui::TuiShell::new(tui_config);
