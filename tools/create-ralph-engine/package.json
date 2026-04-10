@@ -1,11 +1,10 @@
 {
   "name": "create-ralph-engine-plugin",
-  "private": true,
-  "version": "0.0.0-development",
-  "description": "Plugin scaffolder for Ralph Engine",
+  "version": "0.2.0-alpha.1",
+  "description": "Plugin scaffolder for Ralph Engine — create community plugins with one command",
   "license": "MIT",
   "author": "Diego Rodrigo <diegorodrigo90@gmail.com>",
-  "homepage": "https://ralphengine.com",
+  "homepage": "https://ralphengine.com/guides/plugin-development/",
   "bugs": "https://github.com/diegorodrigo90/ralph-engine/issues",
   "repository": {
     "type": "git",
@@ -13,7 +12,7 @@
     "directory": "tools/create-ralph-engine"
   },
   "engines": {
-    "node": ">=20.19.0 <21"
+    "node": ">=20"
   },
   "files": [
     "README.md",
