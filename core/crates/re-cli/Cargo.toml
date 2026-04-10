@@ -10,6 +10,10 @@ homepage.workspace = true
 authors.workspace = true
 publish = false
 
+# cargo-dist: still generate release binaries even though publish = false
+[package.metadata.dist]
+dist = true
+
 [lib]
 name = "re_cli"
 path = "src/lib.rs"
