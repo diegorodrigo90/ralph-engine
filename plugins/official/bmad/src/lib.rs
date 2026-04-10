@@ -261,74 +261,15 @@ impl PluginRuntime for BmadRuntime {
         work_item_id: &str,
         project_root: &Path,
     ) -> Result<WorkItemResolution, PluginRuntimeError> {
-        // Parse BMAD dot notation: "5.3" → epic 5, story 3
-        let parts: Vec<&str> = work_item_id.split('.').collect();
-        if parts.len() != 2 || parts[0].parse::<u32>().is_err() || parts[1].parse::<u32>().is_err()
-        {
-            return Err(PluginRuntimeError::new(
-                "invalid_work_item_format",
-                format!(
-                    "Expected BMAD format 'N.M' (e.g., '5.3' for epic 5, story 3), got '{work_item_id}'"
-                ),
-            ));
-        }
+        let (epic, story) = parse_dot_notation(work_item_id)?;
 
-        let epic = parts[0];
-        let story = parts[1];
-
-        // Read tracker config to find status file and stories path
         let config_path = project_root.join(".ralph-engine/config.yaml");
         let (tracker_file, stories_path) = read_bmad_paths(&config_path);
 
         let tracker_path = project_root.join(&tracker_file);
         let stories_dir = project_root.join(&stories_path);
 
-        // Look up story in tracker — support multiple BMAD key formats:
-        // "5-3-slug", "5-s3-slug", "5-p3-slug" (s=story, p=planning)
-        let prefixes = [
-            format!("{epic}-{story}-"),
-            format!("{epic}-s{story}-"),
-            format!("{epic}-p{story}-"),
-        ];
-        let exact_keys = [
-            format!("{epic}-{story}:"),
-            format!("{epic}-s{story}:"),
-            format!("{epic}-p{story}:"),
-        ];
-        let mut title = format!("Story {work_item_id}");
-        let mut status = "unknown".to_owned();
-
-        if let Ok(content) = std::fs::read_to_string(&tracker_path) {
-            for line in content.lines() {
-                let trimmed = line.trim();
-                if prefixes.iter().any(|p| trimmed.starts_with(p.as_str()))
-                    || exact_keys.iter().any(|k| trimmed.starts_with(k.as_str()))
-                {
-                    // Extract slug as title: "5-3-some-feature: done" → "some-feature"
-                    if let Some((key, val)) = trimmed.split_once(':') {
-                        let key = key.trim();
-                        status = val.trim().to_owned();
-                        // Remove status comments: "done  # comment" → "done"
-                        if let Some((s, _)) = status.split_once('#') {
-                            status = s.trim().to_owned();
-                        }
-                        let slug = prefixes
-                            .iter()
-                            .find_map(|p| key.strip_prefix(p.as_str()))
-                            .unwrap_or(key);
-                        title = slug.replace('-', " ");
-                        // Capitalize first letter (UTF-8 safe — no byte slicing).
-                        if let Some(first_char) = title.chars().next() {
-                            let rest: String = title.chars().skip(1).collect();
-                            title = format!("{}{rest}", first_char.to_uppercase());
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-
-        // Find story file in stories directory
+        let (title, status) = lookup_story_in_tracker(&tracker_path, epic, story, work_item_id);
         let source_path = find_story_file(&stories_dir, epic, story, work_item_id);
 
         Ok(WorkItemResolution {
@@ -362,59 +303,10 @@ impl PluginRuntime for BmadRuntime {
             )
         })?;
 
-        let mut items = Vec::new();
-        for line in content.lines() {
-            let trimmed = line.trim();
-            // Skip comments, empty lines, epics, and metadata
-            if trimmed.is_empty()
-                || trimmed.starts_with('#')
-                || trimmed.starts_with("epic-")
-                || trimmed.starts_with("generated")
-                || trimmed.starts_with("last_updated")
-                || trimmed.starts_with("project")
-                || trimmed.starts_with("tracking_system")
-                || trimmed.starts_with("story_location")
-                || trimmed.starts_with("development_status")
-            {
-                continue;
-            }
-
-            if let Some((key, val)) = trimmed.split_once(':') {
-                let key = key.trim();
-                let mut status = val.trim().to_owned();
-                // Strip trailing comments
-                if let Some((s, _)) = status.split_once('#') {
-                    status = s.trim().to_owned();
-                }
-
-                // Only show actionable items
-                if !matches!(
-                    status.as_str(),
-                    "backlog" | "ready-for-dev" | "in-progress" | "review"
-                ) {
-                    continue;
-                }
-
-                // Parse key: "5-3-some-feature" → id="5.3", title="some feature"
-                let parts: Vec<&str> = key.splitn(3, '-').collect();
-                if parts.len() >= 2
-                    && parts[0].parse::<u32>().is_ok()
-                    && parts[1].parse::<u32>().is_ok()
-                {
-                    let id = format!("{}.{}", parts[0], parts[1]);
-                    let slug = if parts.len() == 3 { parts[2] } else { "" };
-                    let title = slug.replace('-', " ");
-
-                    let actionable = matches!(status.as_str(), "ready-for-dev" | "todo" | "ready");
-                    items.push(WorkItemSummary {
-                        id,
-                        title,
-                        status,
-                        actionable,
-                    });
-                }
-            }
-        }
+        let items = content
+            .lines()
+            .filter_map(|line| parse_tracker_line_as_work_item(line.trim()))
+            .collect();
 
         Ok(items)
     }
@@ -576,81 +468,7 @@ impl PluginRuntime for BmadRuntime {
             return Vec::new();
         };
 
-        let mut todo = 0usize;
-        let mut doing = 0usize;
-        let mut done = 0usize;
-        for line in content.lines() {
-            let trimmed = line.trim();
-            if trimmed.starts_with('#') || trimmed.is_empty() {
-                continue;
-            }
-            if trimmed.ends_with("done") {
-                done += 1;
-            } else if trimmed.ends_with("in-progress") {
-                doing += 1;
-            } else {
-                todo += 1;
-            }
-        }
-
-        let total = done + doing + todo;
-        let pct = if total > 0 {
-            (done * 100 / total) as u8
-        } else {
-            0
-        };
-
-        // Find in-progress stories
-        let active_stories: Vec<String> = content
-            .lines()
-            .filter_map(|line| {
-                let trimmed = line.trim();
-                if trimmed.ends_with("in-progress") {
-                    trimmed.split(':').next().map(|s| s.trim().to_owned())
-                } else {
-                    None
-                }
-            })
-            .collect();
-
-        // Find ready-for-dev stories (next up)
-        let ready_stories: Vec<String> = content
-            .lines()
-            .filter_map(|line| {
-                let trimmed = line.trim();
-                if trimmed.ends_with("ready-for-dev") {
-                    trimmed.split(':').next().map(|s| s.trim().to_owned())
-                } else {
-                    None
-                }
-            })
-            .take(3) // show max 3 upcoming
-            .collect();
-
-        let mut blocks = vec![
-            re_plugin::TuiBlock::bar("Progress", pct as u32),
-            re_plugin::TuiBlock::metric("Done", done as u32, Some(total as u32)),
-            re_plugin::TuiBlock::metric("Doing", doing as u32, None),
-            re_plugin::TuiBlock::metric("Todo", todo as u32, None),
-        ];
-
-        // Show active stories
-        if !active_stories.is_empty() {
-            blocks.push(re_plugin::TuiBlock::separator());
-            for story in &active_stories {
-                blocks.push(re_plugin::TuiBlock::indicator(
-                    "Active",
-                    story.clone(),
-                    re_plugin::Severity::Warning,
-                ));
-            }
-        }
-
-        // Show next up
-        if !ready_stories.is_empty() {
-            blocks.push(re_plugin::TuiBlock::separator());
-            blocks.push(re_plugin::TuiBlock::list(ready_stories));
-        }
+        let blocks = build_sprint_blocks(&content);
 
         vec![
             re_plugin::TuiPanel {
@@ -719,6 +537,209 @@ impl PluginRuntime for BmadRuntime {
     }
 }
 
+// ── BMAD work item helpers ──────────────────────────────────────
+
+/// Parses BMAD dot notation "N.M" into (epic, story) string slices.
+fn parse_dot_notation(work_item_id: &str) -> Result<(&str, &str), PluginRuntimeError> {
+    let parts: Vec<&str> = work_item_id.split('.').collect();
+    if parts.len() != 2 || parts[0].parse::<u32>().is_err() || parts[1].parse::<u32>().is_err() {
+        return Err(PluginRuntimeError::new(
+            "invalid_work_item_format",
+            format!(
+                "Expected BMAD format 'N.M' (e.g., '5.3' for epic 5, story 3), got '{work_item_id}'"
+            ),
+        ));
+    }
+    Ok((parts[0], parts[1]))
+}
+
+/// Looks up a story in the tracker file and returns (title, status).
+fn lookup_story_in_tracker(
+    tracker_path: &Path,
+    epic: &str,
+    story: &str,
+    work_item_id: &str,
+) -> (String, String) {
+    let prefixes = [
+        format!("{epic}-{story}-"),
+        format!("{epic}-s{story}-"),
+        format!("{epic}-p{story}-"),
+    ];
+    let exact_keys = [
+        format!("{epic}-{story}:"),
+        format!("{epic}-s{story}:"),
+        format!("{epic}-p{story}:"),
+    ];
+    let mut title = format!("Story {work_item_id}");
+    let mut status = "unknown".to_owned();
+
+    let Ok(content) = std::fs::read_to_string(tracker_path) else {
+        return (title, status);
+    };
+
+    for line in content.lines() {
+        let trimmed = line.trim();
+        let matches = prefixes.iter().any(|p| trimmed.starts_with(p.as_str()))
+            || exact_keys.iter().any(|k| trimmed.starts_with(k.as_str()));
+        if !matches {
+            continue;
+        }
+        if let Some((key, val)) = trimmed.split_once(':') {
+            let key = key.trim();
+            status = val.trim().to_owned();
+            if let Some((s, _)) = status.split_once('#') {
+                status = s.trim().to_owned();
+            }
+            let slug = prefixes
+                .iter()
+                .find_map(|p| key.strip_prefix(p.as_str()))
+                .unwrap_or(key);
+            title = capitalize_slug(slug);
+        }
+        break;
+    }
+
+    (title, status)
+}
+
+/// Converts a slug like "some-feature" into "Some feature".
+fn capitalize_slug(slug: &str) -> String {
+    let title = slug.replace('-', " ");
+    let Some(first_char) = title.chars().next() else {
+        return title;
+    };
+    let rest: String = title.chars().skip(1).collect();
+    format!("{}{rest}", first_char.to_uppercase())
+}
+
+/// Parses a single tracker line into a `WorkItemSummary`, if actionable.
+fn parse_tracker_line_as_work_item(trimmed: &str) -> Option<WorkItemSummary> {
+    if is_tracker_metadata_line(trimmed) {
+        return None;
+    }
+
+    let (key, val) = trimmed.split_once(':')?;
+    let key = key.trim();
+    let mut status = val.trim().to_owned();
+    if let Some((s, _)) = status.split_once('#') {
+        status = s.trim().to_owned();
+    }
+
+    if !matches!(
+        status.as_str(),
+        "backlog" | "ready-for-dev" | "in-progress" | "review"
+    ) {
+        return None;
+    }
+
+    let parts: Vec<&str> = key.splitn(3, '-').collect();
+    if parts.len() < 2 || parts[0].parse::<u32>().is_err() || parts[1].parse::<u32>().is_err() {
+        return None;
+    }
+
+    let id = format!("{}.{}", parts[0], parts[1]);
+    let slug = if parts.len() == 3 { parts[2] } else { "" };
+    let title = slug.replace('-', " ");
+    let actionable = matches!(status.as_str(), "ready-for-dev" | "todo" | "ready");
+
+    Some(WorkItemSummary {
+        id,
+        title,
+        status,
+        actionable,
+    })
+}
+
+/// Returns true if the line is a tracker metadata/comment line to skip.
+fn is_tracker_metadata_line(trimmed: &str) -> bool {
+    trimmed.is_empty()
+        || trimmed.starts_with('#')
+        || trimmed.starts_with("epic-")
+        || trimmed.starts_with("generated")
+        || trimmed.starts_with("last_updated")
+        || trimmed.starts_with("project")
+        || trimmed.starts_with("tracking_system")
+        || trimmed.starts_with("story_location")
+        || trimmed.starts_with("development_status")
+}
+
+/// Builds TUI blocks from tracker content for sprint progress display.
+fn build_sprint_blocks(content: &str) -> Vec<re_plugin::TuiBlock> {
+    let (done, doing, todo) = count_sprint_statuses(content);
+    let total = done + doing + todo;
+    let pct = if total > 0 {
+        (done * 100 / total) as u8
+    } else {
+        0
+    };
+
+    let mut blocks = vec![
+        re_plugin::TuiBlock::bar("Progress", u32::from(pct)),
+        re_plugin::TuiBlock::metric("Done", done as u32, Some(total as u32)),
+        re_plugin::TuiBlock::metric("Doing", doing as u32, None),
+        re_plugin::TuiBlock::metric("Todo", todo as u32, None),
+    ];
+
+    let active_stories = stories_with_suffix(content, "in-progress");
+    if !active_stories.is_empty() {
+        blocks.push(re_plugin::TuiBlock::separator());
+        for story in &active_stories {
+            blocks.push(re_plugin::TuiBlock::indicator(
+                "Active",
+                story.clone(),
+                re_plugin::Severity::Warning,
+            ));
+        }
+    }
+
+    let ready_stories: Vec<String> = stories_with_suffix(content, "ready-for-dev")
+        .into_iter()
+        .take(3)
+        .collect();
+    if !ready_stories.is_empty() {
+        blocks.push(re_plugin::TuiBlock::separator());
+        blocks.push(re_plugin::TuiBlock::list(ready_stories));
+    }
+
+    blocks
+}
+
+/// Counts (done, doing, todo) from tracker content lines.
+fn count_sprint_statuses(content: &str) -> (usize, usize, usize) {
+    let mut todo = 0usize;
+    let mut doing = 0usize;
+    let mut done = 0usize;
+    for line in content.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('#') || trimmed.is_empty() {
+            continue;
+        }
+        if trimmed.ends_with("done") {
+            done += 1;
+        } else if trimmed.ends_with("in-progress") {
+            doing += 1;
+        } else {
+            todo += 1;
+        }
+    }
+    (done, doing, todo)
+}
+
+/// Collects story keys whose lines end with the given status suffix.
+fn stories_with_suffix(content: &str, suffix: &str) -> Vec<String> {
+    content
+        .lines()
+        .filter_map(|line| {
+            let trimmed = line.trim();
+            if trimmed.ends_with(suffix) {
+                trimmed.split(':').next().map(|s| s.trim().to_owned())
+            } else {
+                None
+            }
+        })
+        .collect()
+}
+
 // ── BMAD config helpers (plugin-owned sections) ──────────────────
 
 /// Default tracker file path.
@@ -756,37 +777,43 @@ fn extract_yaml_scalar<'a>(content: &'a str, key: &str) -> Option<&'a str> {
 
 /// Extracts the `workflow.instructions` multiline value from config.
 fn extract_workflow_instructions(content: &str) -> Option<String> {
-    let mut in_instructions = false;
-    let mut lines = Vec::new();
+    let mut iter = content.lines();
 
-    for line in content.lines() {
-        if line.trim().starts_with("instructions:") {
-            // Check for inline value: "instructions: some text"
-            let after = line.trim().strip_prefix("instructions:")?.trim();
-            if after == "|" || after.is_empty() {
-                in_instructions = true;
-                continue;
-            }
-            return Some(after.to_owned());
+    // Find the "instructions:" line.
+    let after = loop {
+        let line = iter.next()?;
+        if let Some(rest) = line.trim().strip_prefix("instructions:") {
+            break rest.trim();
         }
+    };
 
-        if in_instructions {
-            // Multi-line block: indented lines until next key at same or lower indent
-            if line.starts_with("    ") || line.starts_with('\t') {
-                lines.push(line.trim_start());
-            } else if line.trim().is_empty() {
-                lines.push("");
-            } else {
-                break;
-            }
-        }
+    // Inline value (not a block scalar).
+    if !after.is_empty() && after != "|" {
+        return Some(after.to_owned());
     }
 
+    // Multi-line block: collect indented lines.
+    let lines = collect_indented_block(&mut iter);
     if lines.is_empty() {
         None
     } else {
         Some(lines.join("\n").trim().to_owned())
     }
+}
+
+/// Collects indented continuation lines from a YAML block scalar.
+fn collect_indented_block<'a>(iter: &mut impl Iterator<Item = &'a str>) -> Vec<&'a str> {
+    let mut lines = Vec::new();
+    for line in iter {
+        if line.starts_with("    ") || line.starts_with('\t') {
+            lines.push(line.trim_start());
+        } else if line.trim().is_empty() {
+            lines.push("");
+        } else {
+            break;
+        }
+    }
+    lines
 }
 
 /// Finds a story file matching the epic.story pattern in the stories directory.

@@ -20,6 +20,7 @@ fn status_unsupported() -> String {
 }
 
 mod agents;
+mod auto_discovery;
 mod capabilities;
 mod checks;
 mod config;
@@ -325,9 +326,6 @@ pub(crate) fn dispatch_command(
     {
         // Plugin commands are dispatched to the plugin runtime.
         if let Some(runtime) = catalog::official_plugin_runtime(plugin_id) {
-            // Pass the command name + remaining args to the plugin.
-            let mut full_args = vec![command_name.to_owned()];
-            full_args.extend(args.iter().cloned());
             return runtime
                 .handle_cli_command(command_name, args)
                 .map_err(|e| CliError::new(e.to_string()));

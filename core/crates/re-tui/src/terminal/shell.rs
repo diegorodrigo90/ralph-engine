@@ -560,6 +560,38 @@ impl TuiShell {
 
     // ── Drip feed ───────────────────────────────────────────────
 
+    /// Computes the hold and appear-delay ticks for drip cadence.
+    fn drip_delay(
+        last_kind: Option<(crate::feed::BlockKind, bool)>,
+        next_kind: crate::feed::BlockKind,
+    ) -> (usize, usize) {
+        let hold = match last_kind {
+            Some((crate::feed::BlockKind::Thinking, true)) => 80,
+            Some((crate::feed::BlockKind::Command, true)) => 100,
+            Some((crate::feed::BlockKind::System, true)) => 40,
+            _ => 0,
+        };
+        let appear_delay = match next_kind {
+            crate::feed::BlockKind::FileEdit => 16,
+            crate::feed::BlockKind::FileRead => 10,
+            crate::feed::BlockKind::AgentText => 20,
+            crate::feed::BlockKind::GatePass | crate::feed::BlockKind::GateFail => 6,
+            _ => 14,
+        };
+        (hold, appear_delay)
+    }
+
+    /// Applies a phase marker string to the indicator panel.
+    fn apply_phase_marker(&mut self, marker: &str) {
+        if let Some(id) = marker.strip_prefix("start:") {
+            self.indicator_panel.start(id);
+        } else if let Some(id) = marker.strip_prefix("pass:") {
+            self.indicator_panel.pass(id);
+        } else if let Some(id) = marker.strip_prefix("fail:") {
+            self.indicator_panel.fail(id, "");
+        }
+    }
+
     /// Enqueues blocks.
     pub fn enqueue_blocks(&mut self, blocks: Vec<crate::feed::FeedBlock>) {
         self.pending_total = blocks.len();
@@ -576,23 +608,8 @@ impl TuiShell {
         self.drip_counter += 1;
 
         let last_kind = self.feed.blocks().last().map(|b| (b.kind, b.active));
-
-        let hold = match last_kind {
-            Some((crate::feed::BlockKind::Thinking, true)) => 80,
-            Some((crate::feed::BlockKind::Command, true)) => 100,
-            Some((crate::feed::BlockKind::System, true)) => 40,
-            _ => 0,
-        };
-
         let next_kind = self.pending_blocks[0].kind;
-        let appear_delay = match next_kind {
-            crate::feed::BlockKind::FileEdit => 16,
-            crate::feed::BlockKind::FileRead => 10,
-            crate::feed::BlockKind::AgentText => 20,
-            crate::feed::BlockKind::GatePass | crate::feed::BlockKind::GateFail => 6,
-            _ => 14,
-        };
-
+        let (hold, appear_delay) = Self::drip_delay(last_kind, next_kind);
         let total_interval = hold + appear_delay;
 
         if hold > 0 && self.drip_counter < hold && self.drip_counter.is_multiple_of(40) {
@@ -635,13 +652,7 @@ impl TuiShell {
             );
 
             if let Some(ref marker) = block.phase_marker {
-                if let Some(id) = marker.strip_prefix("start:") {
-                    self.indicator_panel.start(id);
-                } else if let Some(id) = marker.strip_prefix("pass:") {
-                    self.indicator_panel.pass(id);
-                } else if let Some(id) = marker.strip_prefix("fail:") {
-                    self.indicator_panel.fail(id, "");
-                }
+                self.apply_phase_marker(marker);
             }
 
             self.feed.push_block(block);
@@ -787,49 +798,19 @@ impl TuiShell {
     }
 
     fn handle_typing_key(&mut self, code: KeyCode, modifiers: KeyModifiers) -> PluginKeyAction {
-        // Autocomplete navigation takes priority when the popup is visible.
-        if self.autocomplete.visible {
-            match code {
-                KeyCode::Up => {
-                    self.autocomplete.selected = self.autocomplete.selected.saturating_sub(1);
-                    return PluginKeyAction::Handled;
-                }
-                KeyCode::Down => {
-                    self.autocomplete.selected = (self.autocomplete.selected + 1)
-                        .min(self.autocomplete.filtered.len().saturating_sub(1));
-                    return PluginKeyAction::Handled;
-                }
-                KeyCode::Tab => {
-                    if let Some(cmd) = self.autocomplete.selected_command() {
-                        self.text_input_buffer = cmd;
-                        self.autocomplete.visible = false;
-                    }
-                    return PluginKeyAction::Handled;
-                }
-                KeyCode::Enter => {
-                    if let Some(cmd) = self.autocomplete.selected_command() {
-                        self.text_input_buffer = cmd;
-                    }
-                    // Fall through to normal Enter handling below
-                }
-                KeyCode::Esc => {
-                    // First Esc closes autocomplete popup, keeps focus + buffer.
-                    self.autocomplete.visible = false;
-                    return PluginKeyAction::Handled;
-                }
-                _ => {}
-            }
+        if self.autocomplete.visible
+            && let Some(action) = self.handle_autocomplete_key(code)
+        {
+            return action;
         }
 
         match code {
-            // Ctrl+C → clear all text
             KeyCode::Char('c') if modifiers.contains(KeyModifiers::CONTROL) => {
                 self.save_undo_snapshot();
                 self.text_input_buffer.clear();
                 self.cursor_pos = 0;
                 self.autocomplete.visible = false;
             }
-            // Ctrl+Z → undo last change
             KeyCode::Char('z') if modifiers.contains(KeyModifiers::CONTROL) => {
                 if let Some(prev) = self.input_undo_stack.pop() {
                     self.text_input_buffer = prev;
@@ -837,13 +818,11 @@ impl TuiShell {
                     self.autocomplete.update_filter(&self.text_input_buffer);
                 }
             }
-            // Alt+Enter → insert newline at cursor
             KeyCode::Enter if modifiers.contains(KeyModifiers::ALT) => {
                 self.save_undo_snapshot();
                 self.text_input_buffer.insert(self.cursor_pos, '\n');
                 self.cursor_pos += 1;
             }
-            // Enter → submit full buffer
             KeyCode::Enter => {
                 if !self.text_input_buffer.trim().is_empty() {
                     let text = self.text_input_buffer.trim().to_owned();
@@ -863,20 +842,65 @@ impl TuiShell {
                 self.autocomplete.visible = false;
                 self.input_undo_stack.clear();
             }
-            // Esc → exit input focus (buffer is PRESERVED)
             KeyCode::Esc => {
                 self.focus = FocusTarget::Activity;
                 self.autocomplete.visible = false;
             }
-            // Tab → cycle focus (when autocomplete is not visible)
             KeyCode::Tab => {
                 let has_sidebar = self.sidebar_visible && !self.sidebar_panels.is_empty();
                 self.focus = self.focus.next(has_sidebar, self.input_enabled);
             }
-            // ── Cursor movement ────────────────────────────────────
+            KeyCode::Left | KeyCode::Right | KeyCode::Home | KeyCode::End => {
+                self.handle_cursor_movement(code);
+            }
+            KeyCode::Backspace | KeyCode::Delete | KeyCode::Char(_) => {
+                self.handle_text_editing(code, modifiers);
+            }
+            _ => {}
+        }
+        PluginKeyAction::Handled
+    }
+
+    /// Handles keys when autocomplete popup is visible.
+    /// Returns `Some` if the key was consumed, `None` to fall through.
+    fn handle_autocomplete_key(&mut self, code: KeyCode) -> Option<PluginKeyAction> {
+        match code {
+            KeyCode::Up => {
+                self.autocomplete.selected = self.autocomplete.selected.saturating_sub(1);
+                Some(PluginKeyAction::Handled)
+            }
+            KeyCode::Down => {
+                self.autocomplete.selected = (self.autocomplete.selected + 1)
+                    .min(self.autocomplete.filtered.len().saturating_sub(1));
+                Some(PluginKeyAction::Handled)
+            }
+            KeyCode::Tab => {
+                if let Some(cmd) = self.autocomplete.selected_command() {
+                    self.text_input_buffer = cmd;
+                    self.autocomplete.visible = false;
+                }
+                Some(PluginKeyAction::Handled)
+            }
+            KeyCode::Enter => {
+                if let Some(cmd) = self.autocomplete.selected_command() {
+                    self.text_input_buffer = cmd;
+                }
+                // Fall through to normal Enter handling
+                None
+            }
+            KeyCode::Esc => {
+                self.autocomplete.visible = false;
+                Some(PluginKeyAction::Handled)
+            }
+            _ => None,
+        }
+    }
+
+    /// Handles cursor movement keys (Left, Right, Home, End).
+    fn handle_cursor_movement(&mut self, code: KeyCode) {
+        match code {
             KeyCode::Left => {
                 if self.cursor_pos > 0 {
-                    // Move to previous char boundary (UTF-8 safe)
                     self.cursor_pos -= 1;
                     while !self.text_input_buffer.is_char_boundary(self.cursor_pos) {
                         self.cursor_pos -= 1;
@@ -894,58 +918,84 @@ impl TuiShell {
                 }
             }
             KeyCode::Home => {
-                // Move to start of current line
                 self.cursor_pos = self.text_input_buffer[..self.cursor_pos]
                     .rfind('\n')
                     .map_or(0, |i| i + 1);
             }
             KeyCode::End => {
-                // Move to end of current line
                 self.cursor_pos = self.text_input_buffer[self.cursor_pos..]
                     .find('\n')
                     .map_or(self.text_input_buffer.len(), |i| self.cursor_pos + i);
             }
-            // ── Text editing at cursor ─────────────────────────────
-            KeyCode::Backspace => {
-                if self.cursor_pos > 0 {
-                    self.save_undo_snapshot();
-                    // In collapsed mode (>5 lines), clear all at once
-                    if self.text_input_buffer.lines().count() > 5 {
-                        self.text_input_buffer.clear();
-                        self.cursor_pos = 0;
-                    } else {
-                        let mut prev = self.cursor_pos - 1;
-                        while !self.text_input_buffer.is_char_boundary(prev) {
-                            prev -= 1;
-                        }
-                        self.text_input_buffer.remove(prev);
-                        self.cursor_pos = prev;
-                    }
-                    self.autocomplete.update_filter(&self.text_input_buffer);
-                }
-            }
-            KeyCode::Delete => {
-                if self.cursor_pos < self.text_input_buffer.len() {
-                    self.save_undo_snapshot();
-                    // In collapsed mode (>5 lines), clear all at once
-                    if self.text_input_buffer.lines().count() > 5 {
-                        self.text_input_buffer.clear();
-                        self.cursor_pos = 0;
-                    } else {
-                        self.text_input_buffer.remove(self.cursor_pos);
-                    }
-                    self.autocomplete.update_filter(&self.text_input_buffer);
-                }
-            }
-            KeyCode::Char(c) => {
-                self.save_undo_snapshot();
-                self.text_input_buffer.insert(self.cursor_pos, c);
-                self.cursor_pos += c.len_utf8();
-                self.autocomplete.update_filter(&self.text_input_buffer);
-            }
             _ => {}
         }
-        PluginKeyAction::Handled
+    }
+
+    /// Handles text editing keys (Backspace, Delete, Char).
+    fn handle_text_editing(&mut self, code: KeyCode, _modifiers: KeyModifiers) {
+        match code {
+            KeyCode::Backspace => self.delete_char_before_cursor(),
+            KeyCode::Delete => self.delete_char_after_cursor(),
+            KeyCode::Char(c) => self.insert_char_at_cursor(c),
+            _ => {}
+        }
+    }
+
+    /// Deletes the character before the cursor (Backspace behavior).
+    /// When the input has more than 5 lines (collapsed/pasted content),
+    /// clears the entire buffer instead of deleting one character.
+    fn delete_char_before_cursor(&mut self) {
+        if self.cursor_pos == 0 {
+            return;
+        }
+        self.save_undo_snapshot();
+        if self.should_clear_collapsed_input() {
+            self.clear_input_buffer();
+        } else {
+            let mut prev = self.cursor_pos - 1;
+            while !self.text_input_buffer.is_char_boundary(prev) {
+                prev -= 1;
+            }
+            self.text_input_buffer.remove(prev);
+            self.cursor_pos = prev;
+        }
+        self.autocomplete.update_filter(&self.text_input_buffer);
+    }
+
+    /// Deletes the character after the cursor (Delete key behavior).
+    /// When the input has more than 5 lines (collapsed/pasted content),
+    /// clears the entire buffer instead of deleting one character.
+    fn delete_char_after_cursor(&mut self) {
+        if self.cursor_pos >= self.text_input_buffer.len() {
+            return;
+        }
+        self.save_undo_snapshot();
+        if self.should_clear_collapsed_input() {
+            self.clear_input_buffer();
+        } else {
+            self.text_input_buffer.remove(self.cursor_pos);
+        }
+        self.autocomplete.update_filter(&self.text_input_buffer);
+    }
+
+    /// Inserts a character at the current cursor position and advances the cursor.
+    fn insert_char_at_cursor(&mut self, ch: char) {
+        self.save_undo_snapshot();
+        self.text_input_buffer.insert(self.cursor_pos, ch);
+        self.cursor_pos += ch.len_utf8();
+        self.autocomplete.update_filter(&self.text_input_buffer);
+    }
+
+    /// Returns true when the input buffer has too many lines (pasted/collapsed content)
+    /// and should be cleared entirely on the next delete action.
+    fn should_clear_collapsed_input(&self) -> bool {
+        self.text_input_buffer.lines().count() > 5
+    }
+
+    /// Clears the entire input buffer and resets the cursor to the start.
+    fn clear_input_buffer(&mut self) {
+        self.text_input_buffer.clear();
+        self.cursor_pos = 0;
     }
 
     /// Saves current buffer to the undo stack (max 50 entries).

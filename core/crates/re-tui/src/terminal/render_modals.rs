@@ -210,35 +210,8 @@ impl TuiShell {
         lines.push(Line::raw(""));
 
         // Inline agent status row — all agents on one line (Model B: uses is_agent flag)
-        let mut agent_spans: Vec<ratatui::text::Span<'_>> = vec![t.fg_dim("  ").build()];
-        let mut found_agents = false;
-        for panel in &self.sidebar_panels {
-            if !panel.is_agent {
-                continue;
-            }
-            found_agents = true;
-            let (icon, icon_color) = self.plugin_status_icon(panel);
-            let name = panel.title.to_lowercase();
-            let status = panel
-                .items
-                .iter()
-                .find(|i| i.hint == super::types::PanelHint::Indicator)
-                .and_then(|i| i.value.as_deref())
-                .unwrap_or("—")
-                .to_lowercase();
-
-            if agent_spans.len() > 1 {
-                agent_spans.push(t.fg_dim("    ").build());
-            }
-            agent_spans.push(
-                ratatui_themekit::builders::ThemedSpan::with_color(format!("{icon} "), icon_color)
-                    .bold()
-                    .build(),
-            );
-            agent_spans.push(t.fg_text(format!("{name} {status}")).build());
-        }
-        if found_agents {
-            lines.push(Line::from(agent_spans));
+        if let Some(agent_line) = self.build_idle_agent_line(t) {
+            lines.push(agent_line);
             lines.push(Line::raw(""));
         }
 
@@ -284,6 +257,41 @@ impl TuiShell {
         );
 
         frame.render_widget(Paragraph::new(lines), area);
+    }
+
+    /// Builds the inline agent status line for the idle dashboard.
+    /// Returns `None` if no agent panels are present.
+    fn build_idle_agent_line<'a>(&'a self, t: &'a dyn crate::theme::Theme) -> Option<Line<'a>> {
+        let mut spans: Vec<ratatui::text::Span<'_>> = vec![t.fg_dim("  ").build()];
+        let mut found = false;
+
+        for panel in &self.sidebar_panels {
+            if !panel.is_agent {
+                continue;
+            }
+            found = true;
+            let (icon, icon_color) = self.plugin_status_icon(panel);
+            let name = panel.title.to_lowercase();
+            let status = panel
+                .items
+                .iter()
+                .find(|i| i.hint == super::types::PanelHint::Indicator)
+                .and_then(|i| i.value.as_deref())
+                .unwrap_or("\u{2014}")
+                .to_lowercase();
+
+            if spans.len() > 1 {
+                spans.push(t.fg_dim("    ").build());
+            }
+            spans.push(
+                ratatui_themekit::builders::ThemedSpan::with_color(format!("{icon} "), icon_color)
+                    .bold()
+                    .build(),
+            );
+            spans.push(t.fg_text(format!("{name} {status}")).build());
+        }
+
+        if found { Some(Line::from(spans)) } else { None }
     }
 
     /// Renders and ticks down active toast notifications.

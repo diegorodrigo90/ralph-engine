@@ -205,6 +205,54 @@ pub(super) struct CliLocaleCatalog {
     pub tui_paste_chars: &'static str,
     pub tui_file_label: &'static str,
 
+    // ── TUI labels (moved from inline if/else to i18n TOML) ────
+    pub tui_cmd_list: &'static str,
+    pub tui_cmd_run: &'static str,
+    pub tui_cmd_status: &'static str,
+    pub tui_cmd_theme: &'static str,
+    pub tui_cmd_config: &'static str,
+    pub tui_cmd_plugins: &'static str,
+    pub tui_cmd_help: &'static str,
+
+    pub run_acceptance_accepted: &'static str,
+    pub run_loop_completed: &'static str,
+    pub run_feedback_saved: &'static str,
+    pub run_feedback_error: &'static str,
+    pub run_agent_exited: &'static str,
+
+    pub tui_press_any_key: &'static str,
+    pub tui_quit_title: &'static str,
+    pub tui_quit_question: &'static str,
+    pub tui_modal_open_hint: &'static str,
+    pub tui_state_running: &'static str,
+    pub tui_state_paused: &'static str,
+    pub tui_state_complete: &'static str,
+    pub tui_state_error: &'static str,
+    pub tui_pause_label: &'static str,
+    pub tui_help_label: &'static str,
+    pub tui_quit_label: &'static str,
+    pub tui_control_state: &'static str,
+    pub tui_control_work: &'static str,
+    pub tui_tools_label: &'static str,
+    pub tui_lines_label: &'static str,
+    pub tui_progress_label: &'static str,
+    pub tui_logo_tagline: &'static str,
+    pub tui_you_label: &'static str,
+    pub tui_no_agent_message: &'static str,
+    pub tui_extra_usage_label: &'static str,
+    pub tui_nav_focus_blocks: &'static str,
+    pub tui_nav_scroll_lines: &'static str,
+    pub tui_nav_scroll_pages: &'static str,
+    pub tui_nav_follow_mode: &'static str,
+    pub tui_nav_scroll_top: &'static str,
+    pub tui_action_expand: &'static str,
+    pub tui_action_copy: &'static str,
+    pub tui_action_clear_focus: &'static str,
+    pub tui_action_toggle_sidebar: &'static str,
+    pub tui_action_agent_switcher: &'static str,
+    pub tui_action_this_help: &'static str,
+    pub tui_action_quit: &'static str,
+
     // ── Demo (debug only) ───────────────────────────────────────
     pub demo_story_title: &'static str,
     pub demo_workflow_info: &'static str,
@@ -640,6 +688,11 @@ catalog_str!(run_missing_workflow_plugin, run_missing_workflow_plugin);
 catalog_str!(run_missing_agent_plugin, run_missing_agent_plugin);
 catalog_str!(run_workflow_no_runtime, run_workflow_no_runtime);
 catalog_str!(run_agent_no_runtime, run_agent_no_runtime);
+catalog_str!(run_acceptance_accepted, run_acceptance_accepted);
+catalog_str!(run_loop_completed, run_loop_completed);
+catalog_str!(run_feedback_saved, run_feedback_saved);
+catalog_str!(run_feedback_error, run_feedback_error);
+catalog_str!(run_agent_exited, run_agent_exited);
 catalog_str!(run_autonomous_rejected, run_autonomous_rejected);
 catalog_str!(run_cwd_error, run_cwd_error);
 catalog_str!(run_autonomous_warning, run_autonomous_warning);
@@ -719,7 +772,6 @@ catalog_str!(hooks_plan_heading, hooks_plan_heading);
 // Additional keys exist in the TOML for future terminal.rs i18n refactor.
 catalog_str!(tui_dashboard_title, tui_dashboard_title);
 catalog_str!(tui_no_project_title, tui_no_project_title);
-catalog_str!(tui_no_project_label, tui_no_project_label);
 catalog_str!(tui_no_agent_label, tui_no_agent_label);
 catalog_str!(tui_project_configured, tui_project_configured);
 catalog_str!(tui_no_project_found, tui_no_project_found);
@@ -739,6 +791,51 @@ catalog_str!(tui_unknown_command, tui_unknown_command);
 catalog_str!(tui_type_help_hint, tui_type_help_hint);
 catalog_str!(tui_already_initialized, tui_already_initialized);
 catalog_str!(tui_project_initialized, tui_project_initialized);
+catalog_str!(tui_pasted_text, tui_pasted_text);
+catalog_str!(tui_paste_lines, tui_paste_lines);
+catalog_str!(tui_paste_chars, tui_paste_chars);
+catalog_str!(tui_file_label, tui_file_label);
+catalog_str!(tui_press_any_key, tui_press_any_key);
+catalog_str!(tui_quit_title, tui_quit_title);
+catalog_str!(tui_quit_question, tui_quit_question);
+catalog_str!(tui_modal_open_hint, tui_modal_open_hint);
+catalog_str!(tui_state_running, tui_state_running);
+catalog_str!(tui_state_paused, tui_state_paused);
+catalog_str!(tui_state_complete, tui_state_complete);
+catalog_str!(tui_state_error, tui_state_error);
+catalog_str!(tui_pause_label, tui_pause_label);
+catalog_str!(tui_help_label, tui_help_label);
+catalog_str!(tui_quit_label, tui_quit_label);
+catalog_str!(tui_control_state, tui_control_state);
+catalog_str!(tui_control_work, tui_control_work);
+catalog_str!(tui_tools_label, tui_tools_label);
+catalog_str!(tui_lines_label, tui_lines_label);
+catalog_str!(tui_progress_label, tui_progress_label);
+catalog_str!(tui_logo_tagline, tui_logo_tagline);
+catalog_str!(tui_you_label, tui_you_label);
+catalog_str!(tui_no_agent_message, tui_no_agent_message);
+catalog_str!(tui_extra_usage_label, tui_extra_usage_label);
+catalog_str!(tui_nav_focus_blocks, tui_nav_focus_blocks);
+catalog_str!(tui_nav_scroll_lines, tui_nav_scroll_lines);
+catalog_str!(tui_nav_scroll_pages, tui_nav_scroll_pages);
+catalog_str!(tui_nav_follow_mode, tui_nav_follow_mode);
+catalog_str!(tui_nav_scroll_top, tui_nav_scroll_top);
+catalog_str!(tui_action_expand, tui_action_expand);
+catalog_str!(tui_action_copy, tui_action_copy);
+catalog_str!(tui_action_clear_focus, tui_action_clear_focus);
+catalog_str!(tui_action_toggle_sidebar, tui_action_toggle_sidebar);
+catalog_str!(tui_action_agent_switcher, tui_action_agent_switcher);
+catalog_str!(tui_action_this_help, tui_action_this_help);
+catalog_str!(tui_action_quit, tui_action_quit);
+
+// ── Dashboard command descriptions ──────────────────────────────
+catalog_str!(tui_cmd_list, tui_cmd_list);
+catalog_str!(tui_cmd_run, tui_cmd_run);
+catalog_str!(tui_cmd_status, tui_cmd_status);
+catalog_str!(tui_cmd_theme, tui_cmd_theme);
+catalog_str!(tui_cmd_config, tui_cmd_config);
+catalog_str!(tui_cmd_plugins, tui_cmd_plugins);
+catalog_str!(tui_cmd_help, tui_cmd_help);
 
 // ── Demo accessors (debug only) ─────────────────────────────────
 #[cfg(debug_assertions)]

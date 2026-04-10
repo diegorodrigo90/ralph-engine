@@ -14,16 +14,18 @@ use crate::CliError;
 use crate::catalog;
 use crate::i18n;
 
-/// Built-in slash commands available in the dashboard.
-const DASHBOARD_COMMANDS: &[(&str, &str)] = &[
-    ("list", "Available work items"),
-    ("run", "Start autonomous loop"),
-    ("status", "Runtime health check"),
-    ("theme", "Change theme"),
-    ("config", "Show configuration"),
-    ("plugins", "Active plugins"),
-    ("help", "All commands"),
-];
+/// Built-in slash commands available in the dashboard (localized).
+fn dashboard_commands(locale: &str) -> Vec<(&'static str, &'static str)> {
+    vec![
+        ("list", i18n::tui_cmd_list(locale)),
+        ("run", i18n::tui_cmd_run(locale)),
+        ("status", i18n::tui_cmd_status(locale)),
+        ("theme", i18n::tui_cmd_theme(locale)),
+        ("config", i18n::tui_cmd_config(locale)),
+        ("plugins", i18n::tui_cmd_plugins(locale)),
+        ("help", i18n::tui_cmd_help(locale)),
+    ]
+}
 
 /// Executes the TUI dashboard.
 #[cfg_attr(coverage_nightly, coverage(off))]
@@ -35,50 +37,49 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     let _ = args;
     let has_config = std::path::Path::new(".ralph-engine/config.yaml").exists();
 
-    let project_name = std::env::current_dir()
-        .ok()
-        .and_then(|p| p.file_name().map(|n| n.to_string_lossy().into_owned()))
-        .unwrap_or_default();
+    let project_name = super::auto_discovery::current_project_name();
 
-    let config = re_tui::TuiConfig {
+    // Load project config once — used for agent ID and command prefix
+    let project_config = super::runtime_state::load_project_config().ok();
+
+    let agent_id = project_config
+        .as_ref()
+        .and_then(|c| c.run.agent_id)
+        .unwrap_or_else(|| i18n::tui_no_agent_label(locale))
+        .to_owned();
+
+    let prefix = project_config
+        .as_ref()
+        .and_then(|c| c.run.agent_plugin)
+        .map(catalog::agent_command_prefix)
+        .unwrap_or_else(|| "/".to_owned());
+
+    let tui_config = re_tui::TuiConfig {
         title: if has_config {
             i18n::tui_dashboard_title(locale).to_owned()
         } else {
             i18n::tui_no_project_title(locale).to_owned()
         },
-        agent_id: detect_agent_id(locale),
+        agent_id,
         locale: locale.to_owned(),
         project_name,
     };
 
-    let mut shell = re_tui::TuiShell::new(config);
+    let mut shell = re_tui::TuiShell::new(tui_config);
     shell.load_theme_preference();
     shell.set_labels(build_labels(locale));
     // Dashboard starts idle (no agent running)
     shell.set_state(re_tui::TuiState::Complete);
     let cwd = std::env::current_dir().unwrap_or_default();
 
-    // Auto-discover: enable input bar if any plugin requests it
-    if catalog::any_plugin_wants_input_bar() {
-        shell.enable_input();
-    } else {
-        // Dashboard always has input for slash commands
-        shell.enable_input();
-    }
+    // Dashboard always has input for slash commands
+    shell.enable_input();
 
-    // Auto-discover: command prefix from configured agent plugin (Model B)
-    let prefix = if let Ok(config) = super::runtime_state::load_project_config() {
-        config
-            .run
-            .agent_plugin
-            .map(catalog::agent_command_prefix)
-            .unwrap_or_else(|| "/".to_owned())
-    } else {
-        "/".to_owned()
-    };
+    // Auto-discover plugin panels, hints, and agent commands
+    super::auto_discovery::configure_shell_from_plugins(&mut shell, &cwd, prefix.clone());
 
-    // Register built-in dashboard commands for autocomplete
-    let mut commands: Vec<re_tui::CommandEntry> = DASHBOARD_COMMANDS
+    // Register built-in dashboard commands for autocomplete (dashboard-specific)
+    let mut commands: Vec<re_tui::CommandEntry> = dashboard_commands(locale)
         .iter()
         .map(|(name, desc)| re_tui::CommandEntry {
             name: (*name).to_owned(),
@@ -88,20 +89,7 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
         })
         .collect();
 
-    // Add plugin-discovered agent commands (auto-discovery)
-    let agent_commands: Vec<re_tui::CommandEntry> =
-        catalog::collect_agent_commands_from_plugins(&cwd)
-            .into_iter()
-            .map(|cmd| re_tui::CommandEntry {
-                name: cmd.name.clone(),
-                description: cmd.description,
-                source: re_tui::CommandSource::Agent,
-                source_name: cmd.plugin_id,
-            })
-            .collect();
-    commands.extend(agent_commands);
-
-    // Add plugin-contributed CLI commands (auto-discovery)
+    // Add plugin-contributed CLI commands (dashboard-specific)
     let cli_commands: Vec<re_tui::CommandEntry> = catalog::collect_cli_contributions_from_plugins()
         .into_iter()
         .map(|(plugin_id, contrib)| re_tui::CommandEntry {
@@ -116,34 +104,6 @@ pub fn execute(args: &[String], locale: &str) -> Result<String, CliError> {
     if !commands.is_empty() {
         shell.set_agent_commands(commands, prefix);
     }
-
-    // Auto-discover panels from plugins (kind used for is_agent — Model B)
-    let all_panels = catalog::collect_tui_panels_from_plugins();
-    let sidebar_panels: Vec<re_tui::SidebarPanel> = all_panels
-        .into_iter()
-        .map(|(plugin_id, kind, panel)| re_tui::SidebarPanel {
-            title: panel.title,
-            items: panel.blocks.into_iter().map(convert_tui_block).collect(),
-            is_agent: kind == re_plugin::PluginKind::AgentRuntime,
-            plugin_id,
-        })
-        .collect();
-    shell.set_sidebar_panels(sidebar_panels);
-
-    // Auto-discover idle hints from plugins (Model B — no hardcoded commands)
-    let plugin_hints = catalog::collect_idle_hints_from_plugins();
-    let idle_hints: Vec<re_tui::IdleHint> = plugin_hints
-        .into_iter()
-        .map(|h| re_tui::IdleHint {
-            command: h.command,
-            description: h.description,
-        })
-        .collect();
-    shell.set_idle_hints(idle_hints);
-
-    // Auto-discover keybindings from plugins
-    let keybindings = catalog::collect_tui_keybindings_from_plugins();
-    shell.set_plugin_keybindings(keybindings);
 
     // Show project status on startup
     push_project_status(&mut shell, has_config, locale);
@@ -276,7 +236,7 @@ fn handle_dashboard_command(shell: &mut re_tui::TuiShell, input: &str, locale: &
                 re_tui::BlockKind::System,
                 i18n::tui_available_commands(locale).to_owned(),
             );
-            for (name, desc) in DASHBOARD_COMMANDS {
+            for (name, desc) in dashboard_commands(locale) {
                 block.push_content(format!("/{name:<12} {desc}"));
             }
             shell.feed_mut().push_block(block);
@@ -368,17 +328,43 @@ fn push_project_status(shell: &mut re_tui::TuiShell, has_config: bool, locale: &
     }
 }
 
-/// Detects the configured agent ID from project config, if available.
-fn detect_agent_id(locale: &str) -> String {
-    if let Ok(config) = super::runtime_state::load_project_config() {
-        config
-            .run
-            .agent_id
-            .unwrap_or(i18n::tui_no_agent_label(locale))
-            .to_owned()
-    } else {
-        i18n::tui_no_project_label(locale).to_owned()
-    }
+/// Builds the navigation key bindings from the i18n system.
+fn build_nav_keys(locale: &str) -> Vec<(String, String)> {
+    vec![
+        ("j/k".into(), i18n::tui_nav_focus_blocks(locale).to_owned()),
+        ("↑↓".into(), i18n::tui_nav_scroll_lines(locale).to_owned()),
+        (
+            "PgUp/PgDn".into(),
+            i18n::tui_nav_scroll_pages(locale).to_owned(),
+        ),
+        (
+            "G / End".into(),
+            i18n::tui_nav_follow_mode(locale).to_owned(),
+        ),
+        ("Home".into(), i18n::tui_nav_scroll_top(locale).to_owned()),
+    ]
+}
+
+/// Builds the action key bindings from the i18n system.
+fn build_action_keys(locale: &str) -> Vec<(String, String)> {
+    vec![
+        ("⏎ Enter".into(), i18n::tui_action_expand(locale).to_owned()),
+        ("y".into(), i18n::tui_action_copy(locale).to_owned()),
+        (
+            "⎋ Esc".into(),
+            i18n::tui_action_clear_focus(locale).to_owned(),
+        ),
+        (
+            "F2".into(),
+            i18n::tui_action_toggle_sidebar(locale).to_owned(),
+        ),
+        (
+            "Ctrl+A".into(),
+            i18n::tui_action_agent_switcher(locale).to_owned(),
+        ),
+        ("?".into(), i18n::tui_action_this_help(locale).to_owned()),
+        ("q".into(), i18n::tui_action_quit(locale).to_owned()),
+    ]
 }
 
 /// Builds localized TUI labels from the CLI i18n system.
@@ -395,141 +381,32 @@ fn build_labels(locale: &str) -> re_tui::TuiLabels {
         actions_heading: i18n::tui_help_commands_heading(locale).to_owned(),
         plugins_heading: i18n::tui_help_plugin_keys(locale).to_owned(),
         slash_hint: i18n::tui_help_type_slash(locale).to_owned(),
-        press_any_key: if locale == "pt-br" {
-            "Pressione qualquer tecla para fechar".to_owned()
-        } else {
-            "Press any key to close".to_owned()
-        },
-        quit_title: if locale == "pt-br" {
-            "Sair".to_owned()
-        } else {
-            "Quit".to_owned()
-        },
-        quit_question: if locale == "pt-br" {
-            "Sair?".to_owned()
-        } else {
-            "Quit?".to_owned()
-        },
-        modal_open_hint: if locale == "pt-br" {
-            "Modal aberto — pressione uma tecla".to_owned()
-        } else {
-            "Modal open — press a key".to_owned()
-        },
-        state_running: if locale == "pt-br" {
-            "EXECUTANDO"
-        } else {
-            "RUNNING"
-        }
-        .to_owned(),
-        state_paused: if locale == "pt-br" {
-            "PAUSADO"
-        } else {
-            "PAUSED"
-        }
-        .to_owned(),
-        state_complete: if locale == "pt-br" {
-            "COMPLETO"
-        } else {
-            "COMPLETE"
-        }
-        .to_owned(),
-        state_error: if locale == "pt-br" { "ERRO" } else { "ERROR" }.to_owned(),
-        pause_label: if locale == "pt-br" { "pausar" } else { "pause" }.to_owned(),
-        help_label: if locale == "pt-br" { "ajuda" } else { "help" }.to_owned(),
-        quit_label: if locale == "pt-br" { "sair" } else { "quit" }.to_owned(),
-        control_state: if locale == "pt-br" { "Estado" } else { "State" }.to_owned(),
-        control_work: if locale == "pt-br" { "Tarefa" } else { "Work" }.to_owned(),
-        tools_label: if locale == "pt-br" {
-            "Ferramentas"
-        } else {
-            "Tools"
-        }
-        .to_owned(),
-        lines_label: if locale == "pt-br" { "Linhas" } else { "Lines" }.to_owned(),
-        progress_label: if locale == "pt-br" {
-            "Progresso"
-        } else {
-            "Progress"
-        }
-        .to_owned(),
-        logo_tagline: if locale == "pt-br" {
-            "Loop Autônomo de Desenvolvimento IA".to_owned()
-        } else {
-            "Autonomous AI Dev Loop".to_owned()
-        },
-        nav_keys: if locale == "pt-br" {
-            vec![
-                ("j/k".into(), "Focar blocos".into()),
-                ("↑↓".into(), "Rolar linhas".into()),
-                ("PgUp/PgDn".into(), "Rolar páginas".into()),
-                ("G / End".into(), "Seguir".into()),
-                ("Home".into(), "Início".into()),
-            ]
-        } else {
-            vec![
-                ("j/k".into(), "Focus blocks".into()),
-                ("↑↓".into(), "Scroll lines".into()),
-                ("PgUp/PgDn".into(), "Scroll pages".into()),
-                ("G / End".into(), "Follow mode".into()),
-                ("Home".into(), "Scroll to top".into()),
-            ]
-        },
-        action_keys: if locale == "pt-br" {
-            vec![
-                ("⏎ Enter".into(), "Expandir/recolher".into()),
-                ("y".into(), "Copiar bloco".into()),
-                ("⎋ Esc".into(), "Limpar foco".into()),
-                ("F2".into(), "Alternar sidebar".into()),
-                ("Ctrl+A".into(), "Trocar agente".into()),
-                ("?".into(), "Esta ajuda".into()),
-                ("q".into(), "Sair".into()),
-            ]
-        } else {
-            vec![
-                ("⏎ Enter".into(), "Expand/collapse".into()),
-                ("y".into(), "Copy block".into()),
-                ("⎋ Esc".into(), "Clear focus".into()),
-                ("F2".into(), "Toggle sidebar".into()),
-                ("Ctrl+A".into(), "Agent switcher".into()),
-                ("?".into(), "This help".into()),
-                ("q".into(), "Quit".into()),
-            ]
-        },
-        you_label: if locale == "pt-br" {
-            "Você".to_owned()
-        } else {
-            "You".to_owned()
-        },
-        no_agent_message: if locale == "pt-br" {
-            "Nenhum agente conectado. Use /run para iniciar orquestração.".to_owned()
-        } else {
-            "No agent connected. Use /run to start orchestration.".to_owned()
-        },
-        extra_usage_label: if locale == "pt-br" {
-            "uso extra".to_owned()
-        } else {
-            "extra usage".to_owned()
-        },
-        pasted_text_label: if locale == "pt-br" {
-            "Texto colado".to_owned()
-        } else {
-            "Pasted text".to_owned()
-        },
-        paste_lines_suffix: if locale == "pt-br" {
-            "linhas".to_owned()
-        } else {
-            "lines".to_owned()
-        },
-        paste_chars_suffix: if locale == "pt-br" {
-            "caracteres".to_owned()
-        } else {
-            "chars".to_owned()
-        },
-        file_label: if locale == "pt-br" {
-            "Arquivo".to_owned()
-        } else {
-            "File".to_owned()
-        },
+        press_any_key: i18n::tui_press_any_key(locale).to_owned(),
+        quit_title: i18n::tui_quit_title(locale).to_owned(),
+        quit_question: i18n::tui_quit_question(locale).to_owned(),
+        modal_open_hint: i18n::tui_modal_open_hint(locale).to_owned(),
+        state_running: i18n::tui_state_running(locale).to_owned(),
+        state_paused: i18n::tui_state_paused(locale).to_owned(),
+        state_complete: i18n::tui_state_complete(locale).to_owned(),
+        state_error: i18n::tui_state_error(locale).to_owned(),
+        pause_label: i18n::tui_pause_label(locale).to_owned(),
+        help_label: i18n::tui_help_label(locale).to_owned(),
+        quit_label: i18n::tui_quit_label(locale).to_owned(),
+        control_state: i18n::tui_control_state(locale).to_owned(),
+        control_work: i18n::tui_control_work(locale).to_owned(),
+        tools_label: i18n::tui_tools_label(locale).to_owned(),
+        lines_label: i18n::tui_lines_label(locale).to_owned(),
+        progress_label: i18n::tui_progress_label(locale).to_owned(),
+        logo_tagline: i18n::tui_logo_tagline(locale).to_owned(),
+        nav_keys: build_nav_keys(locale),
+        action_keys: build_action_keys(locale),
+        you_label: i18n::tui_you_label(locale).to_owned(),
+        no_agent_message: i18n::tui_no_agent_message(locale).to_owned(),
+        extra_usage_label: i18n::tui_extra_usage_label(locale).to_owned(),
+        pasted_text_label: i18n::tui_pasted_text(locale).to_owned(),
+        paste_lines_suffix: i18n::tui_paste_lines(locale).to_owned(),
+        paste_chars_suffix: i18n::tui_paste_chars(locale).to_owned(),
+        file_label: i18n::tui_file_label(locale).to_owned(),
     }
 }
 
@@ -950,34 +827,4 @@ fn populate_demo_feed(shell: &mut re_tui::TuiShell, locale: &str) {
     shell.set_cost_label("$0.00".to_owned());
     shell.enqueue_blocks(blocks);
     shell.toast_info(i18n::demo_toast(locale).to_owned());
-}
-
-/// Converts a plugin `TuiBlock` to the TUI's `PanelItem`.
-///
-/// The CLI layer bridges the gap: plugins use `re_plugin::TuiBlock`
-/// Converts plugin `TuiBlock` to TUI `PanelItem` (struct-to-struct).
-pub(crate) fn convert_tui_block(block: re_plugin::TuiBlock) -> re_tui::PanelItem {
-    re_tui::PanelItem {
-        label: block.label,
-        value: block.value,
-        hint: match block.hint {
-            re_plugin::RenderHint::Inline => re_tui::PanelHint::Inline,
-            re_plugin::RenderHint::Bar => re_tui::PanelHint::Bar,
-            re_plugin::RenderHint::Indicator => re_tui::PanelHint::Indicator,
-            re_plugin::RenderHint::Pairs => re_tui::PanelHint::Pairs,
-            re_plugin::RenderHint::List => re_tui::PanelHint::List,
-            re_plugin::RenderHint::Text => re_tui::PanelHint::Text,
-            re_plugin::RenderHint::Separator => re_tui::PanelHint::Separator,
-        },
-        severity: match block.severity {
-            re_plugin::Severity::Success => re_tui::PanelSeverity::Success,
-            re_plugin::Severity::Warning => re_tui::PanelSeverity::Warning,
-            re_plugin::Severity::Error => re_tui::PanelSeverity::Error,
-            re_plugin::Severity::Neutral => re_tui::PanelSeverity::Neutral,
-        },
-        numeric: block.numeric,
-        total: block.total,
-        pairs: block.pairs,
-        items: block.items,
-    }
 }

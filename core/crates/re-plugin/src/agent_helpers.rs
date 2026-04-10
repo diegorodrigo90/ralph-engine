@@ -137,47 +137,52 @@ pub fn read_stream_json_events(stdout: Option<std::process::ChildStdout>) -> Str
             continue;
         }
 
-        // Forward text_delta content to stderr for user visibility.
-        if trimmed.contains("\"text_delta\"") {
-            if let Some(text) = extract_json_string_value(trimmed, "text") {
-                eprint!("{text}");
-                // Keep last ~500 chars as summary for the result message.
-                last_text.push_str(&text);
-                if last_text.len() > 2000 {
-                    // Truncate to last ~1500 chars, safe for multi-byte UTF-8.
-                    let keep: String = last_text
-                        .chars()
-                        .rev()
-                        .take(1500)
-                        .collect::<Vec<_>>()
-                        .into_iter()
-                        .rev()
-                        .collect();
-                    last_text = keep;
-                }
-            }
-        }
-        // Show tool usage summaries.
-        else if trimmed.contains("\"tool_use\"") && trimmed.contains("\"name\"") {
-            if let Some(tool_name) = extract_json_string_value(trimmed, "name") {
-                eprintln!("\n[tool: {tool_name}]");
-            }
-        }
-        // Capture the final result event.
-        else if trimmed.contains("\"type\":\"result\"") {
-            if trimmed.contains("\"is_error\":true") {
-                eprintln!("\n[agent: error]");
-            } else {
-                eprintln!("\n[agent: completed]");
-            }
-        }
+        process_stream_line(trimmed, &mut last_text);
     }
 
     eprintln!();
+    build_summary(&last_text)
+}
 
-    // Return a trimmed summary of what the agent did.
+/// Processes a single stream-JSON line, forwarding output and accumulating text.
+fn process_stream_line(trimmed: &str, last_text: &mut String) {
+    if trimmed.contains("\"text_delta\"") {
+        handle_text_delta(trimmed, last_text);
+    } else if trimmed.contains("\"tool_use\"") && trimmed.contains("\"name\"") {
+        if let Some(tool_name) = extract_json_string_value(trimmed, "name") {
+            eprintln!("\n[tool: {tool_name}]");
+        }
+    } else if trimmed.contains("\"type\":\"result\"") {
+        if trimmed.contains("\"is_error\":true") {
+            eprintln!("\n[agent: error]");
+        } else {
+            eprintln!("\n[agent: completed]");
+        }
+    }
+}
+
+/// Handles a `text_delta` event: prints to stderr and accumulates summary text.
+fn handle_text_delta(trimmed: &str, last_text: &mut String) {
+    if let Some(text) = extract_json_string_value(trimmed, "text") {
+        eprint!("{text}");
+        last_text.push_str(&text);
+        if last_text.len() > 2000 {
+            let keep: String = last_text
+                .chars()
+                .rev()
+                .take(1500)
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .collect();
+            *last_text = keep;
+        }
+    }
+}
+
+/// Builds a truncated UTF-8-safe summary from accumulated text.
+fn build_summary(last_text: &str) -> String {
     let summary = last_text.trim().to_owned();
-    // Truncate safely for multi-byte UTF-8 (no byte-boundary panics).
     let truncated: String = summary.chars().take(500).collect();
     if truncated.len() < summary.len() {
         format!("{truncated}...")

@@ -1602,7 +1602,14 @@ pub fn render_runtime_status_for_locale(status: &RuntimeStatus, locale: &str) ->
 #[must_use]
 pub fn collect_runtime_issues(topology: &RuntimeTopology<'_>) -> Vec<RuntimeIssue> {
     let mut issues = Vec::new();
+    collect_plugin_issues(topology, &mut issues);
+    collect_surface_issues(topology, &mut issues);
+    collect_infrastructure_issues(topology, &mut issues);
+    issues
+}
 
+/// Collects issues for disabled plugins.
+fn collect_plugin_issues(topology: &RuntimeTopology<'_>, issues: &mut Vec<RuntimeIssue>) {
     for plugin in topology.plugins {
         if !plugin.is_enabled() {
             issues.push(RuntimeIssue::new(
@@ -1612,7 +1619,10 @@ pub fn collect_runtime_issues(topology: &RuntimeTopology<'_>) -> Vec<RuntimeIssu
             ));
         }
     }
+}
 
+/// Collects issues for disabled surfaces (capabilities, templates, prompts, agents).
+fn collect_surface_issues(topology: &RuntimeTopology<'_>, issues: &mut Vec<RuntimeIssue>) {
     for capability in topology.capabilities {
         if !capability.is_enabled() {
             issues.push(RuntimeIssue::new(
@@ -1652,7 +1662,10 @@ pub fn collect_runtime_issues(topology: &RuntimeTopology<'_>) -> Vec<RuntimeIssu
             ));
         }
     }
+}
 
+/// Collects issues for disabled infrastructure (checks, providers, policies, hooks, MCP).
+fn collect_infrastructure_issues(topology: &RuntimeTopology<'_>, issues: &mut Vec<RuntimeIssue>) {
     for check in topology.checks {
         if !check.is_enabled() {
             issues.push(RuntimeIssue::new(
@@ -1702,8 +1715,6 @@ pub fn collect_runtime_issues(topology: &RuntimeTopology<'_>) -> Vec<RuntimeIssu
             ));
         }
     }
-
-    issues
 }
 
 /// Renders a human-readable runtime issue summary.
@@ -2314,7 +2325,14 @@ pub fn render_runtime_mcp_launch_plans_for_locale(plans: &[McpLaunchPlan], local
 #[must_use]
 pub fn build_runtime_action_plan(topology: &RuntimeTopology<'_>) -> Vec<RuntimeAction> {
     let mut actions = Vec::new();
+    collect_plugin_actions(topology, &mut actions);
+    collect_surface_actions(topology, &mut actions);
+    collect_infrastructure_actions(topology, &mut actions);
+    actions
+}
 
+/// Collects actions for disabled plugins.
+fn collect_plugin_actions(topology: &RuntimeTopology<'_>, actions: &mut Vec<RuntimeAction>) {
     for plugin in topology.plugins {
         if !plugin.is_enabled() {
             actions.push(RuntimeAction::new(
@@ -2324,7 +2342,10 @@ pub fn build_runtime_action_plan(topology: &RuntimeTopology<'_>) -> Vec<RuntimeA
             ));
         }
     }
+}
 
+/// Collects actions for disabled surfaces (capabilities, templates, prompts, agents).
+fn collect_surface_actions(topology: &RuntimeTopology<'_>, actions: &mut Vec<RuntimeAction>) {
     for capability in topology.capabilities {
         if !capability.is_enabled() {
             actions.push(RuntimeAction::new(
@@ -2367,7 +2388,13 @@ pub fn build_runtime_action_plan(topology: &RuntimeTopology<'_>) -> Vec<RuntimeA
             ));
         }
     }
+}
 
+/// Collects actions for disabled infrastructure (checks, providers, policies, hooks, MCP).
+fn collect_infrastructure_actions(
+    topology: &RuntimeTopology<'_>,
+    actions: &mut Vec<RuntimeAction>,
+) {
     for check in topology.checks {
         if !check.is_enabled() {
             actions.push(RuntimeAction::new(
@@ -2426,8 +2453,6 @@ pub fn build_runtime_action_plan(topology: &RuntimeTopology<'_>) -> Vec<RuntimeA
             ));
         }
     }
-
-    actions
 }
 
 /// Builds a typed runtime configuration patch from the resolved topology.

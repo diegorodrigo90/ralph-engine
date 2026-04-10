@@ -638,51 +638,72 @@ fn find_claude_project_dir(
         ));
     }
 
-    // Claude hashes the project path — scan for directories
-    // and find one that has recent session files
-    let mut best_dir = None;
-    let mut best_time = std::time::SystemTime::UNIX_EPOCH;
-
-    if let Ok(entries) = std::fs::read_dir(&claude_dir) {
-        for entry in entries.flatten() {
-            if !entry.file_type().is_ok_and(|t| t.is_dir()) {
-                continue;
-            }
-            // Check if this dir has .jsonl files
-            if let Ok(files) = std::fs::read_dir(entry.path()) {
-                for file in files.flatten() {
-                    if file.path().extension().is_some_and(|e| e == "jsonl")
-                        && let Ok(meta) = file.metadata()
-                        && let Ok(modified) = meta.modified()
-                        && modified > best_time
-                    {
-                        best_time = modified;
-                        best_dir = Some(entry.path());
-                    }
-                }
-            }
-        }
+    // Check if the project root path hash matches a directory name.
+    if let Some(dir) = find_dir_by_path_hash(&claude_dir, project_root) {
+        return Ok(dir);
     }
 
-    // Also check if the project root path hash matches
-    let canonical = project_root.to_string_lossy().to_string();
-    let hash_prefix = format!("-{}-", canonical.replace('/', "-"));
-    if let Ok(entries) = std::fs::read_dir(&claude_dir) {
-        for entry in entries.flatten() {
-            if let Some(name) = entry.file_name().to_str()
-                && name.contains(&hash_prefix)
-            {
-                return Ok(entry.path());
-            }
-        }
-    }
-
-    best_dir.ok_or_else(|| {
+    // Fall back to the directory with the most recently modified session file.
+    find_dir_by_recent_session(&claude_dir).ok_or_else(|| {
         re_plugin::PluginRuntimeError::new(
             "no_claude_project",
             "No Claude Code project directory found with session files".to_owned(),
         )
     })
+}
+
+/// Finds a project directory whose name contains the path-derived hash prefix.
+fn find_dir_by_path_hash(claude_dir: &Path, project_root: &Path) -> Option<std::path::PathBuf> {
+    let canonical = project_root.to_string_lossy().to_string();
+    let hash_prefix = format!("-{}-", canonical.replace('/', "-"));
+
+    let entries = std::fs::read_dir(claude_dir).ok()?;
+    for entry in entries.flatten() {
+        if entry
+            .file_name()
+            .to_str()
+            .is_some_and(|name| name.contains(&hash_prefix))
+        {
+            return Some(entry.path());
+        }
+    }
+    None
+}
+
+/// Finds the project directory with the most recently modified `.jsonl` session file.
+fn find_dir_by_recent_session(claude_dir: &Path) -> Option<std::path::PathBuf> {
+    let mut best_dir = None;
+    let mut best_time = std::time::SystemTime::UNIX_EPOCH;
+
+    let entries = std::fs::read_dir(claude_dir).ok()?;
+    for entry in entries.flatten() {
+        if !entry.file_type().is_ok_and(|t| t.is_dir()) {
+            continue;
+        }
+        if let Some(modified) = most_recent_jsonl_time(&entry.path())
+            && modified > best_time
+        {
+            best_time = modified;
+            best_dir = Some(entry.path());
+        }
+    }
+    best_dir
+}
+
+/// Returns the most recent modification time of any `.jsonl` file in a directory.
+fn most_recent_jsonl_time(dir: &Path) -> Option<std::time::SystemTime> {
+    let files = std::fs::read_dir(dir).ok()?;
+    let mut best = None;
+    for file in files.flatten() {
+        if file.path().extension().is_some_and(|e| e == "jsonl")
+            && let Ok(meta) = file.metadata()
+            && let Ok(modified) = meta.modified()
+            && best.is_none_or(|b| modified > b)
+        {
+            best = Some(modified);
+        }
+    }
+    best
 }
 
 /// Parses one JSONL line from a Claude session into a `PortableMessage`.

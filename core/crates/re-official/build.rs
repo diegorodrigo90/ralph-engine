@@ -92,61 +92,51 @@ fn generate_registration(plugins: &BTreeMap<String, PluginInfo>) -> String {
     );
 
     for info in plugins.values() {
-        let m = &info.rust_mod;
-        let templates = if info.has_templates {
-            format!("{m}::templates()")
-        } else {
-            "&[]".to_owned()
-        };
-        let prompts = if info.has_prompts {
-            format!("{m}::prompts()")
-        } else {
-            "&[]".to_owned()
-        };
-        let agents = if info.has_agents {
-            format!("{m}::agents()")
-        } else {
-            "&[]".to_owned()
-        };
-        let checks = if info.has_checks {
-            format!("{m}::checks()")
-        } else {
-            "&[]".to_owned()
-        };
-        let providers = if info.has_providers {
-            format!("{m}::providers()")
-        } else {
-            "&[]".to_owned()
-        };
-        let policies = if info.has_policies {
-            format!("{m}::policies()")
-        } else {
-            "&[]".to_owned()
-        };
-        let mcp_servers = if info.has_mcp_servers {
-            format!("{m}::mcp_servers()")
-        } else {
-            "&[]".to_owned()
-        };
-
-        code.push_str(&format!(
-            "        official_plugin_bundle(\n\
-             \x20           {m}::descriptor(),\n\
-             \x20           {templates},\n\
-             \x20           {prompts},\n\
-             \x20           {agents},\n\
-             \x20           {checks},\n\
-             \x20           {providers},\n\
-             \x20           {policies},\n\
-             \x20           {mcp_servers},\n\
-             \x20       ),\n",
-        ));
+        code.push_str(&generate_bundle_entry(info));
     }
 
     code.push_str("    ]\n}\n\n");
+    code.push_str(&generate_runtime_lookup(plugins));
+    code
+}
 
-    // Generate official_plugin_runtime() lookup function
-    code.push_str(
+/// Generates a single `official_plugin_bundle(...)` entry for a plugin.
+fn generate_bundle_entry(info: &PluginInfo) -> String {
+    let m = &info.rust_mod;
+
+    let field_or_empty = |has: bool, method: &str| -> String {
+        if has {
+            format!("{m}::{method}()")
+        } else {
+            "&[]".to_owned()
+        }
+    };
+
+    let templates = field_or_empty(info.has_templates, "templates");
+    let prompts = field_or_empty(info.has_prompts, "prompts");
+    let agents = field_or_empty(info.has_agents, "agents");
+    let checks = field_or_empty(info.has_checks, "checks");
+    let providers = field_or_empty(info.has_providers, "providers");
+    let policies = field_or_empty(info.has_policies, "policies");
+    let mcp_servers = field_or_empty(info.has_mcp_servers, "mcp_servers");
+
+    format!(
+        "        official_plugin_bundle(\n\
+         \x20           {m}::descriptor(),\n\
+         \x20           {templates},\n\
+         \x20           {prompts},\n\
+         \x20           {agents},\n\
+         \x20           {checks},\n\
+         \x20           {providers},\n\
+         \x20           {policies},\n\
+         \x20           {mcp_servers},\n\
+         \x20       ),\n",
+    )
+}
+
+/// Generates the `official_plugin_runtime()` match function.
+fn generate_runtime_lookup(plugins: &BTreeMap<String, PluginInfo>) -> String {
+    let mut code = String::from(
         "/// Returns a boxed `PluginRuntime` for one official plugin, if it provides one.\n\
          #[must_use]\n\
          pub fn official_plugin_runtime(plugin_id: &str) -> Option<Box<dyn re_plugin::PluginRuntime>> {\n\

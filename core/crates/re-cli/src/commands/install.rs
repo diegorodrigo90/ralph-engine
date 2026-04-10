@@ -90,7 +90,8 @@ fn install_plugin(
         && !config.contains(&plugin_id)
     {
         config.push_str(&format!("\n  - id: {plugin_id}\n    activation: enabled\n"));
-        let _ = std::fs::write(config_path, config);
+        std::fs::write(config_path, config)
+            .map_err(|err| CliError::new(format!("Failed to update config: {err}")))?;
     }
 
     Ok(format!(
@@ -119,27 +120,92 @@ fn uninstall_plugin(plugin_ref: &str, locale: &str) -> Result<String, CliError> 
 
     let config_path = Path::new(".ralph-engine/config.yaml");
     if let Ok(config) = std::fs::read_to_string(config_path) {
-        let filtered: Vec<&str> = config
-            .lines()
-            .filter(|line| !line.contains(&plugin_id))
-            .collect();
-        let _ = std::fs::write(config_path, filtered.join("\n"));
+        let filtered = remove_plugin_entry_from_config(&config, &plugin_id);
+        std::fs::write(config_path, filtered)
+            .map_err(|err| CliError::new(format!("Failed to update config: {err}")))?;
     }
 
     Ok(i18n::install_uninstalled(locale, &plugin_id))
 }
 
+/// Removes a plugin entry from config YAML without corrupting other lines.
+///
+/// Only removes lines that are part of the plugin's YAML block:
+/// the `- id: <plugin_id>` line and its indented children (activation, etc.).
+/// Other lines that happen to mention the plugin ID (comments, run config) are preserved.
+fn remove_plugin_entry_from_config(config: &str, plugin_id: &str) -> String {
+    let target_line = format!("- id: {plugin_id}");
+    let mut result_lines: Vec<&str> = Vec::new();
+    let mut skipping_block = false;
+
+    for line in config.lines() {
+        let trimmed = line.trim();
+
+        if trimmed == target_line || trimmed == format!("- id: \"{plugin_id}\"").as_str() {
+            // Found the plugin entry — skip this line and its children
+            skipping_block = true;
+            continue;
+        }
+
+        if skipping_block {
+            // Child lines are indented and don't start with "- " (new list item)
+            let is_child_line = line.starts_with("    ") && !trimmed.starts_with("- ");
+            if is_child_line || trimmed.is_empty() {
+                continue;
+            }
+            // Reached a new entry or non-indented line — stop skipping
+            skipping_block = false;
+        }
+
+        result_lines.push(line);
+    }
+
+    let mut output = result_lines.join("\n");
+    if config.ends_with('\n') {
+        output.push('\n');
+    }
+    output
+}
+
 /// Parses "publisher/name" or "publisher.name" into (publisher, name).
+///
+/// Both publisher and name are validated to prevent path traversal attacks:
+/// only alphanumeric chars, hyphens, and underscores are allowed.
 fn parse_plugin_ref(plugin_ref: &str) -> Result<(String, String), CliError> {
-    if let Some((p, n)) = plugin_ref.split_once('/') {
-        return Ok((p.to_owned(), n.to_owned()));
+    let (p, n) = if let Some((p, n)) = plugin_ref.split_once('/') {
+        (p, n)
+    } else if let Some((p, n)) = plugin_ref.split_once('.') {
+        (p, n)
+    } else {
+        return Err(CliError::new(format!(
+            "Invalid plugin reference '{plugin_ref}'. Expected format: publisher/name or publisher.name"
+        )));
+    };
+
+    validate_plugin_segment(p, "publisher")?;
+    validate_plugin_segment(n, "name")?;
+
+    Ok((p.to_owned(), n.to_owned()))
+}
+
+/// Validates that a plugin ref segment contains only safe characters.
+///
+/// Prevents path traversal (e.g., `../../../etc`) and injection via
+/// publisher or name fields used in filesystem paths and git URLs.
+fn validate_plugin_segment(segment: &str, label: &str) -> Result<(), CliError> {
+    if segment.is_empty() {
+        return Err(CliError::new(format!("Plugin {label} cannot be empty.")));
     }
-    if let Some((p, n)) = plugin_ref.split_once('.') {
-        return Ok((p.to_owned(), n.to_owned()));
+    if !segment
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    {
+        return Err(CliError::new(format!(
+            "Plugin {label} '{segment}' contains invalid characters. \
+             Only alphanumeric, hyphens, and underscores are allowed."
+        )));
     }
-    Err(CliError::new(format!(
-        "Invalid plugin reference '{plugin_ref}'. Expected format: publisher/name or publisher.name"
-    )))
+    Ok(())
 }
 
 #[cfg(test)]

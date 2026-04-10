@@ -77,63 +77,25 @@ fn run_auto_init(target_dir: &str, locale: &str) -> Result<String, CliError> {
     let selected = &templates[0];
 
     // Materialize template
-    let assets: Vec<MaterializedAsset<'_>> = selected
-        .descriptor
-        .assets
-        .iter()
-        .map(|a| MaterializedAsset {
-            path: a.path,
-            contents: a.contents,
-        })
-        .collect();
-
-    let materialize_result = materialize_assets(&assets, target, locale)?;
+    let materialize_result = materialize_template(selected, target, locale)?;
     output.push(materialize_result);
 
     // Enable ALL optional plugins automatically
-    let all_plugins = catalog::official_runtime_plugins();
     let config_path = target.join(".ralph-engine/config.yaml");
     let config_content = std::fs::read_to_string(&config_path).unwrap_or_default();
+    let all_plugins = catalog::official_runtime_plugins();
     let optional: Vec<_> = all_plugins
         .iter()
         .filter(|p| !config_content.contains(p.descriptor.id))
         .collect();
 
     if !optional.is_empty() {
-        if let Ok(mut config) = std::fs::read_to_string(&config_path) {
-            config.push_str("\n# Plugins enabled automatically\n");
-            for p in &optional {
-                config.push_str(&format!(
-                    "  - id: {}\n    activation: enabled\n",
-                    p.descriptor.id
-                ));
-            }
-            let _ = std::fs::write(&config_path, config);
-        }
+        enable_plugins_in_config(&config_path, &optional, "# Plugins enabled automatically");
         output.push(format!("  Enabled {} additional plugins", optional.len()));
     }
 
     // Accept all plugin init contributions
-    let init_contributions = catalog::collect_init_contributions_from_plugins();
-    for contrib in &init_contributions {
-        if let Some(snippet) = &contrib.config_snippet
-            && let Ok(mut config) = std::fs::read_to_string(&config_path)
-        {
-            config.push_str(&format!("\n{snippet}\n"));
-            let _ = std::fs::write(&config_path, config);
-        }
-        for (file_path, file_contents) in &contrib.files {
-            let full_path = target.join(file_path);
-            if let Some(parent) = full_path.parent() {
-                let _ = std::fs::create_dir_all(parent);
-            }
-            let _ = std::fs::write(&full_path, file_contents);
-            output.push(format!(
-                "  {} {file_path}",
-                i18n::init_created_label(locale),
-            ));
-        }
-    }
+    apply_init_contributions(target, &config_path, locale, &mut output);
 
     output.push(format!("  {}", i18n::tui_project_initialized(locale)));
     Ok(output.join("\n"))
@@ -171,6 +133,35 @@ fn run_interactive_init(target_dir: &str, locale: &str) -> Result<String, CliErr
         return Err(CliError::new(i18n::init_no_templates(locale).to_owned()));
     }
 
+    let selected = prompt_template_selection(&templates, locale);
+
+    // ── Materialize template assets ──────────────────────────────────
+    let materialize_result = materialize_template(selected, target, locale)?;
+    output.push(materialize_result);
+
+    // ── Auto-discover optional plugins ───────────────────────────────
+    let config_path = target.join(".ralph-engine/config.yaml");
+    prompt_optional_plugins(&config_path, locale, &mut output);
+
+    // ── Plugin init contributions (auto-discovery) ────────────────────
+    prompt_init_contributions(target, &config_path, locale, &mut output);
+
+    // ── Done ─────────────────────────────────────────────────────────
+    output.push(format!(
+        "\n  {} 'ralph-engine doctor' {}",
+        i18n::init_done_prefix(locale),
+        i18n::init_done_suffix(locale)
+    ));
+    output.push("  Then: 'ralph-engine run' to start orchestration".to_owned());
+
+    Ok(output.join("\n"))
+}
+
+/// Prompts the user to select a template and returns the chosen one.
+fn prompt_template_selection<'a>(
+    templates: &'a [re_official::OfficialTemplateContribution],
+    locale: &str,
+) -> &'a re_official::OfficialTemplateContribution {
     eprintln!("  {}", i18n::init_select_template(locale));
     for (i, t) in templates.iter().enumerate() {
         let name = t.descriptor.display_name_for_locale(locale);
@@ -184,9 +175,15 @@ fn run_interactive_init(target_dir: &str, locale: &str) -> Result<String, CliErr
         .unwrap_or(1)
         .saturating_sub(1)
         .min(templates.len() - 1);
-    let selected = &templates[template_idx];
+    &templates[template_idx]
+}
 
-    // ── Materialize template assets ──────────────────────────────────
+/// Materializes template assets to disk.
+fn materialize_template(
+    selected: &re_official::OfficialTemplateContribution,
+    target: &Path,
+    locale: &str,
+) -> Result<String, CliError> {
     let assets: Vec<MaterializedAsset<'_>> = selected
         .descriptor
         .assets
@@ -196,99 +193,135 @@ fn run_interactive_init(target_dir: &str, locale: &str) -> Result<String, CliErr
             contents: a.contents,
         })
         .collect();
+    materialize_assets(&assets, target, locale)
+}
 
-    let materialize_result = materialize_assets(&assets, target, locale)?;
-    output.push(materialize_result);
-
-    // ── Auto-discover optional plugins ───────────────────────────────
-    // Show plugins that are NOT already enabled by the template config.
+/// Prompts user to select optional plugins and enables them in config.
+fn prompt_optional_plugins(config_path: &Path, locale: &str, output: &mut Vec<String>) {
+    let config_content = std::fs::read_to_string(config_path).unwrap_or_default();
     let all_plugins = catalog::official_runtime_plugins();
-    // Template config already enables some plugins (basic, bmad, etc).
-    // Read the generated config to find which are already there.
-    let config_path = target.join(".ralph-engine/config.yaml");
-    let config_content = std::fs::read_to_string(&config_path).unwrap_or_default();
     let optional: Vec<_> = all_plugins
         .iter()
         .filter(|p| !config_content.contains(p.descriptor.id))
         .collect();
 
-    if !optional.is_empty() {
-        eprintln!("\n  {}", i18n::init_enable_additional(locale));
-        for (i, p) in optional.iter().enumerate() {
-            let name = p.descriptor.display_name_for_locale(locale);
-            let summary = p.descriptor.summary_for_locale(locale);
-            eprintln!("    {}) {name} — {summary}", i + 1);
-        }
+    if optional.is_empty() {
+        return;
+    }
 
-        let plugins_input = prompt("  Plugins:");
-        let selected_ids: Vec<&str> = if plugins_input.is_empty() {
-            Vec::new()
-        } else {
-            plugins_input
-                .split(',')
-                .filter_map(|s| {
-                    let idx: usize = s.trim().parse().ok()?;
-                    optional.get(idx.checked_sub(1)?).map(|p| p.descriptor.id)
-                })
-                .collect()
-        };
+    eprintln!("\n  {}", i18n::init_enable_additional(locale));
+    for (i, p) in optional.iter().enumerate() {
+        let name = p.descriptor.display_name_for_locale(locale);
+        let summary = p.descriptor.summary_for_locale(locale);
+        eprintln!("    {}) {name} — {summary}", i + 1);
+    }
 
-        if !selected_ids.is_empty() {
-            if let Ok(mut config) = std::fs::read_to_string(&config_path) {
-                config.push_str("\n# Plugins enabled during init\n");
-                for id in &selected_ids {
-                    config.push_str(&format!("  - id: {id}\n    activation: enabled\n"));
-                }
-                let _ = std::fs::write(&config_path, config);
+    let plugins_input = prompt("  Plugins:");
+    let selected_ids: Vec<&str> = if plugins_input.is_empty() {
+        Vec::new()
+    } else {
+        plugins_input
+            .split(',')
+            .filter_map(|s| {
+                let idx: usize = s.trim().parse().ok()?;
+                optional.get(idx.checked_sub(1)?).map(|p| p.descriptor.id)
+            })
+            .collect()
+    };
+
+    if !selected_ids.is_empty() {
+        if let Ok(mut config) = std::fs::read_to_string(config_path) {
+            config.push_str("\n# Plugins enabled during init\n");
+            for id in &selected_ids {
+                config.push_str(&format!("  - id: {id}\n    activation: enabled\n"));
             }
-            output.push(format!(
-                "  {} {} {}",
-                i18n::init_enabled_label(locale),
-                selected_ids.len(),
-                i18n::init_additional_plugins(locale)
+            let _ = std::fs::write(config_path, config);
+        }
+        output.push(format!(
+            "  {} {} {}",
+            i18n::init_enabled_label(locale),
+            selected_ids.len(),
+            i18n::init_additional_plugins(locale)
+        ));
+    }
+}
+
+/// Interactively applies plugin init contributions (asks user for each).
+fn prompt_init_contributions(
+    target: &Path,
+    config_path: &Path,
+    locale: &str,
+    output: &mut Vec<String>,
+) {
+    let init_contributions = catalog::collect_init_contributions_from_plugins();
+    if init_contributions.is_empty() {
+        return;
+    }
+
+    for contrib in &init_contributions {
+        eprintln!("  {} — {}", contrib.label, contrib.description);
+        if confirm(&format!("  {}?", i18n::init_enable_label(locale)), true) {
+            apply_single_contribution(target, config_path, contrib, locale, output);
+        }
+    }
+}
+
+/// Applies all plugin init contributions without prompting (auto mode).
+fn apply_init_contributions(
+    target: &Path,
+    config_path: &Path,
+    locale: &str,
+    output: &mut Vec<String>,
+) {
+    let init_contributions = catalog::collect_init_contributions_from_plugins();
+    for contrib in &init_contributions {
+        apply_single_contribution(target, config_path, contrib, locale, output);
+    }
+}
+
+/// Applies a single init contribution: config snippet + files.
+fn apply_single_contribution(
+    target: &Path,
+    config_path: &Path,
+    contrib: &re_plugin::InitContribution,
+    locale: &str,
+    output: &mut Vec<String>,
+) {
+    if let Some(snippet) = &contrib.config_snippet
+        && let Ok(mut config) = std::fs::read_to_string(config_path)
+    {
+        config.push_str(&format!("\n{snippet}\n"));
+        let _ = std::fs::write(config_path, config);
+    }
+    for (file_path, file_contents) in &contrib.files {
+        let full_path = target.join(file_path);
+        if let Some(parent) = full_path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        let _ = std::fs::write(&full_path, file_contents);
+        output.push(format!(
+            "  {} {file_path}",
+            i18n::init_created_label(locale),
+        ));
+    }
+}
+
+/// Enables a list of plugins in the config file.
+fn enable_plugins_in_config(
+    config_path: &Path,
+    plugins: &[&re_core::RuntimePluginRegistration],
+    header_comment: &str,
+) {
+    if let Ok(mut config) = std::fs::read_to_string(config_path) {
+        config.push_str(&format!("\n{header_comment}\n"));
+        for p in plugins {
+            config.push_str(&format!(
+                "  - id: {}\n    activation: enabled\n",
+                p.descriptor.id
             ));
         }
+        let _ = std::fs::write(config_path, config);
     }
-
-    // ── Plugin init contributions (auto-discovery) ────────────────────
-    // Plugins can contribute additional init steps via init_contributions().
-    // This enables third-party plugins to add questions, config, or files.
-    let init_contributions = catalog::collect_init_contributions_from_plugins();
-    if !init_contributions.is_empty() {
-        let config_path_for_contrib = target.join(".ralph-engine/config.yaml");
-        for contrib in &init_contributions {
-            eprintln!("  {} — {}", contrib.label, contrib.description);
-            if confirm(&format!("  {}?", i18n::init_enable_label(locale)), true) {
-                if let Some(snippet) = &contrib.config_snippet
-                    && let Ok(mut config) = std::fs::read_to_string(&config_path_for_contrib)
-                {
-                    config.push_str(&format!("\n{snippet}\n"));
-                    let _ = std::fs::write(&config_path_for_contrib, config);
-                }
-                for (file_path, file_contents) in &contrib.files {
-                    let full_path = target.join(file_path);
-                    if let Some(parent) = full_path.parent() {
-                        let _ = std::fs::create_dir_all(parent);
-                    }
-                    let _ = std::fs::write(&full_path, file_contents);
-                    output.push(format!(
-                        "  {} {file_path}",
-                        i18n::init_created_label(locale),
-                    ));
-                }
-            }
-        }
-    }
-
-    // ── Done ─────────────────────────────────────────────────────────
-    output.push(format!(
-        "\n  {} 'ralph-engine doctor' {}",
-        i18n::init_done_prefix(locale),
-        i18n::init_done_suffix(locale)
-    ));
-    output.push("  Then: 'ralph-engine run' to start orchestration".to_owned());
-
-    Ok(output.join("\n"))
 }
 
 #[cfg(test)]

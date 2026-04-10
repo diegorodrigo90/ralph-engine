@@ -195,78 +195,8 @@ impl TuiShell {
 
     /// Active header — version, agent, state badge, live metrics.
     fn render_header(&self, frame: &mut Frame<'_>, area: Rect) {
-        let state_label = self.localized_state_label();
-        let state_color = self.state.color(self.theme());
-        let version = env!("CARGO_PKG_VERSION");
-        let t = self.theme();
-
-        let sep = t.fg_border(" │ ").build();
-
-        let mut spans = vec![
-            t.fg_accent(format!(" ◎ Ralph Engine v{version}"))
-                .bold()
-                .build(),
-        ];
-
-        // Project name
-        if !self.config.project_name.is_empty() {
-            spans.push(sep.clone());
-            spans.push(t.fg_bright(&self.config.project_name).build());
-        }
-
-        spans.push(sep.clone());
-        spans.push(t.fg_bright(self.config.agent_id.as_str()).build());
-        spans.push(sep.clone());
-        spans.push(t.badge(format!(" {state_label} "), state_color).build());
-
-        let mut right_spans: Vec<Span<'_>> = Vec::new();
-
-        if self.token_count > 0 {
-            let tok = if self.token_count >= 1000 {
-                format!("⚡{}k", self.token_count / 1000)
-            } else {
-                format!("⚡{}", self.token_count)
-            };
-            right_spans.push(t.fg_dim(tok).build());
-        }
-
-        if self.tool_count > 0 {
-            if !right_spans.is_empty() {
-                right_spans.push(t.fg_border(" │ ").build());
-            }
-            right_spans.push(t.fg_dim(format!("⚙ {}", self.tool_count)).build());
-        }
-
-        if let Some(ref cost) = self.cost_label {
-            if !right_spans.is_empty() {
-                right_spans.push(t.fg_border(" │ ").build());
-            }
-            if self.extra_usage {
-                right_spans.push(t.fg_warning(cost.as_str()).build());
-            } else {
-                right_spans.push(t.fg_dim(cost.as_str()).build());
-            }
-        }
-
-        if self.extra_usage {
-            right_spans.push(
-                t.fg_warning(format!(" ⚠ {}", self.labels.extra_usage_label))
-                    .bold()
-                    .build(),
-            );
-        }
-
-        if self.progress > 0 {
-            if !right_spans.is_empty() {
-                right_spans.push(t.fg_border(" │ ").build());
-            }
-            right_spans
-                .push(ThemedSpan::with_color(format!("{}%", self.progress), state_color).build());
-        }
-        right_spans.push(t.fg_text(" ").build());
-
-        let left = Line::from(spans);
-        let right = Line::from(right_spans);
+        let left = Line::from(self.build_header_left());
+        let right = Line::from(self.build_header_right());
 
         if area.width > 50 {
             let cols = Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)]).split(area);
@@ -278,6 +208,84 @@ impl TuiShell {
         } else {
             frame.render_widget(Paragraph::new(left), area);
         }
+    }
+
+    /// Builds the left side of the active header (version, project, agent, state badge).
+    fn build_header_left(&self) -> Vec<Span<'_>> {
+        let state_label = self.localized_state_label();
+        let state_color = self.state.color(self.theme());
+        let version = env!("CARGO_PKG_VERSION");
+        let t = self.theme();
+        let sep = t.fg_border(" │ ").build();
+
+        let mut spans = vec![
+            t.fg_accent(format!(" ◎ Ralph Engine v{version}"))
+                .bold()
+                .build(),
+        ];
+
+        if !self.config.project_name.is_empty() {
+            spans.push(sep.clone());
+            spans.push(t.fg_bright(&self.config.project_name).build());
+        }
+
+        spans.push(sep.clone());
+        spans.push(t.fg_bright(self.config.agent_id.as_str()).build());
+        spans.push(sep);
+        spans.push(t.badge(format!(" {state_label} "), state_color).build());
+        spans
+    }
+
+    /// Builds the right side of the active header (tokens, tools, cost, progress).
+    fn build_header_right(&self) -> Vec<Span<'_>> {
+        let state_color = self.state.color(self.theme());
+        let t = self.theme();
+
+        let mut spans: Vec<Span<'_>> = Vec::new();
+
+        if self.token_count > 0 {
+            let tok = if self.token_count >= 1000 {
+                format!("⚡{}k", self.token_count / 1000)
+            } else {
+                format!("⚡{}", self.token_count)
+            };
+            spans.push(t.fg_dim(tok).build());
+        }
+
+        if self.tool_count > 0 {
+            if !spans.is_empty() {
+                spans.push(t.fg_border(" │ ").build());
+            }
+            spans.push(t.fg_dim(format!("⚙ {}", self.tool_count)).build());
+        }
+
+        if let Some(ref cost) = self.cost_label {
+            if !spans.is_empty() {
+                spans.push(t.fg_border(" │ ").build());
+            }
+            if self.extra_usage {
+                spans.push(t.fg_warning(cost.as_str()).build());
+            } else {
+                spans.push(t.fg_dim(cost.as_str()).build());
+            }
+        }
+
+        if self.extra_usage {
+            spans.push(
+                t.fg_warning(format!(" ⚠ {}", self.labels.extra_usage_label))
+                    .bold()
+                    .build(),
+            );
+        }
+
+        if self.progress > 0 {
+            if !spans.is_empty() {
+                spans.push(t.fg_border(" │ ").build());
+            }
+            spans.push(ThemedSpan::with_color(format!("{}%", self.progress), state_color).build());
+        }
+        spans.push(t.fg_text(" ").build());
+        spans
     }
 
     // ── Feed ────────────────────────────────────────────────────
@@ -293,16 +301,16 @@ impl TuiShell {
 
     /// Renders the block-based feed using `tui-scrollview`.
     fn render_feed_blocks(&mut self, frame: &mut Frame<'_>, area: Rect) {
-        use crate::feed::BlockKind;
-
-        let t = self.theme.as_ref();
-
         self.feed.clear_dirty();
 
         let focused = self.focused_block;
+        let tick = self.tick;
+        let follow_mode = self.follow_mode;
+
         let mut all_lines: Vec<Line<'_>> = Vec::new();
         let mut focused_line: Option<u16> = None;
 
+        let t = self.theme.as_ref();
         for (block_idx, block) in self.feed.blocks().iter().enumerate() {
             if block_idx > 0 {
                 all_lines.push(Line::raw(""));
@@ -313,103 +321,10 @@ impl TuiShell {
                 focused_line = Some(all_lines.len() as u16);
             }
 
-            let block_color = match block.kind {
-                BlockKind::FileRead => t.block_file_read(),
-                BlockKind::FileEdit => t.block_file_edit(),
-                BlockKind::Command => t.block_command(),
-                BlockKind::Thinking => t.block_thinking(),
-                BlockKind::AgentText => t.text_dim(),
-                BlockKind::GatePass => t.block_pass(),
-                BlockKind::GateFail => t.block_fail(),
-                BlockKind::System => t.block_system(),
-            };
-
-            let icon = block.kind.icon();
-            let kind_label = match block.kind {
-                BlockKind::FileRead => "Read",
-                BlockKind::FileEdit => "Edit",
-                BlockKind::Command => "Bash",
-                BlockKind::Thinking => "Think",
-                BlockKind::AgentText => "Text",
-                BlockKind::GatePass => "Pass",
-                BlockKind::GateFail => "Fail",
-                BlockKind::System => "System",
-            };
-
-            let mut header_spans: Vec<Span<'_>> = Vec::new();
-
-            if is_focused {
-                header_spans.push(t.fg_accent("▸ ").bold().build());
-            }
-
-            header_spans.push(ThemedSpan::with_color("╭─ ", block_color).build());
-            header_spans.push(
-                ThemedSpan::with_color(format!("{icon} {kind_label}"), block_color)
-                    .bold()
-                    .build(),
-            );
-
-            if !block.title.is_empty() {
-                header_spans.push(t.fg_border(" │ ").build());
-                header_spans.push(t.fg_text(block.title.as_str()).bold().build());
-            }
-
-            if block.collapsed && !block.content.is_empty() {
-                header_spans.push(
-                    t.fg_dim(format!(" ({} lines)", block.content.len()))
-                        .build(),
-                );
-            }
-
-            if let Some(elapsed) = block.elapsed_label() {
-                header_spans.push(t.fg_dim(format!("  {elapsed}")).build());
-            }
-
-            if block.active {
-                const SPINNER: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-                let idx = self.tick / 2 % SPINNER.len();
-                header_spans.push(t.fg_warning(format!(" {}", SPINNER[idx])).build());
-            }
-
-            match block.success {
-                Some(true) => header_spans.push(t.fg_success(" ✓").build()),
-                Some(false) => header_spans.push(t.fg_error(" ✗").build()),
-                None => {}
-            }
-
-            let mut header = Line::from(header_spans);
-            if is_focused {
-                header = header.style(t.style_surface());
-            }
+            let block_color = block_kind_color(block.kind, t);
+            let header = build_block_header(block, block_color, is_focused, tick, t);
             all_lines.push(header);
-
-            if !block.collapsed {
-                let max_lines = crate::theme::MAX_COLLAPSED_LINES;
-                let total_content = block.content.len();
-                let truncated = total_content > max_lines && !is_focused;
-
-                let show_count = if truncated { max_lines } else { total_content };
-                for content_line in block.content.iter().take(show_count) {
-                    let content_spans = style_content_line(content_line, block.kind, t);
-                    let mut spans = vec![ThemedSpan::with_color("│ ", block_color).build()];
-                    spans.extend(content_spans);
-                    let mut bordered = Line::from(spans);
-                    if is_focused {
-                        bordered = bordered.style(t.style_surface());
-                    }
-                    all_lines.push(bordered);
-                }
-
-                if truncated {
-                    let remaining = total_content - max_lines;
-                    all_lines.push(Line::from(vec![
-                        ThemedSpan::with_color("│ ", block_color).build(),
-                        t.fg_dim(format!("… +{remaining} lines (Enter to expand)"))
-                            .italic()
-                            .build(),
-                    ]));
-                }
-            }
+            build_block_content(block, block_color, is_focused, t, &mut all_lines);
 
             all_lines.push(Line::from(
                 ThemedSpan::with_color(format!("╰{}", "─".repeat(40)), block_color).build(),
@@ -422,50 +337,22 @@ impl TuiShell {
         let content_height = all_lines.len() as u16;
         let content_width = area.width.saturating_sub(1);
 
-        if self.follow_mode {
-            let target_y = content_height.saturating_sub(area.height);
-            let current_y = self.feed_scroll.offset().y;
-            if current_y < target_y {
-                let step = 4.min(target_y - current_y);
-                self.feed_scroll
-                    .set_offset(Position::new(0, current_y + step));
-            }
-        }
-
-        if let Some(line_y) = focused_line {
-            let current_y = self.feed_scroll.offset().y;
-            let visible_h = area.height;
-            if line_y < current_y {
-                self.feed_scroll.set_offset(Position::new(0, line_y));
-            } else if line_y >= current_y + visible_h {
-                self.feed_scroll
-                    .set_offset(Position::new(0, line_y.saturating_sub(visible_h / 2)));
-            }
-        }
-
-        let scrolled_up = self.feed_scroll.offset().y > 0;
-        if scrolled_up {
-            let indicator = Line::from(t.fg_warning(" ↑ more above ").bold().build());
-            let [indicator_area, feed_area] =
-                Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(area);
-            frame.render_widget(Paragraph::new(indicator), indicator_area);
-
-            let base = self.theme().style_base();
-            let mut scroll_view = ScrollView::new(Size::new(content_width, content_height));
-            scroll_view.render_widget(
-                Paragraph::new(all_lines).style(base),
-                Rect::new(0, 0, content_width, content_height),
-            );
-            frame.render_stateful_widget(scroll_view, feed_area, &mut self.feed_scroll);
-        } else {
-            let base = self.theme().style_base();
-            let mut scroll_view = ScrollView::new(Size::new(content_width, content_height));
-            scroll_view.render_widget(
-                Paragraph::new(all_lines).style(base),
-                Rect::new(0, 0, content_width, content_height),
-            );
-            frame.render_stateful_widget(scroll_view, area, &mut self.feed_scroll);
-        }
+        update_feed_scroll(
+            &mut self.feed_scroll,
+            follow_mode,
+            content_height,
+            area.height,
+            focused_line,
+        );
+        render_scrolled_feed(
+            frame,
+            area,
+            all_lines,
+            content_width,
+            content_height,
+            &mut self.feed_scroll,
+            t,
+        );
     }
 
     // ── Metrics ─────────────────────────────────────────────────
@@ -732,4 +619,190 @@ impl TuiShell {
         }
         ("○", t.text_dim())
     }
+}
+
+// ── Free functions for feed block rendering ────────────────────────
+
+/// Maps a `BlockKind` to its theme color.
+fn block_kind_color(
+    kind: crate::feed::BlockKind,
+    t: &dyn crate::theme::Theme,
+) -> ratatui::style::Color {
+    use crate::feed::BlockKind;
+    match kind {
+        BlockKind::FileRead => t.block_file_read(),
+        BlockKind::FileEdit => t.block_file_edit(),
+        BlockKind::Command => t.block_command(),
+        BlockKind::Thinking => t.block_thinking(),
+        BlockKind::AgentText => t.text_dim(),
+        BlockKind::GatePass => t.block_pass(),
+        BlockKind::GateFail => t.block_fail(),
+        BlockKind::System => t.block_system(),
+    }
+}
+
+/// Builds the header `Line` for a single feed block.
+fn build_block_header<'a>(
+    block: &'a crate::feed::FeedBlock,
+    block_color: ratatui::style::Color,
+    is_focused: bool,
+    tick: usize,
+    t: &'a dyn crate::theme::Theme,
+) -> Line<'a> {
+    use crate::feed::BlockKind;
+
+    let icon = block.kind.icon();
+    let kind_label = match block.kind {
+        BlockKind::FileRead => "Read",
+        BlockKind::FileEdit => "Edit",
+        BlockKind::Command => "Bash",
+        BlockKind::Thinking => "Think",
+        BlockKind::AgentText => "Text",
+        BlockKind::GatePass => "Pass",
+        BlockKind::GateFail => "Fail",
+        BlockKind::System => "System",
+    };
+
+    let mut spans: Vec<Span<'_>> = Vec::new();
+
+    if is_focused {
+        spans.push(t.fg_accent("▸ ").bold().build());
+    }
+
+    spans.push(ThemedSpan::with_color("╭─ ", block_color).build());
+    spans.push(
+        ThemedSpan::with_color(format!("{icon} {kind_label}"), block_color)
+            .bold()
+            .build(),
+    );
+
+    if !block.title.is_empty() {
+        spans.push(t.fg_border(" │ ").build());
+        spans.push(t.fg_text(block.title.as_str()).bold().build());
+    }
+
+    if block.collapsed && !block.content.is_empty() {
+        spans.push(
+            t.fg_dim(format!(" ({} lines)", block.content.len()))
+                .build(),
+        );
+    }
+
+    if let Some(elapsed) = block.elapsed_label() {
+        spans.push(t.fg_dim(format!("  {elapsed}")).build());
+    }
+
+    if block.active {
+        const SPINNER: &[&str] = &["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+        let idx = tick / 2 % SPINNER.len();
+        spans.push(t.fg_warning(format!(" {}", SPINNER[idx])).build());
+    }
+
+    match block.success {
+        Some(true) => spans.push(t.fg_success(" ✓").build()),
+        Some(false) => spans.push(t.fg_error(" ✗").build()),
+        None => {}
+    }
+
+    let mut header = Line::from(spans);
+    if is_focused {
+        header = header.style(t.style_surface());
+    }
+    header
+}
+
+/// Builds the content lines for a single feed block (body between header and footer).
+fn build_block_content<'a>(
+    block: &'a crate::feed::FeedBlock,
+    block_color: ratatui::style::Color,
+    is_focused: bool,
+    t: &'a dyn crate::theme::Theme,
+    all_lines: &mut Vec<Line<'a>>,
+) {
+    if block.collapsed {
+        return;
+    }
+
+    let max_lines = crate::theme::MAX_COLLAPSED_LINES;
+    let total_content = block.content.len();
+    let truncated = total_content > max_lines && !is_focused;
+
+    let show_count = if truncated { max_lines } else { total_content };
+    for content_line in block.content.iter().take(show_count) {
+        let content_spans = style_content_line(content_line, block.kind, t);
+        let mut spans = vec![ThemedSpan::with_color("│ ", block_color).build()];
+        spans.extend(content_spans);
+        let mut bordered = Line::from(spans);
+        if is_focused {
+            bordered = bordered.style(t.style_surface());
+        }
+        all_lines.push(bordered);
+    }
+
+    if truncated {
+        let remaining = total_content - max_lines;
+        all_lines.push(Line::from(vec![
+            ThemedSpan::with_color("│ ", block_color).build(),
+            t.fg_dim(format!("… +{remaining} lines (Enter to expand)"))
+                .italic()
+                .build(),
+        ]));
+    }
+}
+
+/// Updates feed scroll position based on follow mode and focused line.
+fn update_feed_scroll(
+    scroll: &mut tui_scrollview::ScrollViewState,
+    follow_mode: bool,
+    content_height: u16,
+    visible_height: u16,
+    focused_line: Option<u16>,
+) {
+    if follow_mode {
+        let target_y = content_height.saturating_sub(visible_height);
+        let current_y = scroll.offset().y;
+        if current_y < target_y {
+            let step = 4.min(target_y - current_y);
+            scroll.set_offset(Position::new(0, current_y + step));
+        }
+    }
+
+    if let Some(line_y) = focused_line {
+        let current_y = scroll.offset().y;
+        if line_y < current_y {
+            scroll.set_offset(Position::new(0, line_y));
+        } else if line_y >= current_y + visible_height {
+            scroll.set_offset(Position::new(0, line_y.saturating_sub(visible_height / 2)));
+        }
+    }
+}
+
+/// Renders feed lines into a scroll view, showing a scroll indicator when scrolled up.
+fn render_scrolled_feed(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    all_lines: Vec<Line<'_>>,
+    content_width: u16,
+    content_height: u16,
+    scroll: &mut tui_scrollview::ScrollViewState,
+    t: &dyn crate::theme::Theme,
+) {
+    let base = t.style_base();
+
+    let render_area = if scroll.offset().y > 0 {
+        let indicator = Line::from(t.fg_warning(" ↑ more above ").bold().build());
+        let [indicator_area, feed_area] =
+            Layout::vertical([Constraint::Length(1), Constraint::Fill(1)]).areas(area);
+        frame.render_widget(Paragraph::new(indicator), indicator_area);
+        feed_area
+    } else {
+        area
+    };
+
+    let mut scroll_view = ScrollView::new(Size::new(content_width, content_height));
+    scroll_view.render_widget(
+        Paragraph::new(all_lines).style(base),
+        Rect::new(0, 0, content_width, content_height),
+    );
+    frame.render_stateful_widget(scroll_view, render_area, scroll);
 }

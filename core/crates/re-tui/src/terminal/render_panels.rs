@@ -139,38 +139,48 @@ fn render_sprint<'a>(
 ) {
     let accent = theme.info();
     for panel in panels {
-        // Progress bar
         for item in &panel.items {
             if item.hint == PanelHint::Bar {
                 crate::terminal::style::render_panel_item(item, accent, theme, lines);
             }
         }
-        // Active stories (max 5)
         for item in &panel.items {
             if item.hint == PanelHint::List {
-                for story in item.items.iter().take(5) {
-                    let sev_color = match item.severity {
-                        PanelSeverity::Warning => theme.warning(),
-                        PanelSeverity::Success => theme.success(),
-                        _ => accent,
-                    };
-                    lines.push(Line::from(vec![
-                        ThemedSpan::with_color(" → ", sev_color).build(),
-                        theme.fg_text(story.as_str()).build(),
-                    ]));
-                }
-                let remaining = item.items.len().saturating_sub(5);
-                if remaining > 0 {
-                    lines.push(
-                        theme
-                            .fg_dim(format!("   +{remaining} more"))
-                            .italic()
-                            .build()
-                            .into(),
-                    );
-                }
+                render_story_list(item, accent, theme, lines);
             }
         }
+    }
+}
+
+/// Renders a single story list item (max 5 stories + overflow indicator).
+fn render_story_list<'a>(
+    item: &'a super::types::PanelItem,
+    accent: ratatui::style::Color,
+    theme: &dyn crate::theme::Theme,
+    lines: &mut Vec<Line<'a>>,
+) {
+    let sev_color = match item.severity {
+        PanelSeverity::Warning => theme.warning(),
+        PanelSeverity::Success => theme.success(),
+        _ => accent,
+    };
+
+    for story in item.items.iter().take(5) {
+        lines.push(Line::from(vec![
+            ThemedSpan::with_color(" → ", sev_color).build(),
+            theme.fg_text(story.as_str()).build(),
+        ]));
+    }
+
+    let remaining = item.items.len().saturating_sub(5);
+    if remaining > 0 {
+        lines.push(
+            theme
+                .fg_dim(format!("   +{remaining} more"))
+                .italic()
+                .build()
+                .into(),
+        );
     }
 }
 
