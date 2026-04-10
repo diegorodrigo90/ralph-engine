@@ -13,7 +13,7 @@
  * GitHub Actions (unlimited for public repos), static JSON on Cloudflare.
  */
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -192,13 +192,18 @@ async function main() {
   console.log("Ralph Engine Community Plugin Catalog Scan");
   console.log("==========================================\n");
 
-  // Load existing index
+  // Load existing index (create empty seed if missing — first run or fresh checkout)
   let index;
-  try {
-    index = JSON.parse(readFileSync(CATALOG_PATH, "utf-8"));
-  } catch {
-    console.error(`Failed to read ${CATALOG_PATH}`);
-    process.exit(1);
+  if (existsSync(CATALOG_PATH)) {
+    try {
+      index = JSON.parse(readFileSync(CATALOG_PATH, "utf-8"));
+    } catch {
+      console.error(`Failed to parse ${CATALOG_PATH}, starting with empty catalog`);
+      index = { plugins: [] };
+    }
+  } else {
+    console.log(`${CATALOG_PATH} not found, starting with empty catalog`);
+    index = { plugins: [] };
   }
 
   const officialPlugins = index.plugins.filter(

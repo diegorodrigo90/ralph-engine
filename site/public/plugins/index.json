@@ -1,0 +1,1144 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-04-06T14:43:17.329Z",
+  "count": 13,
+  "community_count": 0,
+  "last_scan": null,
+  "icon_contract": {
+    "discovery": "Auto — place icon.svg (preferred), icon.png, icon.jpg, or icon.webp in plugin root",
+    "svg": {
+      "viewbox": "0 0 24 24",
+      "style": "stroke-based, stroke-width 2",
+      "security": "Sanitized at build time"
+    },
+    "png": {
+      "min_size": "128x128",
+      "background": "transparent"
+    }
+  },
+  "plugins": [
+    {
+      "id": "official.basic",
+      "kind": "template",
+      "display_name": "Basic",
+      "display_name_locales": {
+        "pt-br": "Básico"
+      },
+      "summary": "Foundation plugin for starter templates.",
+      "summary_locales": {
+        "pt-br": "Plugin base para templates iniciais."
+      },
+      "description": "Provides the default starter template for new Ralph Engine projects. Running `ralph-engine templates materialize official.basic.starter ./my-project` creates a `.ralph-engine/` directory with config.yaml and prompt.md — everything needed to start using Ralph Engine with any AI coding assistant. This is the recommended starting point for most projects.",
+      "description_locales": {
+        "pt-br": "Fornece o template starter padrão para novos projetos Ralph Engine. Executando `ralph-engine templates materialize official.basic.starter ./meu-projeto` cria um diretório `.ralph-engine/` com config.yaml e prompt.md — tudo que é necessário para começar a usar o Ralph Engine com qualquer assistente de código IA. Este é o ponto de partida recomendado para a maioria dos projetos."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "load"
+      ],
+      "runtime_hooks": [
+        "scaffold"
+      ],
+      "capabilities": [
+        "template"
+      ],
+      "templates": [
+        {
+          "id": "official.basic.starter",
+          "display_name": "Basic starter",
+          "display_name_locales": {
+            "pt-br": "Starter básico"
+          },
+          "summary": "Starter template for new Ralph Engine projects.",
+          "summary_locales": {
+            "pt-br": "Template inicial para novos projetos Ralph Engine."
+          }
+        }
+      ],
+      "project": {
+        "required_files": [
+          ".ralph-engine/config.yaml",
+          ".ralph-engine/prompt.md"
+        ]
+      },
+      "iconUrl": "/plugins/icons/official-basic.svg",
+      "docs": {
+        "default": [
+          {
+            "heading": "Overview",
+            "body": "<p>The Basic plugin provides the default starting point for new Ralph Engine projects. It ships a single starter template that creates the minimal <code>.ralph-engine/</code> directory structure needed to integrate with any AI coding assistant.</p>"
+          },
+          {
+            "heading": "What it creates",
+            "body": "<p>Running the materialize command creates:</p>\n<ul>\n<li><code>.ralph-engine/config.yaml</code> — project configuration with plugin list, check definitions, and agent preferences</li>\n<li><code>.ralph-engine/prompt.md</code> — project-specific prompt content that gets injected into agent sessions</li>\n</ul>\n<p>These two files are the contract between your project and Ralph Engine. The config defines what runs; the prompt defines what the agent knows about your project.</p>"
+          },
+          {
+            "heading": "When to use",
+            "body": "<p>Use this plugin when:</p>\n<ul>\n<li>Starting a new project with Ralph Engine for the first time</li>\n<li>You want a minimal, unopinionated setup</li>\n<li>You plan to customize the configuration yourself</li>\n</ul>\n<p>If you want a more opinionated setup with BMAD workflow integration, use <code>official.bmad</code> instead.</p>"
+          },
+          {
+            "heading": "Configuration",
+            "body": "<p>The generated <code>config.yaml</code> includes:</p>\n<ul>\n<li>Plugin list with <code>official.basic</code> enabled by default</li>\n<li>Doctor checks enabled for config validation</li>\n<li>Default agent runtime set to <code>official.claude</code> (can be changed to <code>official.codex</code> or <code>official.claudebox</code>)</li>\n</ul>"
+          },
+          {
+            "heading": "Customization",
+            "body": "<p>After materializing, edit <code>.ralph-engine/config.yaml</code> to:</p>\n<ul>\n<li>Enable additional plugins</li>\n<li>Configure check thresholds</li>\n<li>Set your preferred agent runtime</li>\n<li>Add project-specific MCP servers</li>\n</ul>"
+          }
+        ],
+        "locales": {
+          "pt-br": [
+            {
+              "heading": "Visao geral",
+              "body": "<p>O plugin Basic oferece o ponto de partida padrao para novos projetos Ralph Engine. Ele inclui um unico template inicial que cria a estrutura minima do diretorio <code>.ralph-engine/</code> necessaria para integrar com qualquer assistente de codigo com IA.</p>"
+            },
+            {
+              "heading": "O que ele cria",
+              "body": "<p>Ao executar o comando materialize, ele cria:</p>\n<ul>\n<li><code>.ralph-engine/config.yaml</code> — configuracao do projeto com lista de plugins, definicoes de checks e preferencias de agente</li>\n<li><code>.ralph-engine/prompt.md</code> — conteudo de prompt especifico do projeto que e injetado nas sessoes do agente</li>\n</ul>\n<p>Esses dois arquivos sao o contrato entre o seu projeto e o Ralph Engine. O config define o que roda; o prompt define o que o agente sabe sobre o seu projeto.</p>"
+            },
+            {
+              "heading": "Quando usar",
+              "body": "<p>Use este plugin quando:</p>\n<ul>\n<li>Estiver iniciando um novo projeto com Ralph Engine pela primeira vez</li>\n<li>Quiser uma configuracao minima e sem opiniao</li>\n<li>Pretender personalizar a configuracao por conta propria</li>\n</ul>\n<p>Se preferir uma configuracao mais direcionada com integracao ao workflow BMAD, use o <code>official.bmad</code>.</p>"
+            },
+            {
+              "heading": "Configuracao",
+              "body": "<p>O <code>config.yaml</code> gerado inclui:</p>\n<ul>\n<li>Lista de plugins com <code>official.basic</code> habilitado por padrao</li>\n<li>Doctor checks habilitados para validacao de configuracao</li>\n<li>Runtime de agente padrao definido como <code>official.claude</code> (pode ser alterado para <code>official.codex</code> ou <code>official.claudebox</code>)</li>\n</ul>"
+            },
+            {
+              "heading": "Personalizacao",
+              "body": "<p>Apos materializar, edite o <code>.ralph-engine/config.yaml</code> para:</p>\n<ul>\n<li>Habilitar plugins adicionais</li>\n<li>Configurar limites de checks</li>\n<li>Definir o runtime de agente de sua preferencia</li>\n<li>Adicionar servidores MCP especificos do projeto</li>\n</ul>"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "official.bmad",
+      "kind": "template",
+      "display_name": "BMAD",
+      "display_name_locales": {
+        "pt-br": "BMAD"
+      },
+      "summary": "Workflow plugin for BMAD scaffolding and prompts.",
+      "summary_locales": {
+        "pt-br": "Plugin de workflow para scaffolding e prompts do BMAD."
+      },
+      "description": "Full BMAD Method integration for Ralph Engine. Includes a starter template with pre-configured BMAD agents, prompt fragments for workflow assembly, and both prepare-time and doctor-time validation checks. Ships templates, prompts, and checks that work together to enforce the BMAD development lifecycle — from story creation through implementation, code review, and sprint tracking.",
+      "description_locales": {
+        "pt-br": "Integração completa do Método BMAD para o Ralph Engine. Inclui template starter com agentes BMAD pré-configurados, fragmentos de prompt para montagem de workflows e verificações de validação tanto em tempo de preparo quanto de diagnóstico. Fornece templates, prompts e checks que trabalham juntos para aplicar o ciclo de vida de desenvolvimento BMAD — da criação de stories até implementação, code review e acompanhamento de sprint."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "validate",
+        "load"
+      ],
+      "runtime_hooks": [
+        "scaffold",
+        "prompt_assembly",
+        "prepare",
+        "doctor",
+        "work_item_resolution"
+      ],
+      "capabilities": [
+        "template",
+        "prompt_fragments",
+        "prepare_checks",
+        "doctor_checks",
+        "workflow"
+      ],
+      "templates": [
+        {
+          "id": "official.bmad.starter",
+          "display_name": "BMAD starter",
+          "display_name_locales": {
+            "pt-br": "Starter BMAD"
+          },
+          "summary": "Starter template for BMAD-guided Ralph Engine projects.",
+          "summary_locales": {
+            "pt-br": "Template inicial para projetos Ralph Engine guiados por BMAD."
+          }
+        }
+      ],
+      "prompts": [
+        {
+          "id": "official.bmad.workflow",
+          "display_name": "BMAD workflow prompt",
+          "display_name_locales": {
+            "pt-br": "Prompt de workflow BMAD"
+          },
+          "summary": "Prompt bundle for BMAD workflow assembly.",
+          "summary_locales": {
+            "pt-br": "Pacote de prompts para montar workflows BMAD."
+          }
+        }
+      ],
+      "checks": [
+        {
+          "id": "official.bmad.prepare",
+          "kind": "prepare",
+          "display_name": "BMAD prepare check",
+          "display_name_locales": {
+            "pt-br": "Verificação de preparo BMAD"
+          },
+          "summary": "Runs typed prepare-time validation for BMAD workflows.",
+          "summary_locales": {
+            "pt-br": "Executa validação tipada de preparo para workflows BMAD."
+          }
+        },
+        {
+          "id": "official.bmad.doctor",
+          "kind": "doctor",
+          "display_name": "BMAD doctor check",
+          "display_name_locales": {
+            "pt-br": "Verificação de diagnóstico BMAD"
+          },
+          "summary": "Runs typed doctor-time validation for BMAD workflows.",
+          "summary_locales": {
+            "pt-br": "Executa validação tipada de diagnóstico para workflows BMAD."
+          }
+        }
+      ],
+      "project": {
+        "required_files": [
+          ".ralph-engine/config.yaml",
+          ".ralph-engine/prompt.md"
+        ]
+      },
+      "iconUrl": "/plugins/icons/official-bmad.svg",
+      "docs": {
+        "default": [
+          {
+            "heading": "Overview",
+            "body": "<p>Full BMAD Method integration for Ralph Engine. The BMAD (Business-Method-Architecture-Development) method is a structured approach to AI-assisted software development with specialized agents for each phase: analysis, planning, architecture, implementation, and review.</p>"
+          },
+          {
+            "heading": "What it ships",
+            "body": "<ul>\n<li>A starter template with pre-configured BMAD agents and workflow definitions</li>\n<li>Prompt fragments that get assembled into agent sessions for BMAD workflows</li>\n<li>Prepare-time checks that validate your project is ready for BMAD workflows</li>\n<li>Doctor checks that diagnose BMAD configuration health</li>\n</ul>"
+          },
+          {
+            "heading": "How to use",
+            "body": "<p>Start a new BMAD project:</p>\n<pre><code>ralph-engine templates materialize official.bmad.starter ./my-project\n</code></pre>\n<p>This creates a <code>.ralph-engine/</code> directory with BMAD-specific configuration including agent definitions, workflow templates, and prompt bundles.</p>"
+          },
+          {
+            "heading": "Checks",
+            "body": "<p>The plugin includes two check types:</p>\n<ul>\n<li><code>official.bmad.prepare</code> — validates that required files exist and configuration is valid before starting a workflow</li>\n<li><code>official.bmad.doctor</code> — comprehensive diagnostic that checks agent definitions, prompt integrity, and workflow consistency</li>\n</ul>"
+          },
+          {
+            "heading": "When to use",
+            "body": "<p>Use this plugin when:</p>\n<ul>\n<li>You want structured AI-assisted development with defined phases</li>\n<li>Your team follows a sprint-based workflow with stories and acceptance criteria</li>\n<li>You need multiple specialized agents (analyst, architect, PM, dev, QA)</li>\n</ul>\n<p>For a simpler setup without BMAD, use <code>official.basic</code> instead.</p>"
+          }
+        ],
+        "locales": {
+          "pt-br": [
+            {
+              "heading": "Visao geral",
+              "body": "<p>Integracao completa com o BMAD Method para o Ralph Engine. O BMAD (Business-Method-Architecture-Development) e uma abordagem estruturada para desenvolvimento de software assistido por IA, com agentes especializados para cada fase: analise, planejamento, arquitetura, implementacao e revisao.</p>"
+            },
+            {
+              "heading": "O que ele inclui",
+              "body": "<ul>\n<li>Um template inicial pre-configurado com agentes BMAD e definicoes de workflow</li>\n<li>Fragmentos de prompt que sao montados nas sessoes do agente para workflows BMAD</li>\n<li>Checks de prepare-time que validam se o projeto esta pronto para workflows BMAD</li>\n<li>Doctor checks que diagnosticam a saude da configuracao BMAD</li>\n</ul>"
+            },
+            {
+              "heading": "Como usar",
+              "body": "<p>Inicie um novo projeto BMAD:</p>\n<pre><code>ralph-engine templates materialize official.bmad.starter ./meu-projeto\n</code></pre>\n<p>Isso cria um diretorio <code>.ralph-engine/</code> com configuracao especifica do BMAD, incluindo definicoes de agentes, templates de workflow e bundles de prompt.</p>"
+            },
+            {
+              "heading": "Checks",
+              "body": "<p>O plugin inclui dois tipos de check:</p>\n<ul>\n<li><code>official.bmad.prepare</code> — valida que os arquivos necessarios existem e a configuracao esta correta antes de iniciar um workflow</li>\n<li><code>official.bmad.doctor</code> — diagnostico completo que verifica definicoes de agentes, integridade de prompts e consistencia de workflows</li>\n</ul>"
+            },
+            {
+              "heading": "Quando usar",
+              "body": "<p>Use este plugin quando:</p>\n<ul>\n<li>Quiser desenvolvimento assistido por IA estruturado com fases definidas</li>\n<li>Sua equipe seguir um workflow baseado em sprints com stories e criterios de aceitacao</li>\n<li>Precisar de multiplos agentes especializados (analista, arquiteto, PM, dev, QA)</li>\n</ul>\n<p>Para uma configuracao mais simples sem BMAD, use o <code>official.basic</code>.</p>"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "official.claude",
+      "kind": "agent_runtime",
+      "display_name": "Claude",
+      "display_name_locales": {
+        "pt-br": "Claude"
+      },
+      "summary": "Claude agent runtime and MCP session integration.",
+      "summary_locales": {
+        "pt-br": "Integração do runtime de agente Claude com sessão MCP."
+      },
+      "description": "Integrates Anthropic's Claude as an agent runtime for Ralph Engine workflows. Detects the Claude CLI binary on your PATH, validates readiness, and provides an MCP server contribution for session management. Use `ralph-engine agents launch official.claude.session` to bootstrap a Claude-powered coding session with your project's plugins, checks, and prompt fragments pre-loaded.",
+      "description_locales": {
+        "pt-br": "Integra o Claude da Anthropic como runtime de agente para workflows do Ralph Engine. Detecta o binário CLI do Claude no seu PATH, valida disponibilidade e fornece uma contribuição de servidor MCP para gerenciamento de sessão. Use `ralph-engine agents launch official.claude.session` para iniciar uma sessão de código com Claude com os plugins, checks e fragmentos de prompt do seu projeto pré-carregados."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "load"
+      ],
+      "runtime_hooks": [
+        "agent_bootstrap",
+        "mcp_registration",
+        "agent_launch"
+      ],
+      "engine_version": ">=0.2.0-alpha.1",
+      "capabilities": [
+        "agent_runtime",
+        "mcp_contribution"
+      ],
+      "agents": [
+        {
+          "id": "official.claude.session",
+          "display_name": "Claude session",
+          "display_name_locales": {
+            "pt-br": "Sessão Claude"
+          },
+          "summary": "Claude runtime session for Ralph Engine.",
+          "summary_locales": {
+            "pt-br": "Sessão de runtime do Claude para o Ralph Engine."
+          }
+        }
+      ],
+      "iconUrl": "/plugins/icons/official-claude.svg",
+      "docs": {
+        "default": [
+          {
+            "heading": "Overview",
+            "body": "<p>Integrates Anthropic&#39;s Claude as an agent runtime for Ralph Engine. When you launch a session, this plugin detects the <code>claude</code> CLI on your PATH, validates it&#39;s ready, and bootstraps a coding session with your project&#39;s configuration pre-loaded.</p>"
+          },
+          {
+            "heading": "How it works",
+            "body": "<ol>\n<li><code>ralph-engine agents launch official.claude.session</code> probes for the Claude CLI binary</li>\n<li>If found, it loads your project&#39;s <code>.ralph-engine/config.yaml</code> and <code>prompt.md</code></li>\n<li>The agent session starts with all enabled plugins, checks, and prompt fragments available</li>\n<li>MCP servers defined in your config are registered and available to the agent</li>\n</ol>"
+          },
+          {
+            "heading": "Requirements",
+            "body": "<ul>\n<li>Claude CLI installed and on your PATH (<code>claude</code> command available)</li>\n<li>A valid Ralph Engine project (<code>.ralph-engine/config.yaml</code> exists)</li>\n</ul>"
+          },
+          {
+            "heading": "MCP contribution",
+            "body": "<p>This plugin also contributes an MCP server that agents can use for session management — starting, stopping, and querying active sessions.</p>"
+          },
+          {
+            "heading": "When to use",
+            "body": "<p>This is the default agent runtime for most Ralph Engine projects. If you&#39;re using Claude Code or Claude Desktop as your AI coding assistant, this is the plugin you want.</p>\n<p>For sandboxed environments, use <code>official.claudebox</code> instead. For OpenAI Codex users, use <code>official.codex</code>.</p>"
+          }
+        ],
+        "locales": {
+          "pt-br": [
+            {
+              "heading": "Visao geral",
+              "body": "<p>Integra o Claude da Anthropic como runtime de agente para o Ralph Engine. Ao iniciar uma sessao, este plugin detecta o CLI <code>claude</code> no seu PATH, valida se esta pronto e inicializa uma sessao de codificacao com a configuracao do projeto pre-carregada.</p>"
+            },
+            {
+              "heading": "Como funciona",
+              "body": "<ol>\n<li><code>ralph-engine agents launch official.claude.session</code> procura o binario do Claude CLI</li>\n<li>Se encontrado, carrega o <code>config.yaml</code> e o <code>prompt.md</code> do seu projeto em <code>.ralph-engine/</code></li>\n<li>A sessao do agente inicia com todos os plugins habilitados, checks e fragmentos de prompt disponiveis</li>\n<li>Servidores MCP definidos na sua configuracao sao registrados e ficam disponiveis para o agente</li>\n</ol>"
+            },
+            {
+              "heading": "Requisitos",
+              "body": "<ul>\n<li>Claude CLI instalado e no seu PATH (comando <code>claude</code> disponivel)</li>\n<li>Um projeto Ralph Engine valido (<code>.ralph-engine/config.yaml</code> existente)</li>\n</ul>"
+            },
+            {
+              "heading": "Contribuicao MCP",
+              "body": "<p>Este plugin tambem disponibiliza um servidor MCP que os agentes podem usar para gerenciamento de sessoes — iniciar, parar e consultar sessoes ativas.</p>"
+            },
+            {
+              "heading": "Quando usar",
+              "body": "<p>Este e o runtime de agente padrao para a maioria dos projetos Ralph Engine. Se voce usa Claude Code ou Claude Desktop como assistente de codigo com IA, este e o plugin que voce quer.</p>\n<p>Para ambientes isolados (sandbox), use o <code>official.claudebox</code>. Para usuarios do OpenAI Codex, use o <code>official.codex</code>.</p>"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "official.claudebox",
+      "kind": "agent_runtime",
+      "display_name": "Claude Box",
+      "display_name_locales": {
+        "pt-br": "Claude Box"
+      },
+      "summary": "Claude Box runtime and MCP session integration.",
+      "summary_locales": {
+        "pt-br": "Integração do runtime Claude Box com sessão MCP."
+      },
+      "description": "Integrates Claude Box (sandboxed Claude environment) as an agent runtime. Claude Box provides an isolated container with filesystem access, browser automation, and sudo capabilities. This plugin detects the claudebox binary, validates readiness, and contributes an MCP server for session management. Ideal for workflows that need full system access without affecting the host.",
+      "description_locales": {
+        "pt-br": "Integra o Claude Box (ambiente Claude isolado) como runtime de agente. O Claude Box fornece um container isolado com acesso ao filesystem, automação de browser e capacidades sudo. Este plugin detecta o binário claudebox, valida disponibilidade e contribui um servidor MCP para gerenciamento de sessão. Ideal para workflows que precisam de acesso completo ao sistema sem afetar o host."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "load"
+      ],
+      "runtime_hooks": [
+        "agent_bootstrap",
+        "mcp_registration",
+        "agent_launch"
+      ],
+      "engine_version": ">=0.2.0-alpha.1",
+      "capabilities": [
+        "agent_runtime",
+        "mcp_contribution"
+      ],
+      "agents": [
+        {
+          "id": "official.claudebox.session",
+          "display_name": "Claude Box session",
+          "display_name_locales": {
+            "pt-br": "Sessão Claude Box"
+          },
+          "summary": "Claude Box runtime session for Ralph Engine.",
+          "summary_locales": {
+            "pt-br": "Sessão de runtime do Claude Box para o Ralph Engine."
+          }
+        }
+      ],
+      "iconUrl": "/plugins/icons/official-claudebox.svg",
+      "docs": {
+        "default": [
+          {
+            "heading": "Overview",
+            "body": "<p>Integrates Claude Box — Anthropic&#39;s sandboxed Claude environment — as an agent runtime. Claude Box runs in an isolated Docker container with filesystem access, browser automation via Playwright, and sudo capabilities, without affecting your host system.</p>"
+          },
+          {
+            "heading": "How it works",
+            "body": "<ol>\n<li><code>ralph-engine agents launch official.claudebox.session</code> probes for the <code>claudebox</code> binary</li>\n<li>If found, it launches a sandboxed session with your project mounted as a shared volume</li>\n<li>The agent has full system access inside the container (install packages, run servers, use browsers)</li>\n<li>MCP servers are registered and available within the sandboxed environment</li>\n</ol>"
+          },
+          {
+            "heading": "Requirements",
+            "body": "<ul>\n<li>Claude Box installed and on your PATH (<code>claudebox</code> command available)</li>\n<li>Docker running (Claude Box uses containers for isolation)</li>\n<li>A valid Ralph Engine project</li>\n</ul>"
+          },
+          {
+            "heading": "When to use",
+            "body": "<p>Use this plugin when:</p>\n<ul>\n<li>You need the agent to install system packages, run Docker commands, or access browsers</li>\n<li>You want full system access without risking your host environment</li>\n<li>Your workflow requires DevContainer-style isolated development</li>\n</ul>\n<p>For standard Claude sessions without sandboxing, use <code>official.claude</code> instead.</p>"
+          }
+        ],
+        "locales": {
+          "pt-br": [
+            {
+              "heading": "Visao geral",
+              "body": "<p>Integra o Claude Box — ambiente isolado (sandbox) do Claude pela Anthropic — como runtime de agente. O Claude Box roda em um container Docker isolado com acesso ao sistema de arquivos, automacao de navegador via Playwright e capacidades de sudo, sem afetar o seu sistema host.</p>"
+            },
+            {
+              "heading": "Como funciona",
+              "body": "<ol>\n<li><code>ralph-engine agents launch official.claudebox.session</code> procura o binario <code>claudebox</code></li>\n<li>Se encontrado, inicia uma sessao isolada com o projeto montado como volume compartilhado</li>\n<li>O agente tem acesso completo ao sistema dentro do container (instalar pacotes, rodar servidores, usar navegadores)</li>\n<li>Servidores MCP sao registrados e ficam disponiveis dentro do ambiente isolado</li>\n</ol>"
+            },
+            {
+              "heading": "Requisitos",
+              "body": "<ul>\n<li>Claude Box instalado e no seu PATH (comando <code>claudebox</code> disponivel)</li>\n<li>Docker rodando (o Claude Box usa containers para isolamento)</li>\n<li>Um projeto Ralph Engine valido</li>\n</ul>"
+            },
+            {
+              "heading": "Quando usar",
+              "body": "<p>Use este plugin quando:</p>\n<ul>\n<li>Precisar que o agente instale pacotes do sistema, execute comandos Docker ou acesse navegadores</li>\n<li>Quiser acesso completo ao sistema sem arriscar o ambiente host</li>\n<li>Seu workflow exigir desenvolvimento isolado no estilo DevContainer</li>\n</ul>\n<p>Para sessoes Claude padrao sem sandbox, use o <code>official.claude</code>.</p>"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "official.codex",
+      "kind": "agent_runtime",
+      "display_name": "Codex",
+      "display_name_locales": {
+        "pt-br": "Codex"
+      },
+      "summary": "Codex runtime and MCP session integration.",
+      "summary_locales": {
+        "pt-br": "Integração do runtime Codex com sessão MCP."
+      },
+      "description": "Integrates OpenAI's Codex CLI as an agent runtime for Ralph Engine workflows. Detects the codex binary on your PATH, validates readiness, and provides an MCP server contribution for session management. Use `ralph-engine agents launch official.codex.session` to bootstrap a Codex-powered coding session with your project configuration pre-loaded.",
+      "description_locales": {
+        "pt-br": "Integra o Codex CLI da OpenAI como runtime de agente para workflows do Ralph Engine. Detecta o binário codex no seu PATH, valida disponibilidade e fornece uma contribuição de servidor MCP para gerenciamento de sessão. Use `ralph-engine agents launch official.codex.session` para iniciar uma sessão de código com Codex com a configuração do seu projeto pré-carregada."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "load"
+      ],
+      "runtime_hooks": [
+        "agent_bootstrap",
+        "mcp_registration",
+        "agent_launch"
+      ],
+      "engine_version": ">=0.2.0-alpha.1",
+      "capabilities": [
+        "agent_runtime",
+        "mcp_contribution"
+      ],
+      "agents": [
+        {
+          "id": "official.codex.session",
+          "display_name": "Codex session",
+          "display_name_locales": {
+            "pt-br": "Sessão Codex"
+          },
+          "summary": "Codex runtime session for Ralph Engine.",
+          "summary_locales": {
+            "pt-br": "Sessão de runtime do Codex para o Ralph Engine."
+          }
+        }
+      ],
+      "iconUrl": "/plugins/icons/official-codex.svg",
+      "docs": {
+        "default": [
+          {
+            "heading": "Overview",
+            "body": "<p>Integrates OpenAI&#39;s Codex CLI as an agent runtime for Ralph Engine workflows. This plugin allows teams using Codex to get the same Ralph Engine experience — plugins, checks, prompt assembly, and MCP servers — regardless of which AI coding assistant they prefer.</p>"
+          },
+          {
+            "heading": "How it works",
+            "body": "<ol>\n<li><code>ralph-engine agents launch official.codex.session</code> probes for the <code>codex</code> binary</li>\n<li>If found, it loads your project configuration and bootstraps a Codex session</li>\n<li>All enabled plugins, checks, and prompt fragments are available to the agent</li>\n<li>MCP servers defined in your config are registered for the session</li>\n</ol>"
+          },
+          {
+            "heading": "Requirements",
+            "body": "<ul>\n<li>Codex CLI installed and on your PATH (<code>codex</code> command available)</li>\n<li>A valid Ralph Engine project</li>\n</ul>"
+          },
+          {
+            "heading": "When to use",
+            "body": "<p>Use this plugin when:</p>\n<ul>\n<li>Your team uses OpenAI Codex as the primary AI coding assistant</li>\n<li>You want to switch between Claude and Codex without changing your project configuration</li>\n<li>You&#39;re evaluating different AI assistants and want a consistent workflow layer</li>\n</ul>\n<p>Ralph Engine is agent-agnostic — the same config works with Claude, Claude Box, or Codex.</p>"
+          }
+        ],
+        "locales": {
+          "pt-br": [
+            {
+              "heading": "Visao geral",
+              "body": "<p>Integra o Codex CLI da OpenAI como runtime de agente para workflows do Ralph Engine. Este plugin permite que equipes que usam Codex tenham a mesma experiencia do Ralph Engine — plugins, checks, montagem de prompt e servidores MCP — independente de qual assistente de codigo com IA preferem.</p>"
+            },
+            {
+              "heading": "Como funciona",
+              "body": "<ol>\n<li><code>ralph-engine agents launch official.codex.session</code> procura o binario <code>codex</code></li>\n<li>Se encontrado, carrega a configuracao do projeto e inicializa uma sessao Codex</li>\n<li>Todos os plugins habilitados, checks e fragmentos de prompt ficam disponiveis para o agente</li>\n<li>Servidores MCP definidos na configuracao sao registrados para a sessao</li>\n</ol>"
+            },
+            {
+              "heading": "Requisitos",
+              "body": "<ul>\n<li>Codex CLI instalado e no seu PATH (comando <code>codex</code> disponivel)</li>\n<li>Um projeto Ralph Engine valido</li>\n</ul>"
+            },
+            {
+              "heading": "Quando usar",
+              "body": "<p>Use este plugin quando:</p>\n<ul>\n<li>Sua equipe usar o OpenAI Codex como assistente de codigo principal</li>\n<li>Quiser alternar entre Claude e Codex sem mudar a configuracao do projeto</li>\n<li>Estiver avaliando diferentes assistentes de IA e quiser uma camada de workflow consistente</li>\n</ul>\n<p>O Ralph Engine e agnostico em relacao ao agente — a mesma configuracao funciona com Claude, Claude Box ou Codex.</p>"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "official.context",
+      "kind": "context_manager",
+      "display_name": "Context Manager",
+      "display_name_locales": {
+        "pt-br": "Gerenciador de Contexto"
+      },
+      "summary": "Session persistence, context compaction, and cross-agent transfer.",
+      "summary_locales": {
+        "pt-br": "Persistencia de sessao, compactacao de contexto e transferencia entre agentes."
+      },
+      "description": "Manages conversation context across agent sessions. Saves and loads session snapshots, compacts context to fit within token budgets, and facilitates context transfer when switching between agents.",
+      "description_locales": {
+        "pt-br": "Gerencia o contexto de conversacao entre sessoes de agentes. Salva e carrega snapshots de sessao, compacta contexto para caber nos limites de tokens e facilita transferencia ao trocar entre agentes."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "load"
+      ],
+      "runtime_hooks": [
+        "context_management",
+        "session_persistence"
+      ],
+      "capabilities": [
+        "context_management",
+        "session_persistence"
+      ],
+      "iconUrl": null
+    },
+    {
+      "id": "official.findings",
+      "kind": "context_provider",
+      "display_name": "Findings",
+      "display_name_locales": {
+        "pt-br": "Achados"
+      },
+      "summary": "Feedback loop plugin — injects past findings into agent prompts.",
+      "summary_locales": {
+        "pt-br": "Plugin de feedback loop — injeta achados passados nos prompts de agentes."
+      },
+      "description": "Reads `.ralph-engine/findings.md` at runtime and contributes a `` section to the agent prompt. Enables a feedback loop where code review findings and quality gate failures accumulate across runs, preventing agents from repeating the same mistakes. The file format and content are project-defined; this plugin only reads and injects.",
+      "description_locales": {
+        "pt-br": "Lê `.ralph-engine/findings.md` em runtime e contribui uma seção `` ao prompt do agente. Habilita um feedback loop onde achados de code review e falhas de quality gate acumulam entre execuções, prevenindo que agentes repitam os mesmos erros. O formato e conteúdo do arquivo são definidos pelo projeto; este plugin apenas lê e injeta."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "load"
+      ],
+      "runtime_hooks": [
+        "prompt_assembly"
+      ],
+      "capabilities": [
+        "context_provider",
+        "prompt_fragments"
+      ],
+      "prompts": [
+        {
+          "id": "official.findings.findings",
+          "display_name": "Findings prompt",
+          "display_name_locales": {
+            "pt-br": "Prompt de achados"
+          },
+          "summary": "Injects accumulated findings into agent prompts as a <findings> section.",
+          "summary_locales": {
+            "pt-br": "Injeta achados acumulados nos prompts de agentes como seção <findings>."
+          }
+        }
+      ],
+      "iconUrl": null
+    },
+    {
+      "id": "official.github",
+      "kind": "data_source",
+      "display_name": "GitHub",
+      "display_name_locales": {
+        "pt-br": "GitHub"
+      },
+      "summary": "GitHub data, context, forge, and MCP integration.",
+      "summary_locales": {
+        "pt-br": "Integração de dados, contexto, forge e MCP do GitHub."
+      },
+      "description": "Comprehensive GitHub integration for Ralph Engine. Provides three typed providers: a data source for repository metadata (issues, PRs, branches), a context provider for CI status and workflow information, and a forge provider for automating GitHub operations (create PRs, manage releases). Also contributes an MCP server for direct GitHub API access from agent sessions.",
+      "description_locales": {
+        "pt-br": "Integração completa do GitHub para o Ralph Engine. Fornece três provedores tipados: fonte de dados para metadados do repositório (issues, PRs, branches), provedor de contexto para status de CI e informações de workflow, e provedor forge para automatizar operações no GitHub (criar PRs, gerenciar releases). Também contribui um servidor MCP para acesso direto à API do GitHub a partir de sessões de agente."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "load"
+      ],
+      "runtime_hooks": [
+        "mcp_registration",
+        "data_source_registration",
+        "context_provider_registration",
+        "forge_provider_registration"
+      ],
+      "engine_version": ">=0.2.0-alpha.1",
+      "capabilities": [
+        "data_source",
+        "context_provider",
+        "forge_provider",
+        "mcp_contribution"
+      ],
+      "providers": [
+        {
+          "id": "official.github.data",
+          "kind": "data_source",
+          "display_name": "GitHub data source",
+          "display_name_locales": {
+            "pt-br": "Fonte de dados GitHub"
+          },
+          "summary": "Exposes typed repository data to Ralph Engine workflows.",
+          "summary_locales": {
+            "pt-br": "Expõe dados tipados de repositório para workflows Ralph Engine."
+          }
+        },
+        {
+          "id": "official.github.context",
+          "kind": "context_provider",
+          "display_name": "GitHub context provider",
+          "display_name_locales": {
+            "pt-br": "Provedor de contexto GitHub"
+          },
+          "summary": "Exposes typed GitHub context for Ralph Engine workflows.",
+          "summary_locales": {
+            "pt-br": "Expõe contexto tipado do GitHub para workflows Ralph Engine."
+          }
+        },
+        {
+          "id": "official.github.forge",
+          "kind": "forge_provider",
+          "display_name": "GitHub forge provider",
+          "display_name_locales": {
+            "pt-br": "Provedor forge GitHub"
+          },
+          "summary": "Exposes typed forge automation for GitHub-backed workflows.",
+          "summary_locales": {
+            "pt-br": "Expõe automação forge tipada para workflows baseados em GitHub."
+          }
+        }
+      ],
+      "iconUrl": "/plugins/icons/official-github.svg",
+      "docs": {
+        "default": [
+          {
+            "heading": "Overview",
+            "body": "<p>Comprehensive GitHub integration for Ralph Engine. Provides typed access to repository data, CI/CD status, and forge operations (creating PRs, managing releases). Also contributes an MCP server for direct GitHub API access from agent sessions.</p>"
+          },
+          {
+            "heading": "Providers",
+            "body": "<p>This plugin ships three typed providers:</p>\n<h3>Data source</h3>\n<p><code>official.github.data</code> exposes repository metadata to workflows — issues, pull requests, branches, tags, and commit history. Agents can query this data without needing direct GitHub API access.</p>\n<h3>Context provider</h3>\n<p><code>official.github.context</code> provides CI/CD status, workflow run information, and environment context. Useful for agents that need to check if CI is passing before merging or deploying.</p>\n<h3>Forge provider</h3>\n<p><code>official.github.forge</code> enables automated GitHub operations — creating pull requests, managing releases, updating issues, and triggering workflows. This is what makes Ralph Engine workflows capable of end-to-end automation.</p>"
+          },
+          {
+            "heading": "MCP server",
+            "body": "<p>The plugin contributes an MCP server that gives agents direct access to the GitHub API. This is used by agent runtimes (Claude, Codex) to interact with GitHub during coding sessions.</p>"
+          },
+          {
+            "heading": "Requirements",
+            "body": "<ul>\n<li>A GitHub repository (public or private)</li>\n<li><code>gh</code> CLI installed for authentication, or a <code>GITHUB_TOKEN</code> environment variable</li>\n</ul>"
+          },
+          {
+            "heading": "When to use",
+            "body": "<p>This plugin is recommended for any project hosted on GitHub. It enables agents to understand your repository context, check CI status, and automate Git operations.</p>"
+          }
+        ],
+        "locales": {
+          "pt-br": [
+            {
+              "heading": "Visao geral",
+              "body": "<p>Integracao completa com GitHub para o Ralph Engine. Fornece acesso tipado a dados do repositorio, status de CI/CD e operacoes de forge (criar PRs, gerenciar releases). Tambem disponibiliza um servidor MCP para acesso direto a API do GitHub a partir das sessoes do agente.</p>"
+            },
+            {
+              "heading": "Providers",
+              "body": "<p>Este plugin inclui tres providers tipados:</p>\n<h3>Data source</h3>\n<p><code>official.github.data</code> expoe metadados do repositorio para workflows — issues, pull requests, branches, tags e historico de commits. Os agentes podem consultar esses dados sem precisar de acesso direto a API do GitHub.</p>\n<h3>Context provider</h3>\n<p><code>official.github.context</code> fornece status de CI/CD, informacoes sobre execucoes de workflows e contexto do ambiente. Util para agentes que precisam verificar se o CI esta passando antes de fazer merge ou deploy.</p>\n<h3>Forge provider</h3>\n<p><code>official.github.forge</code> habilita operacoes automatizadas no GitHub — criar pull requests, gerenciar releases, atualizar issues e disparar workflows. E isso que torna os workflows do Ralph Engine capazes de automacao ponta a ponta.</p>"
+            },
+            {
+              "heading": "Servidor MCP",
+              "body": "<p>O plugin disponibiliza um servidor MCP que da aos agentes acesso direto a API do GitHub. Isso e usado pelos runtimes de agente (Claude, Codex) para interagir com o GitHub durante sessoes de codificacao.</p>"
+            },
+            {
+              "heading": "Requisitos",
+              "body": "<ul>\n<li>Um repositorio GitHub (publico ou privado)</li>\n<li>CLI <code>gh</code> instalado para autenticacao, ou variavel de ambiente <code>GITHUB_TOKEN</code> configurada</li>\n</ul>"
+            },
+            {
+              "heading": "Quando usar",
+              "body": "<p>Este plugin e recomendado para qualquer projeto hospedado no GitHub. Ele permite que os agentes entendam o contexto do repositorio, verifiquem o status do CI e automatizem operacoes Git.</p>"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "official.guided",
+      "kind": "tui_extension",
+      "display_name": "Guided Mode",
+      "display_name_locales": {
+        "pt-br": "Modo Guiado"
+      },
+      "summary": "Interactive TUI mode with pause, feedback, and resume controls.",
+      "summary_locales": {
+        "pt-br": "Modo TUI interativo com controles de pausa, feedback e retomada."
+      },
+      "description": "Adds human-in-the-loop interaction to the TUI dashboard. When enabled, users can pause the running agent, provide written feedback, and resume with merged context. When disabled, the TUI is a read-only dashboard. Controls: [p] pause/resume, [f] provide feedback.",
+      "description_locales": {
+        "pt-br": "Adiciona interacao humana ao dashboard TUI. Quando habilitado, usuarios podem pausar o agente em execucao, fornecer feedback escrito e retomar com contexto mesclado. Quando desabilitado, a TUI eh um dashboard apenas leitura. Controles: [p] pausar/retomar, [f] feedback."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "load"
+      ],
+      "runtime_hooks": [
+        "tui_contribution"
+      ],
+      "capabilities": [
+        "tui_widgets"
+      ],
+      "iconUrl": null
+    },
+    {
+      "id": "official.hello-world",
+      "kind": "template",
+      "display_name": "Hello World",
+      "display_name_locales": {
+        "pt-br": "Olá Mundo"
+      },
+      "summary": "Minimal example plugin — use as a reference for building your own.",
+      "summary_locales": {
+        "pt-br": "Plugin de exemplo mínimo — use como referência para criar o seu."
+      },
+      "description": "A minimal plugin that demonstrates the Ralph Engine plugin architecture. Use this as a starting point when learning how plugins work or as a template for creating your own. Ships a single starter template that creates a basic .ralph-engine/ configuration directory.",
+      "description_locales": {
+        "pt-br": "Um plugin mínimo que demonstra a arquitetura de plugins do Ralph Engine. Use como ponto de partida para entender como plugins funcionam ou como template para criar o seu. Inclui um único template starter que cria um diretório básico de configuração .ralph-engine/."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "load"
+      ],
+      "runtime_hooks": [
+        "scaffold"
+      ],
+      "capabilities": [
+        "template"
+      ],
+      "project": {
+        "required_files": [
+          ".ralph-engine/config.yaml",
+          ".ralph-engine/prompt.md"
+        ]
+      },
+      "templates": [
+        {
+          "id": "official.hello-world.starter",
+          "display_name": "Hello World starter",
+          "display_name_locales": {
+            "pt-br": "Starter Olá Mundo"
+          },
+          "summary": "Minimal starter template for learning Ralph Engine.",
+          "summary_locales": {
+            "pt-br": "Template starter mínimo para aprender o Ralph Engine."
+          }
+        }
+      ],
+      "iconUrl": null,
+      "docs": {
+        "default": [
+          {
+            "heading": "Overview",
+            "body": "<p>This is the simplest possible Ralph Engine plugin. It demonstrates the plugin architecture with a single starter template and nothing else. If you&#39;re learning how plugins work, start here.</p>"
+          },
+          {
+            "heading": "What it does",
+            "body": "<p>Ships a single starter template (<code>official.hello-world.starter</code>) that creates a basic <code>.ralph-engine/</code> directory with:</p>\n<ul>\n<li><code>config.yaml</code> — minimal project configuration</li>\n<li><code>hooks.yaml</code> — empty hook definitions</li>\n<li><code>prompt.md</code> — placeholder project prompt</li>\n</ul>"
+          },
+          {
+            "heading": "How to use",
+            "body": "<pre><code>ralph-engine templates materialize official.hello-world.starter ./my-project\n</code></pre>"
+          },
+          {
+            "heading": "Why it exists",
+            "body": "<p>This plugin serves as a living reference for the Plugin Development tutorial. Every file in this directory maps directly to a section in the docs. When you scaffold a new plugin with <code>npx create-ralph-engine-plugin</code>, the generated code follows this same structure.</p>"
+          },
+          {
+            "heading": "Files explained",
+            "body": "<table>\n<thead>\n<tr>\n<th>File</th>\n<th>Purpose</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><code>manifest.yaml</code></td>\n<td>Plugin metadata — ID, kind, capabilities, i18n</td>\n</tr>\n<tr>\n<td><code>src/lib.rs</code></td>\n<td>Plugin descriptor + PluginRuntime trait implementation</td>\n</tr>\n<tr>\n<td><code>src/i18n/mod.rs</code></td>\n<td>Includes build-generated i18n code</td>\n</tr>\n<tr>\n<td><code>build.rs</code></td>\n<td>Reads locales/*.toml and generates i18n Rust code</td>\n</tr>\n<tr>\n<td><code>locales/en.toml</code></td>\n<td>English translations</td>\n</tr>\n<tr>\n<td><code>locales/pt-br.toml</code></td>\n<td>Portuguese translations</td>\n</tr>\n<tr>\n<td><code>template/</code></td>\n<td>Files materialized by the starter template</td>\n</tr>\n<tr>\n<td><code>Cargo.toml</code></td>\n<td>Rust crate manifest with workspace deps</td>\n</tr>\n</tbody></table>"
+          }
+        ],
+        "locales": {
+          "pt-br": [
+            {
+              "heading": "Visão geral",
+              "body": "<p>Este é o plugin mais simples possível do Ralph Engine. Ele demonstra a arquitetura de plugins com um único template starter e nada mais. Se você está aprendendo como plugins funcionam, comece aqui.</p>"
+            },
+            {
+              "heading": "O que ele faz",
+              "body": "<p>Inclui um único template starter (<code>official.hello-world.starter</code>) que cria um diretório básico <code>.ralph-engine/</code> com:</p>\n<ul>\n<li><code>config.yaml</code> — configuração mínima do projeto</li>\n<li><code>hooks.yaml</code> — definições de hooks vazias</li>\n<li><code>prompt.md</code> — prompt de projeto placeholder</li>\n</ul>"
+            },
+            {
+              "heading": "Como usar",
+              "body": "<pre><code>ralph-engine templates materialize official.hello-world.starter ./meu-projeto\n</code></pre>"
+            },
+            {
+              "heading": "Por que ele existe",
+              "body": "<p>Este plugin serve como referência viva para o tutorial de Desenvolvimento de Plugins. Cada arquivo neste diretório mapeia diretamente para uma seção nas docs. Quando você cria um novo plugin com <code>npx create-ralph-engine-plugin</code>, o código gerado segue esta mesma estrutura.</p>"
+            },
+            {
+              "heading": "Arquivos explicados",
+              "body": "<table>\n<thead>\n<tr>\n<th>Arquivo</th>\n<th>Propósito</th>\n</tr>\n</thead>\n<tbody><tr>\n<td><code>manifest.yaml</code></td>\n<td>Metadados do plugin — ID, tipo, capabilities, i18n</td>\n</tr>\n<tr>\n<td><code>src/lib.rs</code></td>\n<td>Descriptor do plugin + implementação do trait PluginRuntime</td>\n</tr>\n<tr>\n<td><code>src/i18n/mod.rs</code></td>\n<td>Inclui código i18n gerado no build</td>\n</tr>\n<tr>\n<td><code>build.rs</code></td>\n<td>Lê locales/*.toml e gera código Rust de i18n</td>\n</tr>\n<tr>\n<td><code>locales/en.toml</code></td>\n<td>Traduções em inglês</td>\n</tr>\n<tr>\n<td><code>locales/pt-br.toml</code></td>\n<td>Traduções em português</td>\n</tr>\n<tr>\n<td><code>template/</code></td>\n<td>Arquivos materializados pelo template starter</td>\n</tr>\n<tr>\n<td><code>Cargo.toml</code></td>\n<td>Manifesto do crate Rust com deps do workspace</td>\n</tr>\n</tbody></table>"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "official.router",
+      "kind": "agent_router",
+      "display_name": "Agent Router",
+      "display_name_locales": {
+        "pt-br": "Roteador de Agentes"
+      },
+      "summary": "Task-based agent selection with config-driven rules and fallback chains.",
+      "summary_locales": {
+        "pt-br": "Selecao de agente baseada em tarefas com regras configuradas e cadeias de fallback."
+      },
+      "description": "Routes tasks to the best agent based on configurable rules. Supports pattern matching on task descriptions, model overrides, priority ordering, and fallback chains when the primary agent is unavailable.",
+      "description_locales": {
+        "pt-br": "Roteia tarefas para o melhor agente baseado em regras configuraveis. Suporta pattern matching em descricoes de tarefas, overrides de modelo, ordenacao por prioridade e cadeias de fallback quando o agente primario nao esta disponivel."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "load"
+      ],
+      "runtime_hooks": [
+        "agent_routing"
+      ],
+      "capabilities": [
+        "agent_routing"
+      ],
+      "iconUrl": null
+    },
+    {
+      "id": "official.ssh",
+      "kind": "remote_control",
+      "display_name": "SSH",
+      "display_name_locales": {
+        "pt-br": "SSH"
+      },
+      "summary": "SSH remote control integration.",
+      "summary_locales": {
+        "pt-br": "Integração de controle remoto por SSH."
+      },
+      "description": "Enables remote command execution over SSH for Ralph Engine workflows. Provides a typed remote control provider that can execute commands on remote hosts, transfer files, and manage remote environments. Useful for deployment workflows, DevContainer integration, and multi-machine development setups where the agent needs to operate across host boundaries.",
+      "description_locales": {
+        "pt-br": "Habilita execução remota de comandos via SSH para workflows do Ralph Engine. Fornece um provedor de controle remoto tipado que pode executar comandos em hosts remotos, transferir arquivos e gerenciar ambientes remotos. Útil para workflows de deploy, integração com DevContainer e setups de desenvolvimento multi-máquina onde o agente precisa operar além das fronteiras do host."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "load"
+      ],
+      "runtime_hooks": [
+        "remote_control_bootstrap"
+      ],
+      "engine_version": ">=0.2.0-alpha.1",
+      "capabilities": [
+        "remote_control"
+      ],
+      "providers": [
+        {
+          "id": "official.ssh.remote",
+          "kind": "remote_control",
+          "display_name": "SSH remote control",
+          "display_name_locales": {
+            "pt-br": "Controle remoto SSH"
+          },
+          "summary": "Exposes typed remote control over SSH for Ralph Engine workflows.",
+          "summary_locales": {
+            "pt-br": "Expõe controle remoto tipado por SSH para workflows Ralph Engine."
+          }
+        }
+      ],
+      "iconUrl": "/plugins/icons/official-ssh.svg",
+      "docs": {
+        "default": [
+          {
+            "heading": "Overview",
+            "body": "<p>Enables remote command execution over SSH for Ralph Engine workflows. This plugin provides a typed remote control provider that allows agents to execute commands on remote hosts, transfer files, and manage remote environments — all within the safety of Ralph Engine&#39;s plugin system.</p>"
+          },
+          {
+            "heading": "How it works",
+            "body": "<p>The SSH plugin exposes a remote control provider (<code>official.ssh.remote</code>) that agents can use to:</p>\n<ul>\n<li>Execute commands on remote hosts via SSH</li>\n<li>Transfer files between local and remote machines</li>\n<li>Check connectivity and remote environment health</li>\n<li>Manage remote services (start/stop/restart)</li>\n</ul>"
+          },
+          {
+            "heading": "Use cases",
+            "body": "<h3>DevContainer integration</h3>\n<p>Run tests, migrations, and development servers inside a DevContainer while the agent edits files locally. The SSH plugin bridges the gap between the agent&#39;s local environment and the containerized services.</p>\n<h3>Multi-machine development</h3>\n<p>For projects that span multiple machines (e.g., frontend on local, backend on a remote server), the SSH plugin enables the agent to operate across host boundaries seamlessly.</p>\n<h3>Deployment workflows</h3>\n<p>Execute deployment scripts on production or staging servers as part of an automated Ralph Engine workflow.</p>"
+          },
+          {
+            "heading": "Requirements",
+            "body": "<ul>\n<li>SSH client installed on the local machine</li>\n<li>SSH key-based authentication configured for target hosts</li>\n<li>A valid Ralph Engine project</li>\n</ul>"
+          },
+          {
+            "heading": "Security",
+            "body": "<p>All SSH operations go through Ralph Engine&#39;s plugin system, which means they&#39;re auditable and can be gated by policy plugins. The SSH plugin never stores credentials — it relies on your system&#39;s SSH agent and key configuration.</p>"
+          }
+        ],
+        "locales": {
+          "pt-br": [
+            {
+              "heading": "Visao geral",
+              "body": "<p>Habilita execucao remota de comandos via SSH para workflows do Ralph Engine. Este plugin fornece um provider de controle remoto tipado que permite aos agentes executar comandos em hosts remotos, transferir arquivos e gerenciar ambientes remotos — tudo dentro da seguranca do sistema de plugins do Ralph Engine.</p>"
+            },
+            {
+              "heading": "Como funciona",
+              "body": "<p>O plugin SSH expoe um provider de controle remoto (<code>official.ssh.remote</code>) que os agentes podem usar para:</p>\n<ul>\n<li>Executar comandos em hosts remotos via SSH</li>\n<li>Transferir arquivos entre maquinas local e remota</li>\n<li>Verificar conectividade e saude do ambiente remoto</li>\n<li>Gerenciar servicos remotos (iniciar/parar/reiniciar)</li>\n</ul>"
+            },
+            {
+              "heading": "Casos de uso",
+              "body": "<h3>Integracao com DevContainer</h3>\n<p>Rode testes, migrations e servidores de desenvolvimento dentro de um DevContainer enquanto o agente edita arquivos localmente. O plugin SSH faz a ponte entre o ambiente local do agente e os servicos no container.</p>\n<h3>Desenvolvimento multi-maquina</h3>\n<p>Para projetos que abrangem varias maquinas (ex.: frontend local, backend em servidor remoto), o plugin SSH permite que o agente opere entre diferentes hosts de forma transparente.</p>\n<h3>Workflows de deploy</h3>\n<p>Execute scripts de deploy em servidores de producao ou staging como parte de um workflow automatizado do Ralph Engine.</p>"
+            },
+            {
+              "heading": "Requisitos",
+              "body": "<ul>\n<li>Cliente SSH instalado na maquina local</li>\n<li>Autenticacao por chave SSH configurada para os hosts de destino</li>\n<li>Um projeto Ralph Engine valido</li>\n</ul>"
+            },
+            {
+              "heading": "Seguranca",
+              "body": "<p>Todas as operacoes SSH passam pelo sistema de plugins do Ralph Engine, o que significa que sao auditaveis e podem ser controladas por plugins de politica. O plugin SSH nunca armazena credenciais — ele depende do SSH agent e da configuracao de chaves do seu sistema.</p>"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "official.tdd-strict",
+      "kind": "policy",
+      "display_name": "TDD Strict",
+      "display_name_locales": {
+        "pt-br": "TDD Estrito"
+      },
+      "summary": "Strict TDD policy and template guardrails.",
+      "summary_locales": {
+        "pt-br": "Política estrita de TDD com guardrails de template."
+      },
+      "description": "Enforces strict Test-Driven Development discipline in Ralph Engine projects. Includes a starter template pre-configured with TDD guardrails and a policy that validates the RED-GREEN-REFACTOR cycle is followed for every acceptance criterion. The policy checks that tests are written before implementation, that each AC has at least one test, and that test names follow conventions.",
+      "description_locales": {
+        "pt-br": "Aplica disciplina estrita de Test-Driven Development em projetos Ralph Engine. Inclui um template starter pré-configurado com guardrails TDD e uma política que valida que o ciclo RED-GREEN-REFACTOR é seguido para cada critério de aceitação. A política verifica que testes são escritos antes da implementação, que cada AC tem pelo menos um teste e que nomes de testes seguem convenções."
+      },
+      "publisher": "official",
+      "trust_level": "official",
+      "plugin_version": "0.2.0-alpha.1",
+      "plugin_api_version": "1.0.0",
+      "engine_version": ">=0.2.0-alpha.1",
+      "runtime": true,
+      "lifecycle": [
+        "discover",
+        "configure",
+        "validate",
+        "load"
+      ],
+      "runtime_hooks": [
+        "scaffold",
+        "policy_enforcement"
+      ],
+      "capabilities": [
+        "template",
+        "policy"
+      ],
+      "templates": [
+        {
+          "id": "official.tdd-strict.starter",
+          "display_name": "TDD strict starter",
+          "display_name_locales": {
+            "pt-br": "Starter TDD estrito"
+          },
+          "summary": "Starter template with strict TDD guardrails enabled.",
+          "summary_locales": {
+            "pt-br": "Template inicial com guardrails estritos de TDD ativados."
+          }
+        }
+      ],
+      "policies": [
+        {
+          "id": "official.tdd-strict.guardrails",
+          "display_name": "TDD strict guardrails",
+          "display_name_locales": {
+            "pt-br": "Guardrails TDD estrito"
+          },
+          "summary": "Official policy with strict TDD guardrails.",
+          "summary_locales": {
+            "pt-br": "Política oficial com guardrails estritos de TDD."
+          }
+        }
+      ],
+      "project": {
+        "required_files": [
+          ".ralph-engine/config.yaml",
+          ".ralph-engine/prompt.md"
+        ]
+      },
+      "iconUrl": "/plugins/icons/official-tdd-strict.svg",
+      "docs": {
+        "default": [
+          {
+            "heading": "Overview",
+            "body": "<p>Enforces strict Test-Driven Development discipline in Ralph Engine projects. This plugin combines a starter template pre-configured with TDD guardrails and a policy that validates the RED-GREEN-REFACTOR cycle is followed for every acceptance criterion.</p>"
+          },
+          {
+            "heading": "What it enforces",
+            "body": "<p>The TDD strict policy validates that:</p>\n<ul>\n<li>Tests are written before implementation (RED phase)</li>\n<li>Each acceptance criterion has at least one corresponding test</li>\n<li>Test names follow naming conventions</li>\n<li>The RED-GREEN-REFACTOR cycle is documented in the development record</li>\n</ul>"
+          },
+          {
+            "heading": "How to use",
+            "body": "<p>Start a TDD-strict project:</p>\n<pre><code>ralph-engine templates materialize official.tdd-strict.starter ./my-project\n</code></pre>\n<p>Or enable the policy in an existing project by adding <code>official.tdd-strict</code> to your plugin list in <code>.ralph-engine/config.yaml</code>.</p>"
+          },
+          {
+            "heading": "Template vs Policy",
+            "body": "<p>This plugin ships two things:</p>\n<ul>\n<li><strong>Starter template</strong> (<code>official.tdd-strict.starter</code>) — creates a project pre-configured with TDD guardrails enabled</li>\n<li><strong>Policy</strong> (<code>official.tdd-strict.guardrails</code>) — the enforcement rules that can be added to any existing project</li>\n</ul>\n<p>You can use the template for new projects, or just enable the policy in an existing project that uses <code>official.basic</code> or <code>official.bmad</code> as its base.</p>"
+          },
+          {
+            "heading": "When to use",
+            "body": "<p>Use this plugin when:</p>\n<ul>\n<li>Your team practices TDD and wants automated enforcement</li>\n<li>You want to ensure AI-generated code always has tests written first</li>\n<li>Code review should verify that tests exist for every acceptance criterion</li>\n<li>You want to prevent &quot;I&#39;ll add tests later&quot; from ever happening</li>\n</ul>"
+          },
+          {
+            "heading": "Combining with other plugins",
+            "body": "<p>TDD strict works alongside any agent runtime (Claude, Codex, Claude Box) and alongside the BMAD workflow plugin. The policy enforcement happens at check time, not at agent level.</p>"
+          }
+        ],
+        "locales": {
+          "pt-br": [
+            {
+              "heading": "Visao geral",
+              "body": "<p>Impoe disciplina rigorosa de Test-Driven Development em projetos Ralph Engine. Este plugin combina um template inicial pre-configurado com guardrails de TDD e uma politica que valida se o ciclo RED-GREEN-REFACTOR esta sendo seguido para cada criterio de aceitacao.</p>"
+            },
+            {
+              "heading": "O que ele impoe",
+              "body": "<p>A politica TDD strict valida que:</p>\n<ul>\n<li>Os testes sao escritos antes da implementacao (fase RED)</li>\n<li>Cada criterio de aceitacao tem pelo menos um teste correspondente</li>\n<li>Os nomes dos testes seguem convencoes de nomenclatura</li>\n<li>O ciclo RED-GREEN-REFACTOR esta documentado no registro de desenvolvimento</li>\n</ul>"
+            },
+            {
+              "heading": "Como usar",
+              "body": "<p>Inicie um projeto TDD-strict:</p>\n<pre><code>ralph-engine templates materialize official.tdd-strict.starter ./meu-projeto\n</code></pre>\n<p>Ou habilite a politica em um projeto existente adicionando <code>official.tdd-strict</code> na lista de plugins do <code>.ralph-engine/config.yaml</code>.</p>"
+            },
+            {
+              "heading": "Template vs Politica",
+              "body": "<p>Este plugin inclui duas coisas:</p>\n<ul>\n<li><strong>Template inicial</strong> (<code>official.tdd-strict.starter</code>) — cria um projeto pre-configurado com guardrails de TDD habilitados</li>\n<li><strong>Politica</strong> (<code>official.tdd-strict.guardrails</code>) — as regras de aplicacao que podem ser adicionadas a qualquer projeto existente</li>\n</ul>\n<p>Voce pode usar o template para projetos novos, ou simplesmente habilitar a politica em um projeto existente que usa <code>official.basic</code> ou <code>official.bmad</code> como base.</p>"
+            },
+            {
+              "heading": "Quando usar",
+              "body": "<p>Use este plugin quando:</p>\n<ul>\n<li>Sua equipe pratica TDD e quer aplicacao automatizada das regras</li>\n<li>Quiser garantir que codigo gerado por IA sempre tenha testes escritos primeiro</li>\n<li>O code review deve verificar que existem testes para cada criterio de aceitacao</li>\n<li>Quiser impedir que o &quot;vou adicionar testes depois&quot; aconteca</li>\n</ul>"
+            },
+            {
+              "heading": "Combinando com outros plugins",
+              "body": "<p>O TDD strict funciona junto com qualquer runtime de agente (Claude, Codex, Claude Box) e junto com o plugin de workflow BMAD. A aplicacao da politica acontece no momento dos checks, nao no nivel do agente.</p>"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
