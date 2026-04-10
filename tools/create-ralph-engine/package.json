@@ -1,6 +1,6 @@
 {
   "name": "create-ralph-engine-plugin",
-  "version": "0.2.0-alpha.1",
+  "version": "0.2.0-alpha.2",
   "description": "Plugin scaffolder for Ralph Engine — create community plugins with one command",
   "license": "MIT",
   "author": "Diego Rodrigo <diegorodrigo90@gmail.com>",
@@ -34,5 +34,8 @@
   },
   "bin": {
     "create-ralph-engine-plugin": "./bin/create-ralph-engine-plugin.js"
+  },
+  "dependencies": {
+    "yaml": "^2.7.1"
   }
 }
