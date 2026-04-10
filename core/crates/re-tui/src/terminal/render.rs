@@ -151,6 +151,9 @@ impl TuiShell {
         if self.theme_selector_visible {
             self.render_theme_selector(frame, area);
         }
+        if self.info_modal_title.is_some() {
+            self.render_info_modal(frame, area);
+        }
     }
 
     // ── Header ──────────────────────────────────────────────────

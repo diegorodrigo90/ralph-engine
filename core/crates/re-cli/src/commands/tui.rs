@@ -230,25 +230,23 @@ fn handle_dashboard_command(shell: &mut re_tui::TuiShell, input: &str, locale: &
     shell.push_activity(format!(">> /{command_text}"));
 
     match *cmd_name {
-        // ── Commands that produce visible output ────────────────
+        // ── Ephemeral info commands (modal, not feed) ──────────
         "help" => {
-            let mut block = re_tui::FeedBlock::completed(
-                re_tui::BlockKind::System,
-                i18n::tui_available_commands(locale).to_owned(),
-            );
-            for (name, desc) in dashboard_commands(locale) {
-                block.push_content(format!("/{name:<12} {desc}"));
-            }
-            shell.feed_mut().push_block(block);
-        }
-        "list" => {
-            dispatch_to_feed(shell, "run", &["--list".to_owned()], locale);
+            let lines: Vec<String> = dashboard_commands(locale)
+                .iter()
+                .map(|(name, desc)| format!("/{name:<12} {desc}"))
+                .collect();
+            shell.show_info_modal(i18n::tui_available_commands(locale), lines);
         }
         "status" => {
-            dispatch_to_feed(shell, "doctor", &[], locale);
+            dispatch_to_info_modal(shell, "doctor", &[], locale);
         }
         "plugins" => {
-            dispatch_to_feed(shell, "plugins", &[], locale);
+            dispatch_to_info_modal(shell, "plugins", &[], locale);
+        }
+        // ── Commands that produce work-related feed output ─────
+        "list" => {
+            dispatch_to_feed(shell, "run", &["--list".to_owned()], locale);
         }
         "config" => {
             shell.set_active_tab(re_tui::TuiTab::Config);
@@ -287,6 +285,23 @@ fn handle_dashboard_command(shell: &mut re_tui::TuiShell, input: &str, locale: &
     }
 }
 
+/// Dispatches a CLI command and shows the output in an info modal.
+///
+/// Used for ephemeral informational commands (plugins, status, help)
+/// that should not pollute the work feed. The modal is dismissed
+/// on any key press.
+fn dispatch_to_info_modal(shell: &mut re_tui::TuiShell, cmd: &str, args: &[String], locale: &str) {
+    match super::dispatch_command(cmd, args, locale) {
+        Ok(output) => {
+            let lines: Vec<String> = output.lines().map(ToOwned::to_owned).collect();
+            shell.show_info_modal(cmd, lines);
+        }
+        Err(e) => {
+            shell.show_error_modal(cmd, &e.to_string());
+        }
+    }
+}
+
 /// Dispatches a CLI command and shows the output as a feed block.
 ///
 /// This makes command results visible in the TUI — the feed block
@@ -299,7 +314,7 @@ fn dispatch_to_feed(shell: &mut re_tui::TuiShell, cmd: &str, args: &[String], lo
             for line in output.lines() {
                 block.push_content(line.to_owned());
             }
-            shell.feed_mut().push_block(block);
+            shell.push_feed_block(block);
         }
         Err(e) => {
             shell.show_error_modal(cmd, &e.to_string());

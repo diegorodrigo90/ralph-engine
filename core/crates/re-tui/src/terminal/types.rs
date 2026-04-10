@@ -327,6 +327,33 @@ pub struct IdleHint {
     pub description: String,
 }
 
+/// Status of one work item in the TUI execution queue.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WorkQueueStatus {
+    /// Item completed successfully.
+    Done,
+    /// Item currently being worked on.
+    Running,
+    /// Item is next in line (ready to start).
+    Next,
+    /// Item is queued for future execution.
+    Queued,
+}
+
+/// A work item in the execution queue shown in the TUI dashboard.
+///
+/// Workflow plugins populate this — core renders without knowing
+/// item semantics (Model B compliance).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkQueueItem {
+    /// Canonical work item identifier (e.g. `"5.3"`).
+    pub id: String,
+    /// Human-readable title.
+    pub title: String,
+    /// Current queue position status.
+    pub status: WorkQueueStatus,
+}
+
 /// A typed content item for sidebar panels.
 ///
 /// A renderable UI block — the core's view of a `TuiBlock`.

@@ -35,7 +35,7 @@ pub use process::{SessionState, StateEvent, StateListener};
 pub use terminal::{
     CommandEntry, CommandSource, FocusTarget, IdleHint, PanelHint, PanelItem, PanelSeverity,
     PluginKeyAction, RegisteredKeybinding, SidebarPanel, Toast, ToastLevel, TuiConfig, TuiLabels,
-    TuiShell, TuiState, TuiTab,
+    TuiShell, TuiState, TuiTab, WorkQueueItem, WorkQueueStatus,
 };
 // Re-export ratatui-zonekit for plugin zone management
 pub use ratatui_zonekit::{

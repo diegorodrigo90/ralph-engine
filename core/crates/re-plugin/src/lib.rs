@@ -1121,6 +1121,33 @@ pub struct WorkItemSummary {
     pub actionable: bool,
 }
 
+/// Status of one work item in the TUI execution queue.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WorkQueueStatus {
+    /// Item completed successfully.
+    Done,
+    /// Item currently being worked on.
+    Running,
+    /// Item is next in line (ready to start).
+    Next,
+    /// Item is queued for future execution.
+    Queued,
+}
+
+/// A work item in the execution queue shown in the TUI dashboard.
+///
+/// Plugins populate this via `work_item_queue()` on `PluginRuntime`.
+/// Core renders the queue without knowing item semantics (Model B).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct WorkQueueItem {
+    /// Canonical work item identifier (e.g. `"5.3"`).
+    pub id: String,
+    /// Human-readable title.
+    pub title: String,
+    /// Current queue position status.
+    pub status: WorkQueueStatus,
+}
+
 /// Assembled prompt context for an agent session.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PromptContext {
@@ -1556,6 +1583,17 @@ pub trait PluginRuntime: Send + Sync {
     /// Default: `None` (no input bar — read-only dashboard).
     fn tui_input_placeholder(&self) -> Option<String> {
         None
+    }
+
+    /// Returns the current work item execution queue for the TUI dashboard.
+    ///
+    /// Items are ordered: completed first, then current, then upcoming.
+    /// The workflow plugin owns item semantics (what statuses map to
+    /// Done/Running/Next/Queued) — core just renders the list.
+    ///
+    /// Default: empty (most plugins don't have a work queue).
+    fn work_item_queue(&self) -> Vec<WorkQueueItem> {
+        Vec::new()
     }
 
     /// Returns idle dashboard hints (command examples shown when no agent runs).

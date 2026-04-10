@@ -1123,3 +1123,96 @@ fn log_tab_empty_shows_placeholder() {
     let output = render_to_buffer(&mut shell, 140, 40);
     assert!(output.contains("No log output"));
 }
+
+// ── Fix 1: push_feed_block auto-scroll ─────────────────────
+
+#[test]
+fn push_feed_block_activates_follow_mode() {
+    let mut shell = empty_shell();
+    // Disable follow mode (simulates user scrolling up)
+    shell.follow_mode = false;
+    assert!(!shell.is_follow_mode());
+
+    // Push via push_feed_block should re-enable follow mode
+    let block =
+        crate::feed::FeedBlock::completed(crate::feed::BlockKind::System, "new content".into());
+    shell.push_feed_block(block);
+
+    assert!(shell.is_follow_mode());
+    assert_eq!(shell.feed().len(), 1);
+}
+
+// ── Fix 2: info modal ──────────────────────────────────────
+
+#[test]
+fn show_info_modal_sets_content() {
+    let mut shell = empty_shell();
+    assert!(!shell.is_info_modal_visible());
+
+    shell.show_info_modal("Plugins", vec!["plugin-a".into(), "plugin-b".into()]);
+    assert!(shell.is_info_modal_visible());
+    assert_eq!(shell.info_modal_title.as_deref(), Some("Plugins"));
+    assert_eq!(shell.info_modal_content.as_ref().unwrap().len(), 2);
+}
+
+#[test]
+fn info_modal_dismissed_on_key_press() {
+    let mut shell = empty_shell();
+    shell.show_info_modal("Test", vec!["line".into()]);
+    assert!(shell.is_info_modal_visible());
+
+    // Any key should dismiss it
+    shell.handle_key(KeyCode::Esc);
+    assert!(!shell.is_info_modal_visible());
+}
+
+#[test]
+fn info_modal_dismissed_on_enter() {
+    let mut shell = empty_shell();
+    shell.show_info_modal("Help", vec!["some help".into()]);
+    assert!(shell.is_info_modal_visible());
+
+    shell.handle_key(KeyCode::Enter);
+    assert!(!shell.is_info_modal_visible());
+}
+
+// ── Fix 3: work queue ──────────────────────────────────────
+
+#[test]
+fn work_queue_default_empty() {
+    let shell = empty_shell();
+    assert!(shell.work_queue().is_empty());
+}
+
+#[test]
+fn set_work_queue_stores_items() {
+    let mut shell = empty_shell();
+    let items = vec![
+        super::types::WorkQueueItem {
+            id: "5.1".into(),
+            title: "Add search".into(),
+            status: super::types::WorkQueueStatus::Done,
+        },
+        super::types::WorkQueueItem {
+            id: "5.2".into(),
+            title: "Pagination".into(),
+            status: super::types::WorkQueueStatus::Running,
+        },
+        super::types::WorkQueueItem {
+            id: "5.3".into(),
+            title: "Cursor pagination".into(),
+            status: super::types::WorkQueueStatus::Next,
+        },
+    ];
+    shell.set_work_queue(items.clone());
+    assert_eq!(shell.work_queue().len(), 3);
+    assert_eq!(shell.work_queue()[0].id, "5.1");
+    assert_eq!(
+        shell.work_queue()[1].status,
+        super::types::WorkQueueStatus::Running
+    );
+    assert_eq!(
+        shell.work_queue()[2].status,
+        super::types::WorkQueueStatus::Next
+    );
+}

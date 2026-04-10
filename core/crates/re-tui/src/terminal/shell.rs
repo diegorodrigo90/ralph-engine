@@ -65,6 +65,9 @@ pub struct TuiShell {
     pub(super) log_lines: Vec<String>,
     pub(super) touched_files: Vec<String>,
     pub(super) idle_hints: Vec<super::types::IdleHint>,
+    pub(super) info_modal_title: Option<String>,
+    pub(super) info_modal_content: Option<Vec<String>>,
+    pub(super) work_queue: Vec<super::types::WorkQueueItem>,
 }
 
 impl TuiShell {
@@ -119,6 +122,9 @@ impl TuiShell {
             log_lines: Vec::new(),
             touched_files: Vec::new(),
             idle_hints: Vec::new(),
+            info_modal_title: None,
+            info_modal_content: None,
+            work_queue: Vec::new(),
         }
     }
 
@@ -190,6 +196,16 @@ impl TuiShell {
     /// Returns a mutable reference to the block-based feed.
     pub fn feed_mut(&mut self) -> &mut crate::feed::Feed {
         &mut self.feed
+    }
+
+    /// Pushes a block to the feed and activates follow mode (auto-scroll).
+    ///
+    /// Use this instead of `feed_mut().push_block()` when adding blocks
+    /// from external commands — it ensures the view scrolls to the new
+    /// content automatically.
+    pub fn push_feed_block(&mut self, block: crate::feed::FeedBlock) {
+        self.feed.push_block(block);
+        self.follow_mode = true;
     }
 
     /// Whether follow mode is active (auto-scroll on new content).
@@ -327,6 +343,17 @@ impl TuiShell {
         self.idle_hints = hints;
     }
 
+    /// Sets the work item queue (Model B — workflow plugin provides items).
+    pub fn set_work_queue(&mut self, items: Vec<super::types::WorkQueueItem>) {
+        self.work_queue = items;
+    }
+
+    /// Returns a reference to the work item queue.
+    #[must_use]
+    pub fn work_queue(&self) -> &[super::types::WorkQueueItem] {
+        &self.work_queue
+    }
+
     /// Sets agent pid.
     pub fn set_agent_pid(&mut self, pid: u32) {
         self.agent_pid = Some(pid);
@@ -377,6 +404,28 @@ impl TuiShell {
     /// Shows a success.
     pub fn toast_success(&mut self, message: String) {
         self.show_toast(message, ToastLevel::Success);
+    }
+
+    /// Shows an informational modal overlay with scrollable text content.
+    ///
+    /// The modal stays visible until the user presses any key (Esc, Enter, q).
+    /// Use for ephemeral info that should not pollute the work feed
+    /// (e.g. `/plugins`, `/status`, `/help` output).
+    pub fn show_info_modal(&mut self, title: &str, content: Vec<String>) {
+        self.info_modal_title = Some(title.to_owned());
+        self.info_modal_content = Some(content);
+    }
+
+    /// Whether the info modal is currently visible.
+    #[must_use]
+    pub fn is_info_modal_visible(&self) -> bool {
+        self.info_modal_title.is_some()
+    }
+
+    /// Dismisses the info modal.
+    pub fn dismiss_info_modal(&mut self) {
+        self.info_modal_title = None;
+        self.info_modal_content = None;
     }
 
     /// Shows error modal.
@@ -752,6 +801,11 @@ impl TuiShell {
     ) -> PluginKeyAction {
         if self.help_modal_visible {
             self.help_modal_visible = false;
+            return PluginKeyAction::Handled;
+        }
+
+        if self.info_modal_title.is_some() {
+            self.dismiss_info_modal();
             return PluginKeyAction::Handled;
         }
 

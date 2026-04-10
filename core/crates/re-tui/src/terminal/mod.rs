@@ -25,7 +25,7 @@ pub use shell::TuiShell;
 pub use types::{
     CommandEntry, CommandSource, FocusTarget, IdleHint, PanelHint, PanelItem, PanelSeverity,
     PluginKeyAction, RegisteredKeybinding, SidebarPanel, Toast, ToastLevel, TuiConfig, TuiLabels,
-    TuiState, TuiTab,
+    TuiState, TuiTab, WorkQueueItem, WorkQueueStatus,
 };
 
 #[cfg(test)]

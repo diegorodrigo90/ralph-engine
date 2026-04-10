@@ -215,6 +215,38 @@ impl TuiShell {
             lines.push(Line::raw(""));
         }
 
+        // Work queue — plugin-contributed (Model B)
+        if !self.work_queue.is_empty() {
+            lines.push(Line::raw(""));
+            for item in &self.work_queue {
+                use super::types::WorkQueueStatus;
+                let line = match item.status {
+                    WorkQueueStatus::Done => t
+                        .line()
+                        .success(format!("  ✓ {}", item.id))
+                        .dim(format!(" — {}", item.title))
+                        .build(),
+                    WorkQueueStatus::Running => t
+                        .line()
+                        .accent_bold(format!("  ▸ {}", item.id))
+                        .bright(format!(" — {}", item.title))
+                        .build(),
+                    WorkQueueStatus::Next => t
+                        .line()
+                        .warning(format!("  ○ {}", item.id))
+                        .text(format!(" — {}", item.title))
+                        .build(),
+                    WorkQueueStatus::Queued => t
+                        .line()
+                        .dim(format!("    {}", item.id))
+                        .dim(format!(" — {}", item.title))
+                        .build(),
+                };
+                lines.push(line);
+            }
+            lines.push(Line::raw(""));
+        }
+
         // Command hints — plugin-contributed (Model B) + core builtins
         if self.idle_hints.is_empty() {
             // No plugin hints → show no-project message + init
@@ -465,6 +497,53 @@ impl TuiShell {
 
         let title = format!(" {} ", self.labels.help_title);
         let block = t.block(&title).focused(true).build();
+
+        frame.render_widget(Clear, popup);
+        frame.render_widget(Paragraph::new(lines).block(block), popup);
+    }
+
+    /// Renders the info modal overlay (for ephemeral content like /plugins, /status).
+    ///
+    /// Centered box (70% width, 60% height) with title bar and scrollable
+    /// content. Dismissed on any key press.
+    pub(super) fn render_info_modal(&self, frame: &mut Frame<'_>, area: Rect) {
+        let Some(title) = &self.info_modal_title else {
+            return;
+        };
+        let content = self
+            .info_modal_content
+            .as_deref()
+            .unwrap_or(&[] as &[String]);
+
+        let t = self.theme();
+
+        let popup_w = (area.width * 70 / 100)
+            .max(40)
+            .min(area.width.saturating_sub(4));
+        let popup_h = (area.height * 60 / 100)
+            .max(10)
+            .min(area.height.saturating_sub(4));
+        let popup = Rect {
+            x: area.x + (area.width.saturating_sub(popup_w)) / 2,
+            y: area.y + (area.height.saturating_sub(popup_h)) / 2,
+            width: popup_w,
+            height: popup_h,
+        };
+
+        let mut lines: Vec<Line<'_>> = content
+            .iter()
+            .map(|line| t.line().text(line.as_str()).build())
+            .collect();
+
+        lines.push(Line::raw(""));
+        lines.push(
+            t.line()
+                .border(format!("  {}", self.labels.press_any_key))
+                .build(),
+        );
+
+        let block_title = format!(" {title} ");
+        let block = t.block(&block_title).focused(true).build();
 
         frame.render_widget(Clear, popup);
         frame.render_widget(Paragraph::new(lines).block(block), popup);

@@ -1109,6 +1109,12 @@ mod community_plugin_e2e {
     }
 
     #[test]
+    fn work_item_queue_default_empty() {
+        let rt = AcmeLinterRuntime;
+        assert!(rt.work_item_queue().is_empty());
+    }
+
+    #[test]
     fn default_workflow_methods_return_typed_errors() {
         let rt = AcmeLinterRuntime;
         let root = Path::new(".");

@@ -10,7 +10,8 @@ use re_plugin::{
     PluginDescriptor, PluginKind, PluginLifecycleStage, PluginLoadBoundary, PluginLocalizedText,
     PluginPromptAsset, PluginPromptDescriptor, PluginRuntime, PluginRuntimeError,
     PluginRuntimeHook, PluginTemplateAsset, PluginTemplateDescriptor, PluginTrustLevel,
-    PromptContext, TEMPLATE, WORKFLOW, WorkItemResolution, WorkItemSummary,
+    PromptContext, TEMPLATE, WORKFLOW, WorkItemResolution, WorkItemSummary, WorkQueueItem,
+    WorkQueueStatus,
 };
 
 /// Stable plugin identifier.
@@ -309,6 +310,23 @@ impl PluginRuntime for BmadRuntime {
             .collect();
 
         Ok(items)
+    }
+
+    fn work_item_queue(&self) -> Vec<WorkQueueItem> {
+        let config_path = Path::new(".ralph-engine/config.yaml");
+        let (tracker_file, _) = read_bmad_paths(config_path);
+        let tracker_path = Path::new(&tracker_file);
+
+        let Ok(content) = std::fs::read_to_string(tracker_path) else {
+            return Vec::new();
+        };
+
+        let all_items: Vec<WorkItemSummary> = content
+            .lines()
+            .filter_map(|line| parse_tracker_line_as_work_item(line.trim()))
+            .collect();
+
+        build_work_queue_from_items(&all_items)
     }
 
     /// BMAD workflow plugin requires research tools (Archon RAG, Context7)
@@ -663,6 +681,81 @@ fn is_tracker_metadata_line(trimmed: &str) -> bool {
         || trimmed.starts_with("development_status")
 }
 
+/// Builds a bounded work queue from a full list of work items.
+///
+/// Selects up to 5 most recent done items, the current in-progress item,
+/// and up to 4 upcoming items. Maps BMAD statuses to queue statuses:
+/// - `"done"` or `"review"` → Done
+/// - `"in-progress"` → Running
+/// - `"ready-for-dev"` → Next (first one only), rest → Queued
+/// - `"backlog"` → Queued
+fn build_work_queue_from_items(items: &[WorkItemSummary]) -> Vec<WorkQueueItem> {
+    let mut queue: Vec<WorkQueueItem> = Vec::new();
+
+    // Collect items by status category
+    let mut done_items: Vec<&WorkItemSummary> = Vec::new();
+    let mut running_items: Vec<&WorkItemSummary> = Vec::new();
+    let mut ready_items: Vec<&WorkItemSummary> = Vec::new();
+    let mut queued_items: Vec<&WorkItemSummary> = Vec::new();
+
+    for item in items {
+        match item.status.as_str() {
+            "done" | "review" => done_items.push(item),
+            "in-progress" => running_items.push(item),
+            "ready-for-dev" | "todo" | "ready" => ready_items.push(item),
+            _ => queued_items.push(item),
+        }
+    }
+
+    // Last 5 done items
+    let done_start = done_items.len().saturating_sub(5);
+    for item in &done_items[done_start..] {
+        queue.push(WorkQueueItem {
+            id: item.id.clone(),
+            title: item.title.clone(),
+            status: WorkQueueStatus::Done,
+        });
+    }
+
+    // Current running item(s)
+    for item in &running_items {
+        queue.push(WorkQueueItem {
+            id: item.id.clone(),
+            title: item.title.clone(),
+            status: WorkQueueStatus::Running,
+        });
+    }
+
+    // First ready = Next, rest = Queued
+    let mut first_ready = true;
+    for item in &ready_items {
+        let status = if first_ready {
+            first_ready = false;
+            WorkQueueStatus::Next
+        } else {
+            WorkQueueStatus::Queued
+        };
+        queue.push(WorkQueueItem {
+            id: item.id.clone(),
+            title: item.title.clone(),
+            status,
+        });
+    }
+
+    // Up to 4 backlog/queued items
+    for item in queued_items.iter().take(4) {
+        queue.push(WorkQueueItem {
+            id: item.id.clone(),
+            title: item.title.clone(),
+            status: WorkQueueStatus::Queued,
+        });
+    }
+
+    // Limit total to ~10 items
+    queue.truncate(10);
+    queue
+}
+
 /// Builds TUI blocks from tracker content for sprint progress display.
 fn build_sprint_blocks(content: &str) -> Vec<re_plugin::TuiBlock> {
     let (done, doing, todo) = count_sprint_statuses(content);
@@ -864,7 +957,7 @@ fn find_story_file(
 #[cfg(test)]
 #[allow(clippy::unwrap_used, clippy::panic)]
 mod tests {
-    use re_plugin::{PluginCheckKind, PluginRuntime};
+    use re_plugin::{PluginCheckKind, PluginRuntime, WorkItemSummary, WorkQueueStatus};
 
     use super::{
         PLUGIN_ID, PLUGIN_SUMMARY, capabilities, checks, descriptor, i18n, lifecycle, prompts,
@@ -1686,5 +1779,92 @@ mod tests {
         let hints = runtime.idle_hints();
         // In test env, no config file exists → empty
         assert!(hints.is_empty(), "no hints without config");
+    }
+
+    // ── build_work_queue_from_items ────────────────────────────────
+
+    #[test]
+    fn build_work_queue_maps_statuses() {
+        let items = vec![
+            WorkItemSummary {
+                id: "5.1".into(),
+                title: "search".into(),
+                status: "done".into(),
+                actionable: false,
+            },
+            WorkItemSummary {
+                id: "5.2".into(),
+                title: "pagination".into(),
+                status: "in-progress".into(),
+                actionable: false,
+            },
+            WorkItemSummary {
+                id: "5.3".into(),
+                title: "cursor".into(),
+                status: "ready-for-dev".into(),
+                actionable: true,
+            },
+            WorkItemSummary {
+                id: "5.4".into(),
+                title: "sort".into(),
+                status: "ready-for-dev".into(),
+                actionable: true,
+            },
+            WorkItemSummary {
+                id: "5.5".into(),
+                title: "analytics".into(),
+                status: "backlog".into(),
+                actionable: false,
+            },
+        ];
+
+        let queue = super::build_work_queue_from_items(&items);
+
+        assert_eq!(queue.len(), 5);
+        assert_eq!(queue[0].status, WorkQueueStatus::Done);
+        assert_eq!(queue[0].id, "5.1");
+        assert_eq!(queue[1].status, WorkQueueStatus::Running);
+        assert_eq!(queue[1].id, "5.2");
+        assert_eq!(queue[2].status, WorkQueueStatus::Next);
+        assert_eq!(queue[2].id, "5.3");
+        assert_eq!(queue[3].status, WorkQueueStatus::Queued);
+        assert_eq!(queue[3].id, "5.4");
+        assert_eq!(queue[4].status, WorkQueueStatus::Queued);
+        assert_eq!(queue[4].id, "5.5");
+    }
+
+    #[test]
+    fn build_work_queue_limits_done_to_5() {
+        let items: Vec<WorkItemSummary> = (1..=8)
+            .map(|i| WorkItemSummary {
+                id: format!("1.{i}"),
+                title: format!("story {i}"),
+                status: "done".into(),
+                actionable: false,
+            })
+            .collect();
+
+        let queue = super::build_work_queue_from_items(&items);
+        let done_count = queue
+            .iter()
+            .filter(|q| q.status == WorkQueueStatus::Done)
+            .count();
+        assert_eq!(done_count, 5);
+        // Should keep the last 5 (1.4 through 1.8)
+        assert_eq!(queue[0].id, "1.4");
+    }
+
+    #[test]
+    fn build_work_queue_empty_input_returns_empty() {
+        let queue = super::build_work_queue_from_items(&[]);
+        assert!(queue.is_empty());
+    }
+
+    #[test]
+    fn work_item_queue_empty_without_config() {
+        // Without .ralph-engine/config.yaml, returns empty
+        let runtime = super::BmadRuntime;
+        let queue = runtime.work_item_queue();
+        assert!(queue.is_empty());
     }
 }
