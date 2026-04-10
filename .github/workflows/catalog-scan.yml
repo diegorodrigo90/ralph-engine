@@ -45,10 +45,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BRANCH="chore/catalog-update-$(date +%Y%m%d)"
+          BRANCH="chore/catalog-update-$(date +%Y%m%d-%H%M)"
           DIFF_SUMMARY=$(git diff --stat site/src/data/plugins.json site/public/plugins/index.json | tail -1)
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Close any existing catalog PRs (only one should be open at a time)
+          gh pr list --label "" --search "chore(catalog)" --state open --json number --jq '.[].number' | \
+            xargs -I{} gh pr close {} --delete-branch 2>/dev/null || true
           git checkout -b "$BRANCH"
           git add site/src/data/plugins.json site/public/plugins/index.json
           git commit -m "chore(catalog): update community plugin index"
