@@ -185,7 +185,7 @@ pub struct TuiLabels {
     pub quit_question: String,
     /// Bottom bar: modal open hint.
     pub modal_open_hint: String,
-    // ── State labels ───────────��────────────────────────────────
+    // ── State labels ─────────────────────────────────────────────
     /// TUI state: running.
     pub state_running: String,
     /// TUI state: paused.
@@ -201,7 +201,7 @@ pub struct TuiLabels {
     pub help_label: String,
     /// Help bar: quit label.
     pub quit_label: String,
-    // ── Control panel ───────���───────────────────────────────────
+    // ── Control panel ─────────────────────────────────────────────
     /// Control panel: state label prefix.
     pub control_state: String,
     /// Control panel: work label prefix.
@@ -213,7 +213,7 @@ pub struct TuiLabels {
     pub lines_label: String,
     /// Metrics: progress label.
     pub progress_label: String,
-    // ── Logo ──────��──────────────────────────────��──────────────
+    // ── Logo ──────────────────────────────────────────────────────
     /// Logo tagline.
     pub logo_tagline: String,
     // ── Help modal key descriptions ─────────────────────────────

@@ -65,7 +65,7 @@ pub(super) fn unknown_policy_asset(value: &str) -> String {
     format!("asset de política desconhecido: {value}")
 }
 
-// ── Install/uninstall ──────────���─────────────────────────────────
+// ── Install/uninstall ──────────────────────────────────────────────
 
 pub(super) fn install_already_installed(plugin_id: &str, path: &str) -> String {
     format!("Plugin '{plugin_id}' já está instalado em {path}")
@@ -95,19 +95,19 @@ pub(super) fn install_uninstalled(plugin_id: &str) -> String {
     format!("Plugin '{plugin_id}' desinstalado.")
 }
 
-// ── Init ────────────────────────���───────────────────────────────���
+// ── Init ─────────────────────────────────────────────────────────────
 
 pub(super) fn init_remove_failed(error: &str) -> String {
     format!("Falha ao remover .ralph-engine/: {error}")
 }
 
-// ── MCP ──��────────────────────────────────────────────────────��──
+// ── MCP ────────────────────────────────────────────────────────────
 
 pub(super) fn mcp_install_hint(program: &str) -> String {
     format!("Dica: instale '{program}' ou adicione-o ao PATH para habilitar este servidor MCP")
 }
 
-// ── Policies ────────────���───────────────────────��────────────────
+// ── Policies ────────────────────────────────────────────────────────
 
 pub(super) fn policies_materialize_hint(policy_id: &str) -> String {
     format!(
