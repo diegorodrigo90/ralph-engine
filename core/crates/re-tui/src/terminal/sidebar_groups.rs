@@ -93,22 +93,30 @@ fn classify_non_agent(plugin_id: &str) -> Domain {
 mod tests {
     use super::*;
 
-    fn panel(plugin_id: &str, title: &str) -> SidebarPanel {
-        let is_agent = plugin_id.contains("claude") || plugin_id.contains("codex");
+    fn agent(plugin_id: &str, title: &str) -> SidebarPanel {
         SidebarPanel {
             title: title.to_owned(),
             items: Vec::new(),
             plugin_id: plugin_id.to_owned(),
-            is_agent,
+            is_agent: true,
+        }
+    }
+
+    fn non_agent(plugin_id: &str, title: &str) -> SidebarPanel {
+        SidebarPanel {
+            title: title.to_owned(),
+            items: Vec::new(),
+            plugin_id: plugin_id.to_owned(),
+            is_agent: false,
         }
     }
 
     #[test]
     fn groups_agents_together() {
         let panels = vec![
-            panel("official.claude", "Claude"),
-            panel("official.claudebox", "ClaudeBox"),
-            panel("official.codex", "Codex"),
+            agent("official.claude", "Claude"),
+            agent("official.claudebox", "ClaudeBox"),
+            agent("official.codex", "Codex"),
         ];
         let groups = group_panels(&panels);
         assert_eq!(groups.len(), 1);
@@ -119,8 +127,8 @@ mod tests {
     #[test]
     fn groups_sprint_separately() {
         let panels = vec![
-            panel("official.bmad", "Sprint"),
-            panel("official.claude", "Claude"),
+            non_agent("official.bmad", "Sprint"),
+            agent("official.claude", "Claude"),
         ];
         let groups = group_panels(&panels);
         assert_eq!(groups.len(), 2);
@@ -131,10 +139,10 @@ mod tests {
     #[test]
     fn tool_plugins_hidden_from_sidebar() {
         let panels = vec![
-            panel("official.github", "GitHub"),
-            panel("official.tdd-strict", "TDD"),
-            panel("official.router", "Router"),
-            panel("official.context", "Context"),
+            non_agent("official.github", "GitHub"),
+            non_agent("official.tdd-strict", "TDD"),
+            non_agent("official.router", "Router"),
+            non_agent("official.context", "Context"),
         ];
         let groups = group_panels(&panels);
         assert!(
@@ -146,8 +154,8 @@ mod tests {
     #[test]
     fn findings_shown_without_tools() {
         let panels = vec![
-            panel("official.findings", "Findings"),
-            panel("official.github", "GitHub"),
+            non_agent("official.findings", "Findings"),
+            non_agent("official.github", "GitHub"),
         ];
         let groups = group_panels(&panels);
         assert_eq!(groups.len(), 1);
@@ -156,7 +164,7 @@ mod tests {
 
     #[test]
     fn empty_groups_omitted() {
-        let panels = vec![panel("official.claude", "Claude")];
+        let panels = vec![agent("official.claude", "Claude")];
         let groups = group_panels(&panels);
         assert_eq!(groups.len(), 1);
         assert_eq!(groups[0].title, "Agents");
@@ -171,10 +179,10 @@ mod tests {
     #[test]
     fn all_three_sidebar_groups() {
         let panels = vec![
-            panel("official.claude", "Claude"),
-            panel("official.bmad", "Sprint"),
-            panel("official.github", "GitHub"), // hidden
-            panel("official.findings", "Findings"),
+            agent("official.claude", "Claude"),
+            non_agent("official.bmad", "Sprint"),
+            non_agent("official.github", "GitHub"), // hidden
+            non_agent("official.findings", "Findings"),
         ];
         let groups = group_panels(&panels);
         assert_eq!(groups.len(), 3);
@@ -185,8 +193,8 @@ mod tests {
     #[test]
     fn community_plugins_hidden() {
         let panels = vec![
-            panel("community.acme.jira", "Jira"),
-            panel("community.foo.bar", "Custom"),
+            non_agent("community.acme.jira", "Jira"),
+            non_agent("community.foo.bar", "Custom"),
         ];
         let groups = group_panels(&panels);
         assert!(groups.is_empty(), "community plugins hidden from sidebar");
@@ -195,10 +203,10 @@ mod tests {
     #[test]
     fn group_order_is_agents_sprint_findings() {
         let panels = vec![
-            panel("official.findings", "Findings"),
-            panel("official.github", "GitHub"),
-            panel("official.bmad", "Sprint"),
-            panel("official.claude", "Claude"),
+            non_agent("official.findings", "Findings"),
+            non_agent("official.github", "GitHub"),
+            non_agent("official.bmad", "Sprint"),
+            agent("official.claude", "Claude"),
         ];
         let groups = group_panels(&panels);
         let titles: Vec<&str> = groups.iter().map(|g| g.title).collect();

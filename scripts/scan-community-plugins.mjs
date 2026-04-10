@@ -48,6 +48,7 @@ function stripHtml(str) {
     .replace(/<[^>]*>/g, "")
     .replace(/&[a-z]+;/gi, " ")
     .replace(/&#\d+;/g, " ")
+    .replace(/&#x[0-9a-f]+;/gi, " ")
     .trim();
 }
 

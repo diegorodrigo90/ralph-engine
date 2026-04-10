@@ -584,6 +584,17 @@ fn run_with_tui(
         .collect();
     shell.set_sidebar_panels(sidebar_panels);
 
+    // Auto-discover idle hints from plugins (shown when agent completes)
+    let plugin_hints = catalog::collect_idle_hints_from_plugins();
+    let idle_hints: Vec<re_tui::IdleHint> = plugin_hints
+        .into_iter()
+        .map(|h| re_tui::IdleHint {
+            command: h.command,
+            description: h.description,
+        })
+        .collect();
+    shell.set_idle_hints(idle_hints);
+
     // Non-blocking stdout reader via thread
     let (tx, rx) = std::sync::mpsc::channel::<String>();
     if let Some(stdout) = spawned.take_stdout() {
