@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   scan:
@@ -37,11 +38,20 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Commit catalog update
+      - name: Create PR with catalog update
         if: steps.changes.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          BRANCH="chore/catalog-update-$(date +%Y%m%d)"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
           git add site/src/data/plugins.json site/public/plugins/index.json
           git commit -m "chore(catalog): update community plugin index"
-          git push
+          git push -u origin "$BRANCH"
+          gh pr create \
+            --title "chore(catalog): update community plugin index" \
+            --body "Automated daily scan found new or updated community plugins." \
+            --base main \
+            --head "$BRANCH"
