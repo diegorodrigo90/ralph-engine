@@ -1,11 +1,12 @@
 [workspace]
-# release-plz creates PR → merge → tag → GitHub Release → publish crates.
+# release-plz creates PR → merge → tag → GitHub Release (no crates.io publish).
 # npm and Homebrew are published by the manual release.yml workflow.
 git_tag_enable = true
 git_release_enable = true
 git_release_draft = false
 git_release_latest = true
 publish = false
+release = true
 semver_check = false
 pr_labels = ["release"]
 
