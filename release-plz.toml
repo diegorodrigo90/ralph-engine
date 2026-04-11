@@ -14,3 +14,5 @@ name = "ralph-engine"
 git_tag_name = "v{{ version }}"
 git_release_name = "v{{ version }}"
 changelog_path = "CHANGELOG.md"
+# Force release PR creation even with publish = false (we distribute binaries, not crates)
+release = true
