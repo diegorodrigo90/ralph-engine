@@ -24,7 +24,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40
         with:
           egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -57,7 +57,7 @@ jobs:
             checks: fmt,clippy,test,rustdoc,public
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40
         with:
           egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -134,7 +134,7 @@ jobs:
     # avoiding duplicated installs and duplicate findings across the OS matrix.
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40
         with:
           egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -182,7 +182,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40
         with:
           egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -215,7 +215,7 @@ jobs:
       actions: read
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40
         with:
           egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -268,7 +268,7 @@ jobs:
             artifact_name: release-candidate-dist-windows
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40
         with:
           egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -327,7 +327,7 @@ jobs:
       contents: read
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@fe104658747b27e96e4f7e80cd0a94068e53901d
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40
         with:
           egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
