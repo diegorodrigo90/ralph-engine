@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@commitlint/cli": "20.5.0",
-    "@commitlint/config-conventional": "20.5.0",
+    "@commitlint/config-conventional": "20.5.3",
     "lefthook": "2.1.4",
     "yaml": "2.8.3"
   },
