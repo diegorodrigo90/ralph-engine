@@ -31,7 +31,7 @@ re-plugin = { path = "../re-plugin", version = "0.2.0-alpha.1" }
 re-tui = { path = "../re-tui", version = "0.2.0-alpha.1" }
 owo-colors = { version = "4", features = ["supports-colors"] }
 ratatui = "0.30"
-sentry = { version = "0.47", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls"] }
+sentry = { version = "0.48", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls"] }
 
 [build-dependencies]
 re-build-utils = { path = "../re-build-utils", version = "0.2.0-alpha.1" }
